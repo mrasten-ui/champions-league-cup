@@ -1,0 +1,1 @@
+node --env-file=.env scripts/seed-api-ids.js
