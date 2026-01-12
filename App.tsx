@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Trophy, Zap, LayoutGrid, ListOrdered, CheckCircle2, ChevronRight, MonitorPlay, Eye, EyeOff, Shuffle, ArrowRight, Users, Lock, Unlock, Grid3X3, Menu, Table2, LogOut, BookOpen, Settings, ChevronLeft, ShieldCheck, Sparkles, UserCircle2, Network, UserCircle, Edit3, X, ArrowLeft, Trash2, RefreshCw, Bot, Calendar, CalendarDays, GitMerge } from 'lucide-react';
 import { TEAMS as INITIAL_TEAMS, INITIAL_MATCHES, TRANSLATIONS, LANGUAGES, AVATARS, GROUP_CONFIG, MOCK_PREDICTIONS, INTRO_VIDEOS } from './constants';
@@ -994,8 +993,8 @@ const App: React.FC = () => {
                     >
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
                         <div className="relative z-10 flex flex-col items-center">
-                            <Table2 size={24} className="text-white" />
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest">ALL</span>
+                            <LayoutGrid size={24} className="text-white" />
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span>
                         </div>
                     </button>
                 </div>
@@ -1126,7 +1125,7 @@ const App: React.FC = () => {
                                           onClick={() => setShowOverview(true)}
                                           className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                                       >
-                                          <LayoutGrid size={18} /> Overview
+                                          <LayoutGrid size={18} /> {t.tablesBtn}
                                       </button>
                                       <button 
                                           onClick={() => setActiveTab('knockout')}

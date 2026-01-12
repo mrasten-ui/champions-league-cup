@@ -1,4 +1,3 @@
-
 import { Team, Match, Translation, LanguageCode, Prediction } from './types';
 
 // HOST CONFIGURATION
@@ -174,6 +173,7 @@ const EN_TRANSLATION: Translation = {
     backToGroup: "Back to Group", backTo: "Back to", goToBracket: "Go to Knockouts",
     prevGroup: "Prev Group", nextGroup: "Next Group",
     overviewBtn: "Overview", bracketBtn: "Knockout Tree", allBtn: "All",
+    tablesBtn: "Tables",
     confirmClear: "Are you sure you want to clear your predictions?", finishGroupBtn: "Finish Group {0}",
     revealBtn: "Reveal", 
     tokensLeft: "Intel", spyCost: "1 Intel", 
@@ -319,6 +319,7 @@ const SCO_TRANSLATION: Translation = {
     backToGroup: "Back tae Groups", backTo: "Back tae", goToBracket: "Tae the Knockoots",
     prevGroup: "Prev", nextGroup: "Next",
     overviewBtn: "Overview", bracketBtn: "The Tree", allBtn: "Aw",
+    tablesBtn: "Tables",
     confirmClear: "Ye sure ye want tae bin yer picks?", finishGroupBtn: "Sort Group {0}",
     revealBtn: "Keek", 
     tokensLeft: "Intel", spyCost: "1 Intel",
@@ -452,6 +453,7 @@ const US_TRANSLATION: Translation = {
     backToGroup: "Back to Groups", backTo: "Back to", goToBracket: "Go to Bracket",
     prevGroup: "Prev", nextGroup: "Next",
     overviewBtn: "Overview", bracketBtn: "Bracket", allBtn: "All",
+    tablesBtn: "Standings",
     confirmClear: "Clear all picks?", finishGroupBtn: "Finish Group {0}",
     revealBtn: "Reveal", 
     tokensLeft: "Intel", spyCost: "1 Intel",
@@ -575,6 +577,7 @@ const NO_TRANSLATION: Translation = {
     backToGroup: "Tilbake til Gruppe", backTo: "Tilbake til", goToBracket: "Gå til Sluttspill",
     prevGroup: "Forrige Gruppe", nextGroup: "Neste Gruppe",
     overviewBtn: "Oversikt", bracketBtn: "Sluttspill", allBtn: "Alle",
+    tablesBtn: "Tabeller",
     confirmClear: "Er du sikker på at du vil slette tipsene dine?", finishGroupBtn: "Fullfør Gruppe {0}",
     revealBtn: "Avslør", 
     tokensLeft: "Intel", spyCost: "1 Intel",

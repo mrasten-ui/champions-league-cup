@@ -1,4 +1,3 @@
-
 // Types definition for Rasten Cup '26
 export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE' | 'FINISHED';
@@ -156,6 +155,7 @@ export interface Translation {
   overviewBtn: string;
   bracketBtn: string;
   allBtn: string;
+  tablesBtn: string;
   confirmClear: string;
   finishGroupBtn: string;
   // MatchCard & Interaction

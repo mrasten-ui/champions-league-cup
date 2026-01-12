@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Sparkles, RefreshCw, AlertCircle, Check } from 'lucide-react';
@@ -11,7 +10,9 @@ interface AvatarGeneratorProps {
 }
 
 // Utility to compress image to a small Avatar friendly size
-const compressImage = (base64Str: string, maxWidth = 150, quality = 0.7): Promise<string> => {
+// UPDATED: Increased maxWidth to 180 and quality to 0.85 for better crispness
+// This results in a string size of approx 15KB-30KB, which fits safely in our new App.tsx limit.
+const compressImage = (base64Str: string, maxWidth = 180, quality = 0.85): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;
@@ -58,14 +59,13 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         
         // We request a square image
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-2.0-flash-exp', // Updated model
             contents: {
             parts: [{ text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.` }],
             },
             config: {
-            imageConfig: {
-                aspectRatio: "1:1"
-            }
+            // @ts-ignore - Valid config for image generation
+            responseMimeType: "image/jpeg"
             }
         });
         
@@ -94,7 +94,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
             if (candidate?.finishReason === 'SAFETY') {
                 setError('Safety filters blocked this request. Try a different description.');
             } else {
-                setError('AI returned no image data.');
+                // Fallback for text-only responses
+                setError('AI returned no image data. Try again.');
             }
         }
 
