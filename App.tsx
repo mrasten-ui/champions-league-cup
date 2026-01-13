@@ -388,7 +388,10 @@ const App: React.FC = () => {
                             homeScore: isRealLocked ? Number(realM.home_score) : m.homeScore, 
                             awayScore: isRealLocked ? Number(realM.away_score) : m.awayScore, 
                             status: statusVal, 
-                            isLocked: isRealLocked 
+                            isLocked: isRealLocked,
+                            // UPDATED: Now syncing date and venue from Supabase
+                            date: realM.date ? realM.date : m.date,
+                            venue: realM.venue ? realM.venue : m.venue
                         };
                      }
                      return m;
@@ -436,7 +439,7 @@ const App: React.FC = () => {
 
     Object.keys(sanitizedUsersDb).forEach(key => {
         const u = sanitizedUsersDb[key];
-        if (u.avatar && u.avatar.length > 20000 && u.avatar.startsWith('data:image')) {
+        if (u.avatar && u.avatar.length > 150000 && u.avatar.startsWith('data:image')) {
             console.warn(`Sanitizing heavy avatar for ${u.name}`);
             const safeAvatar = `https://api.dicebear.com/9.x/micah/svg?seed=${u.name.replace(/\s/g, '')}&backgroundColor=d1d4f9`;
             sanitizedUsersDb[key] = { ...u, avatar: safeAvatar };
