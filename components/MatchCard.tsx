@@ -83,7 +83,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [loadingH2H, setLoadingH2H] = useState(false);
     const [showHistoryDetails, setShowHistoryDetails] = useState(false);
 
-    const isKnockout = !!match.round; // Determine if this is a knockout match
+    const isKnockout = !!match.round; 
 
     useEffect(() => {
         if (prediction) {
@@ -97,7 +97,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     useEffect(() => {
         const hasScore = displayHome !== null || displayAway !== null;
-        // Only fetch history if we haven't yet, and not for knockout placeholders TBD
         const isValidMatchup = homeTeam && awayTeam && homeTeam.id !== 'TBD' && awayTeam.id !== 'TBD';
         const shouldFetch = isValidMatchup && hasScore && !h2hData && !loadingH2H && !match.isLocked;
 
@@ -130,32 +129,35 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         onUpdate(match.id, h, a);
     };
 
-    const handleWinnerSelect = (winner: 'home' | 'away') => {
-        if (isLocked) return;
-        // For knockouts, we store 1-0 or 0-1 to signify the winner
-        if (winner === 'home') {
-            setDisplayHome(1); setDisplayAway(0);
-            onUpdate(match.id, 1, 0);
+    // New Handler for Team Area Clicks
+    const handleTeamAreaClick = (side: 'home' | 'away') => {
+        if (isKnockout) {
+            // Knockout Mode: Click selects winner
+            if (!isLocked) {
+                if (side === 'home') {
+                    setDisplayHome(1); setDisplayAway(0);
+                    onUpdate(match.id, 1, 0);
+                } else {
+                    setDisplayHome(0); setDisplayAway(1);
+                    onUpdate(match.id, 0, 1);
+                }
+            }
         } else {
-            setDisplayHome(0); setDisplayAway(1);
-            onUpdate(match.id, 0, 1);
+            // Group Mode: Click opens modal
+            const teamId = side === 'home' ? match.homeTeamId : match.awayTeamId;
+            if (onTeamClick && !teamId.startsWith('TBD')) {
+                onTeamClick(teamId);
+            }
         }
     };
 
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     
-    // STRICT LOCKING LOGIC:
-    // 1. Real Life: If match is live or finished, it's locked.
-    // 2. Phase Lock: If we are in 'LIVE' phase of app, ALL matches are locked by default to preserve integrity.
-    // 3. Unlock: Admin or Substitution can bypass.
     const isRealLifeLocked = match.isLocked || isLive || isFinished;
     const isPhaseLocked = phase === 'LIVE';
     
-    // It is locked if (RealLocked OR PhaseLocked) AND (Not Admin AND Not Subbed)
     const isLocked = (isRealLifeLocked || isPhaseLocked) && !isAdminMode && !isUnlockedBySub;
-
-    // We can substitute if it's Phase Locked but NOT Real Life Locked (match hasn't started yet)
     const canSubstitute = isPhaseLocked && !isRealLifeLocked && !isUnlockedBySub && onSubstitute;
 
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
@@ -168,10 +170,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const awayRank = awayTeam?.rank;
 
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    // Can spy if we have tokens, match isn't started (or is phase locked but viewable), and rivals exist
     const canSpy = !isSpied && userTokens > 0 && !isRealLifeLocked && rivals.length > 0;
-    
-    // Show rivals if I spied OR if the match is officially live/done
     const showRivals = isSpied || isRealLifeLocked;
 
     const handleSubClick = (e: React.MouseEvent) => {
@@ -180,13 +179,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             if (window.confirm(`${lang.subConfirm} (${substitutionsLeft} ${lang.substitutions} left)`)) {
                 onSubstitute();
             }
-        }
-    };
-
-    const onFlagClick = (e: React.MouseEvent, teamId: string) => {
-        e.stopPropagation();
-        if (onTeamClick && !teamId.startsWith('TBD')) {
-            onTeamClick(teamId);
         }
     };
 
@@ -226,13 +218,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              </div>
 
             {/* Main Content */}
-             <div className="p-4 flex items-center justify-between relative z-10">
+             <div className="p-4 flex items-center justify-between relative z-10 gap-2">
                 {/* Home Team */}
-                <div className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 transition-opacity ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-                    <div 
-                        onClick={(e) => onFlagClick(e, homeTeam?.id)}
-                        className={`relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 transform transition-transform group-hover:scale-105 ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                    >
+                <div 
+                    onClick={() => handleTeamAreaClick('home')}
+                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
+                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
+                    } ${
+                        predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
+                    } ${
+                        predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
+                    }`}
+                >
+                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
@@ -241,45 +239,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             #{homeRank}
                             </div>
                         )}
+                        {/* Knockout Selection Checkmark */}
+                        {isKnockout && predictedWinnerId === match.homeTeamId && (
+                            <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
+                                <Check size={14} strokeWidth={4} />
+                            </div>
+                        )}
                     </div>
-                    <span onClick={(e) => onFlagClick(e, homeTeam?.id)} className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${onTeamClick ? 'cursor-pointer hover:text-blue-600' : ''}`}>{homeName}</span>
+                    <span className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
                 </div>
 
-                {/* CENTER: Score / VS / Pick Controls */}
-                <div className="flex flex-col items-center justify-center px-2 z-20 shrink-0 min-w-[140px]">
+                {/* CENTER: VS / Controls */}
+                <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 min-w-[80px]">
                     {isKnockout ? (
-                        // === KNOCKOUT VIEW ===
-                        // If locked: Show Winner Badge. If unlocked: Show Pick Buttons.
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300">
-                            {!isLocked ? (
-                                <div className="flex gap-2">
-                                    <button 
-                                      onClick={() => handleWinnerSelect('home')}
-                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${predictedWinnerId === match.homeTeamId ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
-                                    >
-                                        Pick
-                                    </button>
-                                    <div className="text-slate-300 font-light self-center">vs</div>
-                                    <button 
-                                      onClick={() => handleWinnerSelect('away')}
-                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${predictedWinnerId === match.awayTeamId ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
-                                    >
-                                        Pick
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center">
-                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Predicted</div>
-                                    {predictedWinnerId ? (
-                                        <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
-                                            <Trophy size={10} />
-                                            <span className="text-xs font-black uppercase">{match.homeTeamId === predictedWinnerId ? homeTeam?.name : awayTeam?.name}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs text-slate-400 italic">No Pick</span>
-                                    )}
-                                </div>
-                            )}
+                            <div className="text-3xl font-black text-slate-200">VS</div>
                             
                             {/* SUBSTITUTION BUTTON (For Knockouts) */}
                             {canSubstitute && (
@@ -320,7 +294,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         onActivate={handleActivate} 
                                     />
                                     
-                                    {/* Unlocked Badge */}
                                     {isUnlockedBySub && (
                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap border border-white">
                                             <Unlock size={8} /> {lang.unlocked}
@@ -328,11 +301,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             ) : (
-                                // LOCKED VIEW (Score Display + Sub Button)
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300">
                                     {(isLive || isFinished || match.homeScore !== null) ? (
                                         <>
-                                            {/* REAL SCORE BOARD */}
                                             <div className={`px-5 py-3 rounded-xl font-mono text-4xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${
                                                 isLive ? 'bg-red-600 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'
                                             }`}>
@@ -347,7 +318,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 </div>
                                             )}
                                             
-                                            {/* User Original Prediction */}
                                             {prediction && (
                                                 <div className="text-[10px] text-slate-400 font-bold mt-1">
                                                     {lang.myPick}: {prediction.home}-{prediction.away}
@@ -364,7 +334,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 </div>
                                              )}
 
-                                             {/* SUBSTITUTION BUTTON */}
                                              {canSubstitute ? (
                                                  <button 
                                                      onClick={handleSubClick}
@@ -406,11 +375,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Away Team */}
-                <div className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 transition-opacity ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-                    <div 
-                        onClick={(e) => onFlagClick(e, awayTeam?.id)}
-                        className={`relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 transform transition-transform group-hover:scale-105 ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                    >
+                <div 
+                    onClick={() => handleTeamAreaClick('away')}
+                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
+                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
+                    } ${
+                        predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
+                    } ${
+                        predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
+                    }`}
+                >
+                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
@@ -419,12 +394,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             #{awayRank}
                             </div>
                         )}
+                        {/* Knockout Selection Checkmark */}
+                        {isKnockout && predictedWinnerId === match.awayTeamId && (
+                            <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
+                                <Check size={14} strokeWidth={4} />
+                            </div>
+                        )}
                     </div>
-                    <span onClick={(e) => onFlagClick(e, awayTeam?.id)} className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${onTeamClick ? 'cursor-pointer hover:text-blue-600' : ''}`}>{awayName}</span>
+                    <span className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
                 </div>
             </div>
 
-            {/* HEAD-TO-HEAD AUTO-SECTION */}
+            {/* HEAD-TO-HEAD & RIVALS SECTIONS REMAIN UNCHANGED */}
             {h2hData && !isLocked && !isKnockout && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
