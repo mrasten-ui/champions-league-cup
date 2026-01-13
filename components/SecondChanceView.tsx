@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase } from '../types';
-import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'; // Added Unlock
 import { KnockoutBracket } from './KnockoutBracket';
 
 interface SecondChanceViewProps {
@@ -102,8 +102,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
                 rivals={rivals}
                 allPredictions={allPredictions}
                 phase={phase}
-                // NEW: Added missing props to satisfy interface
-                isGroupStageComplete={true} // Force true for 2nd chance view
+                isGroupStageComplete={true}
                 firstIncompleteGroup={null}
                 onGoToGroup={() => {}}
                 onTeamClick={onTeamClick}
@@ -111,7 +110,6 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
           </div>
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50 pointer-events-none grayscale select-none filter blur-[1px]">
-              {/* Dummy content to show "preview" behind lock */}
               {[1,2,3].map(i => (
                   <div key={i} className="h-32 bg-slate-200 rounded-xl animate-pulse"></div>
               ))}
