@@ -242,12 +242,11 @@ export interface Translation {
   eliminationLine: string;
   teamCol: string;
   grpCol: string;
+  // Removed duplicates that caused error
   roundOf32?: string;
   roundOf16?: string;
   quarterFinals?: string;
   semiFinals?: string;
-  grandFinal?: string;
-  thirdPlacePlayoff?: string;
   
   // History / Stats
   headToHead: string;
@@ -328,7 +327,6 @@ export interface Match {
   homeScore: number | null;
   awayScore: number | null;
   
-  // NEW: These were likely missing in your previous version
   date: string; 
   venue?: string;
   

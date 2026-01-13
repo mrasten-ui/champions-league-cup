@@ -128,7 +128,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                         awayTeam={teams[m.awayTeamId]} 
                                         onUpdate={onUpdate} 
                                         lang={lang} 
-                                        locale="en-GB" // Or pass current locale prop
+                                        locale="en-GB" 
                                         userTokens={user?.tokens || 0}
                                         rivals={rivals}
                                         onSpy={() => {}}
@@ -140,6 +140,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                         substitutionsLeft={user?.substitutions || 0}
                                         isUnlockedBySub={user?.unlockedMatches?.includes(m.id) || false}
                                         onTeamClick={onTeamClick}
+                                        isAdminMode={false} // ADDED: Fix TS error
                                     />
                                 ))}
                             </div>
@@ -256,6 +257,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                 substitutionsLeft={user?.substitutions || 0}
                                 isUnlockedBySub={false}
                                 onTeamClick={onTeamClick}
+                                isAdminMode={false} // ADDED: Fix TS error
                             />
                         </div>
                     </div>
