@@ -242,6 +242,12 @@ export interface Translation {
   eliminationLine: string;
   teamCol: string;
   grpCol: string;
+  roundOf32?: string;
+  roundOf16?: string;
+  quarterFinals?: string;
+  semiFinals?: string;
+  grandFinal?: string;
+  thirdPlacePlayoff?: string;
   
   // History / Stats
   headToHead: string;
@@ -321,8 +327,11 @@ export interface Match {
   awayTeamId: string;
   homeScore: number | null;
   awayScore: number | null;
-  date: string; // ISO 8601 String
-  venue: string;
+  
+  // NEW: These were likely missing in your previous version
+  date: string; 
+  venue?: string;
+  
   isLocked: boolean; 
   status: MatchStatus;
   minute?: number; 
@@ -351,9 +360,9 @@ export interface GroupStanding {
 export interface UserProfile {
   name: string;
   email: string;
-  tokens: number; // Renamed visually to Intel, keeping key for compatibility
-  substitutions: number; // NEW: Substitutions count
-  unlockedMatches?: string[]; // NEW: IDs of matches unlocked via subs
+  tokens: number; 
+  substitutions: number; 
+  unlockedMatches?: string[]; 
   favorites: string[]; 
   avatar: string; 
   hasTakenSecondChance?: boolean;
