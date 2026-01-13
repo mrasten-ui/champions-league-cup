@@ -20,7 +20,7 @@ import { AvatarGenerator } from './components/AvatarGenerator';
 import { Logo } from './components/Logo';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase, isSupabaseConfigured } from './supabase';
-import { SecondChanceView } from './components/SecondChanceView';
+// Removed SecondChanceView import
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
@@ -163,7 +163,7 @@ const App: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
   
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting' | 'second-chance'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   
   const [showOverview, setShowOverview] = useState(false);
@@ -389,7 +389,6 @@ const App: React.FC = () => {
                             awayScore: isRealLocked ? Number(realM.away_score) : m.awayScore, 
                             status: statusVal, 
                             isLocked: isRealLocked,
-                            // UPDATED: Now syncing date and venue from Supabase
                             date: realM.date ? realM.date : m.date,
                             venue: realM.venue ? realM.venue : m.venue
                         };
@@ -668,6 +667,8 @@ const App: React.FC = () => {
              await supabase.from('profiles').update({ has_taken_second_chance: true }).eq('email', user.email);
          }
          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
+         // Redirect to Knockout tab
+         setActiveTab('knockout');
      }
   };
   
@@ -789,7 +790,6 @@ const App: React.FC = () => {
   const showClearTrash = useMemo(() => {
     if (activeTab === 'groups') return hasGroupPredictions;
     if (activeTab === 'knockout') return hasKnockoutPredictions;
-    if (activeTab === 'second-chance') return hasKnockoutPredictions;
     return false;
   }, [activeTab, hasGroupPredictions, hasKnockoutPredictions]);
 
@@ -802,7 +802,7 @@ const App: React.FC = () => {
            if (isSupabaseConfigured && supabase) {
               await supabase.from('predictions').delete().eq('user_id', user.email);
            }
-        } else if (activeTab === 'knockout' || activeTab === 'second-chance') {
+        } else if (activeTab === 'knockout') {
            const protectedMatchIds = new Set(
              matches
               .filter(m => m.groupId || m.round === 'R32')
@@ -835,7 +835,8 @@ const App: React.FC = () => {
 
   const navTabs = useMemo(() => {
     if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'scouting', 'manager'];
-    const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'second-chance'];
+    // Removed 'second-chance' from here as it's now internal
+    const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis'];
     return liveTabs;
   }, [tournamentPhase]);
 
@@ -844,7 +845,7 @@ const App: React.FC = () => {
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   
   const showMagicWand = (tournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'scouting') ||
-                        (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout' || activeTab === 'second-chance'));
+                        (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout'));
 
   const handleGoToGroup = (groupId: string) => {
     setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false);
@@ -945,7 +946,6 @@ const App: React.FC = () => {
                        if (tab === 'manager') label = (tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
                        else if (tab === 'analysis') label = t.analysisTab as string;
                        else if (tab === 'scouting') label = t.scoutingTab as string;
-                       else if (tab === 'second-chance') label = t.secondChanceTab as string;
                        else if (tab === 'tournament') label = t.tabTournament as string; 
                        else label = (typeof val === 'string' ? val : tab) as string;
                        
@@ -1145,23 +1145,21 @@ const App: React.FC = () => {
             </div>
         )}
         {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} />}
-        {activeTab === 'second-chance' && (
-            <SecondChanceView 
+        {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={handleTeamClick} />}
+        {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? 
+            <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> 
+            : 
+            <MyPredictions 
                 matches={matches} 
                 teams={teamsData} 
-                onUpdate={handleScoreUpdate} 
-                lang={t} 
-                user={user} 
-                onUnlock={handleUnlockSecondChance}
-                onRefreshTeams={handleRefreshBracket}
-                rivals={rivalsList} 
                 allPredictions={allPredictions} 
-                phase={tournamentPhase} 
-                onTeamClick={handleTeamClick}
+                currentUser={user} 
+                lang={t} 
+                onGoToGroup={handleGoToGroup} 
+                onGoToBracket={() => setActiveTab('knockout')}
+                onUnlockSecondChance={handleUnlockSecondChance} 
             />
         )}
-        {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={handleTeamClick} />}
-        {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} />)}
       </main>
 
       {showAvatarEditor && (
