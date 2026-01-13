@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Coins, Unlock, Trophy, Check } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Trophy, Check } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -85,6 +85,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const isKnockout = !!match.round; 
 
+    // Update local state when predictions change (e.g. from DB load)
     useEffect(() => {
         if (prediction) {
             setDisplayHome(prediction.home);
@@ -95,6 +96,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [prediction]);
 
+    // H2H Data Fetching
     useEffect(() => {
         const hasScore = displayHome !== null || displayAway !== null;
         const isValidMatchup = homeTeam && awayTeam && homeTeam.id !== 'TBD' && awayTeam.id !== 'TBD';
@@ -114,6 +116,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [displayHome, displayAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
+    // LOCKING LOGIC START
+    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
+    
+    // 1. Is the match locked by Real Life events (started/finished)?
+    const isRealLifeLocked = match.isLocked || isLive || isFinished;
+    
+    // 2. Is the match locked by App Phase (Global Live Mode)?
+    const isPhaseLocked = phase === 'LIVE';
+    
+    // 3. EFFECTIVE LOCK: 
+    // Locked if (RealLocked OR PhaseLocked) AND (Not Admin) AND (Not Substituted)
+    const isLocked = (isRealLifeLocked || isPhaseLocked) && !isAdminMode && !isUnlockedBySub;
+
+    // 4. Can we use a Substitute?
+    // Must be Phase Locked, BUT Not Real-Life Locked (Game hasn't started), and Not Already Unlocked
+    const canSubstitute = isPhaseLocked && !isRealLifeLocked && !isUnlockedBySub && onSubstitute;
+    // LOCKING LOGIC END
+
     const handleActivate = () => {
         setDisplayHome(0);
         setDisplayAway(0);
@@ -123,16 +144,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         const h = side === 'home' ? val : (displayHome ?? 0);
         const a = side === 'away' ? val : (displayAway ?? 0);
-        
         setDisplayHome(h);
         setDisplayAway(a);
         onUpdate(match.id, h, a);
     };
 
-    // New Handler for Team Area Clicks
+    // Unified Click Handler
     const handleTeamAreaClick = (side: 'home' | 'away') => {
         if (isKnockout) {
-            // Knockout Mode: Click selects winner
+            // Knockout Mode: Click selects winner if unlocked
             if (!isLocked) {
                 if (side === 'home') {
                     setDisplayHome(1); setDisplayAway(0);
@@ -143,22 +163,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 }
             }
         } else {
-            // Group Mode: Click opens modal
+            // Group Mode: Click opens modal (Team Details)
             const teamId = side === 'home' ? match.homeTeamId : match.awayTeamId;
             if (onTeamClick && !teamId.startsWith('TBD')) {
                 onTeamClick(teamId);
             }
         }
     };
-
-    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
-    const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-    
-    const isRealLifeLocked = match.isLocked || isLive || isFinished;
-    const isPhaseLocked = phase === 'LIVE';
-    
-    const isLocked = (isRealLifeLocked || isPhaseLocked) && !isAdminMode && !isUnlockedBySub;
-    const canSubstitute = isPhaseLocked && !isRealLifeLocked && !isUnlockedBySub && onSubstitute;
 
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
@@ -180,6 +191,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 onSubstitute();
             }
         }
+    };
+
+    // Helper for visual state
+    const onFlagClick = (e: React.MouseEvent, teamId: string) => {
+        e.stopPropagation();
+        handleTeamAreaClick(teamId === homeTeam?.id ? 'home' : 'away');
     };
 
     // Determine Predicted Winner for Knockout Display
@@ -223,14 +240,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div 
                     onClick={() => handleTeamAreaClick('home')}
                     className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
-                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
+                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-blue-50/50 active:scale-95' : ''
                     } ${
                         predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
                     } ${
                         predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
-                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16">
+                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
@@ -266,6 +283,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
                                         <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
                                     </button>
+                                </div>
+                            )}
+                            
+                            {/* Unlocked Badge */}
+                            {isUnlockedBySub && (
+                                <div className="mt-2 flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-green-200 animate-in fade-in">
+                                    <Unlock size={10} /> {lang.unlocked}
                                 </div>
                             )}
                             
@@ -378,14 +402,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div 
                     onClick={() => handleTeamAreaClick('away')}
                     className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
-                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
+                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-blue-50/50 active:scale-95' : ''
                     } ${
                         predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
                     } ${
                         predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
-                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16">
+                    <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
