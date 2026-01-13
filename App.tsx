@@ -20,7 +20,6 @@ import { AvatarGenerator } from './components/AvatarGenerator';
 import { Logo } from './components/Logo';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase, isSupabaseConfigured } from './supabase';
-// Removed SecondChanceView import
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
@@ -424,11 +423,21 @@ const App: React.FC = () => {
   useEffect(() => {
     if (user && !isAdminMode) {
         setMatches(prev => {
-            const userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
+            let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
+            
+            // CRITICAL FIX: If Second Chance is taken, ignore GROUP predictions when building bracket.
+            // This ensures the bracket is built from REAL results (in matches state) not user's predicted results.
+            if (user.hasTakenSecondChance) {
+                // Filter out any predictions that belong to Group Stage matches (i.e. matches with a groupId)
+                // We access the match metadata from 'prev' matches to check if it's a group game.
+                const groupMatchIds = new Set(prev.filter(m => m.groupId).map(m => m.id));
+                userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
+            }
+
             return applyPredictionsToBracket(prev, teamsData, userSpecificPreds);
         });
     }
-  }, [user?.email, allPredictions, isAdminMode, teamsData]); 
+  }, [user?.email, user?.hasTakenSecondChance, allPredictions, isAdminMode, teamsData]); 
 
   useEffect(() => {
     if (!isDataLoaded) return;
@@ -1158,6 +1167,7 @@ const App: React.FC = () => {
                 onGoToGroup={handleGoToGroup} 
                 onGoToBracket={() => setActiveTab('knockout')}
                 onUnlockSecondChance={handleUnlockSecondChance} 
+                onSubstitute={handleSubstitute}
             />
         )}
       </main>

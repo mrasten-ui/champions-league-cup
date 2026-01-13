@@ -13,10 +13,11 @@ interface MyPredictionsProps {
   onGoToGroup: (groupId: string) => void;
   onGoToBracket: () => void;
   onUnlockSecondChance?: () => void; // New prop for Pulse action
+  onSubstitute: (matchId: string) => void;
 }
 
 export const MyPredictions: React.FC<MyPredictionsProps> = ({ 
-  matches, teams, allPredictions, currentUser, lang, onGoToGroup, onGoToBracket, onUnlockSecondChance 
+  matches, teams, allPredictions, currentUser, lang, onGoToGroup, onGoToBracket, onUnlockSecondChance, onSubstitute 
 }) => {
   // View State: 'pulse' (Dashboard) or 'vault' (My Picks List)
   const [viewMode, setViewMode] = useState<'pulse' | 'vault'>('pulse');
@@ -133,10 +134,7 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                                       phase="LIVE" // Force live look
                                       isAdminMode={false}
                                       // Substitutions logic enabled here for "Tactical Changes"
-                                      onSubstitute={() => {
-                                          // This would need a prop passed down to trigger the sub modal
-                                          console.log("Sub triggered from Vault for", m.id);
-                                      }}
+                                      onSubstitute={() => onSubstitute(m.id)}
                                       substitutionsLeft={currentUser.substitutions}
                                       isUnlockedBySub={currentUser.unlockedMatches?.includes(m.id) || false}
                                   />
