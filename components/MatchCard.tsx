@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Coins, Unlock } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Coins, Unlock, Trophy, Check } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -84,6 +83,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [loadingH2H, setLoadingH2H] = useState(false);
     const [showHistoryDetails, setShowHistoryDetails] = useState(false);
 
+    const isKnockout = !!match.round; // Determine if this is a knockout match
+
     useEffect(() => {
         if (prediction) {
             setDisplayHome(prediction.home);
@@ -96,7 +97,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     useEffect(() => {
         const hasScore = displayHome !== null || displayAway !== null;
-        const shouldFetch = hasScore && !h2hData && !loadingH2H && !match.isLocked;
+        // Only fetch history if we haven't yet, and not for knockout placeholders TBD
+        const isValidMatchup = homeTeam && awayTeam && homeTeam.id !== 'TBD' && awayTeam.id !== 'TBD';
+        const shouldFetch = isValidMatchup && hasScore && !h2hData && !loadingH2H && !match.isLocked;
 
         if (shouldFetch) {
             setLoadingH2H(true);
@@ -127,16 +130,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         onUpdate(match.id, h, a);
     };
 
+    const handleWinnerSelect = (winner: 'home' | 'away') => {
+        if (isLocked) return;
+        // For knockouts, we store 1-0 or 0-1 to signify the winner
+        if (winner === 'home') {
+            setDisplayHome(1); setDisplayAway(0);
+            onUpdate(match.id, 1, 0);
+        } else {
+            setDisplayHome(0); setDisplayAway(1);
+            onUpdate(match.id, 0, 1);
+        }
+    };
+
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     
-    // Effective locked state handles the substitution override
-    const rawLocked = match.isLocked || (phase === 'LIVE' && match.status !== 'UPCOMING' && match.status !== 'NS');
-    const isLocked = rawLocked && !isUnlockedBySub;
+    // STRICT LOCKING LOGIC:
+    // 1. Real Life: If match is live or finished, it's locked.
+    // 2. Phase Lock: If we are in 'LIVE' phase of app, ALL matches are locked by default to preserve integrity.
+    // 3. Unlock: Admin or Substitution can bypass.
+    const isRealLifeLocked = match.isLocked || isLive || isFinished;
+    const isPhaseLocked = phase === 'LIVE';
+    
+    // It is locked if (RealLocked OR PhaseLocked) AND (Not Admin AND Not Subbed)
+    const isLocked = (isRealLifeLocked || isPhaseLocked) && !isAdminMode && !isUnlockedBySub;
 
-    // Is Eligible for Substitution? (Locked + Upcoming)
-    // Note: If rawLocked is true but it's already unlocked by sub, we don't show the button again.
-    const canSubstitute = rawLocked && !isUnlockedBySub && match.status === 'UPCOMING' && onSubstitute;
+    // We can substitute if it's Phase Locked but NOT Real Life Locked (match hasn't started yet)
+    const canSubstitute = isPhaseLocked && !isRealLifeLocked && !isUnlockedBySub && onSubstitute;
 
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
@@ -148,9 +168,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const awayRank = awayTeam?.rank;
 
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    const canSpy = !isSpied && userTokens > 0 && !rawLocked && rivals.length > 0;
+    // Can spy if we have tokens, match isn't started (or is phase locked but viewable), and rivals exist
+    const canSpy = !isSpied && userTokens > 0 && !isRealLifeLocked && rivals.length > 0;
     
-    const showRivals = isSpied || rawLocked;
+    // Show rivals if I spied OR if the match is officially live/done
+    const showRivals = isSpied || isRealLifeLocked;
 
     const handleSubClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -167,6 +189,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             onTeamClick(teamId);
         }
     };
+
+    // Determine Predicted Winner for Knockout Display
+    let predictedWinnerId: string | null = null;
+    if (prediction) {
+        if (prediction.home > prediction.away) predictedWinnerId = match.homeTeamId;
+        else if (prediction.away > prediction.home) predictedWinnerId = match.awayTeamId;
+    }
     
     return (
         <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} overflow-hidden relative group`}>
@@ -199,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             {/* Main Content */}
              <div className="p-4 flex items-center justify-between relative z-10">
                 {/* Home Team */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 z-10">
+                <div className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 transition-opacity ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     <div 
                         onClick={(e) => onFlagClick(e, homeTeam?.id)}
                         className={`relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 transform transition-transform group-hover:scale-105 ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
@@ -216,108 +245,168 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <span onClick={(e) => onFlagClick(e, homeTeam?.id)} className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${onTeamClick ? 'cursor-pointer hover:text-blue-600' : ''}`}>{homeName}</span>
                 </div>
 
-                {/* Score / VS / Controls */}
+                {/* CENTER: Score / VS / Pick Controls */}
                 <div className="flex flex-col items-center justify-center px-2 z-20 shrink-0 min-w-[140px]">
-                    {isLocked ? (
-                        <div className="flex flex-col items-center animate-in zoom-in duration-300">
-                            {(isLive || isFinished || match.homeScore !== null) ? (
-                                <>
-                                    <div className={`px-5 py-3 rounded-xl font-mono text-4xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${
-                                        isLive 
-                                            ? 'bg-red-600 text-white border-red-700' 
-                                            : 'bg-slate-800 text-white border-slate-900'
-                                    }`}>
-                                        <span>{match.homeScore ?? 0}</span>
-                                        <span className="opacity-50 text-xl mx-1">:</span>
-                                        <span>{match.awayScore ?? 0}</span>
-                                    </div>
-                                    {pointsEarned !== null && !isAdminMode && (
-                                        <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                                            +{pointsEarned} {lang.points}
-                                        </div>
-                                    )}
-                                    {prediction && (
-                                        <div className="text-[10px] text-slate-400 font-bold mt-1">
-                                            {lang.myPick}: {prediction.home}-{prediction.away}
-                                        </div>
-                                    )}
-                                </>
+                    {isKnockout ? (
+                        // === KNOCKOUT VIEW ===
+                        // If locked: Show Winner Badge. If unlocked: Show Pick Buttons.
+                        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300">
+                            {!isLocked ? (
+                                <div className="flex gap-2">
+                                    <button 
+                                      onClick={() => handleWinnerSelect('home')}
+                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${predictedWinnerId === match.homeTeamId ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        Pick
+                                    </button>
+                                    <div className="text-slate-300 font-light self-center">vs</div>
+                                    <button 
+                                      onClick={() => handleWinnerSelect('away')}
+                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${predictedWinnerId === match.awayTeamId ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        Pick
+                                    </button>
+                                </div>
                             ) : (
-                                <div className="flex flex-col items-center gap-3">
-                                     <div className="text-3xl font-black text-slate-300">VS</div>
-                                     
-                                     {prediction && (
-                                        <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                                            {lang.myPick}: {prediction.home}-{prediction.away}
+                                <div className="flex flex-col items-center">
+                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Predicted</div>
+                                    {predictedWinnerId ? (
+                                        <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+                                            <Trophy size={10} />
+                                            <span className="text-xs font-black uppercase">{match.homeTeamId === predictedWinnerId ? homeTeam?.name : awayTeam?.name}</span>
                                         </div>
-                                     )}
-
-                                     {/* SUBSTITUTION BUTTON */}
-                                     {canSubstitute ? (
-                                         <button 
-                                            onClick={handleSubClick}
-                                            disabled={substitutionsLeft <= 0}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
-                                         >
-                                             <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
-                                             <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
-                                         </button>
-                                     ) : (
-                                         <div className="text-[9px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
-                                            <Lock size={10} /> {lang.lockedState}
-                                         </div>
-                                     )}
+                                    ) : (
+                                        <span className="text-xs text-slate-400 italic">No Pick</span>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {/* SUBSTITUTION BUTTON (For Knockouts) */}
+                            {canSubstitute && (
+                                <div className="mt-2">
+                                    <button 
+                                        onClick={handleSubClick}
+                                        disabled={substitutionsLeft <= 0}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
+                                    >
+                                        <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {isLocked && !isUnlockedBySub && !canSubstitute && (
+                                <div className="mt-2 text-[9px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
+                                    <Lock size={10} /> {lang.lockedState}
                                 </div>
                             )}
                         </div>
                     ) : (
+                        // === GROUP STAGE VIEW ===
                         <div className="flex flex-col items-center gap-4">
-                            <div className="flex items-center gap-2 relative">
-                                <ScoreStepper 
-                                    value={displayHome} 
-                                    onChange={(v) => handleScoreChange('home', v)} 
-                                    isLocked={isLocked}
-                                    onActivate={handleActivate} 
-                                />
-                                <span className="font-black text-slate-300 text-lg">-</span>
-                                <ScoreStepper 
-                                    value={displayAway} 
-                                    onChange={(v) => handleScoreChange('away', v)} 
-                                    isLocked={isLocked}
-                                    onActivate={handleActivate} 
-                                />
-                                
-                                {/* Unlocked Badge */}
-                                {isUnlockedBySub && (
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap border border-white">
-                                        <Unlock size={8} /> {lang.unlocked}
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex items-center justify-center w-full">
-                                {/* Reveal Rival Button - "Intel" */}
-                                {!showRivals && canSpy && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onSpy(match.id); }}
-                                        className="group w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all shadow-sm hover:shadow-md active:scale-95"
-                                    >
-                                        <div className="flex items-center gap-1.5 text-slate-600 group-hover:text-indigo-700">
-                                            <ScanEye size={16} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">{lang.revealRival}</span>
+                            {!isLocked ? (
+                                <div className="flex items-center gap-2 relative">
+                                    <ScoreStepper 
+                                        value={displayHome} 
+                                        onChange={(v) => handleScoreChange('home', v)} 
+                                        isLocked={isLocked}
+                                        onActivate={handleActivate} 
+                                    />
+                                    <span className="font-black text-slate-300 text-lg">-</span>
+                                    <ScoreStepper 
+                                        value={displayAway} 
+                                        onChange={(v) => handleScoreChange('away', v)} 
+                                        isLocked={isLocked}
+                                        onActivate={handleActivate} 
+                                    />
+                                    
+                                    {/* Unlocked Badge */}
+                                    {isUnlockedBySub && (
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap border border-white">
+                                            <Unlock size={8} /> {lang.unlocked}
                                         </div>
-                                        <div className="text-[9px] font-bold text-slate-400 group-hover:text-indigo-500 bg-slate-100 group-hover:bg-white px-2 py-0.5 rounded border border-slate-100 group-hover:border-indigo-200 transition-colors">
-                                            {userTokens} {lang.tokensLeft}
+                                    )}
+                                </div>
+                            ) : (
+                                // LOCKED VIEW (Score Display + Sub Button)
+                                <div className="flex flex-col items-center animate-in zoom-in duration-300">
+                                    {(isLive || isFinished || match.homeScore !== null) ? (
+                                        <>
+                                            {/* REAL SCORE BOARD */}
+                                            <div className={`px-5 py-3 rounded-xl font-mono text-4xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${
+                                                isLive ? 'bg-red-600 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'
+                                            }`}>
+                                                <span>{match.homeScore ?? 0}</span>
+                                                <span className="opacity-50 text-xl mx-1">:</span>
+                                                <span>{match.awayScore ?? 0}</span>
+                                            </div>
+                                            
+                                            {pointsEarned !== null && !isAdminMode && (
+                                                <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                                                    +{pointsEarned} {lang.points}
+                                                </div>
+                                            )}
+                                            
+                                            {/* User Original Prediction */}
+                                            {prediction && (
+                                                <div className="text-[10px] text-slate-400 font-bold mt-1">
+                                                    {lang.myPick}: {prediction.home}-{prediction.away}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-3">
+                                             <div className="text-3xl font-black text-slate-300">VS</div>
+                                             
+                                             {prediction && (
+                                                <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                                                    {lang.myPick}: {prediction.home}-{prediction.away}
+                                                </div>
+                                             )}
+
+                                             {/* SUBSTITUTION BUTTON */}
+                                             {canSubstitute ? (
+                                                 <button 
+                                                     onClick={handleSubClick}
+                                                     disabled={substitutionsLeft <= 0}
+                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
+                                                 >
+                                                     <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
+                                                     <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
+                                                 </button>
+                                             ) : (
+                                                 <div className="text-[9px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
+                                                     <Lock size={10} /> {lang.lockedState}
+                                                 </div>
+                                             )}
                                         </div>
-                                    </button>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
+                    
+                    {/* Reveal Rival Button (Intel) */}
+                    <div className="flex items-center justify-center w-full mt-3">
+                        {!showRivals && canSpy && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onSpy(match.id); }}
+                                className="group w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all shadow-sm hover:shadow-md active:scale-95"
+                            >
+                                <div className="flex items-center gap-1.5 text-slate-600 group-hover:text-indigo-700">
+                                    <ScanEye size={16} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">{lang.revealRival}</span>
+                                </div>
+                                <div className="text-[9px] font-bold text-slate-400 group-hover:text-indigo-500 bg-slate-100 group-hover:bg-white px-2 py-0.5 rounded border border-slate-100 group-hover:border-indigo-200 transition-colors">
+                                    {userTokens} {lang.tokensLeft}
+                                </div>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Away Team */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 z-10">
+                <div className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 transition-opacity ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     <div 
                         onClick={(e) => onFlagClick(e, awayTeam?.id)}
                         className={`relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 transform transition-transform group-hover:scale-105 ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
@@ -336,7 +425,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             </div>
 
             {/* HEAD-TO-HEAD AUTO-SECTION */}
-            {h2hData && !isLocked && (
+            {h2hData && !isLocked && !isKnockout && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-2">
@@ -347,7 +436,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        {/* Stats Bar */}
                         {h2hData.totalMatches > 0 ? (
                             <>
                                 <div className="flex h-2.5 rounded-full overflow-hidden w-full shadow-sm bg-slate-100">
@@ -365,7 +453,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             <div className="text-center text-[10px] text-slate-400 italic font-medium bg-slate-50 py-2 rounded-lg">{lang.firstMeeting}</div>
                         )}
 
-                        {/* Expandable Details */}
                         {showHistoryDetails && h2hData.last5.length > 0 && (
                             <div className="mt-2 space-y-1.5 border-t border-slate-100 pt-2 animate-in fade-in slide-in-from-top-1">
                                 {h2hData.last5.map((m, i) => {
