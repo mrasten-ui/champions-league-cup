@@ -1,4 +1,3 @@
-
 import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
 import { GROUP_CONFIG } from '../constants';
 import { supabase } from '../supabase';
@@ -446,6 +445,11 @@ export const simulateTournamentAtDate = (
 
     const getMatchTime = (dateStr: string) => {
         try {
+            // FIXED: Handle ISO strings (e.g. 2026-06-11T19:00:00+00)
+            const timestamp = new Date(dateStr).getTime();
+            if (!isNaN(timestamp)) return timestamp;
+
+            // Fallback for legacy string format "June 11, 2026"
             const parts = dateStr.split(',').map(s => s.trim());
             const datePart = parts[0]; 
             const year = parts[1] || '2026';
@@ -504,7 +508,7 @@ export const simulateTournamentAtDate = (
 export const generateWhatIfAnalysis = (
     match: Match, 
     userPred: Prediction, 
-    userProfile: UserProfile,
+    userProfile: UserProfile, 
     rivals: UserProfile[],
     allPredictions: Prediction[],
     lang: Translation
