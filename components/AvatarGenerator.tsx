@@ -58,14 +58,12 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         const ai = new GoogleGenAI({ apiKey: key });
         
         // We request a square image
+        // FIX: Removed invalid 'responseMimeType' config. 
+        // The model naturally returns image parts when asked.
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp', // Updated model
+            model: 'gemini-2.0-flash-exp', 
             contents: {
-            parts: [{ text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.` }],
-            },
-            config: {
-            // @ts-ignore - Valid config for image generation
-            responseMimeType: "image/jpeg"
+              parts: [{ text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.` }],
             }
         });
         
