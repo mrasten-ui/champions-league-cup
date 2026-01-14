@@ -10,8 +10,6 @@ interface AvatarGeneratorProps {
 }
 
 // Utility to compress image to a small Avatar friendly size
-// UPDATED: Increased maxWidth to 180 and quality to 0.85 for better crispness
-// This results in a string size of approx 15KB-30KB, which fits safely in our new App.tsx limit.
 const compressImage = (base64Str: string, maxWidth = 180, quality = 0.85): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -57,11 +55,11 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         const key = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
         const ai = new GoogleGenAI({ apiKey: key });
         
-        // We request a square image
-        // FIX: Removed invalid 'responseMimeType' config. 
-        // The model naturally returns image parts when asked.
+        // FIX: Switch to Imagen model for image generation
+        // Gemini models (like gemini-2.0-flash) generally output text. 
+        // Imagen is required to get actual image bytes in the response.
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp', 
+            model: 'imagen-3.0-generate-001', 
             contents: {
               parts: [{ text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.` }],
             }
@@ -77,8 +75,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
                     const mimeType = part.inlineData.mimeType || 'image/png';
                     const rawUri = `data:${mimeType};base64,${base64}`;
                     
-                    // CRITICAL FIX: Compress immediately before state update
-                    // This prevents the raw ~500KB image from ever touching the app state/storage
+                    // Compress immediately before state update
                     const compressedUri = await compressImage(rawUri);
                     
                     setGeneratedImage(compressedUri);
@@ -92,14 +89,19 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
             if (candidate?.finishReason === 'SAFETY') {
                 setError('Safety filters blocked this request. Try a different description.');
             } else {
-                // Fallback for text-only responses
-                setError('AI returned no image data. Try again.');
+                // If we get here with Imagen, it usually means a server-side failure or refusal
+                setError('AI returned no image data. The prompt might have been filtered.');
             }
         }
 
     } catch (e: any) {
         console.warn(`Key failed:`, e.message);
-        setError(e.message || 'Connection failed.');
+        // Handle common 404 if Imagen isn't enabled for the API key
+        if (e.message?.includes('404') || e.message?.includes('not found')) {
+             setError('Image generation model not available with this API key.');
+        } else {
+             setError(e.message || 'Connection failed.');
+        }
     }
 
     setLoading(false);
