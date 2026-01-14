@@ -52,12 +52,14 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
     setGeneratedImage(null);
     
     try {
-        const key = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
+        // Try to get key from environment (Vite style or Process) or fallback to constants
+        // @ts-ignore
+        const envKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY; 
+        const key = envKey || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
+        
         const ai = new GoogleGenAI({ apiKey: key });
         
-        // FIX: Switch to Imagen model for image generation
-        // Gemini models (like gemini-2.0-flash) generally output text. 
-        // Imagen is required to get actual image bytes in the response.
+        // Use the dedicated Imagen model
         const response = await ai.models.generateContent({
             model: 'imagen-3.0-generate-001', 
             contents: {
@@ -89,16 +91,14 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
             if (candidate?.finishReason === 'SAFETY') {
                 setError('Safety filters blocked this request. Try a different description.');
             } else {
-                // If we get here with Imagen, it usually means a server-side failure or refusal
-                setError('AI returned no image data. The prompt might have been filtered.');
+                setError('API Key does not support Imagen model. Please check your Google AI Studio settings.');
             }
         }
 
     } catch (e: any) {
-        console.warn(`Key failed:`, e.message);
-        // Handle common 404 if Imagen isn't enabled for the API key
-        if (e.message?.includes('404') || e.message?.includes('not found')) {
-             setError('Image generation model not available with this API key.');
+        console.warn(`Generation failed:`, e.message);
+        if (e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('403')) {
+             setError('This API Key cannot access Imagen. It may be restricted or on a free tier.');
         } else {
              setError(e.message || 'Connection failed.');
         }
