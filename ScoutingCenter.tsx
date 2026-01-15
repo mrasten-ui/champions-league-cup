@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, Match } from '../types';
-import { fetchTeamHistory, fetchScoutingOverview } from '../services/engine';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
+import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
-import { Search, X, TrendingUp, TrendingDown, Activity, BookOpen, Crown, RefreshCw, AlertCircle, Minus, Swords, ChevronDown, Trophy, Shield, Zap, CheckCircle2, PlusCircle } from 'lucide-react';
+import { Search, X, TrendingUp, TrendingDown, Activity, BookOpen, Crown, RefreshCw, AlertCircle, Minus, Swords, Trophy, Shield, Zap } from 'lucide-react';
 
 // --- HELPER COMPONENTS ---
 
@@ -24,6 +24,7 @@ const RenderPoints = ({ text }: { text?: string }) => {
     );
 };
 
+// A generic progress bar for comparing stats
 const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-500" }: { label: string, valA: number, valB: number, colorA?: string, colorB?: string }) => (
     <div className="flex flex-col gap-1 w-full">
         <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
@@ -32,10 +33,13 @@ const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-5
             <span>{valB}</span>
         </div>
         <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100">
+             {/* Left Bar (Team A) - Grows from right to left conceptually, but we simulate comparison */}
              <div className="flex-1 flex justify-end pr-0.5">
                  <div style={{ width: `${Math.min(100, (valA / 100) * 100)}%` }} className={`h-full rounded-full ${colorA} transition-all duration-500`}></div>
              </div>
+             {/* Divider */}
              <div className="w-0.5 bg-white z-10"></div>
+             {/* Right Bar (Team B) */}
              <div className="flex-1 pl-0.5">
                  <div style={{ width: `${Math.min(100, (valB / 100) * 100)}%` }} className={`h-full rounded-full ${colorB} transition-all duration-500`}></div>
              </div>
@@ -43,101 +47,13 @@ const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-5
     </div>
 );
 
-// Custom Dropdown with Flags
-const CustomTeamSelect = ({ 
-    teams, 
-    value, 
-    onChange, 
-    placeholder,
-    lang 
-}: { 
-    teams: Team[], 
-    value: string | null, 
-    onChange: (id: string) => void, 
-    placeholder: string,
-    lang: Translation
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const wrapperRef = useRef<HTMLDivElement>(null);
-
-    const selectedTeam = value ? teams.find(t => t.id === value) : null;
-    
-    // Filter teams for dropdown search
-    const filteredTeams = teams.filter(t => 
-        (lang.teamNames[t.id] || t.name).toLowerCase().includes(search.toLowerCase())
-    );
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-        <div className="relative w-full" ref={wrapperRef}>
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all text-left"
-            >
-                {selectedTeam ? (
-                    <div className="flex items-center gap-2">
-                        <img src={selectedTeam.flag} alt="" className="w-6 h-4 object-cover rounded shadow-sm" />
-                        <span className="text-xs font-bold text-slate-800 truncate">{lang.teamNames[selectedTeam.id] || selectedTeam.name}</span>
-                    </div>
-                ) : (
-                    <span className="text-xs font-bold text-slate-400">{placeholder}</span>
-                )}
-                <ChevronDown size={14} className="text-slate-400 ml-2" />
-            </button>
-
-            {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-2 border-b border-slate-50 sticky top-0 bg-white z-10">
-                        <div className="relative">
-                            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input 
-                                autoFocus
-                                type="text" 
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-7 pr-2 py-1.5 bg-slate-50 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                placeholder={lang.searchNation}
-                            />
-                        </div>
-                    </div>
-                    <div className="overflow-y-auto flex-1 p-1">
-                        {filteredTeams.map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => { onChange(t.id); setIsOpen(false); setSearch(''); }}
-                                className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors ${value === t.id ? 'bg-blue-50' : ''}`}
-                            >
-                                <img src={t.flag} alt="" className="w-6 h-4 object-cover rounded shadow-sm" />
-                                <span className={`text-xs ${value === t.id ? 'font-black text-blue-700' : 'font-medium text-slate-700'}`}>
-                                    {lang.teamNames[t.id] || t.name}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
 interface ScoutingCenterProps {
   teams: Record<string, Team>;
   lang: Translation;
   currentLang?: LanguageCode;
-  matches?: Match[]; // Made optional so it doesn't break if not passed immediately
 }
 
-export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN', matches }) => {
+export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'TIERS'>('GRID');
@@ -146,11 +62,11 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   const [compareMode, setCompareMode] = useState(false);
   const [teamAId, setTeamAId] = useState<string | null>(null);
   const [teamBId, setTeamBId] = useState<string | null>(null);
-  const comparatorRef = useRef<HTMLDivElement>(null);
 
   // DATA STATE
   const [history, setHistory] = useState<MatchHistoryItem[]>([]);
   const [scoutingData, setScoutingData] = useState<ScoutingData | null>(null);
+  const [extendedStats, setExtendedStats] = useState<TeamFormData | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // PREPARE LIST
@@ -158,49 +74,26 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       return (Object.values(teams) as Team[])
         .filter(t => !t.id.startsWith('TBD'))
         .filter(t => (lang.teamNames[t.id] || t.name).toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => (a.rank || 99) - (b.rank || 99));
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99)); // Default sort by Rank
   }, [teams, searchTerm, lang]);
-
-  // CALCULATE LIVE FORM
-  const teamForms = useMemo(() => {
-      const forms: Record<string, ('W'|'D'|'L')[]> = {};
-      if (!matches) return forms;
-
-      teamList.forEach(t => {
-          const played = matches
-            .filter(m => (m.status === 'FINISHED' || m.status === 'FT') && (m.homeTeamId === t.id || m.awayTeamId === t.id))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 5)
-            .reverse();
-          
-          if (played.length === 0) {
-              forms[t.id] = ['D','D','D','D','D'];
-          } else {
-              forms[t.id] = played.map(m => {
-                  const isHome = m.homeTeamId === t.id;
-                  const scoreH = m.homeScore || 0;
-                  const scoreA = m.awayScore || 0;
-                  if (scoreH === scoreA) return 'D';
-                  if (isHome) return scoreH > scoreA ? 'W' : 'L';
-                  return scoreA > scoreH ? 'W' : 'L';
-              });
-          }
-      });
-      return forms;
-  }, [matches, teamList]);
 
   // LOAD DETAIL DATA
   useEffect(() => {
       if (selectedTeam) {
           setLoadingHistory(true);
           const loadData = async () => {
-              // REMOVED fetchTeamExtendedStats to fix import error
-              const [dbHistory, dbScouting] = await Promise.all([
+              const [dbHistory, dbScouting, dbExtended] = await Promise.all([
                   fetchTeamHistory(selectedTeam.id),
-                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode)
+                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode),
+                  fetchTeamExtendedStats(selectedTeam.id)
               ]);
 
-              setHistory(dbHistory);
+              if (dbExtended) {
+                  setExtendedStats(dbExtended);
+                  setHistory(dbExtended.history);
+              } else {
+                  setHistory(dbHistory);
+              }
 
               if (dbScouting) {
                   setScoutingData(dbScouting);
@@ -229,40 +122,21 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       } else {
           setHistory([]);
           setScoutingData(null);
+          setExtendedStats(null);
       }
   }, [selectedTeam, currentLang]);
 
-  // Handle "Tick to Compare"
-  const handleToggleCompare = (e: React.MouseEvent, teamId: string) => {
-      e.stopPropagation();
-      if (!compareMode) {
-          setCompareMode(true);
-          setTeamAId(teamId);
-          setTeamBId(null);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-      }
-      if (teamAId === teamId) {
-          setTeamAId(null);
-      } else if (teamBId === teamId) {
-          setTeamBId(null);
-      } else if (!teamAId) {
-          setTeamAId(teamId);
-      } else if (!teamBId) {
-          setTeamBId(teamId);
-          if (comparatorRef.current) {
-              comparatorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-      } else {
-          setTeamBId(teamId);
-      }
+  // --- DERIVED HELPERS ---
+  const getParsedMatches = (stats: TeamFormData | null, sData: ScoutingData | null, fallbackHist: MatchHistoryItem[]) => {
+      if (stats) return stats.history;
+      if (fallbackHist.length > 0) return fallbackHist;
+      return [];
   };
 
-  // Helper to generate a visual trend based on history
-  const calculateTrend = (historyItems: MatchHistoryItem[]) => {
-      if (!historyItems || historyItems.length === 0) return { label: 'Unknown', color: 'text-slate-400', icon: Minus, bg: 'bg-slate-100' };
+  const calculateTrend = (matches: MatchHistoryItem[]) => {
+      if (!matches || matches.length === 0) return { label: 'Unknown', color: 'text-slate-400', icon: Minus, bg: 'bg-slate-100' };
       let points = 0;
-      historyItems.slice(0, 5).forEach(m => {
+      matches.slice(0, 5).forEach(m => {
           if (m.result === 'W') points += 3;
           else if (m.result === 'D') points += 1;
       });
@@ -272,9 +146,10 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       return { label: lang.trendDown, color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
   };
 
-  const trend = useMemo(() => calculateTrend(history), [history]);
+  const parsedMatches = useMemo(() => getParsedMatches(extendedStats, scoutingData, history), [extendedStats, scoutingData, history]);
+  const trend = useMemo(() => calculateTrend(parsedMatches), [parsedMatches]);
   
-  const displayRank = scoutingData?.fifa_rank || selectedTeam?.rank || 99;
+  const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || selectedTeam?.rank || 99;
   const displayName = selectedTeam ? (lang.teamNames[selectedTeam.id] || scoutingData?.team_name || selectedTeam.name) : '';
 
   // --- RENDER SECTIONS ---
@@ -285,23 +160,25 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       const teamB = teamBId ? teams[teamBId] : null;
 
       return (
-          <div ref={comparatorRef} className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 mb-8 animate-in slide-in-from-top-4">
+          <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 mb-8 animate-in slide-in-from-top-4">
               <div className="flex justify-between items-center mb-6">
                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                     <Swords size={18} className="text-blue-600" /> {lang.headToHead}
+                     <Swords size={18} className="text-blue-600" /> Head-to-Head
                  </h3>
-                 <button onClick={() => setCompareMode(false)} className="text-xs font-bold text-slate-400 hover:text-red-500">{lang.closeTool}</button>
+                 <button onClick={() => setCompareMode(false)} className="text-xs font-bold text-slate-400 hover:text-red-500">Close Tool</button>
               </div>
 
               <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-start">
+                  {/* TEAM A SELECTOR */}
                   <div className="flex flex-col gap-2">
-                      <CustomTeamSelect 
-                         teams={teamList} 
-                         value={teamAId} 
-                         onChange={setTeamAId} 
-                         placeholder={lang.selectTeam} 
-                         lang={lang}
-                      />
+                      <select 
+                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
+                        value={teamAId || ''}
+                        onChange={(e) => setTeamAId(e.target.value)}
+                      >
+                          <option value="">Select Team</option>
+                          {teamList.map(t => <option key={t.id} value={t.id}>{lang.teamNames[t.id] || t.name}</option>)}
+                      </select>
                       {teamA && (
                           <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
                               <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
@@ -309,24 +186,27 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                               </div>
                               <div className="text-center">
                                   <div className="text-2xl font-black text-slate-800 italic">#{teamA.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang.fifaRank}</div>
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
                               </div>
                           </div>
                       )}
                   </div>
 
+                  {/* VS BADGE */}
                   <div className="flex items-center justify-center pt-8">
                       <div className="bg-slate-900 text-white text-[10px] font-black p-2 rounded-full shadow-lg">VS</div>
                   </div>
 
+                  {/* TEAM B SELECTOR */}
                   <div className="flex flex-col gap-2">
-                      <CustomTeamSelect 
-                         teams={teamList} 
-                         value={teamBId} 
-                         onChange={setTeamBId} 
-                         placeholder={lang.selectTeam}
-                         lang={lang}
-                      />
+                      <select 
+                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
+                        value={teamBId || ''}
+                        onChange={(e) => setTeamBId(e.target.value)}
+                      >
+                          <option value="">Select Team</option>
+                          {teamList.map(t => <option key={t.id} value={t.id}>{lang.teamNames[t.id] || t.name}</option>)}
+                      </select>
                       {teamB && (
                           <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
                               <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
@@ -334,22 +214,23 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                               </div>
                               <div className="text-center">
                                   <div className="text-2xl font-black text-slate-800 italic">#{teamB.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang.fifaRank}</div>
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
                               </div>
                           </div>
                       )}
                   </div>
               </div>
 
+              {/* STAT BARS (Only if both selected) */}
               {teamA && teamB && (
                   <div className="mt-8 space-y-4 pt-6 border-t border-slate-100">
-                      <StatBar label={lang.attack} valA={teamA.att} valB={teamB.att} />
-                      <StatBar label={lang.midfield} valA={teamA.mid} valB={teamB.mid} />
-                      <StatBar label={lang.defense} valA={teamA.def} valB={teamB.def} />
-                      <StatBar label={lang.overall} valA={teamA.rating} valB={teamB.rating} colorA="bg-slate-800" colorB="bg-slate-800" />
+                      <StatBar label="Attack" valA={teamA.att} valB={teamB.att} />
+                      <StatBar label="Midfield" valA={teamA.mid} valB={teamB.mid} />
+                      <StatBar label="Defense" valA={teamA.def} valB={teamB.def} />
+                      <StatBar label="Overall" valA={teamA.rating} valB={teamB.rating} colorA="bg-slate-800" colorB="bg-slate-800" />
                       
                       <div className="bg-slate-50 p-3 rounded-xl mt-4 text-center">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{lang.winChance}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Win Probability (Engine)</span>
                           <div className="flex justify-center items-end gap-1">
                              <span className="text-xl font-black text-blue-600">{(teamA.rating / (teamA.rating + teamB.rating) * 100).toFixed(0)}%</span>
                              <span className="text-xs font-bold text-slate-300 mb-1">vs</span>
@@ -362,29 +243,20 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       );
   };
 
-  // 2. GRID VIEW
+  // 2. GRID VIEW (Standard)
   const renderGrid = (teams: Team[]) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {teams.map(team => {
             const teamName = lang.teamNames[team.id] || team.name;
-            // Use calculated form if available, else static
-            const form = (matches && teamForms[team.id]) ? teamForms[team.id] : (team.form || ['D','D','D','D','D']);
-            const isInCompare = teamAId === team.id || teamBId === team.id;
+            // Mock Form Dots (Using simplified logic for grid view speed)
+            const form = team.form || ['D','D','D','D','D'];
             
             return (
-                <div 
+                <button 
                     key={team.id}
                     onClick={() => setSelectedTeam(team)}
-                    className={`bg-white rounded-xl p-3 border shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-3 relative group cursor-pointer ${isInCompare ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300'}`}
+                    className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-3 relative group"
                 >
-                    <button 
-                        onClick={(e) => handleToggleCompare(e, team.id)}
-                        className={`absolute top-2 left-2 z-20 transition-all transform hover:scale-110 ${isInCompare ? 'text-blue-500' : 'text-slate-300 hover:text-blue-400'}`}
-                        title={lang.addToCompare}
-                    >
-                        {isInCompare ? <CheckCircle2 size={18} fill="currentColor" className="text-white" /> : <PlusCircle size={18} />}
-                    </button>
-
                     <div className="relative w-14 h-9 mt-1 group-hover:scale-105 transition-transform">
                         <div className="w-full h-full rounded shadow-sm overflow-hidden border border-slate-100">
                             <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
@@ -405,14 +277,15 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                             ))}
                         </div>
                     </div>
-                </div>
+                </button>
             );
         })}
     </div>
   );
 
-  // 3. TIER VIEW
+  // 3. TIER VIEW (FIFA Driven)
   const renderTiers = () => {
+      // Bucketing Logic based on FIFA Rank (Dynamic)
       const tiers = {
           tier1: teamList.filter(t => (t.rank || 99) <= 10),
           tier2: teamList.filter(t => (t.rank || 99) > 10 && (t.rank || 99) <= 25),
@@ -425,7 +298,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               <div className={`flex items-center gap-2 mb-3 px-1 ${color}`}>
                   <Icon size={16} />
                   <h4 className="text-xs font-black uppercase tracking-widest">{title}</h4>
-                  <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-full ml-auto text-slate-500">{teams.length}</span>
+                  <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-full ml-auto text-slate-500">{teams.length} Teams</span>
               </div>
               {renderGrid(teams)}
           </div>
@@ -433,10 +306,10 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
 
       return (
           <div className="space-y-2">
-              <TierRow title={lang.tier1} teams={tiers.tier1} icon={Trophy} color="text-yellow-600" />
-              <TierRow title={lang.tier2} teams={tiers.tier2} icon={Swords} color="text-blue-600" />
-              <TierRow title={lang.tier3} teams={tiers.tier3} icon={Zap} color="text-purple-600" />
-              <TierRow title={lang.tier4} teams={tiers.tier4} icon={Shield} color="text-slate-500" />
+              <TierRow title="World Class (Rank 1-10)" teams={tiers.tier1} icon={Trophy} color="text-yellow-600" />
+              <TierRow title="Challengers (Rank 11-25)" teams={tiers.tier2} icon={Swords} color="text-blue-600" />
+              <TierRow title="Dark Horses (Rank 26-50)" teams={tiers.tier3} icon={Zap} color="text-purple-600" />
+              <TierRow title="Underdogs (Rank 50+)" teams={tiers.tier4} icon={Shield} color="text-slate-500" />
           </div>
       );
   };
@@ -463,7 +336,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                      onClick={() => setCompareMode(true)}
                      className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border border-white/10"
                    >
-                       <Swords size={14} /> {lang.vsTool}
+                       <Swords size={14} /> VS Tool
                    </button>
                )}
            </div>
@@ -481,7 +354,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
         </div>
       </div>
 
-      {/* COMPARATOR */}
+      {/* COMPARATOR (Conditional) */}
       {compareMode && renderComparator()}
 
       {/* VIEW TOGGLES */}
@@ -491,24 +364,24 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                 onClick={() => setViewMode('GRID')}
                 className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'GRID' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                  {lang.allNations}
+                  All Teams
               </button>
               <button 
                 onClick={() => setViewMode('TIERS')}
                 className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'TIERS' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                  {lang.tierView}
+                  Rank Tiers
               </button>
           </div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {teamList.length} Teams
+              {teamList.length} Nations
           </div>
       </div>
 
       {/* MAIN CONTENT */}
       {viewMode === 'GRID' ? renderGrid(teamList) : renderTiers()}
 
-      {/* DETAIL MODAL */}
+      {/* DETAIL MODAL (Preserved from previous, just using new state) */}
       {selectedTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
            <div 
@@ -518,6 +391,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
 
            <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
               
+              {/* MODAL HEADER */}
               <div className="relative h-32 bg-[#0f2545] shrink-0">
                   <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-5"></div>
                   <div className="absolute -bottom-8 left-6 w-24 h-16 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2">
@@ -532,6 +406,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   </button>
               </div>
 
+              {/* MODAL BODY */}
               <div className="flex-1 overflow-y-auto pt-12 px-6 pb-6 bg-slate-50">
                   <div className="mb-6">
                       <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{displayName}</h2>
@@ -543,6 +418,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   </div>
 
+                  {/* Star Player */}
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-5 flex items-center gap-4 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-400/10 rounded-full blur-2xl group-hover:bg-yellow-400/20 transition-all"></div>
                       <div className="bg-yellow-100 text-yellow-600 p-3 rounded-full shrink-0 relative z-10">
@@ -554,6 +430,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   </div>
 
+                  {/* Analysis */}
                   {scoutingData && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                           <div className="bg-green-50/60 rounded-xl p-4 border border-green-100/50">
@@ -567,6 +444,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   )}
 
+                  {/* Form & History */}
                   <div className="mb-2">
                       <div className="flex justify-between items-center mb-3">
                           <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide}</h3>
@@ -583,7 +461,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       ) : (
                           <>
                              <div className="flex gap-2 mb-4">
-                                  {(history || []).slice(0, 5).map((m, i) => {
+                                  {(parsedMatches || []).slice(0, 5).map((m, i) => {
                                       const r = m.result;
                                       const color = r === 'W' ? 'bg-green-500 shadow-green-200' : r === 'D' ? 'bg-slate-400 shadow-slate-200' : 'bg-red-500 shadow-red-200';
                                       return (
@@ -593,7 +471,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                              </div>
                              
                              <div className="space-y-2">
-                                {(history || []).slice(0, 5).map((m, idx) => {
+                                {(parsedMatches || []).slice(0, 5).map((m, idx) => {
                                     const oppName = lang.teamNames[m.opponent] || m.opponent;
                                     return (
                                         <div key={idx} className="bg-white border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm">

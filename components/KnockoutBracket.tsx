@@ -28,16 +28,13 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
   const [activeRound, setActiveRound] = useState<Round>('R32');
 
-  // Removed 'FIN' from tabs as it has its own dedicated section
-  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF'];
+  // Restored 'FIN' to the tabs list
+  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   
-  const finalMatch = useMemo(() => matches.find(m => m.round === 'FIN'), [matches]);
-
-  const gridMatches = useMemo(() => {
+  const matchesToDisplay = useMemo(() => {
       if (viewMode === 'tree') return matches; 
-      // Filter out Final from the grid
       return matches
-        .filter(m => m.round === activeRound && m.round !== 'FIN')
+        .filter(m => m.round === activeRound)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, activeRound, viewMode]);
 
@@ -46,7 +43,8 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
       return allPredictions.filter(p => p.userId === user.email);
   }, [allPredictions, user]);
 
-  // Determine Final Winner Prediction for Celebration
+  // Determine Final Winner Prediction for Celebration (Only used if activeRound === 'FIN')
+  const finalMatch = matches.find(m => m.round === 'FIN');
   const finalPrediction = finalMatch ? userPredictions.find(p => p.matchId === finalMatch.id) : null;
   let finalWinnerTeam: Team | null = null;
   if (finalPrediction && finalMatch) {
@@ -58,46 +56,44 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   const isLocked = !isGroupStageComplete && !user?.hasTakenSecondChance;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto animate-fade-in pb-20">
+    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-20">
         
-        {/* NEW DARK HEADER (Aligned with TournamentSchedule) */}
-        <div className="bg-[#0f172a] rounded-2xl border border-white/10 shadow-lg p-2 sticky top-4 z-30">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                
-                {/* View Toggle */}
-                <div className="flex bg-[#1e293b] p-1 rounded-lg w-full sm:w-auto">
-                    <button 
-                        onClick={() => setViewMode('list')}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list' ? 'bg-[#3b82f6] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <List size={14} /> List
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('tree')}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'tree' ? 'bg-[#3b82f6] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <GitGraph size={14} /> Tree
-                    </button>
+        {/* CONTROLS - "Attached" Style (Clean row, no heavy container) */}
+        <div className="flex flex-col-reverse sm:flex-row items-start sm:items-center justify-between gap-4">
+            
+            {/* Round Selectors (Tabs) */}
+            {viewMode === 'list' && (
+                <div className="flex overflow-x-auto no-scrollbar gap-2 w-full sm:w-auto pb-1 sm:pb-0 snap-x">
+                    {rounds.map(r => (
+                        <button
+                            key={r}
+                            onClick={() => setActiveRound(r)}
+                            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all snap-center whitespace-nowrap shadow-sm border ${
+                                activeRound === r 
+                                    ? 'bg-[#0f2545] text-white border-[#0f2545] shadow-md' 
+                                    : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                        >
+                            {r === 'FIN' ? 'Final' : r}
+                        </button>
+                    ))}
                 </div>
+            )}
 
-                {/* Round Selectors (Only in List Mode) */}
-                {viewMode === 'list' && (
-                    <div className="flex overflow-x-auto no-scrollbar gap-2 w-full sm:w-auto pb-1 sm:pb-0 snap-x justify-start sm:justify-end">
-                        {rounds.map(r => (
-                            <button
-                                key={r}
-                                onClick={() => setActiveRound(r)}
-                                className={`flex-shrink-0 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all snap-center whitespace-nowrap border ${
-                                    activeRound === r 
-                                        ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20' 
-                                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
-                                }`}
-                            >
-                                {r}
-                            </button>
-                        ))}
-                    </div>
-                )}
+            {/* View Toggle (Right Aligned) */}
+            <div className="flex gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm ml-auto">
+                <button 
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    <List size={14} /> List
+                </button>
+                <button 
+                    onClick={() => setViewMode('tree')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'tree' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    <GitGraph size={14} /> Tree
+                </button>
             </div>
         </div>
 
@@ -121,45 +117,12 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
         {/* Content View */}
         <div className={isLocked ? 'opacity-50 pointer-events-none filter blur-sm select-none' : ''}>
             {viewMode === 'list' ? (
-                <div className="space-y-12">
-                    {/* STANDARD GRID */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {gridMatches.map(match => (
-                            <MatchCard 
-                                key={match.id}
-                                match={match}
-                                homeTeam={teams[match.homeTeamId]}
-                                awayTeam={teams[match.awayTeamId]}
-                                onUpdate={onUpdate}
-                                lang={lang}
-                                locale="en-GB"
-                                userTokens={user?.tokens || 0}
-                                rivals={rivals}
-                                onSpy={() => {}}
-                                revealedRivals={[]}
-                                currentUser={user}
-                                allPredictions={allPredictions}
-                                phase={phase}
-                                isAdminMode={false}
-                                onSubstitute={() => {}}
-                                substitutionsLeft={0}
-                                isUnlockedBySub={false}
-                                onTeamClick={onTeamClick}
-                            />
-                        ))}
-                        {gridMatches.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-slate-400 flex flex-col items-center gap-2">
-                                <Trophy size={48} className="opacity-20" />
-                                <p className="font-bold uppercase tracking-widest text-xs">No matches in this round yet</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* THE GRAND FINAL STAGE */}
-                    {finalMatch && (
-                        <div className="relative pt-8 pb-12">
-                            {/* Decorative Separator */}
-                            <div className="flex items-center justify-center gap-4 mb-8 opacity-80">
+                <>
+                    {/* SPECIAL VIEW: GRAND FINAL */}
+                    {activeRound === 'FIN' && finalMatch ? (
+                        <div className="relative pt-8 pb-12 animate-in fade-in zoom-in duration-500">
+                             {/* Decorative Separator */}
+                             <div className="flex items-center justify-center gap-4 mb-8 opacity-80">
                                 <div className="h-px w-24 bg-gradient-to-r from-transparent to-amber-400"></div>
                                 <div className="flex flex-col items-center">
                                     <div className="flex items-center gap-2 text-amber-500 mb-1">
@@ -213,8 +176,41 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                 </div>
                             </div>
                         </div>
+                    ) : (
+                        /* STANDARD GRID VIEW (R32, R16, QF, SF) */
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {matchesToDisplay.map(match => (
+                                <MatchCard 
+                                    key={match.id}
+                                    match={match}
+                                    homeTeam={teams[match.homeTeamId]}
+                                    awayTeam={teams[match.awayTeamId]}
+                                    onUpdate={onUpdate}
+                                    lang={lang}
+                                    locale="en-GB"
+                                    userTokens={user?.tokens || 0}
+                                    rivals={rivals}
+                                    onSpy={() => {}}
+                                    revealedRivals={[]}
+                                    currentUser={user}
+                                    allPredictions={allPredictions}
+                                    phase={phase}
+                                    isAdminMode={false}
+                                    onSubstitute={() => {}}
+                                    substitutionsLeft={0}
+                                    isUnlockedBySub={false}
+                                    onTeamClick={onTeamClick}
+                                />
+                            ))}
+                            {matchesToDisplay.length === 0 && (
+                                <div className="col-span-full text-center py-12 text-slate-400 flex flex-col items-center gap-2">
+                                    <Trophy size={48} className="opacity-20" />
+                                    <p className="font-bold uppercase tracking-widest text-xs">No matches in this round yet</p>
+                                </div>
+                            )}
+                        </div>
                     )}
-                </div>
+                </>
             ) : (
                 <KnockoutTreeView 
                     matches={matches} 
