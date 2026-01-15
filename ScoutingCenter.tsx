@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, Match } from '../types';
-import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
+import { fetchTeamHistory, fetchScoutingOverview } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
 import { Search, X, TrendingUp, TrendingDown, Activity, BookOpen, Crown, RefreshCw, AlertCircle, Minus, Swords, ChevronDown, Trophy, Shield, Zap, CheckCircle2, PlusCircle } from 'lucide-react';
 
@@ -134,7 +134,7 @@ interface ScoutingCenterProps {
   teams: Record<string, Team>;
   lang: Translation;
   currentLang?: LanguageCode;
-  matches?: Match[]; // Optional for now, but needed for form dots
+  matches?: Match[]; // Made optional so it doesn't break if not passed immediately
 }
 
 export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN', matches }) => {
@@ -151,7 +151,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   // DATA STATE
   const [history, setHistory] = useState<MatchHistoryItem[]>([]);
   const [scoutingData, setScoutingData] = useState<ScoutingData | null>(null);
-  const [extendedStats, setExtendedStats] = useState<TeamFormData | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // PREPARE LIST
@@ -168,15 +167,14 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       if (!matches) return forms;
 
       teamList.forEach(t => {
-          // Find last 5 completed matches
           const played = matches
             .filter(m => (m.status === 'FINISHED' || m.status === 'FT') && (m.homeTeamId === t.id || m.awayTeamId === t.id))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Newest first
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 5)
-            .reverse(); // Chronological for display (Old -> New)
+            .reverse();
           
           if (played.length === 0) {
-              forms[t.id] = ['D','D','D','D','D']; // Default
+              forms[t.id] = ['D','D','D','D','D'];
           } else {
               forms[t.id] = played.map(m => {
                   const isHome = m.homeTeamId === t.id;
@@ -196,18 +194,13 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       if (selectedTeam) {
           setLoadingHistory(true);
           const loadData = async () => {
-              const [dbHistory, dbScouting, dbExtended] = await Promise.all([
+              // REMOVED fetchTeamExtendedStats to fix import error
+              const [dbHistory, dbScouting] = await Promise.all([
                   fetchTeamHistory(selectedTeam.id),
-                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode),
-                  fetchTeamExtendedStats(selectedTeam.id)
+                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode)
               ]);
 
-              if (dbExtended) {
-                  setExtendedStats(dbExtended);
-                  setHistory(dbExtended.history);
-              } else {
-                  setHistory(dbHistory);
-              }
+              setHistory(dbHistory);
 
               if (dbScouting) {
                   setScoutingData(dbScouting);
@@ -236,25 +229,19 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       } else {
           setHistory([]);
           setScoutingData(null);
-          setExtendedStats(null);
       }
   }, [selectedTeam, currentLang]);
 
-  // Handle "Tick to Compare" Logic
+  // Handle "Tick to Compare"
   const handleToggleCompare = (e: React.MouseEvent, teamId: string) => {
       e.stopPropagation();
-      
-      // If tool is closed, open it and set A
       if (!compareMode) {
           setCompareMode(true);
           setTeamAId(teamId);
           setTeamBId(null);
-          // Scroll to top to see it
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
       }
-
-      // Logic to toggle slots
       if (teamAId === teamId) {
           setTeamAId(null);
       } else if (teamBId === teamId) {
@@ -263,27 +250,19 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
           setTeamAId(teamId);
       } else if (!teamBId) {
           setTeamBId(teamId);
-          // "Boom you got comparison" -> scroll to tool
           if (comparatorRef.current) {
               comparatorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
       } else {
-          // If both full, replace B (standard UX for comparison tools)
           setTeamBId(teamId);
       }
   };
 
-  // --- DERIVED HELPERS ---
-  const getParsedMatches = (stats: TeamFormData | null, sData: ScoutingData | null, fallbackHist: MatchHistoryItem[]) => {
-      if (stats) return stats.history;
-      if (fallbackHist.length > 0) return fallbackHist;
-      return [];
-  };
-
-  const calculateTrend = (matches: MatchHistoryItem[]) => {
-      if (!matches || matches.length === 0) return { label: 'Unknown', color: 'text-slate-400', icon: Minus, bg: 'bg-slate-100' };
+  // Helper to generate a visual trend based on history
+  const calculateTrend = (historyItems: MatchHistoryItem[]) => {
+      if (!historyItems || historyItems.length === 0) return { label: 'Unknown', color: 'text-slate-400', icon: Minus, bg: 'bg-slate-100' };
       let points = 0;
-      matches.slice(0, 5).forEach(m => {
+      historyItems.slice(0, 5).forEach(m => {
           if (m.result === 'W') points += 3;
           else if (m.result === 'D') points += 1;
       });
@@ -293,10 +272,9 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       return { label: lang.trendDown, color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
   };
 
-  const parsedMatches = useMemo(() => getParsedMatches(extendedStats, scoutingData, history), [extendedStats, scoutingData, history]);
-  const trend = useMemo(() => calculateTrend(parsedMatches), [parsedMatches]);
+  const trend = useMemo(() => calculateTrend(history), [history]);
   
-  const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || selectedTeam?.rank || 99;
+  const displayRank = scoutingData?.fifa_rank || selectedTeam?.rank || 99;
   const displayName = selectedTeam ? (lang.teamNames[selectedTeam.id] || scoutingData?.team_name || selectedTeam.name) : '';
 
   // --- RENDER SECTIONS ---
@@ -316,7 +294,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               </div>
 
               <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-start">
-                  {/* TEAM A SELECTOR */}
                   <div className="flex flex-col gap-2">
                       <CustomTeamSelect 
                          teams={teamList} 
@@ -338,12 +315,10 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       )}
                   </div>
 
-                  {/* VS BADGE */}
                   <div className="flex items-center justify-center pt-8">
                       <div className="bg-slate-900 text-white text-[10px] font-black p-2 rounded-full shadow-lg">VS</div>
                   </div>
 
-                  {/* TEAM B SELECTOR */}
                   <div className="flex flex-col gap-2">
                       <CustomTeamSelect 
                          teams={teamList} 
@@ -366,7 +341,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   </div>
               </div>
 
-              {/* STAT BARS (Only if both selected) */}
               {teamA && teamB && (
                   <div className="mt-8 space-y-4 pt-6 border-t border-slate-100">
                       <StatBar label={lang.attack} valA={teamA.att} valB={teamB.att} />
@@ -388,7 +362,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       );
   };
 
-  // 2. GRID VIEW (Standard)
+  // 2. GRID VIEW
   const renderGrid = (teams: Team[]) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {teams.map(team => {
@@ -403,7 +377,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                     onClick={() => setSelectedTeam(team)}
                     className={`bg-white rounded-xl p-3 border shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-3 relative group cursor-pointer ${isInCompare ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300'}`}
                 >
-                    {/* TOGGLE COMPARE BUTTON */}
                     <button 
                         onClick={(e) => handleToggleCompare(e, team.id)}
                         className={`absolute top-2 left-2 z-20 transition-all transform hover:scale-110 ${isInCompare ? 'text-blue-500' : 'text-slate-300 hover:text-blue-400'}`}
@@ -438,7 +411,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
     </div>
   );
 
-  // 3. TIER VIEW (FIFA Driven)
+  // 3. TIER VIEW
   const renderTiers = () => {
       const tiers = {
           tier1: teamList.filter(t => (t.rank || 99) <= 10),
@@ -508,7 +481,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
         </div>
       </div>
 
-      {/* COMPARATOR (Conditional) */}
+      {/* COMPARATOR */}
       {compareMode && renderComparator()}
 
       {/* VIEW TOGGLES */}
@@ -535,7 +508,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       {/* MAIN CONTENT */}
       {viewMode === 'GRID' ? renderGrid(teamList) : renderTiers()}
 
-      {/* DETAIL MODAL - NO CHANGES NEEDED (Uses existing logic) */}
+      {/* DETAIL MODAL */}
       {selectedTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
            <div 
@@ -545,7 +518,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
 
            <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
               
-              {/* MODAL HEADER */}
               <div className="relative h-32 bg-[#0f2545] shrink-0">
                   <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-5"></div>
                   <div className="absolute -bottom-8 left-6 w-24 h-16 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2">
@@ -560,7 +532,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   </button>
               </div>
 
-              {/* MODAL BODY */}
               <div className="flex-1 overflow-y-auto pt-12 px-6 pb-6 bg-slate-50">
                   <div className="mb-6">
                       <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{displayName}</h2>
@@ -572,7 +543,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   </div>
 
-                  {/* Star Player */}
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-5 flex items-center gap-4 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-400/10 rounded-full blur-2xl group-hover:bg-yellow-400/20 transition-all"></div>
                       <div className="bg-yellow-100 text-yellow-600 p-3 rounded-full shrink-0 relative z-10">
@@ -584,7 +554,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   </div>
 
-                  {/* Analysis */}
                   {scoutingData && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                           <div className="bg-green-50/60 rounded-xl p-4 border border-green-100/50">
@@ -598,7 +567,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       </div>
                   )}
 
-                  {/* Form & History */}
                   <div className="mb-2">
                       <div className="flex justify-between items-center mb-3">
                           <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide}</h3>
@@ -615,7 +583,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       ) : (
                           <>
                              <div className="flex gap-2 mb-4">
-                                  {(parsedMatches || []).slice(0, 5).map((m, i) => {
+                                  {(history || []).slice(0, 5).map((m, i) => {
                                       const r = m.result;
                                       const color = r === 'W' ? 'bg-green-500 shadow-green-200' : r === 'D' ? 'bg-slate-400 shadow-slate-200' : 'bg-red-500 shadow-red-200';
                                       return (
@@ -625,7 +593,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                              </div>
                              
                              <div className="space-y-2">
-                                {(parsedMatches || []).slice(0, 5).map((m, idx) => {
+                                {(history || []).slice(0, 5).map((m, idx) => {
                                     const oppName = lang.teamNames[m.opponent] || m.opponent;
                                     return (
                                         <div key={idx} className="bg-white border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm">

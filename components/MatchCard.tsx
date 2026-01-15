@@ -85,7 +85,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const isKnockout = !!match.round; 
 
-    // Update local state when predictions change (e.g. from DB load)
+    // Update local state when predictions change
     useEffect(() => {
         if (prediction) {
             setDisplayHome(prediction.home);
@@ -116,24 +116,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [displayHome, displayAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
-    // LOCKING LOGIC START
+    // LOCKING LOGIC
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-    
-    // 1. Is the match locked by Real Life events (started/finished)?
     const isRealLifeLocked = match.isLocked || isLive || isFinished;
-    
-    // 2. Is the match locked by App Phase (Global Live Mode)?
     const isPhaseLocked = phase === 'LIVE';
-    
-    // 3. EFFECTIVE LOCK: 
-    // Locked if (RealLocked OR PhaseLocked) AND (Not Admin) AND (Not Substituted)
     const isLocked = (isRealLifeLocked || isPhaseLocked) && !isAdminMode && !isUnlockedBySub;
-
-    // 4. Can we use a Substitute?
-    // Must be Phase Locked, BUT Not Real-Life Locked (Game hasn't started), and Not Already Unlocked
     const canSubstitute = isPhaseLocked && !isRealLifeLocked && !isUnlockedBySub && onSubstitute;
-    // LOCKING LOGIC END
 
     const handleActivate = () => {
         setDisplayHome(0);
@@ -149,10 +138,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         onUpdate(match.id, h, a);
     };
 
-    // Unified Click Handler
     const handleTeamAreaClick = (side: 'home' | 'away') => {
         if (isKnockout) {
-            // Knockout Mode: Click selects winner if unlocked
             if (!isLocked) {
                 if (side === 'home') {
                     setDisplayHome(1); setDisplayAway(0);
@@ -163,7 +150,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 }
             }
         } else {
-            // Group Mode: Click opens modal (Team Details)
             const teamId = side === 'home' ? match.homeTeamId : match.awayTeamId;
             if (onTeamClick && !teamId.startsWith('TBD')) {
                 onTeamClick(teamId);
@@ -186,20 +172,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const handleSubClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (substitutionsLeft > 0 && onSubstitute) {
+        if (substitutionsLeft !== undefined && substitutionsLeft > 0 && onSubstitute) {
             if (window.confirm(`${lang.subConfirm} (${substitutionsLeft} ${lang.substitutions} left)`)) {
                 onSubstitute();
             }
         }
     };
 
-    // Helper for visual state
-    const onFlagClick = (e: React.MouseEvent, teamId: string) => {
-        e.stopPropagation();
-        handleTeamAreaClick(teamId === homeTeam?.id ? 'home' : 'away');
-    };
-
-    // Determine Predicted Winner for Knockout Display
     let predictedWinnerId: string | null = null;
     if (prediction) {
         if (prediction.home > prediction.away) predictedWinnerId = match.homeTeamId;
@@ -207,9 +186,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     }
     
     return (
-        <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} overflow-hidden relative group`}>
-             {/* Header */}
-             <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        // FIX: Removed 'overflow-hidden' to allow badges/shadows to pop out.
+        <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group`}>
+             
+             {/* Header - Added rounded-t-2xl to maintain corner shape since parent overflow is visible */}
+             <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between rounded-t-2xl">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-full justify-center">
                     {isLive ? (
                          <span className="flex items-center gap-1 text-red-600 animate-pulse">
@@ -277,10 +258,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <div className="mt-2">
                                     <button 
                                         onClick={handleSubClick}
-                                        disabled={substitutionsLeft <= 0}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
+                                        disabled={!substitutionsLeft || substitutionsLeft <= 0}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
                                     >
-                                        <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
+                                        <RefreshCw size={12} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} />
                                         <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
                                     </button>
                                 </div>
@@ -300,7 +281,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )}
                         </div>
                     ) : (
-                        // === GROUP STAGE VIEW ===
+                        // === GROUP STAGE VIEW (Using ScoreStepper) ===
                         <div className="flex flex-col items-center gap-4">
                             {!isLocked ? (
                                 <div className="flex items-center gap-2 relative">
@@ -361,10 +342,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                              {canSubstitute ? (
                                                  <button 
                                                      onClick={handleSubClick}
-                                                     disabled={substitutionsLeft <= 0}
-                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
+                                                     disabled={!substitutionsLeft || substitutionsLeft <= 0}
+                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}
                                                  >
-                                                     <RefreshCw size={12} className={substitutionsLeft > 0 ? "" : "opacity-50"} />
+                                                     <RefreshCw size={12} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} />
                                                      <span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span>
                                                  </button>
                                              ) : (
@@ -429,7 +410,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             </div>
 
-            {/* HEAD-TO-HEAD & RIVALS SECTIONS REMAIN UNCHANGED */}
+            {/* HEAD-TO-HEAD & RIVALS SECTIONS */}
             {h2hData && !isLocked && !isKnockout && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -484,9 +465,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* Rivals Section (Only visible if revealed/locked) */}
+            {/* Rivals Section - Added rounded-b-2xl for corner fix */}
             {showRivals && rivals.length > 0 && (
-                <div className="bg-[#0f2545] p-4 animate-in slide-in-from-top-2 border-t border-white/10">
+                <div className="bg-[#0f2545] p-4 animate-in slide-in-from-top-2 border-t border-white/10 rounded-b-2xl">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <Lock size={12} className="text-yellow-400" />
