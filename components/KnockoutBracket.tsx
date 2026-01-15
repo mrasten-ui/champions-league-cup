@@ -18,11 +18,15 @@ interface KnockoutBracketProps {
   firstIncompleteGroup: string | null;
   onGoToGroup: (groupId: string) => void;
   onTeamClick?: (teamId: string) => void;
+  // FIX: Added Peek Picks props
+  onSpy: (match: Match) => void;
+  revealedRivals: string[]; 
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({ 
   matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, 
-  isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick 
+  isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick,
+  onSpy, revealedRivals // FIX: Destructure new props
 }) => {
   // 1. DEFAULT TO LIST VIEW
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
@@ -168,8 +172,8 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                             locale="en-GB"
                                             userTokens={user?.tokens || 0}
                                             rivals={rivals}
-                                            onSpy={() => {}}
-                                            revealedRivals={[]}
+                                            onSpy={onSpy} // FIX: Connected
+                                            revealedRivals={revealedRivals} // FIX: Connected
                                             currentUser={user}
                                             allPredictions={allPredictions}
                                             phase={phase}
@@ -197,8 +201,8 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                                     locale="en-GB"
                                     userTokens={user?.tokens || 0}
                                     rivals={rivals}
-                                    onSpy={() => {}}
-                                    revealedRivals={[]}
+                                    onSpy={onSpy} // FIX: Connected
+                                    revealedRivals={revealedRivals} // FIX: Connected
                                     currentUser={user}
                                     allPredictions={allPredictions}
                                     phase={phase}
