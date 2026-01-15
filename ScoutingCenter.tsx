@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
+import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, Match } from '../types';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
 import { Search, X, TrendingUp, TrendingDown, Activity, BookOpen, Crown, RefreshCw, AlertCircle, Minus, Swords, ChevronDown, Trophy, Shield, Zap, CheckCircle2, PlusCircle } from 'lucide-react';
@@ -43,7 +43,7 @@ const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-5
     </div>
 );
 
-// NEW: Custom Dropdown with Flags
+// Custom Dropdown with Flags
 const CustomTeamSelect = ({ 
     teams, 
     value, 
@@ -134,9 +134,10 @@ interface ScoutingCenterProps {
   teams: Record<string, Team>;
   lang: Translation;
   currentLang?: LanguageCode;
+  matches?: Match[]; // Optional for now, but needed for form dots
 }
 
-export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN' }) => {
+export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN', matches }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'TIERS'>('GRID');
@@ -160,6 +161,35 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
         .filter(t => (lang.teamNames[t.id] || t.name).toLowerCase().includes(searchTerm.toLowerCase()))
         .sort((a, b) => (a.rank || 99) - (b.rank || 99));
   }, [teams, searchTerm, lang]);
+
+  // CALCULATE LIVE FORM
+  const teamForms = useMemo(() => {
+      const forms: Record<string, ('W'|'D'|'L')[]> = {};
+      if (!matches) return forms;
+
+      teamList.forEach(t => {
+          // Find last 5 completed matches
+          const played = matches
+            .filter(m => (m.status === 'FINISHED' || m.status === 'FT') && (m.homeTeamId === t.id || m.awayTeamId === t.id))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Newest first
+            .slice(0, 5)
+            .reverse(); // Chronological for display (Old -> New)
+          
+          if (played.length === 0) {
+              forms[t.id] = ['D','D','D','D','D']; // Default
+          } else {
+              forms[t.id] = played.map(m => {
+                  const isHome = m.homeTeamId === t.id;
+                  const scoreH = m.homeScore || 0;
+                  const scoreA = m.awayScore || 0;
+                  if (scoreH === scoreA) return 'D';
+                  if (isHome) return scoreH > scoreA ? 'W' : 'L';
+                  return scoreA > scoreH ? 'W' : 'L';
+              });
+          }
+      });
+      return forms;
+  }, [matches, teamList]);
 
   // LOAD DETAIL DATA
   useEffect(() => {
@@ -363,7 +393,8 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {teams.map(team => {
             const teamName = lang.teamNames[team.id] || team.name;
-            const form = team.form || ['D','D','D','D','D'];
+            // Use calculated form if available, else static
+            const form = (matches && teamForms[team.id]) ? teamForms[team.id] : (team.form || ['D','D','D','D','D']);
             const isInCompare = teamAId === team.id || teamBId === team.id;
             
             return (
