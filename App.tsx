@@ -1085,8 +1085,8 @@ const App: React.FC = () => {
                       firstIncompleteGroup={firstIncompleteGroup} 
                       onGoToGroup={handleGoToGroup} 
                       onTeamClick={handleTeamClick} 
-                      onSpy={(m) => handleSpy(m.id)}  // FIX: Connected onSpy
-                      revealedRivals={user?.spiedMatches || []} // FIX: Connected revealedRivals
+                      onSpy={(id) => handleSpy(id)} 
+                      revealedRivals={user?.spiedMatches || []} 
                     />
                 )}
             </div>
@@ -1113,8 +1113,8 @@ const App: React.FC = () => {
                                 locale={currentLocale}
                                 userTokens={user?.tokens || 0} 
                                 rivals={rivalsList} 
-                                onSpy={handleSpy}
-                                revealedRivals={user?.spiedMatches || []} // FIX: Ensured this uses user.spiedMatches too
+                                onSpy={(id) => handleSpy(id)}
+                                revealedRivals={user?.spiedMatches || []} 
                                 currentUser={user} 
                                 allPredictions={allPredictions} 
                                 phase={tournamentPhase} 
@@ -1169,7 +1169,7 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} onSpy={(m) => handleSpy(m.id)} revealedRivals={user?.spiedMatches || []} />}
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} onSpy={(id) => handleSpy(id)} revealedRivals={user?.spiedMatches || []} />}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={handleTeamClick} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? 
             <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> 

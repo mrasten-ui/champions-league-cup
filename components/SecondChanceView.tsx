@@ -15,11 +15,15 @@ interface SecondChanceViewProps {
   allPredictions: Prediction[];
   phase: TournamentPhase;
   onTeamClick?: (teamId: string) => void;
+  // FIX: Added missing props
+  onSpy: (matchId: string) => void;
+  revealedRivals: string[];
 }
 
 export const SecondChanceView: React.FC<SecondChanceViewProps> = ({ 
   matches, teams, onUpdate, lang, user, onUnlock, onRefreshTeams,
-  rivals, allPredictions, phase, onTeamClick 
+  rivals, allPredictions, phase, onTeamClick,
+  onSpy, revealedRivals // FIX: Destructured new props
 }) => {
   const [isHovering, setIsHovering] = useState(false);
 
@@ -106,6 +110,9 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
                 firstIncompleteGroup={null}
                 onGoToGroup={() => {}}
                 onTeamClick={onTeamClick}
+                // FIX: Passed down props
+                onSpy={onSpy} 
+                revealedRivals={revealedRivals}
              />
           </div>
       ) : (
