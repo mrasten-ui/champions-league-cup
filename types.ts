@@ -30,6 +30,20 @@ export interface Translation {
   subTitle: string;
   selectAvatar: string;
   createIdentity: string;
+  // NEW SCOUTING KEYS
+  vsTool: string;
+  closeTool: string;
+  selectTeam: string;
+  winChance: string;
+  tier1: string;
+  tier2: string;
+  tier3: string;
+  tier4: string;
+  tierView: string;
+  allNations: string;
+  compareBtn: string;
+  compareActive: string;
+  addToCompare: string;
   // Avatar Generator
   genAvatarBtn: string;
   genAvatarTitle: string;
