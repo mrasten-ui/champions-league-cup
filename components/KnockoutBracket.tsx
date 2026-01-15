@@ -28,7 +28,6 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
   const [activeRound, setActiveRound] = useState<Round>('R32');
 
-  // Restored 'FIN' to the tabs list
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   
   const matchesToDisplay = useMemo(() => {
@@ -43,7 +42,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
       return allPredictions.filter(p => p.userId === user.email);
   }, [allPredictions, user]);
 
-  // Determine Final Winner Prediction for Celebration (Only used if activeRound === 'FIN')
+  // Determine Final Winner Prediction for Celebration
   const finalMatch = matches.find(m => m.round === 'FIN');
   const finalPrediction = finalMatch ? userPredictions.find(p => p.matchId === finalMatch.id) : null;
   let finalWinnerTeam: Team | null = null;
@@ -58,42 +57,50 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-20">
         
-        {/* CONTROLS - "Attached" Style (Clean row, no heavy container) */}
-        <div className="flex flex-col-reverse sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* CONTROLS HEADER */}
+        <div className="flex flex-col gap-4">
             
-            {/* Round Selectors (Tabs) */}
-            {viewMode === 'list' && (
-                <div className="flex overflow-x-auto no-scrollbar gap-2 w-full sm:w-auto pb-1 sm:pb-0 snap-x">
-                    {rounds.map(r => (
-                        <button
-                            key={r}
-                            onClick={() => setActiveRound(r)}
-                            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all snap-center whitespace-nowrap shadow-sm border ${
-                                activeRound === r 
-                                    ? 'bg-[#0f2545] text-white border-[#0f2545] shadow-md' 
-                                    : 'bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                        >
-                            {r === 'FIN' ? 'Final' : r}
-                        </button>
-                    ))}
-                </div>
-            )}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                
+                {/* 1. ROUND SELECTOR (Segmented Control Style) */}
+                {viewMode === 'list' && (
+                    <div className="w-full sm:w-auto p-1.5 bg-slate-100 rounded-xl flex overflow-x-auto no-scrollbar snap-x shadow-inner border border-slate-200/60">
+                        {rounds.map(r => (
+                            <button
+                                key={r}
+                                onClick={() => setActiveRound(r)}
+                                className={`
+                                    flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap snap-center
+                                    ${activeRound === r 
+                                        ? 'bg-white text-slate-800 shadow-sm ring-1 ring-black/5 scale-[1.02]' 
+                                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
+                                    }
+                                `}
+                            >
+                                {r === 'FIN' ? 'Final' : r}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
-            {/* View Toggle (Right Aligned) */}
-            <div className="flex gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm ml-auto">
-                <button 
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    <List size={14} /> List
-                </button>
-                <button 
-                    onClick={() => setViewMode('tree')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'tree' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    <GitGraph size={14} /> Tree
-                </button>
+                {/* 2. VIEW TOGGLE (Smaller, Subtle) */}
+                <div className="flex p-1 bg-white rounded-lg border border-slate-200 shadow-sm ml-auto">
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="List View"
+                    >
+                        <List size={16} />
+                    </button>
+                    <div className="w-px bg-slate-100 my-1 mx-1"></div>
+                    <button 
+                        onClick={() => setViewMode('tree')}
+                        className={`p-2 rounded-md transition-all ${viewMode === 'tree' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="Tree View"
+                    >
+                        <GitGraph size={16} />
+                    </button>
+                </div>
             </div>
         </div>
 
