@@ -959,7 +959,7 @@ const App: React.FC = () => {
                        else label = (typeof val === 'string' ? val : tab) as string;
                        
                        return (
-                          <button key={tab} onClick={() => setActiveTab(tab as any)} className={`relative px-4 py-3 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
+                          <button key={tab} onClick={() => setActiveTab(tab as any)} className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
                              {label}
                              {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
                           </button>
@@ -970,7 +970,7 @@ const App: React.FC = () => {
         </div>
         
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
-            <div className="bg-[#0f2545] border-b border-white/5 py-3 shadow-inner overflow-x-auto no-scrollbar">
+            <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 px-4 justify-start sm:justify-center">
                     {GROUP_CONFIG.map(g => {
                         const groupMatches = matches.filter(m => m.groupId === g.id);
