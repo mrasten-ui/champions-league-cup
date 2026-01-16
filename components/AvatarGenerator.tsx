@@ -7,13 +7,13 @@ interface AvatarGeneratorProps {
   lang: any;
 }
 
-// Extensive list to try hitting
+// UPDATED: Prioritized list based on your proven available models
 const MODEL_CANDIDATES = [
-  "gemini-1.5-flash",
-  "gemini-1.5-pro", 
-  "gemini-1.0-pro",
-  "gemini-pro",
-  "gemini-pro-vision"
+  "gemini-2.0-flash",          // Fast & Powerful (Primary)
+  "gemini-2.0-flash-lite",     // Ultra-fast fallback
+  "gemini-2.5-flash",          // Newest Flash model
+  "gemini-2.5-pro",            // High-intelligence backup
+  "gemini-2.0-flash-exp"       // Experimental fallback
 ];
 
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
@@ -56,6 +56,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
       if (success) break;
       
       try {
+        console.log(`Attempting generation with model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
@@ -101,7 +102,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
           } else if (data.models) {
               console.log("AVAILABLE MODELS FOR YOUR KEY:", data.models.map((m: any) => m.name));
               const validNames = data.models.map((m: any) => m.name.replace('models/', ''));
-              setError(`Try one of these models in the code: ${validNames.join(', ')}`);
+              setError(`Try one of these models in the code: ${validNames.slice(0, 3).join(', ')}...`);
           }
       } catch (e) {
           console.error("Network check failed", e);
