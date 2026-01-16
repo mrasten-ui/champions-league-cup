@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Sparkles, RefreshCw, AlertCircle, Check, Wand2, Loader2 } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertCircle, Check, Wand2, Loader2, Bug } from 'lucide-react';
 
 interface AvatarGeneratorProps {
   onGenerate: (avatarUrl: string) => void;
   lang: any;
 }
 
-// Priority list of models to try. 
-// It starts with the fastest/cheapest (Flash) and falls back to older/stable ones.
+// Extensive list to try hitting
 const MODEL_CANDIDATES = [
   "gemini-1.5-flash",
   "gemini-1.5-pro", 
   "gemini-1.0-pro",
-  "gemini-pro"
+  "gemini-pro",
+  "gemini-pro-vision"
 ];
 
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
@@ -39,8 +39,6 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
 
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // We combine the system instruction into the prompt because 
-    // some older models don't support the separate 'systemInstruction' property.
     const fullPrompt = `
       ROLE: You are an expert SVG artist.
       TASK: Generate a circular, flat-design SVG avatar based on this description: "${prompt}".
@@ -52,42 +50,62 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
     `;
 
     // --- FALLBACK STRATEGY ---
+    let success = false;
+    
     for (const modelName of MODEL_CANDIDATES) {
+      if (success) break;
+      
       try {
-        console.log(`Attempting generation with model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
-        
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         let text = response.text();
 
-        // If we get here, it worked! Clean up the text.
         text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
         
-        // Find the SVG tag start/end to ignore any chatty intros
         const start = text.indexOf('<svg');
         const end = text.indexOf('</svg>');
 
         if (start !== -1 && end !== -1) {
            text = text.substring(start, end + 6);
            setGeneratedSvg(text);
-           setActiveModel(modelName); // Success!
-           setLoading(false);
-           return; // Exit the loop and function
+           setActiveModel(modelName);
+           success = true;
         }
         
       } catch (err: any) {
         console.warn(`Model ${modelName} failed:`, err.message);
-        // If it's the last model and it still failed, show the error
-        if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
-           let msg = "All AI models failed. Please check API Key quota.";
-           if (err.message.includes('404')) msg = "API Key valid, but no models found available.";
-           setError(msg);
-        }
-        // Otherwise, continue to the next model in the loop...
       }
     }
+
+    if (!success) {
+        setError("All models failed. Check Console (F12) for details.");
+        // Auto-run diagnostics to help user
+        runDiagnostics(apiKey);
+    }
+    
     setLoading(false);
+  };
+
+  // --- DIAGNOSTICS HELPER ---
+  const runDiagnostics = async (key: string) => {
+      console.log("--- RUNNING DIAGNOSTICS ---");
+      try {
+          // Manually fetch the model list using raw fetch to bypass SDK typing issues if any
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+          const data = await response.json();
+          
+          if (data.error) {
+              console.error("API Error:", data.error);
+              setError(`API Error: ${data.error.message}`);
+          } else if (data.models) {
+              console.log("AVAILABLE MODELS FOR YOUR KEY:", data.models.map((m: any) => m.name));
+              const validNames = data.models.map((m: any) => m.name.replace('models/', ''));
+              setError(`Try one of these models in the code: ${validNames.join(', ')}`);
+          }
+      } catch (e) {
+          console.error("Network check failed", e);
+      }
   };
 
   const handleConfirm = () => {
@@ -123,9 +141,9 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         </div>
         
         {error && (
-          <div className="mt-2 text-[10px] text-red-500 flex items-center gap-1 font-medium bg-red-50 p-2 rounded">
-            <AlertCircle size={12} />
-            {error}
+          <div className="mt-2 text-[10px] text-red-500 flex items-start gap-1 font-medium bg-red-50 p-2 rounded">
+            <Bug size={12} className="shrink-0 mt-0.5" />
+            <span className="break-all">{error}</span>
           </div>
         )}
       </div>
