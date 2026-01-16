@@ -1,170 +1,155 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from "@google/genai";
-import { Sparkles, RefreshCw, AlertCircle, Check } from 'lucide-react';
-import { Translation } from '../types';
-import { HOST_KEYS } from '../constants';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Sparkles, RefreshCw, AlertCircle, Check, Wand2, Loader2 } from 'lucide-react';
 
 interface AvatarGeneratorProps {
-  onGenerate: (dataUri: string) => void;
-  lang: Translation;
+  onGenerate: (avatarUrl: string) => void;
+  lang: any; // Loosely typed to accept your translation object
 }
-
-// Utility to compress image to a small Avatar friendly size
-const compressImage = (base64Str: string, maxWidth = 180, quality = 0.85): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(base64Str); // Fallback if canvas fails
-        return;
-      }
-
-      // Calculate new dimensions (Square aspect ratio preferred)
-      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-      const width = img.width * ratio;
-      const height = img.height * ratio;
-
-      canvas.width = width;
-      canvas.height = height;
-
-      // Draw and compress to JPEG (much smaller than PNG)
-      ctx.drawImage(img, 0, 0, width, height);
-      const compressed = canvas.toDataURL('image/jpeg', quality);
-      resolve(compressed);
-    };
-    img.onerror = () => resolve(base64Str); // Fallback
-  });
-};
 
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedSvg, setGeneratedSvg] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    if (!prompt) return;
+    if (!prompt.trim()) return;
+
     setLoading(true);
-    setError('');
-    setGeneratedImage(null);
-    
+    setError(null);
+    setGeneratedSvg(null);
+
     try {
-        // Try to get key from environment (Vite style or Process) or fallback to constants
-        // @ts-ignore
-        const envKey = import.meta.env?.VITE_API_KEY || process.env.API_KEY; 
-        const key = envKey || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
-        
-        const ai = new GoogleGenAI({ apiKey: key });
-        
-        // Use the dedicated Imagen model
-        const response = await ai.models.generateContent({
-            model: 'imagen-3.0-generate-001', 
-            contents: {
-              parts: [{ text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.` }],
-            }
-        });
-        
-        const candidate = response.candidates?.[0];
-        let foundImage = false;
-        
-        if (candidate?.content?.parts) {
-            for (const part of candidate.content.parts) {
-                if (part.inlineData) {
-                    const base64 = part.inlineData.data;
-                    const mimeType = part.inlineData.mimeType || 'image/png';
-                    const rawUri = `data:${mimeType};base64,${base64}`;
-                    
-                    // Compress immediately before state update
-                    const compressedUri = await compressImage(rawUri);
-                    
-                    setGeneratedImage(compressedUri);
-                    foundImage = true;
-                    break; 
-                }
-            }
-        }
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error("Missing VITE_GEMINI_API_KEY in .env file.");
+      }
 
-        if (!foundImage) {
-            if (candidate?.finishReason === 'SAFETY') {
-                setError('Safety filters blocked this request. Try a different description.');
-            } else {
-                setError('API Key does not support Imagen model. Please check your Google AI Studio settings.');
-            }
-        }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    } catch (e: any) {
-        console.warn(`Generation failed:`, e.message);
-        if (e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('403')) {
-             setError('This API Key cannot access Imagen. It may be restricted or on a free tier.');
-        } else {
-             setError(e.message || 'Connection failed.');
-        }
+      // Highly specific prompt to get clean SVG code
+      const systemInstruction = `
+        You are an SVG avatar generator. 
+        Generate a minimal, circular, flat-design SVG avatar based on the user's description.
+        Use vibrant colors.
+        Do NOT add code blocks (like \`\`\`xml). 
+        Return ONLY the raw <svg>...</svg> string.
+        Ensure the viewBox is "0 0 100 100".
+      `;
+
+      const fullPrompt = `${systemInstruction}\n\nDescription: ${prompt}`;
+
+      const result = await model.generateContent(fullPrompt);
+      const response = await result.response;
+      let text = response.text();
+
+      // Cleanup: Remove markdown code blocks if Gemini adds them
+      text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
+
+      // Basic validation
+      if (!text.startsWith('<svg') || !text.endsWith('</svg>')) {
+         // Fallback if AI chats instead of coding
+         const start = text.indexOf('<svg');
+         const end = text.indexOf('</svg>') + 6;
+         if (start !== -1 && end !== -1) {
+             text = text.substring(start, end);
+         } else {
+             throw new Error("Failed to generate valid SVG code.");
+         }
+      }
+
+      setGeneratedSvg(text);
+    } catch (err: any) {
+      console.error("Avatar Gen Error:", err);
+      setError(err.message || "Failed to generate. Try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleConfirm = () => {
-    if (generatedImage) {
-        onGenerate(generatedImage);
+    if (generatedSvg) {
+      // Convert raw SVG string to a Data URI that can be used as an <img> src
+      // utilizing base64 encoding to ensure special characters don't break it
+      const base64Svg = btoa(unescape(encodeURIComponent(generatedSvg)));
+      const dataUri = `data:image/svg+xml;base64,${base64Svg}`;
+      onGenerate(dataUri);
     }
   };
-  
+
   return (
-    <div className="bg-slate-900/40 p-4 rounded-2xl border border-white/10 space-y-4 animate-in fade-in">
-        <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-purple-400" />
-                <span className="text-[10px] font-black text-purple-200 uppercase tracking-widest">{lang.genAvatarTitle}</span>
-            </div>
+    <div className="space-y-4">
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+          Describe your Avatar
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g. A cyberpunk lion with sunglasses..."
+            className="flex-1 bg-white border border-slate-300 text-slate-800 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={loading || !prompt.trim()}
+            className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2.5 rounded-lg transition-all shadow-md active:scale-95"
+            title="Generate with AI"
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+          </button>
         </div>
         
-        <p className="text-[10px] text-slate-400 leading-tight font-medium">{lang.genAvatarDesc}</p>
-
-        <div className="space-y-3">
-             <textarea 
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={lang.genAvatarPlaceholder}
-                rows={3}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all resize-none"
-             />
-             <button 
-                onClick={handleGenerate}
-                disabled={loading || !prompt}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-             >
-                {loading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {loading ? 'Painting Persona...' : lang.generate}
-             </button>
-        </div>
-
         {error && (
-            <div className="flex items-start gap-2 text-red-400 text-[10px] font-bold bg-red-900/20 p-3 rounded-lg border border-red-500/20">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" /> 
-                <span className="leading-tight break-words">{error}</span>
+          <div className="mt-2 text-[10px] text-red-500 flex items-center gap-1 font-medium bg-red-50 p-2 rounded">
+            <AlertCircle size={12} />
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Preview Area */}
+      <div className="flex flex-col items-center gap-4 transition-all duration-300">
+        {generatedSvg ? (
+          <div className="relative group animate-in zoom-in duration-300">
+            <div 
+              className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white"
+              dangerouslySetInnerHTML={{ __html: generatedSvg }} 
+            />
+            <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-full shadow-sm animate-bounce">
+                <Sparkles size={12} />
             </div>
+          </div>
+        ) : (
+          <div className="w-32 h-32 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center bg-slate-50/50">
+             <div className="text-center p-4">
+               <RefreshCw size={24} className={`text-slate-300 mx-auto mb-1 ${loading ? 'animate-spin' : ''}`} />
+               <span className="text-[10px] text-slate-400 font-medium uppercase">
+                 {loading ? "Dreaming..." : "Preview"}
+               </span>
+             </div>
+          </div>
         )}
 
-        {generatedImage && (
-            <div className="flex flex-col items-center gap-3 mt-4 animate-in zoom-in slide-in-from-bottom-2 duration-500">
-                <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                    <div className="relative w-28 h-28 rounded-full border-4 border-slate-900 overflow-hidden bg-white shadow-2xl">
-                        <img src={generatedImage} className="w-full h-full object-cover" alt="Generated Persona" />
-                    </div>
-                </div>
-                <button 
-                    onClick={handleConfirm}
-                    className="w-full py-3 bg-green-500 hover:bg-green-400 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-95"
-                >
-                    <Check size={18} /> {lang.useAvatar}
-                </button>
-            </div>
+        {generatedSvg && (
+          <button
+            onClick={handleConfirm}
+            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-2 transform active:scale-95 transition-all"
+          >
+            <Check size={16} />
+            {lang?.useAvatar || "Use This Avatar"}
+          </button>
         )}
+      </div>
+      
+      <div className="text-[9px] text-center text-slate-400 font-medium">
+        Powered by Google Gemini Flash
+      </div>
     </div>
   );
 };
