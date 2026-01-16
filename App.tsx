@@ -25,6 +25,7 @@ import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
+import { SecondChanceView } from './components/SecondChanceView';
 
 // Bumping versions to v2 to wipe previous data for a fresh start
 const STORAGE_KEYS = {
@@ -216,33 +217,25 @@ const App: React.FC = () => {
 
   // Language Switcher Logic (Checks if video seen per user)
   const handleLanguageSwitch = (code: LanguageCode) => {
-      // 1. Check local storage if video seen for this language
-      // Key includes user email (or 'anon' if pre-login) to ensure each user tracks views individually
       const userKey = user?.email || 'anon';
       const storageKey = `rasten_intro_seen_${code}_${userKey}`;
       const hasSeen = localStorage.getItem(storageKey);
 
-      // 2. Play video if not seen
       if (!hasSeen) {
           const videoUrl = INTRO_VIDEOS[code];
           if (videoUrl) {
               setIntroVideoUrl(videoUrl);
               setShowIntroModal(true);
-              
-              // Mark as seen immediately (safely)
               try {
                   localStorage.setItem(storageKey, 'true');
               } catch (e) {
-                  // Quota error possible here, warn but don't crash
                   console.warn("Could not save video seen flag due to storage limit.");
               }
           }
       }
-
       setLanguage(code);
   };
 
-  // Replay Video Logic (Manual Trigger - Always Plays)
   const handleReplayIntro = () => {
       const videoUrl = INTRO_VIDEOS[language];
       if (videoUrl) {
@@ -251,7 +244,6 @@ const App: React.FC = () => {
       }
   };
 
-  // Toast Helper
   const addToast = (type: ToastType, title: string, message?: string) => {
     const id = Math.random().toString(36).substring(7);
     setToasts(prev => [...prev, { id, type, title, message }]);
@@ -267,18 +259,15 @@ const App: React.FC = () => {
       }
   };
 
-  // LEAGUE JOINING LOGIC: Check URL for invites
   useEffect(() => {
     const path = window.location.pathname.substring(1).toLowerCase();
-    // Valid leagues: 'family', 'beeline', 'scotland'
     if (['family', 'beeline', 'scotland'].includes(path)) {
        console.log("League invite detected:", path);
        sessionStorage.setItem('pending_league_invite', path);
-       window.history.replaceState(null, '', '/'); // Clean URL
+       window.history.replaceState(null, '', '/'); 
     }
   }, []);
 
-  // Logic to check if user has finished group stage
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => {
     if (!user) return 0;
@@ -327,7 +316,6 @@ const App: React.FC = () => {
 
       try {
           if (isSupabaseConfigured && supabase) {
-            // 1. Sync Rankings
             const rankMap = await fetchAllTeamRanks();
             if (Object.keys(rankMap).length > 0) {
                 setTeamsData(prev => {
@@ -424,16 +412,10 @@ const App: React.FC = () => {
     if (user && !isAdminMode) {
         setMatches(prev => {
             let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
-            
-            // CRITICAL FIX: If Second Chance is taken, ignore GROUP predictions when building bracket.
-            // This ensures the bracket is built from REAL results (in matches state) not user's predicted results.
             if (user.hasTakenSecondChance) {
-                // Filter out any predictions that belong to Group Stage matches (i.e. matches with a groupId)
-                // We access the match metadata from 'prev' matches to check if it's a group game.
                 const groupMatchIds = new Set(prev.filter(m => m.groupId).map(m => m.id));
                 userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
             }
-
             return applyPredictionsToBracket(prev, teamsData, userSpecificPreds);
         });
     }
@@ -448,11 +430,9 @@ const App: React.FC = () => {
     Object.keys(sanitizedUsersDb).forEach(key => {
         const u = sanitizedUsersDb[key];
         if (u.avatar && u.avatar.length > 150000 && u.avatar.startsWith('data:image')) {
-            console.warn(`Sanitizing heavy avatar for ${u.name}`);
             const safeAvatar = `https://api.dicebear.com/9.x/micah/svg?seed=${u.name.replace(/\s/g, '')}&backgroundColor=d1d4f9`;
             sanitizedUsersDb[key] = { ...u, avatar: safeAvatar };
             wasSanitized = true;
-            
             if (user && user.email === u.email) {
                 setUser(prev => prev ? { ...prev, avatar: safeAvatar } : null);
             }
@@ -468,14 +448,12 @@ const App: React.FC = () => {
         try {
             localStorage.setItem(key, val);
         } catch (e: any) {
-            console.error(`Storage Error (${key}):`, e);
             if (e.name === 'QuotaExceededError' || e.code === 22) {
-                console.warn("Storage Limit Reached. Attempting emergency cleanup...");
                 try {
                     localStorage.removeItem('rasten_cup_users'); 
                     localStorage.removeItem('rasten_cup_preds');
                     localStorage.removeItem('rasten_cup_active_user');
-                } catch (cleanupErr) { console.error("Cleanup failed", cleanupErr); }
+                } catch (cleanupErr) { }
             }
         }
     };
@@ -489,7 +467,6 @@ const App: React.FC = () => {
     setIsAuthLoading(true);
     const safeEmail = email.toLowerCase().trim();
     const safeName = name.trim();
-
     const pendingLeague = sessionStorage.getItem('pending_league_invite');
     
     let remoteProfile: UserProfile | null = null;
@@ -532,7 +509,6 @@ const App: React.FC = () => {
                 }));
             }
         } catch (err) {
-            console.error("Error fetching remote data", err);
             addToast('error', 'Sync Warning', 'Could not fetch cloud data. Starting local.');
         }
     }
@@ -574,35 +550,7 @@ const App: React.FC = () => {
                favorites: []
            }, { onConflict: 'email' });
            
-           if (error) {
-               const msg = error.message;
-               console.error("Auto-create profile failed:", msg);
-               
-               if (msg.includes('column') || msg.includes('substitutions') || msg.includes('schema cache')) {
-                   console.warn("Schema mismatch detected. Trying legacy insert...");
-                   const { error: retryError } = await supabase.from('profiles').upsert({ 
-                       email: safeEmail, 
-                       name: safeName, 
-                       avatar, 
-                       tokens: 5,
-                       // Omitting new columns for legacy compatibility
-                       has_taken_second_chance: false,
-                       leagues: initialLeagues,
-                       spied_matches: [],
-                       favorites: []
-                   }, { onConflict: 'email' });
-                   
-                   if (!retryError) {
-                       addToast('warning', 'Update Required', 'Profile saved in legacy mode. Please run SQL Setup in Debug Console.');
-                   } else {
-                       addToast('error', 'Database Error', 'Go to Debug Console > SQL Setup to fix the schema.');
-                   }
-               } else if (msg.includes('foreign key') || msg.includes('uuid')) {
-                   addToast('error', 'Database Error', 'Go to Debug Console > SQL Setup to fix the schema.');
-               } else {
-                   addToast('error', 'Sync Error', 'Could not save profile.');
-               }
-           }
+           if (error) addToast('error', 'Sync Error', 'Could not save profile.');
         }
     }
 
@@ -618,24 +566,19 @@ const App: React.FC = () => {
         if (!currentLeagues.includes(pendingLeague)) {
             activeUser = { ...activeUser, leagues: [...currentLeagues, pendingLeague] };
             setUsersDb(prev => ({ ...prev, [safeEmail]: activeUser }));
-            
             if (isSupabaseConfigured && supabase) {
                 await supabase.from('profiles').update({ leagues: activeUser.leagues }).eq('email', safeEmail);
             }
         }
         sessionStorage.removeItem('pending_league_invite');
-        const leagueName = pendingLeague === 'scotland' ? 'SCOTLAND & FRIENDS' : pendingLeague.toUpperCase();
-        addToast('success', 'League Joined', `Welcome to the ${leagueName} league!`);
+        addToast('success', 'League Joined', `Welcome to ${pendingLeague.toUpperCase()} league!`);
     }
-    
-    if (activeUser.substitutions === undefined) activeUser.substitutions = 5;
-    if (!activeUser.unlockedMatches) activeUser.unlockedMatches = [];
     
     setUser(activeUser);
     setIsLoggedIn(true);
     setIsAuthLoading(false);
     
-    if (!document.querySelector('.text-red-400') && !document.querySelector('.text-amber-400')) {
+    if (!document.querySelector('.text-red-400')) {
         addToast('success', t.welcome, `Good luck, ${activeUser.name}!`);
     }
 
@@ -676,7 +619,6 @@ const App: React.FC = () => {
              await supabase.from('profiles').update({ has_taken_second_chance: true }).eq('email', user.email);
          }
          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
-         // Redirect to Knockout tab
          setActiveTab('knockout');
      }
   };
@@ -706,6 +648,7 @@ const App: React.FC = () => {
       addToast('success', t.subSuccess, `${t.substitutions}: ${updatedUser.substitutions} left`);
   };
 
+  // CORRECTED HANDLE SPY: Accepts matchId as string
   const handleSpy = async (matchId: string) => {
       if (!user) return;
       if (user.tokens < 1) {
@@ -728,7 +671,7 @@ const App: React.FC = () => {
               spied_matches: updatedUser.spiedMatches 
           }).eq('email', user.email);
       }
-      addToast('spy', 'Rival Revealed', '-1 Intel used. Asset acquired.');
+      addToast('success', 'Rival Revealed', '-1 Intel used. Asset acquired.');
   };
 
   const handleRefreshBracket = async () => {
@@ -771,11 +714,8 @@ const App: React.FC = () => {
           away: Number(a) 
        }, { onConflict: 'user_id,match_id' });
 
-       if (error) {
-           console.error("Autosave failed:", error.message || error);
-           if (error.message.includes('uuid') || error.message.includes('foreign key')) {
-                addToast('error', 'Schema Mismatch', 'Run the Reset Script in Debug Console > SQL Setup.');
-           }
+       if (error && error.message.includes('uuid')) {
+            addToast('error', 'Schema Mismatch', 'Run the Reset Script in Debug Console > SQL Setup.');
        }
     }
   };
@@ -783,16 +723,14 @@ const App: React.FC = () => {
   const hasGroupPredictions = useMemo(() => {
     if (!user) return false;
     return allPredictions.some(p => 
-      p.userId === user.email && 
-      matches.some(m => m.id === p.matchId && m.groupId)
+      p.userId === user.email && matches.some(m => m.id === p.matchId && m.groupId)
     );
   }, [allPredictions, user, matches]);
 
   const hasKnockoutPredictions = useMemo(() => {
     if (!user) return false;
     return allPredictions.some(p => 
-      p.userId === user.email && 
-      matches.some(m => m.id === p.matchId && m.round && m.round !== 'R32')
+      p.userId === user.email && matches.some(m => m.id === p.matchId && m.round && m.round !== 'R32')
     );
   }, [allPredictions, user, matches]);
 
@@ -804,49 +742,27 @@ const App: React.FC = () => {
 
   const handleClearPredictions = useCallback(async () => {
     if (!user) return; 
-
     try {
         if (activeTab === 'groups') {
            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
-           if (isSupabaseConfigured && supabase) {
-              await supabase.from('predictions').delete().eq('user_id', user.email);
-           }
+           if (isSupabaseConfigured && supabase) await supabase.from('predictions').delete().eq('user_id', user.email);
         } else if (activeTab === 'knockout') {
-           const protectedMatchIds = new Set(
-             matches
-              .filter(m => m.groupId || m.round === 'R32')
-              .map(m => m.id)
-           );
-    
-           setAllPredictions(prev => prev.filter(p => 
-              p.userId !== user.email || protectedMatchIds.has(p.matchId)
-           ));
-           
+           const protectedMatchIds = new Set(matches.filter(m => m.groupId || m.round === 'R32').map(m => m.id));
+           setAllPredictions(prev => prev.filter(p => p.userId !== user.email || protectedMatchIds.has(p.matchId)));
            if (isSupabaseConfigured && supabase) {
-              const matchIdsToDelete = matches
-                .filter(m => m.round && m.round !== 'R32')
-                .map(m => m.id);
-              
-              if (matchIdsToDelete.length > 0) {
-                await supabase.from('predictions')
-                  .delete()
-                  .eq('user_id', user.email)
-                  .in('match_id', matchIdsToDelete);
-              }
+              const matchIdsToDelete = matches.filter(m => m.round && m.round !== 'R32').map(m => m.id);
+              if (matchIdsToDelete.length > 0) await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', matchIdsToDelete);
            }
         }
         addToast('info', 'Cleared', 'Predictions have been reset.');
     } catch (err) {
-        console.error("Failed to clear predictions:", err);
         addToast('error', 'Error', 'Failed to clear predictions.');
     }
-  }, [user, activeTab, matches, isSupabaseConfigured]);
+  }, [user, activeTab, matches]);
 
   const navTabs = useMemo(() => {
     if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'scouting', 'manager'];
-    // Removed 'second-chance' from here as it's now internal
-    const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis'];
-    return liveTabs;
+    return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
   const standings = useMemo(() => calculateGroupStandings(activeGroup, matches, teamsData), [activeGroup, matches, teamsData]);
@@ -872,48 +788,28 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
-      {/* INTRO VIDEO MODAL */}
-      <IntroVideoModal 
-        isOpen={showIntroModal} 
-        videoSrc={introVideoUrl} 
-        onClose={() => setShowIntroModal(false)} 
-      />
+      <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
       <header className="sticky top-0 z-50">
         <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
             <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                   <button onClick={handleReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
-                       <Logo className="w-12 h-12" variant="theme" />
-                   </button>
-                   <div className="hidden md:block">
-                      <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1>
-                   </div>
+                   <button onClick={handleReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video"><Logo className="w-12 h-12" variant="theme" /></button>
+                   <div className="hidden md:block"><h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1></div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 mr-2">
                         {LANGUAGES.map(l => (
-                          <button
-                            key={l.code}
-                            onClick={() => handleLanguageSwitch(l.code)}
-                            className={`w-6 h-4 sm:w-8 sm:h-5 rounded overflow-hidden transition-all duration-200 transform ${language === l.code ? 'ring-2 ring-yellow-400 scale-110 z-10 shadow-md grayscale-0' : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}
-                            title={l.name}
-                          >
+                          <button key={l.code} onClick={() => handleLanguageSwitch(l.code)} className={`w-6 h-4 sm:w-8 sm:h-5 rounded overflow-hidden transition-all duration-200 transform ${language === l.code ? 'ring-2 ring-yellow-400 scale-110 z-10 shadow-md grayscale-0' : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`} title={l.name}>
                              <img src={l.flag} alt={l.name} className="w-full h-full object-cover" />
                           </button>
                         ))}
                     </div>
-
-                    <button onClick={() => setTournamentPhase(prev => prev === 'PRE_LIVE' ? 'LIVE' : 'PRE_LIVE')} className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border transition-all ${tournamentPhase === 'LIVE' ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-green-600/20 border-green-500 text-green-500'}`}>
-                        {tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
-                    </button>
+                    <button onClick={() => setTournamentPhase(prev => prev === 'PRE_LIVE' ? 'LIVE' : 'PRE_LIVE')} className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border transition-all ${tournamentPhase === 'LIVE' ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-green-600/20 border-green-500 text-green-500'}`}>{tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}</button>
                     <div className="relative">
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                             <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
-                            <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-0.5 rounded-full border border-white shadow-sm">
-                               <Edit3 size={8} />
-                            </div>
+                            <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-0.5 rounded-full border border-white shadow-sm"><Edit3 size={8} /></div>
                         </button>
                         {isProfileMenuOpen && (
                           <>
@@ -922,9 +818,7 @@ const App: React.FC = () => {
                                 <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col items-center">
                                    <div className="relative mb-2 group cursor-pointer" onClick={() => { setShowAvatarEditor(true); setIsProfileMenuOpen(false); }}>
                                        <AvatarDisplay avatar={user?.avatar || ''} size="lg" />
-                                       <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                           <Edit3 size={20} className="text-white drop-shadow-md" />
-                                       </div>
+                                       <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 size={20} className="text-white drop-shadow-md" /></div>
                                    </div>
                                    <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
                                    <div className="flex gap-2 mt-1">
@@ -957,7 +851,6 @@ const App: React.FC = () => {
                        else if (tab === 'scouting') label = t.scoutingTab as string;
                        else if (tab === 'tournament') label = t.tabTournament as string; 
                        else label = (typeof val === 'string' ? val : tab) as string;
-                       
                        return (
                           <button key={tab} onClick={() => setActiveTab(tab as any)} className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
                              {label}
@@ -978,36 +871,20 @@ const App: React.FC = () => {
                         const isComplete = userPredsCount === groupMatches.length && groupMatches.length > 0;
                         const inProgress = userPredsCount > 0 && !isComplete;
                         const isActive = activeGroup === g.id && !showOverview;
-                        
                         return (
-                            <button 
-                                key={g.id}
-                                onClick={() => { setActiveGroup(g.id); setShowOverview(false); }}
-                                className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-2xl' : 'border-white/10 hover:border-white/30'}`}
-                            >
+                            <button key={g.id} onClick={() => { setActiveGroup(g.id); setShowOverview(false); }} className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-2xl' : 'border-white/10 hover:border-white/30'}`}>
                                 <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-50 group-hover:opacity-70 transition-opacity">
-                                    {g.teams.map(tid => (
-                                        <img key={tid} src={teamsData[tid]?.flag} className="w-full h-full object-cover" alt="" />
-                                    ))}
+                                    {g.teams.map(tid => (<img key={tid} src={teamsData[tid]?.flag} className="w-full h-full object-cover" alt="" />))}
                                 </div>
                                 <div className="absolute inset-0 bg-black/40"></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-3xl font-black text-white italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{g.id}</span>
-                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl font-black text-white italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{g.id}</span></div>
                                 <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
                             </button>
                         );
                     })}
-
-                    <button 
-                        onClick={() => setShowOverview(true)}
-                        className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 flex flex-col items-center justify-center gap-1 ${showOverview ? 'scale-110 border-yellow-400 z-10 shadow-2xl bg-blue-900' : 'border-white/10 hover:border-white/30 bg-white/5'}`}
-                    >
+                    <button onClick={() => setShowOverview(true)} className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 flex flex-col items-center justify-center gap-1 ${showOverview ? 'scale-110 border-yellow-400 z-10 shadow-2xl bg-blue-900' : 'border-white/10 hover:border-white/30 bg-white/5'}`}>
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
-                        <div className="relative z-10 flex flex-col items-center">
-                            <LayoutGrid size={24} className="text-white" />
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span>
-                        </div>
+                        <div className="relative z-10 flex flex-col items-center"><LayoutGrid size={24} className="text-white" /><span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span></div>
                     </button>
                 </div>
             </div>
@@ -1023,11 +900,7 @@ const App: React.FC = () => {
                 <div className="flex justify-center mb-6">
                    <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
                       {(['schedule', 'tables', 'bracket'] as const).map(sub => (
-                         <button 
-                            key={sub}
-                            onClick={() => setTournamentSubTab(sub)}
-                            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}
-                         >
+                         <button key={sub} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
                             {sub === 'schedule' && <CalendarDays size={14} />}
                             {sub === 'tables' && <ListOrdered size={14} />}
                             {sub === 'bracket' && <GitMerge size={14} />}
@@ -1036,19 +909,7 @@ const App: React.FC = () => {
                       ))}
                    </div>
                 </div>
-
-                {tournamentSubTab === 'schedule' && (
-                    <TournamentSchedule 
-                        matches={matches} 
-                        teams={teamsData} 
-                        userPredictions={allPredictions.filter(p => p.userId === user?.email)} 
-                        user={user} 
-                        lang={t} 
-                        currentLang={language} 
-                        onTeamClick={handleTeamClick}
-                    />
-                )}
-
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={handleTeamClick} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20">
                         <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 no-scrollbar px-1">
@@ -1057,9 +918,7 @@ const App: React.FC = () => {
                                 return (
                                     <div key={g.id} className="snap-center shrink-0 w-[85vw] md:w-[22rem]">
                                         <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center">
-                                                <h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3>
-                                            </div>
+                                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div>
                                             <StandingsTable standings={standings} teams={teamsData} lang={t} compact={true} onTeamClick={handleTeamClick} />
                                         </div>
                                     </div>
@@ -1069,25 +928,8 @@ const App: React.FC = () => {
                         <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
                     </div>
                 )}
-
                 {tournamentSubTab === 'bracket' && (
-                    <KnockoutBracket 
-                      matches={matches} 
-                      teams={teamsData} 
-                      onUpdate={handleScoreUpdate} 
-                      lang={t} 
-                      user={user} 
-                      onSecondChance={()=>{}} 
-                      rivals={rivalsList} 
-                      allPredictions={allPredictions} 
-                      phase={tournamentPhase} 
-                      isGroupStageComplete={isGroupStageComplete} 
-                      firstIncompleteGroup={firstIncompleteGroup} 
-                      onGoToGroup={handleGoToGroup} 
-                      onTeamClick={handleTeamClick} 
-                      onSpy={(id) => handleSpy(id)} 
-                      revealedRivals={user?.spiedMatches || []} 
-                    />
+                    <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />
                 )}
             </div>
         )}
@@ -1095,7 +937,7 @@ const App: React.FC = () => {
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
-                   <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={() => {}} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={handleTeamClick} />
+                   <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={() => {}} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={handleTeamClick} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />
                 ) : (
                    <>
                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
@@ -1103,62 +945,26 @@ const App: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
-                              <MatchCard 
-                                key={match.id} 
-                                match={match} 
-                                homeTeam={teamsData[match.homeTeamId]} 
-                                awayTeam={teamsData[match.awayTeamId]} 
-                                onUpdate={handleScoreUpdate} 
-                                lang={t} 
-                                locale={currentLocale}
-                                userTokens={user?.tokens || 0} 
-                                rivals={rivalsList} 
-                                onSpy={(id) => handleSpy(id)}
-                                revealedRivals={user?.spiedMatches || []} 
-                                currentUser={user} 
-                                allPredictions={allPredictions} 
-                                phase={tournamentPhase} 
-                                isAdminMode={isAdminMode}
-                                onSubstitute={() => handleSubstitute(match.id)}
-                                substitutionsLeft={user?.substitutions || 0}
-                                isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
-                                onTeamClick={handleTeamClick}
-                              />
+                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={(id) => handleSpy(id)} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={handleTeamClick} />
                           ))}
                       </div>
-                      
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
                               {activeGroup !== 'A' && (
-                                  <button 
-                                      onClick={handlePrevGroup}
-                                      className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"
-                                  >
-                                      <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                                      <span>Prev Group</span>
+                                  <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group">
+                                      <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>Prev Group</span>
                                   </button>
                               )}
-                              
                               {activeGroup !== 'L' ? (
-                                  <button 
-                                      onClick={handleNextGroup}
-                                      className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-                                  >
-                                      <span>Next Group</span>
-                                      <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                  <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group">
+                                      <span>Next Group</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                   </button>
                               ) : (
                                   <div className="flex-[2] flex gap-2">
-                                      <button 
-                                          onClick={() => setShowOverview(true)}
-                                          className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                                      >
+                                      <button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
                                           <LayoutGrid size={18} /> {t.tablesBtn}
                                       </button>
-                                      <button 
-                                          onClick={() => setActiveTab('knockout')}
-                                          className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                                      >
+                                      <button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
                                           Bracket <ChevronRight size={18} />
                                       </button>
                                   </div>
@@ -1169,22 +975,12 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} onSpy={(id) => handleSpy(id)} revealedRivals={user?.spiedMatches || []} />}
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={handleTeamClick} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={handleTeamClick} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? 
             <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> 
             : 
-            <MyPredictions 
-                matches={matches} 
-                teams={teamsData} 
-                allPredictions={allPredictions} 
-                currentUser={user} 
-                lang={t} 
-                onGoToGroup={handleGoToGroup} 
-                onGoToBracket={() => setActiveTab('knockout')}
-                onUnlockSecondChance={handleUnlockSecondChance} 
-                onSubstitute={handleSubstitute}
-            />
+            <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} />
         )}
       </main>
 
@@ -1284,22 +1080,11 @@ const App: React.FC = () => {
       )}
 
       {showMagicWand && (
-         <MagicWand 
-           onOpen={() => setIsHelpingHandOpen(true)} 
-           onClear={handleClearPredictions} 
-           showClear={showClearTrash} 
-           lang={t} 
-         />
+         <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />
       )}
 
       {viewingTeamId && teamsData[viewingTeamId] && (
-          <TeamDetailsModal 
-              team={teamsData[viewingTeamId]} 
-              isOpen={true} 
-              onClose={() => setViewingTeamId(null)} 
-              lang={t}
-              currentLang={language}
-          />
+          <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />
       )}
     </div>
   );
