@@ -55,7 +55,6 @@ import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 
-// --- FIXED CONSTANTS (Restored missing keys) ---
 const STORAGE_KEYS = {
   PREDICTIONS: 'rasten_cup_preds_v2',
   USERS: 'rasten_cup_users_v2',
@@ -95,7 +94,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
     setLocalLoading(true);
 
     if (!isSupabaseConfigured || !supabase) {
-        // Fallback for no database connection
         if (!email) { setLocalLoading(false); return; }
         await onLogin(mode === 'signup' ? name : email.split('@')[0], email, selectedAvatar);
         setLocalLoading(false);
@@ -106,7 +104,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
-            // 1. Supabase Auth SignUp
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -116,7 +113,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // 2. Create Profile in DB
+            // Create Profile
             const newProfile: any = {
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
@@ -136,7 +133,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
             else setErrorMsg("Please check your email to confirm your account.");
 
         } else {
-            // Login
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             if (data.session) onSuccess();
@@ -299,7 +295,12 @@ const App: React.FC = () => {
   // --- INITIALIZATION ---
   useEffect(() => {
       if (isSupabaseConfigured && supabase) {
-          // Listen for Auth Changes
+          supabase.auth.getSession().then(({ data: { session } }) => {
+              setSession(session);
+              if (session?.user?.email) fetchUserProfile(session.user.email);
+              else setLoading(false);
+          });
+
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
@@ -308,17 +309,6 @@ const App: React.FC = () => {
                   setLoading(false);
               }
           });
-
-          // Check initial session
-          supabase.auth.getSession().then(({ data: { session } }) => {
-              if (session?.user?.email) {
-                  setSession(session);
-                  fetchUserProfile(session.user.email);
-              } else {
-                  setLoading(false);
-              }
-          });
-
           return () => subscription.unsubscribe();
       } else {
           setLoading(false);
@@ -328,7 +318,7 @@ const App: React.FC = () => {
   const fetchUserProfile = async (email: string) => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
-          const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+          const { data, error } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
               const profile: UserProfile = {
                   name: (data as any).name,
@@ -344,7 +334,6 @@ const App: React.FC = () => {
               };
               setUser(profile);
               
-              // Handle League Invites
               const pendingLeague = sessionStorage.getItem('pending_league_invite');
               if (pendingLeague && !profile.leagues?.includes(pendingLeague)) {
                   const newLeagues = [...(profile.leagues || []), pendingLeague];
@@ -353,18 +342,44 @@ const App: React.FC = () => {
                   addToast('success', 'League Joined', `Welcome to ${pendingLeague.toUpperCase()}!`);
                   sessionStorage.removeItem('pending_league_invite');
               }
+          } else {
+              // *** AUTO-FIX FOR LOGIN LOOP ***
+              // If auth is good but profile is missing (common db error), force create it here
+              console.warn("Auth exists but profile missing. Creating fallback profile...");
+              const fallbackProfile: any = {
+                  email: email,
+                  name: email.split('@')[0],
+                  avatar: AVATARS[0],
+                  tokens: 5,
+                  substitutions: 5,
+                  favorites: [],
+                  unlocked_matches: [],
+                  has_taken_second_chance: false,
+                  spied_matches: [],
+                  leagues: []
+              };
+              
+              // Optimistically log the user in so they aren't stuck
+              setUser(fallbackProfile);
+              
+              // Try to save to DB in background
+              await supabase.from('profiles').upsert(fallbackProfile);
           }
-      } catch (err) { console.error("Profile Fetch Error", err); } finally { setLoading(false); loadGameData(); }
+      } catch (err) { 
+          console.error("Profile Fetch Error", err); 
+          // Even on error, stop loading so they don't see infinite spinner
+      } finally { 
+          setLoading(false); 
+          loadGameData(); 
+      }
   };
 
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
-          // Predictions
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) setAllPredictions(preds.map((p: any) => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away })));
 
-          // Profiles (for Leaderboard)
           const { data: profiles } = await supabase.from('profiles').select('*');
           if (profiles) {
               const pMap: Record<string, UserProfile> = {};
@@ -375,7 +390,6 @@ const App: React.FC = () => {
               });
               setUsersDb(pMap);
           }
-          // Ranks
           const rankMap = await fetchAllTeamRanks();
           if (Object.keys(rankMap).length > 0) {
               setTeamsData(prev => {
@@ -486,7 +500,7 @@ const App: React.FC = () => {
       }
   };
 
-  const handleLegacyLogin = async () => {}; // No-op now that we use Auth
+  const handleLegacyLogin = async () => {};
 
   // --- HELPERS ---
   const addToast = (type: ToastType, title: string, message?: string) => {
@@ -558,7 +572,6 @@ const App: React.FC = () => {
     return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
-  // Explicitly defined variables to avoid 'cannot find name' errors
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   const standings = useMemo(() => calculateGroupStandings(activeGroup, matches, teamsData), [activeGroup, matches, teamsData]);
   const groupMatchesList = matches.filter(m => m.groupId === activeGroup);
@@ -605,7 +618,6 @@ const App: React.FC = () => {
       return (
         <LoginScreen 
             onSuccess={() => {
-                // Force a profile fetch immediately on success
                 supabase.auth.getSession().then(({ data }) => {
                     if (data.session?.user?.email) fetchUserProfile(data.session.user.email);
                 });
