@@ -55,20 +55,24 @@ import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 
-// --- CONSTANTS ---
+// --- FIXED CONSTANTS (Restored missing keys) ---
 const STORAGE_KEYS = {
-  INTRO_SEEN: 'rasten_intro_seen_v2',
+  PREDICTIONS: 'rasten_cup_preds_v2',
+  USERS: 'rasten_cup_users_v2',
+  CURRENT_USER: 'rasten_cup_active_user_v2',
+  INTRO_SEEN: 'rasten_intro_seen_v2'
 };
 
 // --- LOGIN SCREEN COMPONENT ---
 interface LoginScreenProps {
+  onLogin: (name: string, email: string, avatar: string) => Promise<void>; 
   onSuccess: () => void;
   currentLang: LanguageCode;
   setLang: (code: LanguageCode) => void;
   isLoading: boolean;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSuccess, isLoading }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang, onSuccess, isLoading }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,13 +89,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
       if (mode === 'signup') setSelectedAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]); 
   }, [mode]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setLocalLoading(true);
 
     if (!isSupabaseConfigured || !supabase) {
-        setErrorMsg("Database connection missing.");
+        // Fallback for no database connection
+        if (!email) { setLocalLoading(false); return; }
+        await onLogin(mode === 'signup' ? name : email.split('@')[0], email, selectedAvatar);
         setLocalLoading(false);
         return;
     }
@@ -100,7 +106,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
-            // 1. SignUp
+            // 1. Supabase Auth SignUp
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -110,7 +116,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // 2. Create Profile Immediately
+            // 2. Create Profile in DB
             const newProfile: any = {
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
@@ -124,15 +130,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
                 leagues: []
             };
 
-            const { error: profileError } = await supabase.from('profiles').upsert(newProfile as any);
-            if (profileError) console.error("Profile Upsert Error:", profileError);
+            await supabase.from('profiles').upsert(newProfile as any);
 
-            // 3. Trigger Success (Updates App State)
-            if (authData.session) {
-                onSuccess();
-            } else {
-                setErrorMsg("Please check your email to confirm your account.");
-            }
+            if (authData.session) onSuccess();
+            else setErrorMsg("Please check your email to confirm your account.");
 
         } else {
             // Login
@@ -183,7 +184,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
                 <button onClick={() => { setMode('signup'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'signup' ? 'bg-blue-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.signupMode}</button>
              </div>
 
-             <form onSubmit={handleAuth} className="space-y-4">
+             <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMsg && (
                     <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-3 text-red-200 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-2">
                         <div className="bg-red-500 rounded-full p-1"><X size={10} className="text-white" /></div>{errorMsg}
@@ -212,7 +213,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
                   <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
                       <div className="flex items-center gap-3 px-1">
                           <div className="h-px bg-white/10 flex-1"></div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Identity</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Your Identity</span>
                           <div className="h-px bg-white/10 flex-1"></div>
                       </div>
 
@@ -223,7 +224,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
                                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t.selectAvatar}</span>
                              </div>
                              <div className="flex gap-2">
-                                <button type="button" onClick={() => setShowAvatarGen(!showAvatarGen)} className={`p-1.5 rounded-lg transition-all ${showAvatarGen ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}><Sparkles size={16} /></button>
+                                <button type="button" onClick={() => setShowAvatarGen(true)} className={`p-1.5 rounded-lg transition-all ${showAvatarGen ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}><Sparkles size={16} /></button>
                                 <button type="button" onClick={() => setShowAvatarGen(false)} className={`p-1.5 rounded-lg transition-all ${!showAvatarGen ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}><Grid3X3 size={16} /></button>
                              </div>
                          </div>
@@ -262,8 +263,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ currentLang, setLang, onSucce
     </div>
   );
 };
-
-// --- MAIN APP COMPONENT ---
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -329,8 +328,7 @@ const App: React.FC = () => {
   const fetchUserProfile = async (email: string) => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
-          const { data, error } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
-          
+          const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
               const profile: UserProfile = {
                   name: (data as any).name,
@@ -346,39 +344,27 @@ const App: React.FC = () => {
               };
               setUser(profile);
               
-              // Load Game Data only after profile is found
-              loadGameData();
-          } else {
-              // *** AUTO-FIX: Profile Missing ***
-              // If we have a session but no profile, creating one now.
-              console.warn("User has session but no profile. Auto-creating...");
-              const newProfile: any = {
-                  email: email,
-                  name: email.split('@')[0], // Fallback name
-                  avatar: AVATARS[0],
-                  tokens: 5,
-                  substitutions: 5,
-                  favorites: [],
-                  unlocked_matches: [],
-                  has_taken_second_chance: false,
-                  spied_matches: [],
-                  leagues: []
-              };
-              await supabase.from('profiles').upsert(newProfile as any);
-              fetchUserProfile(email); // Retry immediately
+              // Handle League Invites
+              const pendingLeague = sessionStorage.getItem('pending_league_invite');
+              if (pendingLeague && !profile.leagues?.includes(pendingLeague)) {
+                  const newLeagues = [...(profile.leagues || []), pendingLeague];
+                  await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', email);
+                  setUser({ ...profile, leagues: newLeagues });
+                  addToast('success', 'League Joined', `Welcome to ${pendingLeague.toUpperCase()}!`);
+                  sessionStorage.removeItem('pending_league_invite');
+              }
           }
-      } catch (err) { 
-          console.error("Profile Fetch Error", err); 
-          setLoading(false); 
-      }
+      } catch (err) { console.error("Profile Fetch Error", err); } finally { setLoading(false); loadGameData(); }
   };
 
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
+          // Predictions
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) setAllPredictions(preds.map((p: any) => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away })));
 
+          // Profiles (for Leaderboard)
           const { data: profiles } = await supabase.from('profiles').select('*');
           if (profiles) {
               const pMap: Record<string, UserProfile> = {};
@@ -389,6 +375,7 @@ const App: React.FC = () => {
               });
               setUsersDb(pMap);
           }
+          // Ranks
           const rankMap = await fetchAllTeamRanks();
           if (Object.keys(rankMap).length > 0) {
               setTeamsData(prev => {
@@ -397,9 +384,7 @@ const App: React.FC = () => {
                   return next;
               });
           }
-      } catch (e) { console.error("Data Load Error", e); } finally {
-          setLoading(false);
-      }
+      } catch (e) { console.error("Data Load Error", e); }
   };
 
   // --- ACTIONS ---
@@ -501,6 +486,8 @@ const App: React.FC = () => {
       }
   };
 
+  const handleLegacyLogin = async () => {}; // No-op now that we use Auth
+
   // --- HELPERS ---
   const addToast = (type: ToastType, title: string, message?: string) => {
     const id = Math.random().toString(36).substring(7);
@@ -571,11 +558,9 @@ const App: React.FC = () => {
     return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
-  // FIX: Explicit definition of derived variables to avoid "Cannot find name" errors
+  // Explicitly defined variables to avoid 'cannot find name' errors
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
-  // FIX: Explicit definition of standings
   const standings = useMemo(() => calculateGroupStandings(activeGroup, matches, teamsData), [activeGroup, matches, teamsData]);
-  // FIX: Explicit definition of groupMatchesList
   const groupMatchesList = matches.filter(m => m.groupId === activeGroup);
 
   const hasGroupPredictions = useMemo(() => user ? allPredictions.some(p => p.userId === user.email && matches.some(m => m.id === p.matchId && m.groupId)) : false, [allPredictions, user, matches]);
@@ -619,16 +604,16 @@ const App: React.FC = () => {
   if (!user || !session) {
       return (
         <LoginScreen 
-            onSuccess={async () => {
-                // FORCE REFRESH: Immediately try to get session and profile after login
-                const { data } = await supabase.auth.getSession();
-                if (data.session?.user?.email) {
-                    await fetchUserProfile(data.session.user.email);
-                }
+            onSuccess={() => {
+                // Force a profile fetch immediately on success
+                supabase.auth.getSession().then(({ data }) => {
+                    if (data.session?.user?.email) fetchUserProfile(data.session.user.email);
+                });
             }} 
             currentLang={language} 
             setLang={(l) => setLanguage(l)} 
             isLoading={loading}
+            onLogin={handleLegacyLogin}
         />
       );
   }
