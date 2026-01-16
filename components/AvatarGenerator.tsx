@@ -9,11 +9,11 @@ interface AvatarGeneratorProps {
 
 // UPDATED: Prioritized list based on your proven available models
 const MODEL_CANDIDATES = [
-  "gemini-2.0-flash",          // Fast & Powerful (Primary)
-  "gemini-2.0-flash-lite",     // Ultra-fast fallback
-  "gemini-2.5-flash",          // Newest Flash model
+  "gemini-2.5-flash",          // Newest & Fastest (Primary)
+  "gemini-2.0-flash",          // Fast & Powerful (Backup)
   "gemini-2.5-pro",            // High-intelligence backup
-  "gemini-2.0-flash-exp"       // Experimental fallback
+  "gemini-2.0-flash-lite-preview-02-05", // Lightweight fallback
+  "gemini-pro-latest"          // Generic latest alias
 ];
 
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
