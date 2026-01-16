@@ -7,11 +7,21 @@ interface AvatarGeneratorProps {
   lang: any;
 }
 
+// Priority list of models to try. 
+// It starts with the fastest/cheapest (Flash) and falls back to older/stable ones.
+const MODEL_CANDIDATES = [
+  "gemini-1.5-flash",
+  "gemini-1.5-pro", 
+  "gemini-1.0-pro",
+  "gemini-pro"
+];
+
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedSvg, setGeneratedSvg] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<string>("");
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -20,60 +30,64 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
     setError(null);
     setGeneratedSvg(null);
 
-    try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error("Missing API Key. Check .env file.");
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // FIX: Changed model to 'gemini-pro' which is the most stable version for free keys
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-      const systemInstruction = `
-        You are an SVG avatar generator. 
-        Generate a minimal, circular, flat-design SVG avatar based on the user's description.
-        Use vibrant colors.
-        Do NOT add code blocks (like \`\`\`xml). 
-        Return ONLY the raw <svg>...</svg> string.
-        Ensure the viewBox is "0 0 100 100".
-      `;
-
-      const fullPrompt = `${systemInstruction}\n\nDescription: ${prompt}`;
-
-      const result = await model.generateContent(fullPrompt);
-      const response = await result.response;
-      let text = response.text();
-
-      // Cleanup response
-      text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
-
-      // Validate SVG
-      if (!text.startsWith('<svg') || !text.endsWith('</svg>')) {
-         const start = text.indexOf('<svg');
-         const end = text.indexOf('</svg>') + 6;
-         if (start !== -1 && end !== -1) {
-             text = text.substring(start, end);
-         } else {
-             throw new Error("AI returned invalid code. Please try again.");
-         }
-      }
-
-      setGeneratedSvg(text);
-    } catch (err: any) {
-      console.error("Avatar Gen Error:", err);
-      let msg = err.message || "Failed to generate.";
-      
-      // Helpful error messages for the UI
-      if (msg.includes('404')) msg = "Model not found. Switched to gemini-pro?";
-      if (msg.includes('API key')) msg = "Invalid API Key.";
-      
-      setError(msg);
-    } finally {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      setError("Missing API Key. Check .env file.");
       setLoading(false);
+      return;
     }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // We combine the system instruction into the prompt because 
+    // some older models don't support the separate 'systemInstruction' property.
+    const fullPrompt = `
+      ROLE: You are an expert SVG artist.
+      TASK: Generate a circular, flat-design SVG avatar based on this description: "${prompt}".
+      REQUIREMENTS:
+      - Use vibrant colors.
+      - Return ONLY the raw <svg>...</svg> code.
+      - No markdown, no backticks, no explanations.
+      - The SVG must have viewBox="0 0 100 100".
+    `;
+
+    // --- FALLBACK STRATEGY ---
+    for (const modelName of MODEL_CANDIDATES) {
+      try {
+        console.log(`Attempting generation with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let text = response.text();
+
+        // If we get here, it worked! Clean up the text.
+        text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
+        
+        // Find the SVG tag start/end to ignore any chatty intros
+        const start = text.indexOf('<svg');
+        const end = text.indexOf('</svg>');
+
+        if (start !== -1 && end !== -1) {
+           text = text.substring(start, end + 6);
+           setGeneratedSvg(text);
+           setActiveModel(modelName); // Success!
+           setLoading(false);
+           return; // Exit the loop and function
+        }
+        
+      } catch (err: any) {
+        console.warn(`Model ${modelName} failed:`, err.message);
+        // If it's the last model and it still failed, show the error
+        if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
+           let msg = "All AI models failed. Please check API Key quota.";
+           if (err.message.includes('404')) msg = "API Key valid, but no models found available.";
+           setError(msg);
+        }
+        // Otherwise, continue to the next model in the loop...
+      }
+    }
+    setLoading(false);
   };
 
   const handleConfirm = () => {
@@ -132,20 +146,25 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
              <div className="text-center p-4">
                <RefreshCw size={24} className={`text-slate-300 mx-auto mb-1 ${loading ? 'animate-spin' : ''}`} />
                <span className="text-[10px] text-slate-400 font-medium uppercase">
-                 {loading ? "Dreaming..." : "Preview"}
+                 {loading ? "Trying Models..." : "Preview"}
                </span>
              </div>
           </div>
         )}
 
         {generatedSvg && (
-          <button
-            onClick={handleConfirm}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-2 transform active:scale-95 transition-all"
-          >
-            <Check size={16} />
-            {lang?.useAvatar || "Use This Avatar"}
-          </button>
+          <div className="w-full space-y-2">
+            <button
+              onClick={handleConfirm}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-2 transform active:scale-95 transition-all"
+            >
+              <Check size={16} />
+              {lang?.useAvatar || "Use This Avatar"}
+            </button>
+            <div className="text-[9px] text-center text-slate-400 font-medium">
+              Generated with {activeModel}
+            </div>
+          </div>
         )}
       </div>
     </div>
