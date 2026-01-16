@@ -234,7 +234,7 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
 
         if (error) throw error;
         
-        // Explicit mapping to handle Supabase types -> App types
+        // FIX: Cast data to 'any[]' to prevent TS "Property does not exist on type 'never'"
         return (data as any[] || []).map((row: any) => ({
             date: row.year.toString(),
             opponent: row.team_a === teamId ? row.team_b : row.team_a,
@@ -260,6 +260,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
                 .eq('lang', lang)
                 .maybeSingle();
                 
+            // FIX: Cast to 'any'
             if (data) return data as any;
         } catch (e) {
             // fall through to local
@@ -272,7 +273,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
         return {
             id: 0,
             team_id: teamId,
-            team_name: local.team_name || teamId, // Fallback name
+            team_name: local.team_name || teamId, 
             confederation: local.confederation || 'FIFA',
             fifa_rank: local.fifa_rank || 50,
             star_player: local.star_player || '',
@@ -303,6 +304,7 @@ export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormDa
             
         if (!data || data.length === 0) return null;
         
+        // FIX: Cast to 'any[]'
         const history = (data as any[]).map((d: any) => ({
             date: d.match_date,
             opponent: d.opponent,
@@ -334,6 +336,7 @@ export const fetchTeams = async (): Promise<Record<string, Team>> => {
 export const fetchAllPredictions = async (): Promise<Prediction[]> => {
     if (!supabase) return [];
     const { data } = await supabase.from('predictions').select('*');
+    // FIX: Cast to 'any[]'
     if (data) return (data as any[]).map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
     return [];
 };
@@ -341,6 +344,7 @@ export const fetchAllPredictions = async (): Promise<Prediction[]> => {
 export const fetchRivals = async (): Promise<UserProfile[]> => {
     if (!supabase) return [];
     const { data } = await supabase.from('profiles').select('*');
+    // FIX: Cast to 'any[]'
     if (data) return (data as any[]).map(p => ({
         name: p.name,
         email: p.email,
@@ -359,6 +363,7 @@ export const fetchRivals = async (): Promise<UserProfile[]> => {
 export const getUserProfile = async (email: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
     const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+    // FIX: Cast to 'any'
     if (data) {
         const d = data as any;
         return {
@@ -379,6 +384,7 @@ export const getUserProfile = async (email: string): Promise<UserProfile | null>
 
 export const submitPrediction = async (email: string, matchId: string, home: number, away: number) => {
     if (!supabase) return null;
+    // FIX: Cast payload to 'any' to bypass strict TS check on insert
     await supabase.from('predictions').upsert({ user_id: email, match_id: matchId, home, away } as any);
     return { email }; 
 };
@@ -386,11 +392,10 @@ export const submitPrediction = async (email: string, matchId: string, home: num
 export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
     if (!supabase) return {};
     try {
-        // Fetch latest rank from team_form_data (assuming 1 row per team serves as 'current')
-        // In a real app, you might have a dedicated 'teams' table
         const { data } = await supabase.from('team_form_data').select('team_id, fifa_rank');
         if (data) {
             const ranks: Record<string, number> = {};
+            // FIX: Cast to 'any[]'
             (data as any[]).forEach(r => {
                 if (r.team_id) ranks[r.team_id] = r.fifa_rank;
             });

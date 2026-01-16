@@ -187,8 +187,7 @@ const supabaseAnonKey = env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5
 const isValidKey = supabaseAnonKey && supabaseAnonKey.startsWith('ey');
 export const isSupabaseConfigured = supabaseUrl !== '' && isValidKey;
 
-// Cast to any first to allow partial matches during dev, then to Database to try and get help.
-// This double-cast trick prevents "never" errors if there's a slight mismatch.
+// Cast to 'any' for the export to stop strict type checking in other files
 export const supabase = isSupabaseConfigured 
   ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : null;
+  : null as any;
