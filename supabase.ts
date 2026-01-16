@@ -1,14 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * PROJECT CONFIGURATION
- * Connected to Project ID: xxlfbpykiyncoifpzzvx
- */
-
 // --- DATABASE TYPES ---
 // These interfaces tell TypeScript exactly what your database looks like.
-// This prevents "silent failures" where data is sent to the wrong column.
-
 export type Json =
   | string
   | number
@@ -110,7 +103,6 @@ export interface Database {
           venue?: string
         }
       }
-      // Added definitions for Scouting & Team Stats to prevent errors in engine.ts
       head_to_head: {
         Row: {
           id: number
@@ -171,19 +163,13 @@ export interface Database {
 }
 
 // --- CLIENT CONFIGURATION ---
-
-// We use optional chaining (?.) to prevent crashes if env is undefined during certain build/preview states
 const env = (import.meta as any).env;
 const supabaseUrl = env?.VITE_SUPABASE_URL || 'https://xxlfbpykiyncoifpzzvx.supabase.co'; 
-// Updated with the provided public anon key
 const supabaseAnonKey = env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE';
 
-// VALIDATION: Ensure key is a valid JWT (starts with 'ey') and URL is present.
 const isValidKey = supabaseAnonKey && supabaseAnonKey.startsWith('ey');
-
 export const isSupabaseConfigured = supabaseUrl !== '' && isValidKey;
 
-// Create the client WITH the Database type definition
 export const supabase = isSupabaseConfigured 
   ? createClient<Database>(supabaseUrl, supabaseAnonKey)
   : null;
