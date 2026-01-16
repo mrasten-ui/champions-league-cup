@@ -28,7 +28,9 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      // FIX: Switched to 'gemini-pro' (stable) to avoid 404 errors with 'gemini-1.5-flash'
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
       // Highly specific prompt to get clean SVG code
       const systemInstruction = `
@@ -49,22 +51,24 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
       // Cleanup: Remove markdown code blocks if Gemini adds them
       text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
 
-      // Basic validation
+      // Basic validation to ensure we got code, not chat
       if (!text.startsWith('<svg') || !text.endsWith('</svg>')) {
-         // Fallback if AI chats instead of coding
          const start = text.indexOf('<svg');
          const end = text.indexOf('</svg>') + 6;
          if (start !== -1 && end !== -1) {
              text = text.substring(start, end);
          } else {
-             throw new Error("Failed to generate valid SVG code.");
+             throw new Error("AI returned invalid code. Please try again.");
          }
       }
 
       setGeneratedSvg(text);
     } catch (err: any) {
       console.error("Avatar Gen Error:", err);
-      setError(err.message || "Failed to generate. Try again.");
+      let msg = err.message || "Failed to generate.";
+      if (msg.includes('404')) msg = "AI Model not found. Check API Key.";
+      if (msg.includes('400')) msg = "Request failed. Try a simpler prompt.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -148,7 +152,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
       </div>
       
       <div className="text-[9px] text-center text-slate-400 font-medium">
-        Powered by Google Gemini Flash
+        Powered by Google Gemini
       </div>
     </div>
   );
