@@ -12,14 +12,17 @@ interface MyPredictionsProps {
   lang: Translation;
   onGoToGroup: (groupId: string) => void;
   onGoToBracket: () => void;
-  onUnlockSecondChance?: () => void; // New prop for Pulse action
+  onUnlockSecondChance?: () => void;
   onSubstitute: (matchId: string) => void;
+  // NEW: Add the update function here
+  onUpdate: (matchId: string, home: number, away: number) => void;
 }
 
 export const MyPredictions: React.FC<MyPredictionsProps> = ({ 
-  matches, teams, allPredictions, currentUser, lang, onGoToGroup, onGoToBracket, onUnlockSecondChance, onSubstitute 
+  matches, teams, allPredictions, currentUser, lang, 
+  onGoToGroup, onGoToBracket, onUnlockSecondChance, 
+  onSubstitute, onUpdate // <--- Destructure it here
 }) => {
-  // View State: 'pulse' (Dashboard) or 'vault' (My Picks List)
   const [viewMode, setViewMode] = useState<'pulse' | 'vault'>('pulse');
   const [filterTeam, setFilterTeam] = useState<string>('');
 
@@ -28,22 +31,18 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
     return allPredictions.filter(p => p.userId === currentUser.email);
   }, [allPredictions, currentUser]);
 
-  // Handle click from Pulse -> Vault
   const handlePulseTeamClick = (teamId: string) => {
       setFilterTeam(teamId);
       setViewMode('vault');
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Group Matches Logic for Vault View
   const matchesByGroup = useMemo(() => {
     const groups: Record<string, Match[]> = {};
     matches.forEach(m => {
-      // Filter logic: Only show if matches filterTeam (if set)
       if (filterTeam) {
           if (m.homeTeamId !== filterTeam && m.awayTeamId !== filterTeam) return;
       }
-
       if (m.groupId) {
         if (!groups[m.groupId]) groups[m.groupId] = [];
         groups[m.groupId].push(m);
@@ -59,7 +58,6 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Navigation Toggle */}
       <div className="flex bg-slate-200 p-1 rounded-xl shadow-inner">
           <button 
             onClick={() => setViewMode('pulse')}
@@ -84,13 +82,12 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
              onTeamClick={handlePulseTeamClick}
              onUnlockSecondChance={() => {
                  if (onUnlockSecondChance) onUnlockSecondChance();
-                 else onGoToBracket(); // Fallback
+                 else onGoToBracket();
              }}
              hasTakenSecondChance={currentUser.hasTakenSecondChance || false}
           />
       ) : (
           <div className="animate-in slide-in-from-right-2 space-y-4">
-              {/* Filter Bar (Only visible if filtering) */}
               {filterTeam && (
                   <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -122,7 +119,8 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                                       match={m}
                                       homeTeam={teams[m.homeTeamId]}
                                       awayTeam={teams[m.awayTeamId]}
-                                      onUpdate={() => {}} // Read-only in Vault unless we add substitution logic later
+                                      // FIXED: Passed the onUpdate function correctly
+                                      onUpdate={onUpdate} 
                                       lang={lang}
                                       locale="en-GB"
                                       userTokens={currentUser.tokens}
@@ -131,9 +129,8 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                                       revealedRivals={[]}
                                       currentUser={currentUser}
                                       allPredictions={allPredictions}
-                                      phase="LIVE" // Force live look
+                                      phase="LIVE"
                                       isAdminMode={false}
-                                      // Substitutions logic enabled here for "Tactical Changes"
                                       onSubstitute={() => onSubstitute(m.id)}
                                       substitutionsLeft={currentUser.substitutions}
                                       isUnlockedBySub={currentUser.unlockedMatches?.includes(m.id) || false}

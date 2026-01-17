@@ -939,6 +939,7 @@ const App: React.FC = () => {
                 onGoToBracket={() => setActiveTab('knockout')}
                 onUnlockSecondChance={handleUnlockSecondChance} 
                 onSubstitute={handleSubstitute}
+                onUpdate={handleScoreUpdate}
             />
         )}
       </main>
