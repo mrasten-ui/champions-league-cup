@@ -1,11 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, KeyRound, UserCircle2, Eye, EyeOff, Sparkles, CheckCircle2, RefreshCw, ChevronRight, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, KeyRound, UserCircle2, Eye, EyeOff, X, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { AVATARS, LANGUAGES, TRANSLATIONS } from '../constants';
-import { AvatarGenerator } from './AvatarGenerator';
+import { LANGUAGES, TRANSLATIONS } from '../constants';
+import { AvatarGenerator } from './AvatarGenerator'; // <--- The new component
 import { Logo } from './Logo';
-import { AvatarDisplay } from './AvatarDisplay';
 import { LanguageCode } from '../types';
+
+// --- YOUR AVATAR LISTS (Adjust filenames if I guessed the gender wrong) ---
+const MEN_ICONS = [
+  "/avatars/man1.png",
+  "/avatars/man2.png",
+  "/avatars/man3.png",
+  "/avatars/man4.png",
+  "/avatars/man5.png"
+];
+
+const WOMEN_ICONS = [
+  "/avatars/woman1.png",
+  "/avatars/woman2.png",
+  "/avatars/woman3.png",
+  "/avatars/woman4.png",
+  "/avatars/woman5.png"
+];
+
+// Placeholder for now (You can fetch 'taken' avatars from DB later if needed)
+const TAKEN_AVATARS: string[] = [];
 
 interface LoginScreenProps {
   onSuccess: () => void;
@@ -19,19 +38,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   
-  // FIXED: Set this to TRUE so the AI Generator is the default view
-  const [showAvatarGen, setShowAvatarGen] = useState(true);
+  // We initialize with null, and let the AvatarGenerator pick the smart default
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(''); 
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const t = TRANSLATIONS[currentLang];
-
-  useEffect(() => { 
-      if (mode === 'signup') setSelectedAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]); 
-  }, [mode]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +61,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
     try {
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
-            
+            // Ensure an avatar is selected (Generator selects one by default, but just in case)
+            const finalAvatar = selectedAvatar || MEN_ICONS[0];
+
             // 1. Supabase Auth SignUp
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: { data: { full_name: name, avatar_url: selectedAvatar } }
+                options: { data: { full_name: name, avatar_url: finalAvatar } }
             });
 
             if (authError) throw authError;
@@ -62,7 +78,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
             const newProfile: any = {
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
-                avatar: selectedAvatar,
+                avatar: finalAvatar,
                 tokens: 5,
                 substitutions: 5,
                 favorites: [],
@@ -107,6 +123,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
           </div>
 
           <div className="w-full bg-slate-900/50 backdrop-blur-md rounded-3xl p-8 shadow-2xl text-slate-100 border border-white/10 ring-1 ring-white/5 relative">
+             {/* Language Switcher */}
              <div className="absolute top-4 right-4 flex gap-2">
                   {LANGUAGES.map((lang) => (
                       <button 
@@ -131,6 +148,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
                     </div>
                 )}
 
+                {/* NAME INPUT (Signup Only) */}
                 {mode === 'signup' && (
                     <div className="animate-in slide-in-from-top-1 relative">
                         <UserCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -138,44 +156,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
                     </div>
                 )}
                 
+                {/* EMAIL INPUT */}
                 <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors" placeholder={t.emailLabel} />
                 </div>
                 
+                {/* PASSWORD INPUT */}
                 <div className="relative">
                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 font-semibold text-white placeholder-slate-500 pr-12 focus:outline-none focus:border-blue-500 transition-colors" placeholder={t.passwordLabel} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                 </div>
 
+                {/* --- NEW AVATAR GENERATOR SECTION (Signup Only) --- */}
                 {mode === 'signup' && (
-                  <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
-                      <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4">
-                         <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                                 <AvatarDisplay avatar={selectedAvatar} size="md" />
-                                 <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t.selectAvatar}</span>
-                             </div>
-                             <div className="flex gap-2">
-                                {/* Toggle Button: Shows Checkmark if viewing AI, Sparkles if viewing list */}
-                                <button type="button" onClick={() => setShowAvatarGen(!showAvatarGen)} className={`p-2 rounded-lg transition-all ${showAvatarGen ? 'bg-purple-600 text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
-                                    {showAvatarGen ? <CheckCircle2 size={16} /> : <Sparkles size={16} />}
-                                </button>
-                             </div>
-                         </div>
-                         {showAvatarGen ? (
-                             <div className="animate-in fade-in"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} /></div>
-                         ) : (
-                            <div className="flex gap-2 justify-start overflow-x-auto no-scrollbar py-2">
-                              {AVATARS.map(av => (
-                                <button key={av} type="button" onClick={() => setSelectedAvatar(av)} className={`relative w-10 h-10 rounded-full transition-all shrink-0 ${selectedAvatar === av ? 'scale-110 ring-2 ring-blue-400 shadow-lg z-10' : 'opacity-60 hover:opacity-100 grayscale hover:grayscale-0'}`}>
-                                  <img src={av} className="w-full h-full rounded-full object-cover bg-white" alt="" />
-                                </button>
-                              ))}
-                            </div>
-                         )}
-                      </div>
+                  <div className="animate-in slide-in-from-top-2 pt-2">
+                      <AvatarGenerator 
+                          onGenerate={(uri) => setSelectedAvatar(uri)} 
+                          lang={t}
+                          menAvatars={MEN_ICONS}
+                          womenAvatars={WOMEN_ICONS}
+                          usedAvatars={TAKEN_AVATARS} 
+                      />
                   </div>
                 )}
 
