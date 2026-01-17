@@ -32,7 +32,12 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ avatar, size = 'md
   }
 
   // UPDATED: Now checks for '/' to support local files in public/avatars
-  const isImage = avatar.startsWith('http') || avatar.startsWith('data:image') || avatar.startsWith('/');
+  const isImage = avatar && (
+  avatar.startsWith('http') || 
+  avatar.startsWith('data:image') || 
+  avatar.startsWith('/') ||
+  avatar.includes('supabase') 
+);
   
   if (isImage) {
     return (
