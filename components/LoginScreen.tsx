@@ -21,7 +21,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
   const [showPassword, setShowPassword] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   
-  // UPDATED: Default to TRUE so AI Generator is the first thing they see
+  // FIXED: Set this to TRUE so the AI Generator is the default view
   const [showAvatarGen, setShowAvatarGen] = useState(true);
   
   const [loading, setLoading] = useState(false);
@@ -30,8 +30,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
   const t = TRANSLATIONS[currentLang];
 
   useEffect(() => { 
-      // We still set a random fallback avatar in the background, 
-      // just in case they sign up without generating one.
       if (mode === 'signup') setSelectedAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]); 
   }, [mode]);
 
@@ -160,8 +158,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, currentLang
                                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t.selectAvatar}</span>
                              </div>
                              <div className="flex gap-2">
+                                {/* Toggle Button: Shows Checkmark if viewing AI, Sparkles if viewing list */}
                                 <button type="button" onClick={() => setShowAvatarGen(!showAvatarGen)} className={`p-2 rounded-lg transition-all ${showAvatarGen ? 'bg-purple-600 text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
-                                    {/* Swaps icon: Checkmark means "I am done with AI, show me the list" */}
                                     {showAvatarGen ? <CheckCircle2 size={16} /> : <Sparkles size={16} />}
                                 </button>
                              </div>
