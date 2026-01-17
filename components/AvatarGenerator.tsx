@@ -8,9 +8,10 @@ interface AvatarGeneratorProps {
   menAvatars: string[];
   womenAvatars: string[];
   usedAvatars?: string[];
+  defaultAvatars?: string[];
 }
 
-// UTILITY: Base64 -> Blob (for uploading)
+// UTILITY: Base64 -> Blob
 const base64ToBlob = async (base64: string): Promise<Blob> => {
   const res = await fetch(`data:image/png;base64,${base64}`);
   return await res.blob();
@@ -25,24 +26,22 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'ai' | 'grid'>('ai');
   const [prompt, setPrompt] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female'>('Male'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
-  // Smart Auto-Assign
+  // Smart Auto-Assign on load
   useEffect(() => {
     const all = [...menAvatars, ...womenAvatars];
     if (all.length === 0) return;
     const available = all.filter(a => !usedAvatars.includes(a));
     const pool = available.length > 0 ? available : all;
-    handleSelectPreset(pool[Math.floor(Math.random() * pool.length)]);
+    const randomPick = pool[Math.floor(Math.random() * pool.length)];
+    if (randomPick) handleSelectPreset(randomPick);
   }, []);
 
-  // --- THE "PRO" WORKFLOW ---
-  // 1. Generate High-Res 3D Image (OpenAI)
-  // 2. Upload to Supabase Bucket
-  // 3. Return the Public URL
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
@@ -52,13 +51,13 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
 
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (!apiKey) {
-      setError("Missing VITE_OPENAI_API_KEY in .env");
+      setError("Missing API Key.");
       setLoading(false);
       return;
     }
 
     try {
-      // 1. CALL OPENAI (DALL-E 3)
+      // 1. OPENAI GENERATION (DALL-E 3)
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -67,7 +66,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
         },
         body: JSON.stringify({
           model: "dall-e-3",
-          prompt: `A square 3D render avatar of a ${prompt}. Style: High-fidelity Pixar/Disney character, cute but professional, studio lighting, solid vibrant background.`,
+          // Inject Gender into prompt
+          prompt: `A square 3D render avatar of a ${gender} football manager. Description: ${prompt}. Style: High-fidelity Pixar/Disney character, cute but professional, studio lighting, solid vibrant background.`,
           n: 1,
           size: "1024x1024",
           response_format: "b64_json", 
@@ -80,31 +80,29 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
 
       const rawBase64 = data.data[0].b64_json;
       
-      // 2. PREPARE UPLOAD
+      // 2. UPLOAD TO SUPABASE
       const blob = await base64ToBlob(rawBase64);
       const fileName = `ai_avatar_${Date.now()}.png`;
 
-      // 3. UPLOAD TO SUPABASE
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, blob, { contentType: 'image/png', upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 4. GET PUBLIC URL
+      // 3. GET PUBLIC URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl;
 
-      // 5. SUCCESS
       setGeneratedPreview(publicUrl);
       onGenerate(publicUrl);
 
     } catch (err: any) {
       console.error("Gen Error:", err);
-      setError(err.message || "Failed to generate image.");
+      setError(err.message || "Failed to generate.");
     } finally {
       setLoading(false);
     }
@@ -117,7 +115,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/40 p-4 rounded-2xl border border-white/10 space-y-4">
+    <div className="space-y-4">
       {/* HEADER */}
       <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -130,7 +128,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                    <User size={18} className="text-slate-400" />
                 )}
              </div>
-             <span className="text-xs font-black text-white uppercase tracking-widest">
+             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">
                 {lang?.chooseIdentity || "CHOOSE IDENTITY"}
              </span>
           </div>
@@ -145,12 +143,30 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
           </div>
       </div>
 
-      {/* AI MODE (OPENAI) */}
+      {/* AI MODE */}
       {viewMode === 'ai' && (
         <div className="animate-in fade-in zoom-in duration-300 space-y-3">
-             <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={12} className="text-purple-400" />
-                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">AI Studio (DALL·E 3)</span>
+             <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <Sparkles size={12} className="text-purple-400" />
+                    <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">AI Studio</span>
+                 </div>
+                 
+                 {/* VISIBLE GENDER TOGGLE */}
+                 <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10">
+                    <button 
+                        onClick={() => setGender('Male')} 
+                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Man
+                    </button>
+                    <button 
+                        onClick={() => setGender('Female')} 
+                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Woman
+                    </button>
+                 </div>
              </div>
 
              <div className="flex gap-2">
@@ -158,7 +174,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     type="text"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={lang?.aiPlaceholder || "e.g. Football manager in a suit..."}
+                    placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit, glasses..."}
                     className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
@@ -177,21 +193,27 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       {/* GRID MODE */}
       {viewMode === 'grid' && (
         <div className="animate-in fade-in zoom-in duration-300 space-y-4">
-            <div className="grid grid-cols-5 gap-2">
-                {menAvatars.slice(0, 5).map((url, i) => (
-                    <button key={`m-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
-                        <img src={url} className="w-full h-full object-cover" />
-                        {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
-                    </button>
-                ))}
+            <div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">Men</div>
+                <div className="grid grid-cols-5 gap-2">
+                    {menAvatars.slice(0, 5).map((url, i) => (
+                        <button key={`m-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
+                            <img src={url} className="w-full h-full object-cover" />
+                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
+                        </button>
+                    ))}
+                </div>
             </div>
-            <div className="grid grid-cols-5 gap-2">
-                {womenAvatars.slice(0, 5).map((url, i) => (
-                    <button key={`w-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
-                        <img src={url} className="w-full h-full object-cover" />
-                        {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
-                    </button>
-                ))}
+            <div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">Women</div>
+                <div className="grid grid-cols-5 gap-2">
+                    {womenAvatars.slice(0, 5).map((url, i) => (
+                        <button key={`w-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
+                            <img src={url} className="w-full h-full object-cover" />
+                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
       )}
