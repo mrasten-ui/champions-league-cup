@@ -93,7 +93,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
-            // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -103,8 +102,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // 2. Handle AI Avatar Upload (If it's a raw base64 string)
-            // We do this NOW because we have a valid User ID
+            // Handle Avatar (Upload if Base64, else use preset)
             let finalAvatarUrl = selectedAvatar;
             
             if (selectedAvatar.startsWith('data:')) {
@@ -125,12 +123,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     console.warn("Failed to upload avatar, falling back.");
                 }
             }
-            // If empty, pick a random default
-            if (!finalAvatarUrl) finalAvatarUrl = menPresets[0] || "";
+            
+            // If still empty (no selection), pick a random default
+            if (!finalAvatarUrl && menPresets.length > 0) {
+               finalAvatarUrl = menPresets[0];
+            }
 
-            // 3. Create Profile
             const newProfile: any = {
-                id: authData.user.id, // Links to Auth User
+                id: authData.user.id,
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
                 avatar: finalAvatarUrl,
@@ -302,17 +302,19 @@ const App: React.FC = () => {
     if (!supabase) return;
     const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
     
-    // Fetch Men
-    const { data: menData } = await supabase.storage.from('avatars').list('presets/men');
-    if (menData) {
-        const valid = menData.filter(f => !f.name.startsWith('.'));
-        setMenPresets(valid.map(f => getUrl(`presets/men/${f.name}`)));
-    }
-    // Fetch Women
-    const { data: womenData } = await supabase.storage.from('avatars').list('presets/women');
-    if (womenData) {
-        const valid = womenData.filter(f => !f.name.startsWith('.'));
-        setWomenPresets(valid.map(f => getUrl(`presets/women/${f.name}`)));
+    try {
+        const { data: menData } = await supabase.storage.from('avatars').list('presets/men');
+        if (menData) {
+            const valid = menData.filter(f => !f.name.startsWith('.'));
+            setMenPresets(valid.map(f => getUrl(`presets/men/${f.name}`)));
+        }
+        const { data: womenData } = await supabase.storage.from('avatars').list('presets/women');
+        if (womenData) {
+            const valid = womenData.filter(f => !f.name.startsWith('.'));
+            setWomenPresets(valid.map(f => getUrl(`presets/women/${f.name}`)));
+        }
+    } catch (e) {
+        console.error("Failed to fetch avatars", e);
     }
   };
 
@@ -364,11 +366,10 @@ const App: React.FC = () => {
               }
           } else {
               console.warn("Auth exists but profile missing. Creating fallback profile...");
-              // Fallback logic for legacy users
               const fallbackProfile: any = {
                   email: email,
                   name: email.split('@')[0],
-                  avatar: "", // Fallback
+                  avatar: "", 
                   tokens: 5, substitutions: 5, favorites: [], unlocked_matches: [], has_taken_second_chance: false, spied_matches: [], leagues: []
               };
               setUser(fallbackProfile);
@@ -745,6 +746,129 @@ const App: React.FC = () => {
         </div>
         
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
+            <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
+                <div className="flex gap-2 px-4 justify-start sm:justify-center">
+                    {GROUP_CONFIG.map(g => {
+                        const groupMatches = matches.filter(m => m.groupId === g.id);
+                        const userPredsCount = allPredictions.filter(p => groupMatches.some(m => m.id === p.matchId && p.userId === user?.email)).length;
+                        const isComplete = userPredsCount === groupMatches.length && groupMatches.length > 0;
+                        const inProgress = userPredsCount > 0 && !isComplete;
+                        const isActive = activeGroup === g.id && !showOverview;
+                        
+                        return (
+                            <button 
+                                key={g.id}
+                                onClick={() => { setActiveGroup(g.id); setShowOverview(false); }}
+                                className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-2xl' : 'border-white/10 hover:border-white/30'}`}
+                            >
+                                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-50 group-hover:opacity-70 transition-opacity">
+                                    {g.teams.map(tid => (
+                                        <img key={tid} src={teamsData[tid]?.flag} className="w-full h-full object-cover" alt="" />
+                                    ))}
+                                </div>
+                                <div className="absolute inset-0 bg-black/40"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-3xl font-black text-white italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{g.id}</span>
+                                </div>
+                                <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
+                            </button>
+                        );
+                    })}
+
+                    <button 
+                        onClick={() => setShowOverview(true)}
+                        className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 flex flex-col items-center justify-center gap-1 ${showOverview ? 'scale-110 border-yellow-400 z-10 shadow-2xl bg-blue-900' : 'border-white/10 hover:border-white/30 bg-white/5'}`}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
+                        <div className="relative z-10 flex flex-col items-center">
+                            <LayoutGrid size={24} className="text-white" />
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        )}
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        {activeTab === 'analysis' && user && ( <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={handleTeamClick} /> )}
+        {activeTab === 'scouting' && ( <ScoutingCenter teams={teamsData} lang={t} currentLang={language} /> )}
+        
+        {activeTab === 'tournament' && (
+            <div className="flex flex-col h-full animate-fade-in">
+                <div className="flex justify-center mb-6">
+                   <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
+                      {(['schedule', 'tables', 'bracket'] as const).map(sub => (
+                         <button 
+                            key={sub}
+                            onClick={() => setTournamentSubTab(sub)}
+                            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}
+                         >
+                            {sub === 'schedule' && <CalendarDays size={14} />}
+                            {sub === 'tables' && <ListOrdered size={14} />}
+                            {sub === 'bracket' && <GitMerge size={14} />}
+                            {(t as any)[`subnav${sub.charAt(0).toUpperCase() + sub.slice(1)}`]}
+                         </button>
+                      ))}
+                   </div>
+                </div>
+
+                {tournamentSubTab === 'schedule' && (
+                    <TournamentSchedule 
+                        matches={matches} 
+                        teams={teamsData} 
+                        userPredictions={allPredictions.filter(p => p.userId === user?.email)} 
+                        user={user} 
+                        lang={t} 
+                        currentLang={language} 
+                        onTeamClick={handleTeamClick}
+                    />
+                )}
+
+                {tournamentSubTab === 'tables' && (
+                    <div className="pb-20">
+                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 no-scrollbar px-1">
+                            {GROUP_CONFIG.map(g => {
+                                const standings = calculateGroupStandings(g.id, matches, teamsData);
+                                return (
+                                    <div key={g.id} className="snap-center shrink-0 w-[85vw] md:w-[22rem]">
+                                        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center">
+                                                <h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3>
+                                            </div>
+                                            <StandingsTable standings={standings} teams={teamsData} lang={t} compact={true} onTeamClick={handleTeamClick} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
+                    </div>
+                )}
+
+                {tournamentSubTab === 'bracket' && (
+                    <KnockoutBracket 
+                      matches={matches} 
+                      teams={teamsData} 
+                      onUpdate={handleScoreUpdate} 
+                      lang={t} 
+                      user={user} 
+                      onSecondChance={()=>{}} 
+                      rivals={rivalsList} 
+                      allPredictions={allPredictions} 
+                      phase={tournamentPhase} 
+                      isGroupStageComplete={isGroupStageComplete} 
+                      firstIncompleteGroup={firstIncompleteGroup} 
+                      onGoToGroup={handleGoToGroup} 
+                      onTeamClick={handleTeamClick} 
+                      onSpy={(id) => handleSpy(id)}  
+                      revealedRivals={user?.spiedMatches || []} 
+                    />
+                )}
+            </div>
+        )}
+
+        {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
                    <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={() => {}} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={handleTeamClick} />
@@ -849,7 +973,6 @@ const App: React.FC = () => {
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Change Identity</h3>
                     <button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
                 </div>
-                {/* FORCED AVATAR EDIT: We can pass unfiltered presets here so users can pick any if they want, or filter too. For now, showing all available. */}
                 <AvatarGenerator 
                     onGenerate={updateAvatar} 
                     lang={t} 
