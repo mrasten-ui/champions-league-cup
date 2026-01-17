@@ -6,7 +6,7 @@ interface AvatarGeneratorProps {
   lang: any;
 }
 
-// 1. UTILITY: Compress Large Images -> Tiny Avatars
+// 1. UTILITY: Compress Image (Crucial so localStorage doesn't crash)
 const compressImage = (base64Str: string, maxWidth = 200, quality = 0.8): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -14,31 +14,29 @@ const compressImage = (base64Str: string, maxWidth = 200, quality = 0.8): Promis
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      // Create a square canvas
       const size = Math.min(img.width, img.height);
-      const maxSize = Math.min(size, maxWidth);
       
-      canvas.width = maxSize;
-      canvas.height = maxSize;
+      canvas.width = size;
+      canvas.height = size;
 
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(base64Str);
-        return;
-      }
+      if (!ctx) { resolve(base64Str); return; }
 
-      // Draw white background
+      // Draw white background (prevents transparency issues)
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, maxSize, maxSize);
+      ctx.fillRect(0, 0, size, size);
 
-      // Center crop logic
-      const offsetX = (img.width - size) / 2;
-      const offsetY = (img.height - size) / 2;
-
-      ctx.drawImage(img, offsetX, offsetY, size, size, 0, 0, maxSize, maxSize);
+      // Draw image
+      ctx.drawImage(img, 0, 0, size, size);
       
-      // Return highly optimized JPEG
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      // Resize to final small size
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = maxWidth;
+      finalCanvas.height = maxWidth;
+      const finalCtx = finalCanvas.getContext('2d');
+      finalCtx?.drawImage(canvas, 0, 0, maxWidth, maxWidth);
+
+      resolve(finalCanvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = () => resolve(base64Str);
   });
@@ -65,8 +63,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
     }
 
     try {
-      // We use a raw fetch call to force 'image/jpeg' output.
-      // This bypasses SDK limitations and forces the model to generate pixels.
+      // --- THE LOGIC YOU LOVED ---
+      // Direct REST call to Gemini 2.0 Flash Exp requesting an IMAGE/JPEG
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
         {
@@ -75,11 +73,11 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `Generate a square avatar. Style: 3D Pixar character, high quality, vibrant colors, centered face. Subject: ${prompt}`
+                text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.`
               }]
             }],
             generationConfig: {
-              responseMimeType: "image/jpeg" 
+              responseMimeType: "image/jpeg" // THIS IS THE MAGIC KEY
             }
           })
         }
@@ -87,30 +85,29 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error?.message || "Generation failed");
+        // Handle "Model Not Found" specifically to help debugging
+        if (response.status === 404) throw new Error("Model 'gemini-2.0-flash-exp' not found. Your key might be region-locked.");
+        throw new Error(errData.error?.message || `API Error: ${response.status}`);
       }
 
       const data = await response.json();
       
-      // Look for binary image data in the response
+      // Extract the raw image bytes
       const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
       
-      if (inlineData && inlineData.mimeType.startsWith('image')) {
-        const rawBase64 = `data:${inlineData.mimeType};base64,${inlineData.data}`;
+      if (inlineData && inlineData.mimeType === 'image/jpeg') {
+        const rawBase64 = `data:image/jpeg;base64,${inlineData.data}`;
         
-        // CRITICAL: Compress immediately. Raw AI images are 1MB+ and will crash localStorage.
+        // Compress immediately so it fits in your app's save file
         const tinyImage = await compressImage(rawBase64);
         setGeneratedImage(tinyImage);
       } else {
-        throw new Error("AI returned text instead of an image. Try again.");
+        throw new Error("AI returned text instead of an image.");
       }
 
     } catch (err: any) {
       console.error("Gen Error:", err);
-      let msg = "Failed to generate image.";
-      if (err.message.includes('404')) msg = "Model not supported on this key/region.";
-      if (err.message.includes('400')) msg = "Prompt rejected by safety filters.";
-      setError(msg);
+      setError(err.message || "Failed to generate.");
     } finally {
       setLoading(false);
     }
@@ -136,7 +133,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. A cool football manager in a suit..."
+            placeholder="e.g. A cool football manager with sunglasses..."
             rows={2}
             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none"
             onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
@@ -154,7 +151,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         {error && (
           <div className="mt-2 text-[10px] text-red-400 flex items-start gap-1 font-medium bg-red-900/20 p-2 rounded border border-red-500/20">
             <Bug size={12} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="break-all">{error}</span>
           </div>
         )}
       </div>
