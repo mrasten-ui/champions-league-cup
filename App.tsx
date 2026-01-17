@@ -8,14 +8,8 @@ import {
 } from 'lucide-react';
 
 import { 
-  TEAMS as INITIAL_TEAMS, 
-  INITIAL_MATCHES, 
-  TRANSLATIONS, 
-  LANGUAGES, 
-  AVATARS, 
-  GROUP_CONFIG, 
-  MOCK_PREDICTIONS, 
-  INTRO_VIDEOS 
+  TEAMS as INITIAL_TEAMS, INITIAL_MATCHES, TRANSLATIONS, LANGUAGES, AVATARS, 
+  GROUP_CONFIG, MOCK_PREDICTIONS, INTRO_VIDEOS 
 } from './constants';
 
 import { 
@@ -23,13 +17,8 @@ import {
 } from './types';
 
 import { 
-  calculateGroupStandings, 
-  generateMagicScores, 
-  updateBracket, 
-  simulateFullTournament, 
-  applyPredictionsToBracket, 
-  simulateTournamentAtDate, 
-  fetchAllTeamRanks 
+  calculateGroupStandings, generateMagicScores, updateBracket, simulateFullTournament, 
+  applyPredictionsToBracket, simulateTournamentAtDate, fetchAllTeamRanks 
 } from './services/engine';
 
 import { MatchCard } from './components/MatchCard';
@@ -62,14 +51,6 @@ const STORAGE_KEYS = {
   INTRO_SEEN: 'rasten_intro_seen_v2'
 };
 
-// --- AVATAR LISTS ---
-const MEN_ICONS = [
-  "/avatars/00.png", "/avatars/01.png", "/avatars/02.png", "/avatars/03.png", "/avatars/04.png"
-];
-const WOMEN_ICONS = [
-  "/avatars/10.png", "/avatars/11.png", "/avatars/12.png", "/avatars/13.png", "/avatars/14.png"
-];
-
 // --- LOGIN SCREEN COMPONENT ---
 interface LoginScreenProps {
   onLogin: (name: string, email: string, avatar: string) => Promise<void>; 
@@ -77,27 +58,24 @@ interface LoginScreenProps {
   currentLang: LanguageCode;
   setLang: (code: LanguageCode) => void;
   isLoading: boolean;
+  menPresets: string[];
+  womenPresets: string[];
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang, onSuccess, isLoading }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ 
+  onLogin, currentLang, setLang, onSuccess, isLoading, 
+  menPresets, womenPresets 
+}) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState(MEN_ICONS[0]); 
-  const [showAvatarGen, setShowAvatarGen] = useState(true);
+  const [selectedAvatar, setSelectedAvatar] = useState(''); 
   const [localLoading, setLocalLoading] = useState(false); 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const t = TRANSLATIONS[currentLang];
-
-  useEffect(() => { 
-      if (mode === 'signup') {
-          const all = [...MEN_ICONS, ...WOMEN_ICONS];
-          setSelectedAvatar(all[Math.floor(Math.random() * all.length)]); 
-      }
-  }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,12 +103,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // 2. Handle Avatar Upload (If it's a raw base64 string from AI)
+            // 2. Handle AI Avatar Upload (If it's a raw base64 string)
+            // We do this NOW because we have a valid User ID
             let finalAvatarUrl = selectedAvatar;
             
             if (selectedAvatar.startsWith('data:')) {
                 try {
-                    // We are now logged in, so we can upload!
                     const res = await fetch(selectedAvatar);
                     const blob = await res.blob();
                     const fileName = `avatar_${authData.user.id}_${Date.now()}.png`;
@@ -144,14 +122,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
                         finalAvatarUrl = data.publicUrl;
                     }
                 } catch (e) {
-                    console.warn("Failed to upload avatar, falling back to default");
-                    finalAvatarUrl = MEN_ICONS[0]; 
+                    console.warn("Failed to upload avatar, falling back.");
                 }
             }
+            // If empty, pick a random default
+            if (!finalAvatarUrl) finalAvatarUrl = menPresets[0] || "";
 
-            // 3. Create Profile (FIXED: Added ID)
+            // 3. Create Profile
             const newProfile: any = {
-                id: authData.user.id, // <--- CRITICAL FIX FOR RLS
+                id: authData.user.id, // Links to Auth User
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
                 avatar: finalAvatarUrl,
@@ -254,8 +233,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
                          <AvatarGenerator 
                             onGenerate={(uri) => setSelectedAvatar(uri)} 
                             lang={t} 
-                            menAvatars={MEN_ICONS}
-                            womenAvatars={WOMEN_ICONS}
+                            menAvatars={menPresets}
+                            womenAvatars={womenPresets}
                          />
                       </div>
                   </div>
@@ -292,9 +271,12 @@ const App: React.FC = () => {
   const [allPredictions, setAllPredictions] = useState<Prediction[]>(MOCK_PREDICTIONS);
   const [usersDb, setUsersDb] = useState<Record<string, UserProfile>>({});
   
+  // DYNAMIC AVATARS STATE
+  const [menPresets, setMenPresets] = useState<string[]>([]);
+  const [womenPresets, setWomenPresets] = useState<string[]>([]);
+  
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
-  
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
   const [language, setLanguage] = useState<LanguageCode>('EN');
@@ -315,22 +297,37 @@ const App: React.FC = () => {
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
   const currentLocale = localeMap[language];
 
-  // --- INITIALIZATION ---
+  // --- FETCH AVATARS ---
+  const fetchPresetAvatars = async () => {
+    if (!supabase) return;
+    const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+    
+    // Fetch Men
+    const { data: menData } = await supabase.storage.from('avatars').list('presets/men');
+    if (menData) {
+        const valid = menData.filter(f => !f.name.startsWith('.'));
+        setMenPresets(valid.map(f => getUrl(`presets/men/${f.name}`)));
+    }
+    // Fetch Women
+    const { data: womenData } = await supabase.storage.from('avatars').list('presets/women');
+    if (womenData) {
+        const valid = womenData.filter(f => !f.name.startsWith('.'));
+        setWomenPresets(valid.map(f => getUrl(`presets/women/${f.name}`)));
+    }
+  };
+
   useEffect(() => {
       if (isSupabaseConfigured && supabase) {
+          fetchPresetAvatars();
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
               else setLoading(false);
           });
-
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
-              else {
-                  setUser(null);
-                  setLoading(false);
-              }
+              else { setUser(null); setLoading(false); }
           });
           return () => subscription.unsubscribe();
       } else {
@@ -366,33 +363,19 @@ const App: React.FC = () => {
                   sessionStorage.removeItem('pending_league_invite');
               }
           } else {
-              // *** AUTO-FIX FOR LOGIN LOOP ***
               console.warn("Auth exists but profile missing. Creating fallback profile...");
-              // Ideally we check if auth exists, but here we just fallback
-              // NOTE: Without ID this might fail RLS if configured strict, but for fallback legacy it might be okay or need fix.
-              // For new code we are rigorous.
+              // Fallback logic for legacy users
               const fallbackProfile: any = {
                   email: email,
                   name: email.split('@')[0],
-                  avatar: MEN_ICONS[0],
-                  tokens: 5,
-                  substitutions: 5,
-                  favorites: [],
-                  unlocked_matches: [],
-                  has_taken_second_chance: false,
-                  spied_matches: [],
-                  leagues: []
+                  avatar: "", // Fallback
+                  tokens: 5, substitutions: 5, favorites: [], unlocked_matches: [], has_taken_second_chance: false, spied_matches: [], leagues: []
               };
               setUser(fallbackProfile);
-              // Try best effort upsert. If it fails RLS, so be it, user is logged in locally.
               await supabase.from('profiles').upsert(fallbackProfile);
           }
-      } catch (err) { 
-          console.error("Profile Fetch Error", err); 
-      } finally { 
-          setLoading(false); 
-          loadGameData(); 
-      }
+      } catch (err) { console.error("Profile Fetch Error", err); } 
+      finally { setLoading(false); loadGameData(); }
   };
 
   const loadGameData = async () => {
@@ -635,6 +618,21 @@ const App: React.FC = () => {
   );
 
   if (!user || !session) {
+      // 1. Calculate Used Avatars
+      const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
+
+      // 2. Smart Filter Logic
+      const getAvailable = (all: string[]) => {
+          const unused = all.filter(url => !usedAvatarUrls.includes(url));
+          // If unused pool is empty, reuse all to ensure user always has option
+          const pool = unused.length > 0 ? unused : all;
+          // Shuffle and limit
+          return pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+      };
+
+      const displayMen = getAvailable(menPresets);
+      const displayWomen = getAvailable(womenPresets);
+
       return (
         <LoginScreen 
             onSuccess={() => {
@@ -646,6 +644,8 @@ const App: React.FC = () => {
             setLang={(l) => setLanguage(l)} 
             isLoading={loading}
             onLogin={handleLegacyLogin}
+            menPresets={displayMen}
+            womenPresets={displayWomen}
         />
       );
   }
@@ -745,129 +745,6 @@ const App: React.FC = () => {
         </div>
         
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
-            <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
-                <div className="flex gap-2 px-4 justify-start sm:justify-center">
-                    {GROUP_CONFIG.map(g => {
-                        const groupMatches = matches.filter(m => m.groupId === g.id);
-                        const userPredsCount = allPredictions.filter(p => groupMatches.some(m => m.id === p.matchId && p.userId === user?.email)).length;
-                        const isComplete = userPredsCount === groupMatches.length && groupMatches.length > 0;
-                        const inProgress = userPredsCount > 0 && !isComplete;
-                        const isActive = activeGroup === g.id && !showOverview;
-                        
-                        return (
-                            <button 
-                                key={g.id}
-                                onClick={() => { setActiveGroup(g.id); setShowOverview(false); }}
-                                className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-2xl' : 'border-white/10 hover:border-white/30'}`}
-                            >
-                                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-50 group-hover:opacity-70 transition-opacity">
-                                    {g.teams.map(tid => (
-                                        <img key={tid} src={teamsData[tid]?.flag} className="w-full h-full object-cover" alt="" />
-                                    ))}
-                                </div>
-                                <div className="absolute inset-0 bg-black/40"></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-3xl font-black text-white italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{g.id}</span>
-                                </div>
-                                <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
-                            </button>
-                        );
-                    })}
-
-                    <button 
-                        onClick={() => setShowOverview(true)}
-                        className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 flex flex-col items-center justify-center gap-1 ${showOverview ? 'scale-110 border-yellow-400 z-10 shadow-2xl bg-blue-900' : 'border-white/10 hover:border-white/30 bg-white/5'}`}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
-                        <div className="relative z-10 flex flex-col items-center">
-                            <LayoutGrid size={24} className="text-white" />
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span>
-                        </div>
-                    </button>
-                </div>
-            </div>
-        )}
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {activeTab === 'analysis' && user && ( <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={handleTeamClick} /> )}
-        {activeTab === 'scouting' && ( <ScoutingCenter teams={teamsData} lang={t} currentLang={language} /> )}
-        
-        {activeTab === 'tournament' && (
-            <div className="flex flex-col h-full animate-fade-in">
-                <div className="flex justify-center mb-6">
-                   <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
-                      {(['schedule', 'tables', 'bracket'] as const).map(sub => (
-                         <button 
-                            key={sub}
-                            onClick={() => setTournamentSubTab(sub)}
-                            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}
-                         >
-                            {sub === 'schedule' && <CalendarDays size={14} />}
-                            {sub === 'tables' && <ListOrdered size={14} />}
-                            {sub === 'bracket' && <GitMerge size={14} />}
-                            {(t as any)[`subnav${sub.charAt(0).toUpperCase() + sub.slice(1)}`]}
-                         </button>
-                      ))}
-                   </div>
-                </div>
-
-                {tournamentSubTab === 'schedule' && (
-                    <TournamentSchedule 
-                        matches={matches} 
-                        teams={teamsData} 
-                        userPredictions={allPredictions.filter(p => p.userId === user?.email)} 
-                        user={user} 
-                        lang={t} 
-                        currentLang={language} 
-                        onTeamClick={handleTeamClick}
-                    />
-                )}
-
-                {tournamentSubTab === 'tables' && (
-                    <div className="pb-20">
-                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 no-scrollbar px-1">
-                            {GROUP_CONFIG.map(g => {
-                                const standings = calculateGroupStandings(g.id, matches, teamsData);
-                                return (
-                                    <div key={g.id} className="snap-center shrink-0 w-[85vw] md:w-[22rem]">
-                                        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center">
-                                                <h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3>
-                                            </div>
-                                            <StandingsTable standings={standings} teams={teamsData} lang={t} compact={true} onTeamClick={handleTeamClick} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
-                    </div>
-                )}
-
-                {tournamentSubTab === 'bracket' && (
-                    <KnockoutBracket 
-                      matches={matches} 
-                      teams={teamsData} 
-                      onUpdate={handleScoreUpdate} 
-                      lang={t} 
-                      user={user} 
-                      onSecondChance={()=>{}} 
-                      rivals={rivalsList} 
-                      allPredictions={allPredictions} 
-                      phase={tournamentPhase} 
-                      isGroupStageComplete={isGroupStageComplete} 
-                      firstIncompleteGroup={firstIncompleteGroup} 
-                      onGoToGroup={handleGoToGroup} 
-                      onTeamClick={handleTeamClick} 
-                      onSpy={(id) => handleSpy(id)}  
-                      revealedRivals={user?.spiedMatches || []} 
-                    />
-                )}
-            </div>
-        )}
-
-        {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
                    <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={() => {}} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={handleTeamClick} />
@@ -959,7 +836,7 @@ const App: React.FC = () => {
                 onGoToBracket={() => setActiveTab('knockout')}
                 onUnlockSecondChance={handleUnlockSecondChance} 
                 onSubstitute={handleSubstitute}
-                onUpdate={handleScoreUpdate} // <--- ADDED: Connects Vault to DB
+                onUpdate={handleScoreUpdate}
             />
         )}
       </main>
@@ -972,11 +849,12 @@ const App: React.FC = () => {
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Change Identity</h3>
                     <button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
                 </div>
+                {/* FORCED AVATAR EDIT: We can pass unfiltered presets here so users can pick any if they want, or filter too. For now, showing all available. */}
                 <AvatarGenerator 
                     onGenerate={updateAvatar} 
                     lang={t} 
-                    menAvatars={MEN_ICONS} 
-                    womenAvatars={WOMEN_ICONS} 
+                    menAvatars={menPresets} 
+                    womenAvatars={womenPresets} 
                 />
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-4 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600">Cancel</button>
             </div>

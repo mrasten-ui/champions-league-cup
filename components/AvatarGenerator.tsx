@@ -31,15 +31,18 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
-  // Smart Auto-Assign on load
+  // Auto-select random on load
   useEffect(() => {
     const all = [...menAvatars, ...womenAvatars];
     if (all.length === 0) return;
+    
+    // Try to pick one that isn't used
     const available = all.filter(a => !usedAvatars.includes(a));
     const pool = available.length > 0 ? available : all;
+    
     const randomPick = pool[Math.floor(Math.random() * pool.length)];
     if (randomPick) handleSelectPreset(randomPick);
-  }, []);
+  }, [menAvatars, womenAvatars]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -56,7 +59,6 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
     }
 
     try {
-      // 1. OPENAI GENERATION (DALL-E 3)
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -79,8 +81,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       const rawBase64 = data.data[0].b64_json;
       const base64Uri = `data:image/png;base64,${rawBase64}`;
       
-      // 2. ATTEMPT UPLOAD TO SUPABASE
-      // If user is anon (signup screen), this might fail. We catch it and fallback.
+      // Attempt upload (might fail if user is anonymous/signing up)
       try {
           const blob = await base64ToBlob(rawBase64);
           const fileName = `ai_avatar_${Date.now()}.png`;
@@ -95,14 +96,11 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
             .from('avatars')
             .getPublicUrl(fileName);
 
-          // Success: Use the cloud URL
           setGeneratedPreview(urlData.publicUrl);
           onGenerate(urlData.publicUrl);
 
       } catch (uploadErr) {
-          console.warn("Upload failed (likely anon), falling back to Base64:", uploadErr);
-          // Fallback: Use the raw Base64 so the user sees the image instantly
-          // The LoginScreen will handle uploading this later once auth is done.
+          console.warn("Upload failed (likely anon), using Base64 fallback");
           setGeneratedPreview(base64Uri);
           onGenerate(base64Uri);
       }
@@ -159,20 +157,9 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">AI Studio</span>
                  </div>
                  
-                 {/* FIXED: DYNAMIC LABELS */}
                  <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10">
-                    <button 
-                        onClick={() => setGender('Male')} 
-                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
-                    >
-                        {lang?.genderMan || "Man"}
-                    </button>
-                    <button 
-                        onClick={() => setGender('Female')} 
-                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
-                    >
-                        {lang?.genderWoman || "Woman"}
-                    </button>
+                    <button onClick={() => setGender('Male')} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}>{lang?.genderMan || "Man"}</button>
+                    <button onClick={() => setGender('Female')} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}>{lang?.genderWoman || "Woman"}</button>
                  </div>
              </div>
 
