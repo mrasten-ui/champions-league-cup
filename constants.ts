@@ -1,7 +1,6 @@
 import { Team, Match, Translation, LanguageCode, Prediction } from './types';
 
 // HOST CONFIGURATION
-// These keys ensure the app is always connected to the host's quota for AI features.
 export const HOST_KEYS = [
   "AIzaSyAkhMmQN2OJo9ezJOw0Kr4ECNhfu0svm6s",
   "AIzaSyDD1B6Yciiz2HMifr674Bnzx85bK1251Dg",
@@ -85,6 +84,13 @@ const TEAM_NAMES_NO: Record<string, string> = {
 };
 
 const EN_TRANSLATION: Translation = {
+    // NEW AVATAR KEYS
+    genderMan: "Man", 
+    genderWoman: "Woman", 
+    genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...",
+    credits: "Credits",
+    // END NEW KEYS
+
     groups: "Groups", knockout: "Knockout", leaderboard: "Leaderboard", myPredictions: "My Picks",
     match: "Match", standings: "Table", points: "PTS", goalDiff: "GD", goalsFor: "GF",
     magicWand: "Magic Wand", revealRival: "Peek Picks", qualified: "Qualified", draw: "Draw",
@@ -157,14 +163,12 @@ const EN_TRANSLATION: Translation = {
     compareBtn: "Compare",
     compareActive: "Comparing",
     addToCompare: "Add to VS",
-    // NEW KEYS START
     simulatedRank: "Simulated Rank",
     rivalWatch: "Rival Watch",
     whoAdvances: "Who Advances?",
     filterNext48: "48 Hrs",
     filterAll: "All",
     resetSim: "Reset Simulation",
-    // NEW KEYS END
     analysisOpportunity: "Opportunity", analysisOpportunityDesc: "Best Case",
     analysisPitfall: "Pitfall", analysisPitfallDesc: "Worst Case",
     analysisRealistic: "Realistic", analysisRealisticDesc: "AI Prediction",
@@ -193,9 +197,7 @@ const EN_TRANSLATION: Translation = {
     rivalLive: "Rival Live Status", rivalIntel: "Rival Intelligence",
     scenarioAnalysis: "Scenario Analysis", now: "Now", noPick: "No Pick", myPick: "My Pick", advanced: "Advanced",
     live: "LIVE", ft: "FT",
-    // SUBS
     substitutions: "Subs", makeSub: "Make Sub", subConfirm: "Use 1 Substitution to unlock?", subSuccess: "Match Unlocked!", unlocked: "UNLOCKED",
-    // Navigation V2
     tabTournament: "Tournament", tabManager: "Manager", 
     subnavSchedule: "Schedule", subnavTables: "Tables", subnavBracket: "Bracket",
     rank: "Rank", manager: "Manager", status: "Status", total: "Total",
@@ -219,8 +221,6 @@ const EN_TRANSLATION: Translation = {
     allGroupTables: "All Group Tables", bestThirdPlace: "Best 3rd Place Teams",
     top8Advance: "Top 8 advance to R32", eliminationLine: "Elimination Line",
     teamCol: "Team", grpCol: "Grp",
-    
-    // History
     headToHead: "Head-to-Head History",
     wins: "Wins",
     draws: "Draws",
@@ -230,20 +230,22 @@ const EN_TRANSLATION: Translation = {
     showingLast5: "Showing last 5 of {0} meetings",
     noHistory: "No recorded history found.",
     loadingHistory: "Loading history...",
-
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec",
-
-    // Broadcaster
     myPickShort: "Pick",
     watchOn: "Watch on",
-
-    // Localized Team Data
     teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
 const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
+    // NEW AVATAR KEYS (SCOTTISH SLANG)
+    genderMan: "Laddie", 
+    genderWoman: "Lassie", 
+    genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...",
+    credits: "Goes",
+    // END NEW KEYS
+    
     groups: "The Groups", knockout: "The Knockoots", leaderboard: "Big Table", myPredictions: "Ma Guesses",
     match: "Fixture", standings: "The League", points: "Pts", goalDiff: "GD", goalsFor: "GF",
     magicWand: "Magic Stick", revealRival: "Spy on Pal", qualified: "Through", draw: "Draw",
@@ -316,14 +318,11 @@ const SCO_TRANSLATION: Translation = {
     compareBtn: "Square Go",
     compareActive: "Fectin'",
     addToCompare: "Pick for Fight",
-    // NEW KEYS
     simulatedRank: "Yer Rank Noo",
     rivalWatch: "Keepin' Tabs",
     whoAdvances: "Who's Winnin?",
     filterNext48: "48 Hrs",
-    // filterAll: "Aw the Games", // DUPLICATE REMOVED
     resetSim: "Start Over",
-    // END NEW KEYS
     analysisOpportunity: "Belter", analysisOpportunityDesc: "Best Case",
     analysisPitfall: "Disaster", analysisPitfallDesc: "Worst Case",
     analysisRealistic: "Real World", analysisRealisticDesc: "Computer Pick",
@@ -391,6 +390,13 @@ const SCO_TRANSLATION: Translation = {
 
 const US_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
+    // NEW AVATAR KEYS (AMERICAN HYPE)
+    genderMan: "Male Coach", 
+    genderWoman: "Female Coach", 
+    genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...",
+    credits: "Tokens",
+    // END NEW KEYS
+
     groups: "Group Play", knockout: "The Playoffs", leaderboard: "Power Rankings", myPredictions: "My Picks",
     match: "Game", standings: "Standings", points: "Pts", goalDiff: "Diff", goalsFor: "GF",
     magicWand: "Auto-Pick", revealRival: "Peek Picks", qualified: "Clinched", draw: "Tie Game",
@@ -463,14 +469,11 @@ const US_TRANSLATION: Translation = {
     compareBtn: "Compare",
     compareActive: "Versus",
     addToCompare: "Add to VS",
-    // NEW KEYS
     simulatedRank: "Simulated Rank",
     rivalWatch: "Opponent Watch",
     whoAdvances: "Who Advances?",
     filterNext48: "48 Hrs",
-    // filterAll: "All Games", // DUPLICATE REMOVED
     resetSim: "Reset Sim",
-    // END NEW KEYS
     analysisOpportunity: "Upside", analysisOpportunityDesc: "Ceiling",
     analysisPitfall: "Downside", analysisPitfallDesc: "Floor",
     analysisRealistic: "Projection", analysisRealisticDesc: "The Spread",
@@ -528,6 +531,13 @@ const US_TRANSLATION: Translation = {
 };
 
 const NO_TRANSLATION: Translation = {
+    // NEW AVATAR KEYS (NORWEGIAN)
+    genderMan: "Mann", 
+    genderWoman: "Kvinne", 
+    genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...",
+    credits: "Sjanser",
+    // END NEW KEYS
+
     groups: "Gruppene", knockout: "Sluttspill", leaderboard: "Resultatliste", myPredictions: "Mine Tips",
     match: "Kamp", standings: "Tabell", points: "P", goalDiff: "MF", goalsFor: "M+",
     magicWand: "Tryllestav", revealRival: "Se Tips", qualified: "Kvalifisert", draw: "Uavgjort",
@@ -600,14 +610,11 @@ const NO_TRANSLATION: Translation = {
     compareBtn: "Sammenlign",
     compareActive: "Sammenligner",
     addToCompare: "Legg til Duell",
-    // NEW KEYS
     simulatedRank: "Simulert Rank",
     rivalWatch: "Rivalene",
     whoAdvances: "Hvem går videre?",
     filterNext48: "48 Timer",
-    // filterAll: "Alle", // DUPLICATE REMOVED
     resetSim: "Nullstill",
-    // END NEW KEYS
     analysisOpportunity: "Mulighet", analysisOpportunityDesc: "Beste Utfall",
     analysisPitfall: "Felle", analysisPitfallDesc: "Verste Utfall",
     analysisRealistic: "Realistisk", analysisRealisticDesc: "AI Tips",
