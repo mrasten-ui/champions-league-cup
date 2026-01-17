@@ -52,6 +52,12 @@ export interface Translation {
   generate: string;
   useAvatar: string;
   orChoosePreset: string;
+  // --- NEW KEYS ADDED HERE TO FIX BUILD ERROR ---
+  genderMan: string;
+  genderWoman: string;
+  genPlaceholder: string;
+  credits: string;
+  // ---------------------------------------------
   // Second Chance
   secondChanceTab: string;
   secondChanceTitle: string;
