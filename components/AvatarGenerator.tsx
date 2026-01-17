@@ -1,121 +1,144 @@
 import React, { useState } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Sparkles, RefreshCw, AlertCircle, Check, Wand2, Loader2, Bug } from 'lucide-react';
 
 interface AvatarGeneratorProps {
-  onGenerate: (dataUri: string) => void;
+  onGenerate: (avatarUrl: string) => void;
   lang: any;
 }
 
-// 1. UTILITY: Compress Image (Crucial so localStorage doesn't crash)
-const compressImage = (base64Str: string, maxWidth = 200, quality = 0.8): Promise<string> => {
+// 1. UTILITY: Convert Vector Code -> Real JPEG Image
+// This ensures your database gets a small, compatible image file, not code.
+const vectorToJpeg = (svgString: string, maxWidth = 256, quality = 0.9): Promise<string> => {
   return new Promise((resolve) => {
+    // 1. Create an image element from the SVG code
     const img = new Image();
-    img.src = base64Str;
+    const base64Svg = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
+    img.src = base64Svg;
     img.crossOrigin = "anonymous";
+
     img.onload = () => {
+      // 2. Draw it onto a canvas (Rasterization)
       const canvas = document.createElement('canvas');
       const size = Math.min(img.width, img.height);
       
-      canvas.width = size;
-      canvas.height = size;
+      // Ensure high quality scaling
+      canvas.width = maxWidth;
+      canvas.height = maxWidth;
 
       const ctx = canvas.getContext('2d');
-      if (!ctx) { resolve(base64Str); return; }
+      if (!ctx) { resolve(base64Svg); return; }
 
-      // Draw white background (prevents transparency issues)
+      // White background (prevents transparency turning black)
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, size, size);
+      ctx.fillRect(0, 0, maxWidth, maxWidth);
 
-      // Draw image
-      ctx.drawImage(img, 0, 0, size, size);
+      // Draw the SVG image into the canvas
+      ctx.drawImage(img, 0, 0, size, size, 0, 0, maxWidth, maxWidth);
       
-      // Resize to final small size
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = maxWidth;
-      finalCanvas.height = maxWidth;
-      const finalCtx = finalCanvas.getContext('2d');
-      finalCtx?.drawImage(canvas, 0, 0, maxWidth, maxWidth);
-
-      resolve(finalCanvas.toDataURL('image/jpeg', quality));
+      // 3. Export as a real JPEG image
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    img.onerror = () => resolve(base64Str);
+    
+    // Fallback if conversion fails
+    img.onerror = () => resolve(base64Svg);
   });
 };
+
+// 2. MODELS: Use the powerful text models that support complex code generation
+const MODEL_CANDIDATES = [
+  "gemini-2.0-flash", 
+  "gemini-2.5-flash",
+  "gemini-pro"
+];
 
 export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, lang }) => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<string>("");
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
     setLoading(true);
     setError(null);
-    setGeneratedImage(null);
+    setGeneratedPreview(null);
 
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      setError("Missing API Key.");
+      setError("Missing API Key in .env file.");
       setLoading(false);
       return;
     }
 
-    try {
-      // --- THE LOGIC YOU LOVED ---
-      // Direct REST call to Gemini 2.0 Flash Exp requesting an IMAGE/JPEG
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Generate a square avatar icon for a professional football manager profile. Description: ${prompt}. Style: high-fidelity 3D Pixar-style character art, vibrant stadium lighting background, centered face, crisp details.`
-              }]
-            }],
-            generationConfig: {
-              responseMimeType: "image/jpeg" // THIS IS THE MAGIC KEY
-            }
-          })
-        }
-      );
-
-      if (!response.ok) {
-        const errData = await response.json();
-        // Handle "Model Not Found" specifically to help debugging
-        if (response.status === 404) throw new Error("Model 'gemini-2.0-flash-exp' not found. Your key might be region-locked.");
-        throw new Error(errData.error?.message || `API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // --- THE FIX: FORCE 3D LOOK VIA CODE ---
+    // Since we can't request 'image/jpeg', we demand detailed SVG code 
+    // that uses gradients to simulate 3D lighting.
+    const fullPrompt = `
+      ROLE: You are an expert 3D illustrator using SVG code.
+      TASK: Create a square avatar based on: "${prompt}".
       
-      // Extract the raw image bytes
-      const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+      CRITICAL STYLE GUIDELINES (NO FLAT ART):
+      1. **3D SHADING**: Use <radialGradient> and <linearGradient> to create depth on the face and clothes.
+      2. **LIGHTING**: Add distinct highlights (white reflections) on the eyes and forehead to look "glossy" and alive.
+      3. **DETAILS**: Draw detailed hair strands and clothing texture, not just simple shapes.
+      4. **VIBRANT**: Use a rich, saturated color palette (Pixar style).
+      5. **BACKGROUND**: A detailed gradient background representing a stadium or team colors.
       
-      if (inlineData && inlineData.mimeType === 'image/jpeg') {
-        const rawBase64 = `data:image/jpeg;base64,${inlineData.data}`;
+      TECHNICAL OUTPUT:
+      - Return ONLY the raw <svg> code.
+      - viewBox="0 0 256 256".
+      - Do NOT use markdown code blocks.
+    `;
+
+    let success = false;
+    
+    // Try models until one works
+    for (const modelName of MODEL_CANDIDATES) {
+      if (success) break;
+      
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let text = response.text();
+
+        // Clean up markdown if the AI adds it
+        text = text.replace(/```xml/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
         
-        // Compress immediately so it fits in your app's save file
-        const tinyImage = await compressImage(rawBase64);
-        setGeneratedImage(tinyImage);
-      } else {
-        throw new Error("AI returned text instead of an image.");
-      }
+        // Find valid SVG tags
+        const start = text.indexOf('<svg');
+        const end = text.indexOf('</svg>');
 
-    } catch (err: any) {
-      console.error("Gen Error:", err);
-      setError(err.message || "Failed to generate.");
-    } finally {
-      setLoading(false);
+        if (start !== -1 && end !== -1) {
+           const svgCode = text.substring(start, end + 6);
+           
+           // CONVERT: Code -> Real JPEG Image
+           const realImage = await vectorToJpeg(svgCode);
+           
+           setGeneratedPreview(realImage);
+           setActiveModel(modelName);
+           success = true;
+        }
+      } catch (err: any) {
+        console.warn(`${modelName} failed, trying next...`);
+      }
     }
+
+    if (!success) {
+        setError("Generation failed. Try a simpler prompt.");
+    }
+    
+    setLoading(false);
   };
 
   const handleConfirm = () => {
-    if (generatedImage) {
-      onGenerate(generatedImage);
+    if (generatedPreview) {
+      onGenerate(generatedPreview);
     }
   };
 
@@ -133,7 +156,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
         <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. A cool football manager with sunglasses..."
+            placeholder="e.g. A futuristic football manager with glowing glasses..."
             rows={2}
             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none"
             onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
@@ -145,25 +168,25 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
             className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 disabled:opacity-50 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
         >
             {loading ? <RefreshCw size={14} className="animate-spin" /> : <Wand2 size={14} />}
-            {loading ? "Generating 3D Art..." : "Generate Image"}
+            {loading ? "Designing Avatar..." : "Generate"}
         </button>
         
         {error && (
           <div className="mt-2 text-[10px] text-red-400 flex items-start gap-1 font-medium bg-red-900/20 p-2 rounded border border-red-500/20">
             <Bug size={12} className="shrink-0 mt-0.5" />
-            <span className="break-all">{error}</span>
+            <span>{error}</span>
           </div>
         )}
       </div>
 
       {/* Preview Area */}
-      {generatedImage && (
+      {generatedPreview && (
         <div className="flex flex-col items-center gap-4 animate-in zoom-in slide-in-from-bottom-2 duration-500">
             <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
                 <div className="relative w-32 h-32 rounded-full border-4 border-slate-900 overflow-hidden bg-white shadow-2xl">
                     <img 
-                        src={generatedImage} 
+                        src={generatedPreview} 
                         className="w-full h-full object-cover" 
                         alt="Generated Avatar" 
                     />
@@ -177,6 +200,9 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ onGenerate, la
               <Check size={16} />
               {lang?.useAvatar || "Use This Avatar"}
             </button>
+            <div className="text-[9px] text-slate-500 font-mono">
+                {activeModel}
+            </div>
         </div>
       )}
     </div>
