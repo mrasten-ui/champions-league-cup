@@ -62,6 +62,14 @@ const STORAGE_KEYS = {
   INTRO_SEEN: 'rasten_intro_seen_v2'
 };
 
+// --- AVATAR LISTS (Added to fix build error) ---
+const MEN_ICONS = [
+  "/avatars/00.png", "/avatars/01.png", "/avatars/02.png", "/avatars/03.png", "/avatars/04.png"
+];
+const WOMEN_ICONS = [
+  "/avatars/10.png", "/avatars/11.png", "/avatars/12.png", "/avatars/13.png", "/avatars/14.png"
+];
+
 // --- LOGIN SCREEN COMPONENT ---
 interface LoginScreenProps {
   onLogin: (name: string, email: string, avatar: string) => Promise<void>; 
@@ -77,15 +85,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
-  const [showAvatarGen, setShowAvatarGen] = useState(false);
+  // Auto-select a random avatar on load to avoid empty state
+  const [selectedAvatar, setSelectedAvatar] = useState(MEN_ICONS[0]); 
+  const [showAvatarGen, setShowAvatarGen] = useState(true); // Default to AI Generator
   const [localLoading, setLocalLoading] = useState(false); 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const t = TRANSLATIONS[currentLang];
 
   useEffect(() => { 
-      if (mode === 'signup') setSelectedAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]); 
+      // Pick random avatar from our lists for signup
+      if (mode === 'signup') {
+          const all = [...MEN_ICONS, ...WOMEN_ICONS];
+          setSelectedAvatar(all[Math.floor(Math.random() * all.length)]); 
+      }
   }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -213,27 +226,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
                           <div className="h-px bg-white/10 flex-1"></div>
                       </div>
 
+                      {/* AVATAR GENERATOR FIX: Removed manual toggle, used standard component */}
                       <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4">
-                         <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                                 <AvatarDisplay avatar={selectedAvatar} size="md" />
-                                 <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t.selectAvatar}</span>
-                             </div>
-                             <div className="flex gap-2">
-                                <button type="button" onClick={() => setShowAvatarGen(true)} className={`p-1.5 rounded-lg transition-all ${showAvatarGen ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}><Sparkles size={16} /></button>
-                                <button type="button" onClick={() => setShowAvatarGen(false)} className={`p-1.5 rounded-lg transition-all ${!showAvatarGen ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}><Grid3X3 size={16} /></button>
-                             </div>
-                         </div>
-                         {showAvatarGen ? <AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} /> : (
-                            <div className="flex gap-3 justify-start overflow-x-auto no-scrollbar py-2">
-                              {AVATARS.map(av => (
-                                <button key={av} type="button" onClick={() => setSelectedAvatar(av)} className={`relative w-12 h-12 rounded-full transition-all shrink-0 ${selectedAvatar === av ? 'scale-110 ring-2 ring-blue-400 shadow-lg z-10' : 'opacity-60 hover:opacity-100 hover:scale-105'}`}>
-                                  <img src={av} className="w-full h-full rounded-full object-cover bg-white" alt="" />
-                                  {selectedAvatar === av && <div className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-full border border-black flex items-center justify-center"><CheckCircle2 size={10} /></div>}
-                                </button>
-                              ))}
-                            </div>
-                         )}
+                         <AvatarGenerator 
+                            onGenerate={(uri) => setSelectedAvatar(uri)} 
+                            lang={t} 
+                            menAvatars={MEN_ICONS} // <-- FIX: Passing men list
+                            womenAvatars={WOMEN_ICONS} // <-- FIX: Passing women list
+                         />
                       </div>
                   </div>
                 )}
@@ -344,12 +344,11 @@ const App: React.FC = () => {
               }
           } else {
               // *** AUTO-FIX FOR LOGIN LOOP ***
-              // If auth is good but profile is missing (common db error), force create it here
               console.warn("Auth exists but profile missing. Creating fallback profile...");
               const fallbackProfile: any = {
                   email: email,
                   name: email.split('@')[0],
-                  avatar: AVATARS[0],
+                  avatar: MEN_ICONS[0],
                   tokens: 5,
                   substitutions: 5,
                   favorites: [],
@@ -358,16 +357,11 @@ const App: React.FC = () => {
                   spied_matches: [],
                   leagues: []
               };
-              
-              // Optimistically log the user in so they aren't stuck
               setUser(fallbackProfile);
-              
-              // Try to save to DB in background
               await supabase.from('profiles').upsert(fallbackProfile);
           }
       } catch (err) { 
           console.error("Profile Fetch Error", err); 
-          // Even on error, stop loading so they don't see infinite spinner
       } finally { 
           setLoading(false); 
           loadGameData(); 
@@ -528,7 +522,6 @@ const App: React.FC = () => {
     return 'A';
   }, [matches, allPredictions, user, isGroupStageComplete]);
 
-  // Update Bracket based on Predictions
   useEffect(() => {
     if (user && !isAdminMode) {
         setMatches(prev => {
@@ -939,7 +932,7 @@ const App: React.FC = () => {
                 onGoToBracket={() => setActiveTab('knockout')}
                 onUnlockSecondChance={handleUnlockSecondChance} 
                 onSubstitute={handleSubstitute}
-                onUpdate={handleScoreUpdate}
+                onUpdate={handleScoreUpdate} // <--- ADDED: Connects Vault to DB
             />
         )}
       </main>
@@ -952,7 +945,12 @@ const App: React.FC = () => {
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Change Identity</h3>
                     <button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
                 </div>
-                <AvatarGenerator onGenerate={updateAvatar} lang={t} />
+                <AvatarGenerator 
+                    onGenerate={updateAvatar} 
+                    lang={t} 
+                    menAvatars={MEN_ICONS} // <-- FIX: Passing men list
+                    womenAvatars={WOMEN_ICONS} // <-- FIX: Passing women list
+                />
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-4 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600">Cancel</button>
             </div>
         </div>
