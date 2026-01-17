@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User, UploadCloud } from 'lucide-react';
+import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User } from 'lucide-react';
 import { supabase } from '../supabase';
 
 interface AvatarGeneratorProps {
@@ -8,7 +8,6 @@ interface AvatarGeneratorProps {
   menAvatars: string[];
   womenAvatars: string[];
   usedAvatars?: string[];
-  defaultAvatars?: string[];
 }
 
 // UTILITY: Base64 -> Blob
@@ -66,7 +65,6 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
         },
         body: JSON.stringify({
           model: "dall-e-3",
-          // Inject Gender into prompt
           prompt: `A square 3D render avatar of a ${gender} football manager. Description: ${prompt}. Style: High-fidelity Pixar/Disney character, cute but professional, studio lighting, solid vibrant background.`,
           n: 1,
           size: "1024x1024",
@@ -79,26 +77,35 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       if (!response.ok) throw new Error(data.error?.message || "OpenAI Error");
 
       const rawBase64 = data.data[0].b64_json;
+      const base64Uri = `data:image/png;base64,${rawBase64}`;
       
-      // 2. UPLOAD TO SUPABASE
-      const blob = await base64ToBlob(rawBase64);
-      const fileName = `ai_avatar_${Date.now()}.png`;
+      // 2. ATTEMPT UPLOAD TO SUPABASE
+      // If user is anon (signup screen), this might fail. We catch it and fallback.
+      try {
+          const blob = await base64ToBlob(rawBase64);
+          const fileName = `ai_avatar_${Date.now()}.png`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, blob, { contentType: 'image/png', upsert: true });
 
-      if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-      // 3. GET PUBLIC URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
 
-      const publicUrl = urlData.publicUrl;
+          // Success: Use the cloud URL
+          setGeneratedPreview(urlData.publicUrl);
+          onGenerate(urlData.publicUrl);
 
-      setGeneratedPreview(publicUrl);
-      onGenerate(publicUrl);
+      } catch (uploadErr) {
+          console.warn("Upload failed (likely anon), falling back to Base64:", uploadErr);
+          // Fallback: Use the raw Base64 so the user sees the image instantly
+          // The LoginScreen will handle uploading this later once auth is done.
+          setGeneratedPreview(base64Uri);
+          onGenerate(base64Uri);
+      }
 
     } catch (err: any) {
       console.error("Gen Error:", err);
@@ -152,19 +159,19 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">AI Studio</span>
                  </div>
                  
-                 {/* VISIBLE GENDER TOGGLE */}
+                 {/* FIXED: DYNAMIC LABELS */}
                  <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10">
                     <button 
                         onClick={() => setGender('Male')} 
                         className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
                     >
-                        Man
+                        {lang?.genderMan || "Man"}
                     </button>
                     <button 
                         onClick={() => setGender('Female')} 
                         className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
                     >
-                        Woman
+                        {lang?.genderWoman || "Woman"}
                     </button>
                  </div>
              </div>
@@ -174,7 +181,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     type="text"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit, glasses..."}
+                    placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit..."}
                     className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
@@ -194,7 +201,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       {viewMode === 'grid' && (
         <div className="animate-in fade-in zoom-in duration-300 space-y-4">
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">Men</div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderMan || "Men"}</div>
                 <div className="grid grid-cols-5 gap-2">
                     {menAvatars.slice(0, 5).map((url, i) => (
                         <button key={`m-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
@@ -205,7 +212,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                 </div>
             </div>
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">Women</div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderWoman || "Women"}</div>
                 <div className="grid grid-cols-5 gap-2">
                     {womenAvatars.slice(0, 5).map((url, i) => (
                         <button key={`w-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>

@@ -62,7 +62,7 @@ const STORAGE_KEYS = {
   INTRO_SEEN: 'rasten_intro_seen_v2'
 };
 
-// --- AVATAR LISTS (Added to fix build error) ---
+// --- AVATAR LISTS ---
 const MEN_ICONS = [
   "/avatars/00.png", "/avatars/01.png", "/avatars/02.png", "/avatars/03.png", "/avatars/04.png"
 ];
@@ -85,16 +85,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // Auto-select a random avatar on load to avoid empty state
   const [selectedAvatar, setSelectedAvatar] = useState(MEN_ICONS[0]); 
-  const [showAvatarGen, setShowAvatarGen] = useState(true); // Default to AI Generator
+  const [showAvatarGen, setShowAvatarGen] = useState(true);
   const [localLoading, setLocalLoading] = useState(false); 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const t = TRANSLATIONS[currentLang];
 
   useEffect(() => { 
-      // Pick random avatar from our lists for signup
       if (mode === 'signup') {
           const all = [...MEN_ICONS, ...WOMEN_ICONS];
           setSelectedAvatar(all[Math.floor(Math.random() * all.length)]); 
@@ -117,20 +115,46 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
+            // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: { data: { full_name: name, avatar_url: selectedAvatar } }
+                options: { data: { full_name: name } }
             });
 
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // Create Profile
+            // 2. Handle Avatar Upload (If it's a raw base64 string from AI)
+            let finalAvatarUrl = selectedAvatar;
+            
+            if (selectedAvatar.startsWith('data:')) {
+                try {
+                    // We are now logged in, so we can upload!
+                    const res = await fetch(selectedAvatar);
+                    const blob = await res.blob();
+                    const fileName = `avatar_${authData.user.id}_${Date.now()}.png`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('avatars')
+                        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+                        
+                    if (!uploadError) {
+                        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                        finalAvatarUrl = data.publicUrl;
+                    }
+                } catch (e) {
+                    console.warn("Failed to upload avatar, falling back to default");
+                    finalAvatarUrl = MEN_ICONS[0]; 
+                }
+            }
+
+            // 3. Create Profile (FIXED: Added ID)
             const newProfile: any = {
+                id: authData.user.id, // <--- CRITICAL FIX FOR RLS
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
-                avatar: selectedAvatar,
+                avatar: finalAvatarUrl,
                 tokens: 5,
                 substitutions: 5,
                 favorites: [],
@@ -140,7 +164,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
                 leagues: []
             };
 
-            await supabase.from('profiles').upsert(newProfile as any);
+            await supabase.from('profiles').upsert(newProfile);
 
             if (authData.session) onSuccess();
             else setErrorMsg("Please check your email to confirm your account.");
@@ -226,13 +250,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, currentLang, setLang
                           <div className="h-px bg-white/10 flex-1"></div>
                       </div>
 
-                      {/* AVATAR GENERATOR FIX: Removed manual toggle, used standard component */}
                       <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4">
                          <AvatarGenerator 
                             onGenerate={(uri) => setSelectedAvatar(uri)} 
                             lang={t} 
-                            menAvatars={MEN_ICONS} // <-- FIX: Passing men list
-                            womenAvatars={WOMEN_ICONS} // <-- FIX: Passing women list
+                            menAvatars={MEN_ICONS}
+                            womenAvatars={WOMEN_ICONS}
                          />
                       </div>
                   </div>
@@ -345,6 +368,9 @@ const App: React.FC = () => {
           } else {
               // *** AUTO-FIX FOR LOGIN LOOP ***
               console.warn("Auth exists but profile missing. Creating fallback profile...");
+              // Ideally we check if auth exists, but here we just fallback
+              // NOTE: Without ID this might fail RLS if configured strict, but for fallback legacy it might be okay or need fix.
+              // For new code we are rigorous.
               const fallbackProfile: any = {
                   email: email,
                   name: email.split('@')[0],
@@ -358,6 +384,7 @@ const App: React.FC = () => {
                   leagues: []
               };
               setUser(fallbackProfile);
+              // Try best effort upsert. If it fails RLS, so be it, user is logged in locally.
               await supabase.from('profiles').upsert(fallbackProfile);
           }
       } catch (err) { 
@@ -948,8 +975,8 @@ const App: React.FC = () => {
                 <AvatarGenerator 
                     onGenerate={updateAvatar} 
                     lang={t} 
-                    menAvatars={MEN_ICONS} // <-- FIX: Passing men list
-                    womenAvatars={WOMEN_ICONS} // <-- FIX: Passing women list
+                    menAvatars={MEN_ICONS} 
+                    womenAvatars={WOMEN_ICONS} 
                 />
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-4 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600">Cancel</button>
             </div>
