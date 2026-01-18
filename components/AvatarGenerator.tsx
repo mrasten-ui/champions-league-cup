@@ -39,32 +39,34 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   const getPool = (g: 'Male' | 'Female') => {
       const source = g === 'Male' ? menAvatars : womenAvatars;
       const unused = source.filter(url => !usedAvatars.includes(url));
-      return unused.length > 0 ? unused : source; // Fallback to all if everything is used
+      return unused.length > 0 ? unused : source; 
   };
 
-  // Helper: Pick a random one and assign it (The "Auto-Assign" Logic)
+  // Helper: Pick a random one and assign it
   const assignRandomPreset = (g: 'Male' | 'Female') => {
       const pool = getPool(g);
       if (pool.length > 0) {
           const randomPick = pool[Math.floor(Math.random() * pool.length)];
           setActiveAvatar(randomPick);
-          onGenerate(randomPick); // Notify parent immediately
+          onGenerate(randomPick); 
       }
   };
 
-  // 1. On Mount: If no current avatar (Signup), auto-assign a Male one to start
+  // 1. CRITICAL FIX: Auto-assign on load once avatars are available
   useEffect(() => {
-      if (!currentAvatar && menAvatars.length > 0) {
+      // Only if we don't have a current avatar (e.g. fresh signup)
+      // AND we haven't picked one yet
+      // AND the lists are actually populated
+      if (!currentAvatar && !activeAvatar && menAvatars.length > 0) {
           assignRandomPreset('Male');
       }
-  }, []);
+  }, [menAvatars, womenAvatars, currentAvatar]); // Added dependencies so it runs when data arrives
 
   // 2. Handle Gender Switch: Auto-assign a new unused avatar of that gender
   const handleGenderSwitch = (newGender: 'Male' | 'Female') => {
       if (gender === newGender) return;
       setGender(newGender);
-      // When switching gender, we automatically assign a fresh unused preset
-      // This satisfies: "if you do not pick one, one unused will be assigned"
+      // Auto-assign immediately so they never have the "wrong gender" avatar
       assignRandomPreset(newGender);
   };
 
