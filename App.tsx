@@ -8,8 +8,14 @@ import {
 } from 'lucide-react';
 
 import { 
-  TEAMS as INITIAL_TEAMS, INITIAL_MATCHES, TRANSLATIONS, LANGUAGES, AVATARS, 
-  GROUP_CONFIG, MOCK_PREDICTIONS, INTRO_VIDEOS 
+  TEAMS as INITIAL_TEAMS, 
+  INITIAL_MATCHES, 
+  TRANSLATIONS, 
+  LANGUAGES, 
+  AVATARS, 
+  GROUP_CONFIG, 
+  MOCK_PREDICTIONS, 
+  INTRO_VIDEOS 
 } from './constants';
 
 import { 
@@ -17,8 +23,13 @@ import {
 } from './types';
 
 import { 
-  calculateGroupStandings, generateMagicScores, updateBracket, simulateFullTournament, 
-  applyPredictionsToBracket, simulateTournamentAtDate, fetchAllTeamRanks 
+  calculateGroupStandings, 
+  generateMagicScores, 
+  updateBracket, 
+  simulateFullTournament, 
+  applyPredictionsToBracket, 
+  simulateTournamentAtDate, 
+  fetchAllTeamRanks 
 } from './services/engine';
 
 import { MatchCard } from './components/MatchCard';
@@ -93,6 +104,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
+            // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -102,7 +114,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // Handle Avatar (Upload if Base64, else use preset)
+            // 2. Handle AI Avatar Upload (If it's a raw base64 string)
             let finalAvatarUrl = selectedAvatar;
             
             if (selectedAvatar.startsWith('data:')) {
@@ -123,14 +135,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     console.warn("Failed to upload avatar, falling back.");
                 }
             }
-            
-            // If still empty (no selection), pick a random default
+            // If empty, pick a random default
             if (!finalAvatarUrl && menPresets.length > 0) {
                finalAvatarUrl = menPresets[0];
             }
 
+            // 3. Create Profile (with ID!)
             const newProfile: any = {
-                id: authData.user.id,
+                id: authData.user.id, // Links to Auth User
                 email: authData.user.email!.toLowerCase(),
                 name: name.trim(),
                 avatar: finalAvatarUrl,
@@ -366,14 +378,27 @@ const App: React.FC = () => {
               }
           } else {
               console.warn("Auth exists but profile missing. Creating fallback profile...");
-              const fallbackProfile: any = {
-                  email: email,
-                  name: email.split('@')[0],
-                  avatar: "", 
-                  tokens: 5, substitutions: 5, favorites: [], unlocked_matches: [], has_taken_second_chance: false, spied_matches: [], leagues: []
-              };
-              setUser(fallbackProfile);
-              await supabase.from('profiles').upsert(fallbackProfile);
+              
+              // *** FIXED: FETCH USER ID SAFELY ***
+              const { data: { user: authUser } } = await supabase.auth.getUser();
+              
+              if (authUser) {
+                  const fallbackProfile: any = {
+                      id: authUser.id, // <--- CRITICAL FIX: Links profile to Auth ID
+                      email: email,
+                      name: email.split('@')[0],
+                      avatar: "", 
+                      tokens: 5, 
+                      substitutions: 5, 
+                      favorites: [], 
+                      unlocked_matches: [], 
+                      has_taken_second_chance: false, 
+                      spied_matches: [], 
+                      leagues: []
+                  };
+                  setUser(fallbackProfile);
+                  await supabase.from('profiles').upsert(fallbackProfile);
+              }
           }
       } catch (err) { console.error("Profile Fetch Error", err); } 
       finally { setLoading(false); loadGameData(); }
@@ -960,7 +985,7 @@ const App: React.FC = () => {
                 onGoToBracket={() => setActiveTab('knockout')}
                 onUnlockSecondChance={handleUnlockSecondChance} 
                 onSubstitute={handleSubstitute}
-                onUpdate={handleScoreUpdate}
+                onUpdate={handleScoreUpdate} // <--- ADDED: Connects Vault to DB
             />
         )}
       </main>
