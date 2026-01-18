@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase } from '../types';
-import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'; // Added Unlock
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round } from '../types';
+import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2, Users, Shield, LayoutGrid, Columns, Crown } from 'lucide-react';
 import { KnockoutBracket } from './KnockoutBracket';
 
 interface SecondChanceViewProps {
@@ -15,7 +15,6 @@ interface SecondChanceViewProps {
   allPredictions: Prediction[];
   phase: TournamentPhase;
   onTeamClick?: (teamId: string) => void;
-  // FIX: Added missing props
   onSpy: (matchId: string) => void;
   revealedRivals: string[];
 }
@@ -23,11 +22,27 @@ interface SecondChanceViewProps {
 export const SecondChanceView: React.FC<SecondChanceViewProps> = ({ 
   matches, teams, onUpdate, lang, user, onUnlock, onRefreshTeams,
   rivals, allPredictions, phase, onTeamClick,
-  onSpy, revealedRivals // FIX: Destructured new props
+  onSpy, revealedRivals 
 }) => {
   const [isHovering, setIsHovering] = useState(false);
+  
+  // FIX: Manage local round state since KnockoutBracket is now stateless
+  const [activeRound, setActiveRound] = useState<Round>('R32');
+  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
   const hasUnlocked = user?.hasTakenSecondChance;
+
+  // Helper for Round Icons (matching AppHeader style)
+  const getRoundIcon = (r: Round) => {
+      switch(r) {
+          case 'R32': return <Users size={32} className="text-white/20" />; 
+          case 'R16': return <Shield size={28} className="text-white/20" />;
+          case 'QF': return <LayoutGrid size={28} className="text-white/20" />;
+          case 'SF': return <Columns size={28} className="text-white/20" />;
+          case 'FIN': return <Crown size={32} className="text-yellow-400/30" />;
+          default: return null;
+      }
+  };
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -96,6 +111,38 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
 
       {hasUnlocked ? (
           <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-200">
+             {/* FIX: Add Round Selector here since it was removed from KnockoutBracket */}
+             <div className="bg-slate-50 border-b border-slate-200 p-4 rounded-t-3xl overflow-x-auto no-scrollbar">
+                <div className="flex gap-2 justify-start sm:justify-center min-w-max">
+                    {rounds.map(r => {
+                        const isActive = activeRound === r;
+                        return (
+                            <button
+                                key={r}
+                                onClick={() => setActiveRound(r)}
+                                className={`
+                                    relative min-w-[64px] h-14 rounded-xl overflow-hidden transition-all duration-200 border-2
+                                    ${isActive 
+                                        ? 'border-indigo-500 shadow-md scale-105 z-10' 
+                                        : 'border-slate-200 bg-white hover:border-indigo-300'
+                                    }
+                                `}
+                            >
+                                <div className={`absolute inset-0 bg-gradient-to-br ${isActive ? 'from-indigo-600 to-indigo-800' : 'from-slate-100 to-slate-200'}`}></div>
+                                <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                                    {getRoundIcon(r)}
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className={`text-sm font-black italic uppercase tracking-tighter ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                                        {r === 'FIN' ? 'FINAL' : r}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+             </div>
+
              <KnockoutBracket 
                 matches={matches} 
                 teams={teams} 
@@ -110,9 +157,10 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
                 firstIncompleteGroup={null}
                 onGoToGroup={() => {}}
                 onTeamClick={onTeamClick}
-                // FIX: Passed down props
                 onSpy={onSpy} 
                 revealedRivals={revealedRivals}
+                // FIX: Pass the active round prop
+                activeRound={activeRound}
              />
           </div>
       ) : (
