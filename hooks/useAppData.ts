@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import { supabase } from '../supabase';
 import { 
   TEAMS as INITIAL_TEAMS, 
   INITIAL_MATCHES, 
@@ -21,22 +21,33 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars
+  // 1. Fetch Avatars (Updated to look in root 'men' and 'women' folders)
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+    
     try {
-        const { data: menData } = await supabase.storage.from('avatars').list('presets/men');
-        if (menData) setMenPresets(menData.filter(f => !f.name.startsWith('.')).map(f => getUrl(`presets/men/${f.name}`)));
+        // Fetch Men
+        const { data: menData } = await supabase.storage.from('avatars').list('men');
+        if (menData) {
+            const valid = menData.filter(f => !f.name.startsWith('.')); // Ignore .emptyFolder placeholder
+            setMenPresets(valid.map(f => getUrl(`men/${f.name}`)));
+        }
         
-        const { data: womenData } = await supabase.storage.from('avatars').list('presets/women');
-        if (womenData) setWomenPresets(womenData.filter(f => !f.name.startsWith('.')).map(f => getUrl(`presets/women/${f.name}`)));
-    } catch (e) { console.error("Avatar fetch error", e); }
+        // Fetch Women
+        const { data: womenData } = await supabase.storage.from('avatars').list('women');
+        if (womenData) {
+            const valid = womenData.filter(f => !f.name.startsWith('.'));
+            setWomenPresets(valid.map(f => getUrl(`women/${f.name}`)));
+        }
+    } catch (e) { 
+        console.error("Avatar fetch error", e); 
+    }
   };
 
   // 2. Load Game Data
   const loadGameData = async () => {
-      if (!isSupabaseConfigured || !supabase) return;
+      if (!supabase) return;
       try {
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) setAllPredictions(preds.map((p: any) => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away })));
@@ -67,7 +78,7 @@ export const useAppData = () => {
 
   // 3. Fetch User Profile
   const fetchUserProfile = async (email: string) => {
-      if (!isSupabaseConfigured || !supabase) return;
+      if (!supabase) return;
       try {
           const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
@@ -78,8 +89,7 @@ export const useAppData = () => {
               };
               setUser(profile);
           } else {
-              // Safety Fallback if trigger failed
-              console.warn("Profile missing, attempting fix...");
+              // Safety Fallback
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
                   const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5 };
@@ -93,7 +103,7 @@ export const useAppData = () => {
 
   // 4. Initial Setup Effect
   useEffect(() => {
-      if (isSupabaseConfigured && supabase) {
+      if (supabase) {
           fetchPresetAvatars();
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
