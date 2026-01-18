@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, Shuffle, ArrowRight, Users, Lock, Unlock, Grid3X3, Menu, Table2, 
   LogOut, BookOpen, Settings, ChevronLeft, ShieldCheck, Sparkles, UserCircle2, 
   Network, UserCircle, Edit3, X, ArrowLeft, Trash2, RefreshCw, Bot, Calendar, 
-  CalendarDays, GitMerge, Mail, KeyRound 
+  CalendarDays, GitMerge, Mail, KeyRound, HelpCircle 
 } from 'lucide-react';
 
 import { 
@@ -77,7 +77,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogin, currentLang, setLang, onSuccess, isLoading, 
   menPresets, womenPresets 
 }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  // Added 'reset' mode
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -85,15 +86,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [selectedAvatar, setSelectedAvatar] = useState(''); 
   const [localLoading, setLocalLoading] = useState(false); 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const t = TRANSLATIONS[currentLang];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
     setLocalLoading(true);
 
     if (!isSupabaseConfigured || !supabase) {
+        // Fallback for demo mode without Supabase
         if (!email) { setLocalLoading(false); return; }
         await onLogin(mode === 'signup' ? name : email.split('@')[0], email, selectedAvatar);
         setLocalLoading(false);
@@ -101,10 +105,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     }
 
     try {
+        // --- 1. PASSWORD RESET LOGIC ---
+        if (mode === 'reset') {
+             const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                 redirectTo: window.location.origin, // Sends them back to your site
+             });
+             
+             if (error) throw error;
+             setSuccessMsg("Check your email for the password reset link!");
+             setLocalLoading(false);
+             return;
+        }
+
+        // --- 2. SIGNUP LOGIC ---
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
             
-            // 1. Create Auth User
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -114,53 +130,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
             if (authError) throw authError;
             if (!authData.user) throw new Error("Signup failed.");
 
-            // 2. Handle AI Avatar Upload (If it's a raw base64 string)
+            // Handle Avatar
             let finalAvatarUrl = selectedAvatar;
-            
             if (selectedAvatar.startsWith('data:')) {
                 try {
                     const res = await fetch(selectedAvatar);
                     const blob = await res.blob();
                     const fileName = `avatar_${authData.user.id}_${Date.now()}.png`;
-                    
                     const { error: uploadError } = await supabase.storage
                         .from('avatars')
                         .upload(fileName, blob, { contentType: 'image/png', upsert: true });
-                        
                     if (!uploadError) {
                         const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
                         finalAvatarUrl = data.publicUrl;
                     }
-                } catch (e) {
-                    console.warn("Failed to upload avatar, falling back.");
-                }
+                } catch (e) { console.warn("Avatar upload failed"); }
             }
-            // If empty, pick a random default
-            if (!finalAvatarUrl && menPresets.length > 0) {
-               finalAvatarUrl = menPresets[0];
-            }
+            if (!finalAvatarUrl && menPresets.length > 0) finalAvatarUrl = menPresets[0];
 
-            // 3. Create Profile (with ID!)
-            const newProfile: any = {
-                id: authData.user.id, // Links to Auth User
-                email: authData.user.email!.toLowerCase(),
-                name: name.trim(),
-                avatar: finalAvatarUrl,
-                tokens: 5,
-                substitutions: 5,
-                favorites: [],
-                unlocked_matches: [],
-                has_taken_second_chance: false,
-                spied_matches: [],
-                leagues: []
-            };
-
-            await supabase.from('profiles').upsert(newProfile);
-
+            // Note: Profile creation is now handled by the Database Trigger we set up!
+            // But we verify session exists to proceed
             if (authData.session) onSuccess();
             else setErrorMsg("Please check your email to confirm your account.");
 
         } else {
+            // --- 3. LOGIN LOGIC ---
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             if (data.session) onSuccess();
@@ -203,15 +197,30 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 </div>
              </div>
              
-             <div className="flex bg-black/20 p-1 rounded-xl mb-6 border border-white/5">
-                <button onClick={() => { setMode('login'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'login' ? 'bg-blue-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.loginMode}</button>
-                <button onClick={() => { setMode('signup'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'signup' ? 'bg-blue-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.signupMode}</button>
-             </div>
+             {mode !== 'reset' && (
+                 <div className="flex bg-black/20 p-1 rounded-xl mb-6 border border-white/5">
+                    <button onClick={() => { setMode('login'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'login' ? 'bg-blue-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.loginMode}</button>
+                    <button onClick={() => { setMode('signup'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'signup' ? 'bg-blue-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.signupMode}</button>
+                 </div>
+             )}
 
              <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMsg && (
                     <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-3 text-red-200 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-2">
                         <div className="bg-red-500 rounded-full p-1"><X size={10} className="text-white" /></div>{errorMsg}
+                    </div>
+                )}
+                {successMsg && (
+                    <div className="bg-green-500/10 border border-green-500/50 rounded-xl p-3 text-green-200 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-2">
+                        <div className="bg-green-500 rounded-full p-1"><CheckCircle2 size={10} className="text-white" /></div>{successMsg}
+                    </div>
+                )}
+
+                {/* HEADER FOR RESET MODE */}
+                {mode === 'reset' && (
+                    <div className="text-center mb-4">
+                        <h3 className="text-lg font-bold text-white mb-1">Reset Password</h3>
+                        <p className="text-xs text-slate-400">Enter your email to receive a reset link.</p>
                     </div>
                 )}
 
@@ -227,11 +236,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors" placeholder={t.emailLabel} />
                 </div>
                 
-                <div className="relative">
-                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                    <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 font-semibold text-white placeholder-slate-500 pr-12 focus:outline-none focus:border-blue-500 transition-colors" placeholder={t.passwordLabel} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-                </div>
+                {mode !== 'reset' && (
+                    <div className="relative">
+                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 font-semibold text-white placeholder-slate-500 pr-12 focus:outline-none focus:border-blue-500 transition-colors" placeholder={t.passwordLabel} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    </div>
+                )}
+
+                {/* FORGOT PASSWORD LINK */}
+                {mode === 'login' && (
+                    <div className="flex justify-end">
+                        <button type="button" onClick={() => { setMode('reset'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">
+                            Forgot Password?
+                        </button>
+                    </div>
+                )}
 
                 {mode === 'signup' && (
                   <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
@@ -263,10 +283,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </>
                   ) : (
                     <>
-                      {t.enterBtn} <ChevronRight size={18} /> 
+                      {mode === 'reset' ? 'Send Reset Link' : t.enterBtn} 
+                      {mode !== 'reset' && <ChevronRight size={18} />}
                     </>
                   )}
                 </button>
+
+                {mode === 'reset' && (
+                     <button type="button" onClick={() => { setMode('login'); setErrorMsg(null); setSuccessMsg(null); }} className="w-full py-3 text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                        Back to Login
+                     </button>
+                )}
              </form>
           </div>
        </div>
@@ -378,13 +405,10 @@ const App: React.FC = () => {
               }
           } else {
               console.warn("Auth exists but profile missing. Creating fallback profile...");
-              
-              // *** FIXED: FETCH USER ID SAFELY ***
               const { data: { user: authUser } } = await supabase.auth.getUser();
-              
               if (authUser) {
                   const fallbackProfile: any = {
-                      id: authUser.id, // <--- CRITICAL FIX: Links profile to Auth ID
+                      id: authUser.id, 
                       email: email,
                       name: email.split('@')[0],
                       avatar: "", 
