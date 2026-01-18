@@ -95,7 +95,6 @@ const App: React.FC = () => {
     if (error) { addToast('error', 'Save Failed', 'Could not save prediction.'); }
   };
 
-  // --- MISSING HANDLERS RESTORED ---
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
       if (user.tokens < 1) { addToast('error', 'No Intel', 'You need more Intel to spy.'); return; }
@@ -131,6 +130,50 @@ const App: React.FC = () => {
       setMatches(simulatedMatches);
       setTournamentPhase('LIVE');
   };
+
+  const handleLanguageSwitch = (code: LanguageCode) => {
+      const userKey = user?.email || 'anon';
+      const storageKey = `rasten_intro_seen_${code}_${userKey}`;
+      const hasSeen = localStorage.getItem(storageKey);
+
+      if (!hasSeen) {
+          const videoUrl = INTRO_VIDEOS[code];
+          if (videoUrl) {
+              setIntroVideoUrl(videoUrl);
+              setShowIntroModal(true);
+              try { localStorage.setItem(storageKey, 'true'); } catch (e) { /* ignore */ }
+          }
+      }
+      setLanguage(code);
+  };
+
+  const handleReplayIntro = () => {
+      const videoUrl = INTRO_VIDEOS[language];
+      if (videoUrl) {
+          setIntroVideoUrl(videoUrl);
+          setShowIntroModal(true);
+      }
+  };
+
+  // --- RESTORED: LEAGUE INVITE LOGIC ---
+  // This was missing in the refactor! It ensures invite links work.
+  useEffect(() => {
+      const checkPendingLeague = async () => {
+          if (user && supabase) {
+              const pendingLeague = sessionStorage.getItem('pending_league_invite');
+              if (pendingLeague && !user.leagues?.includes(pendingLeague)) {
+                  const newLeagues = [...(user.leagues || []), pendingLeague];
+                  // Update DB
+                  await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', user.email);
+                  // Update Local State
+                  setUser({ ...user, leagues: newLeagues });
+                  addToast('success', 'League Joined', `Welcome to ${pendingLeague.toUpperCase()}!`);
+                  sessionStorage.removeItem('pending_league_invite');
+              }
+          }
+      };
+      checkPendingLeague();
+  }, [user]); // Runs whenever user logs in
 
   // --- DERIVED STATE & HANDLERS ---
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -178,23 +221,71 @@ const App: React.FC = () => {
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   const standings = useMemo(() => calculateGroupStandings(activeGroup, matches, teamsData), [activeGroup, matches, teamsData]);
   const groupMatchesList = matches.filter(m => m.groupId === activeGroup);
-  const showClearTrash = useMemo(() => activeTab === 'groups' ? (user ? allPredictions.some(p => p.userId === user.email && matches.some(m => m.id === p.matchId && m.groupId)) : false) : false, [activeTab, allPredictions, user, matches]);
+  
+  const showClearTrash = useMemo(() => {
+    if (!user) return false;
+    if (activeTab === 'groups') return allPredictions.some(p => p.userId === user.email && matches.some(m => m.id === p.matchId && m.groupId));
+    if (activeTab === 'knockout') return allPredictions.some(p => p.userId === user.email && matches.some(m => m.id === p.matchId && m.round && m.round !== 'R32'));
+    return false;
+  }, [activeTab, allPredictions, user, matches]);
 
   const handleClearPredictions = useCallback(async () => {
     if (!user || !supabase) return; 
     try {
         const query = supabase.from('predictions').delete().eq('user_id', user.email);
-        setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
-        await query;
+        
+        if (activeTab === 'groups') {
+           setAllPredictions(prev => prev.filter(p => {
+               const isMyPred = p.userId === user.email;
+               const match = matches.find(m => m.id === p.matchId);
+               const isGroupMatch = match?.groupId;
+               return !(isMyPred && isGroupMatch);
+           }));
+           // Simplified wipe for SQL consistency in this version
+           setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
+           await query;
+        } else if (activeTab === 'knockout') {
+           const knockoutIds = matches.filter(m => m.round && m.round !== 'R32').map(m => m.id);
+           if (knockoutIds.length > 0) {
+               setAllPredictions(prev => prev.filter(p => p.userId !== user.email || !knockoutIds.includes(p.matchId)));
+               await query.in('match_id', knockoutIds);
+           }
+        } else {
+            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
+            await query;
+        }
         addToast('info', 'Cleared', 'Predictions have been reset.');
     } catch (err) { addToast('error', 'Error', 'Failed to clear predictions.'); }
-  }, [user]);
+  }, [user, activeTab, matches]);
 
   const showMagicWand = (tournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'scouting') || (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout'));
 
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
-  if (!user || !session) return <LoginScreen onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} currentLang={language} setLang={(l) => setLanguage(l)} isLoading={loading} onLogin={async () => {}} menPresets={menPresets} womenPresets={womenPresets} />;
+  if (!user || !session) {
+      // --- RESTORED: SMART AVATAR FILTERING ---
+      // This was missing! It stops users from picking taken avatars.
+      const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
+      const getAvailable = (all: string[]) => {
+          const unused = all.filter(url => !usedAvatarUrls.includes(url));
+          const pool = unused.length > 0 ? unused : all;
+          return pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+      };
+      const displayMen = getAvailable(menPresets);
+      const displayWomen = getAvailable(womenPresets);
+
+      return (
+        <LoginScreen 
+            onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} 
+            currentLang={language} 
+            setLang={(l) => setLanguage(l)} 
+            isLoading={loading} 
+            onLogin={async () => {}} 
+            menPresets={displayMen} 
+            womenPresets={displayWomen} 
+        />
+      );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12">
@@ -202,11 +293,11 @@ const App: React.FC = () => {
       <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
       <AppHeader 
-        user={user} language={language} setLanguage={setLanguage} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
+        user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
-        onReplayIntro={() => { const vid = INTRO_VIDEOS[language]; if (vid) { setIntroVideoUrl(vid); setShowIntroModal(true); } }}
+        onReplayIntro={handleReplayIntro}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
       />
 
@@ -278,7 +369,57 @@ const App: React.FC = () => {
 
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
-      {isHelpingHandOpen && user && <HelpingHandModal isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={teamsData} initialFavorites={user.favorites} onGenerate={async (favs, scope) => { /* Magic logic */ }} lang={t} mode={activeTab === 'knockout' ? 'knockout' : 'groups'} />}
+      
+      {/* RESTORED: HELPING HAND LOGIC */}
+      {isHelpingHandOpen && user && (
+          <HelpingHandModal 
+            isOpen={isHelpingHandOpen} 
+            onClose={() => setIsHelpingHandOpen(false)} 
+            teams={teamsData} 
+            initialFavorites={user.favorites} 
+            onGenerate={async (favs, scope) => {
+                const simulatedMatches = simulateFullTournament(matches, teamsData, favs, scope);
+                const newPredictions: Prediction[] = [];
+                simulatedMatches.forEach(m => {
+                    if (m.homeScore !== null && m.awayScore !== null) {
+                         newPredictions.push({
+                             userId: user.email,
+                             matchId: m.id,
+                             home: m.homeScore,
+                             away: m.awayScore
+                         });
+                    }
+                });
+
+                setAllPredictions(prev => {
+                    const otherUsersPreds = prev.filter(p => p.userId !== user.email);
+                    const mergedMyPreds = [...prev.filter(p => p.userId === user.email)];
+                    newPredictions.forEach(np => {
+                        const idx = mergedMyPreds.findIndex(p => p.matchId === np.matchId);
+                        if (idx >= 0) mergedMyPreds[idx] = np;
+                        else mergedMyPreds.push(np);
+                    });
+                    return [...otherUsersPreds, ...mergedMyPreds];
+                });
+
+                if (supabase) {
+                    const payload = newPredictions.map(p => ({
+                        user_id: p.userId,
+                        match_id: p.matchId,
+                        home: p.home,
+                        away: p.away
+                    }));
+                    if (payload.length > 0) {
+                       await supabase.from('predictions').upsert(payload as any, { onConflict: 'user_id,match_id' });
+                    }
+                }
+                addToast('success', 'Magic Applied', `Simulated ${newPredictions.length} matches based on favorites.`);
+            }} 
+            lang={t} 
+            mode={activeTab === 'knockout' ? 'knockout' : 'groups'} 
+          />
+      )}
+
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />}
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
     </div>
