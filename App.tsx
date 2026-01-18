@@ -30,6 +30,7 @@ import { AppHeader } from './components/AppHeader';
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 
 const App: React.FC = () => {
+  // --- 1. USE CUSTOM HOOK FOR DATA ---
   const { 
     session, user, setUser, loading, matches, setMatches, teamsData, 
     allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
@@ -39,6 +40,8 @@ const App: React.FC = () => {
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
+  
+  // FIX: Lifted State for Knockout Round (Required for Build)
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
@@ -73,7 +76,7 @@ const App: React.FC = () => {
       addToast('info', 'Logged Out', 'See you next match day.');
   };
 
-  // FIX: Robust Avatar Saving Logic
+  // FIX: Robust Avatar Saving Logic (Base64 Fallback)
   const updateAvatar = async (newAvatar: string) => {
     if (!user || !supabase) return;
     
@@ -84,6 +87,7 @@ const App: React.FC = () => {
         try {
             const res = await fetch(newAvatar);
             const blob = await res.blob();
+            // Sanitize email for filename
             const cleanEmail = user.email.replace(/[^a-z0-9]/gi, '_');
             const fileName = `avatar_${cleanEmail}_${Date.now()}.png`;
             
@@ -97,7 +101,7 @@ const App: React.FC = () => {
             } else {
                 console.error("Avatar Upload Error:", uploadError);
                 addToast('error', 'Upload Failed', 'Could not save image to storage.');
-                return;
+                return; // Stop if upload fails
             }
         } catch (e) {
             console.error("Avatar fallback upload failed", e);
@@ -134,7 +138,7 @@ const App: React.FC = () => {
     if (error) { addToast('error', 'Save Failed', 'Could not save prediction.'); }
   };
 
-  // --- RESTORED GAME LOGIC ---
+  // --- GAME LOGIC ---
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
       if (user.tokens < 1) { addToast('error', 'No Intel', 'You need more Intel to spy.'); return; }
@@ -195,7 +199,7 @@ const App: React.FC = () => {
       }
   };
 
-  // --- RESTORED: LEAGUE INVITE LISTENER ---
+  // --- LEAGUE INVITE LISTENER ---
   useEffect(() => {
       const checkPendingLeague = async () => {
           if (user && supabase) {
@@ -280,7 +284,6 @@ const App: React.FC = () => {
                const isGroupMatch = match?.groupId;
                return !(isMyPred && isGroupMatch);
            }));
-           // Simplified wipe for SQL consistency 
            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
            await query;
         } else if (activeTab === 'knockout') {
@@ -302,7 +305,7 @@ const App: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
   if (!user || !session) {
-      // --- RESTORED: SMART AVATAR FILTERING ---
+      // --- SMART AVATAR FILTERING ---
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
       const getAvailable = (all: string[]) => {
           const unused = all.filter(url => !usedAvatarUrls.includes(url));
@@ -338,7 +341,7 @@ const App: React.FC = () => {
         onReplayIntro={handleReplayIntro}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         
-        // PASS LIFTED STATE FOR KNOCKOUT HEADER
+        // FIX: Pass active round to Header
         activeKnockoutRound={activeKnockoutRound}
         setActiveKnockoutRound={setActiveKnockoutRound}
       />
@@ -367,14 +370,11 @@ const App: React.FC = () => {
                         <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
                     </div>
                 )}
-                {/* CONNECTED KNOCKOUT COMPONENT */}
+                {/* FIX: Pass activeRound to Tournament Sub-Tab Bracket */}
                 {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
             </div>
         )}
 
-        {/* CONNECTED KNOCKOUT COMPONENT */}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
-        
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
@@ -397,7 +397,10 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
+        
+        {/* FIX: Pass activeRound to Main Knockout Tab */}
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
+        
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
@@ -413,7 +416,7 @@ const App: React.FC = () => {
                     onGenerate={updateAvatar} 
                     lang={t} 
                     menAvatars={menPresets} 
-                    womenAvatars={womenPresets}
+                    womenAvatars={womenPresets} 
                     currentAvatar={user.avatar} 
                 />
                 
@@ -425,7 +428,6 @@ const App: React.FC = () => {
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
-      {/* RESTORED: HELPING HAND LOGIC */}
       {isHelpingHandOpen && user && (
           <HelpingHandModal 
             isOpen={isHelpingHandOpen} 
