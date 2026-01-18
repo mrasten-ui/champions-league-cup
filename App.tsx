@@ -95,6 +95,7 @@ const App: React.FC = () => {
     if (error) { addToast('error', 'Save Failed', 'Could not save prediction.'); }
   };
 
+  // --- RESTORED GAME LOGIC ---
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
       if (user.tokens < 1) { addToast('error', 'No Intel', 'You need more Intel to spy.'); return; }
@@ -155,7 +156,7 @@ const App: React.FC = () => {
       }
   };
 
-  // --- LEAGUE INVITE LISTENER (RESTORED) ---
+  // --- RESTORED: LEAGUE INVITE LISTENER ---
   useEffect(() => {
       const checkPendingLeague = async () => {
           if (user && supabase) {
@@ -240,7 +241,7 @@ const App: React.FC = () => {
                const isGroupMatch = match?.groupId;
                return !(isMyPred && isGroupMatch);
            }));
-           // Simplified wipe for SQL consistency in this version
+           // Simplified wipe for SQL consistency 
            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
            await query;
         } else if (activeTab === 'knockout') {
@@ -262,7 +263,7 @@ const App: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
   if (!user || !session) {
-      // --- SMART AVATAR FILTERING (RESTORED) ---
+      // --- RESTORED: SMART AVATAR FILTERING ---
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
       const getAvailable = (all: string[]) => {
           const unused = all.filter(url => !usedAvatarUrls.includes(url));
