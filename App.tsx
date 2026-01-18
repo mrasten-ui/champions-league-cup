@@ -17,7 +17,7 @@ import { RulesModal } from './components/RulesModal';
 import { ScoutingCenter } from './components/ScoutingCenter';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { useSwipe } from './hooks/useSwipe';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
@@ -57,6 +57,13 @@ const App: React.FC = () => {
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
   const currentLocale = localeMap[language];
 
+  // --- HELPERS ---
+  const addToast = (type: ToastType, title: string, message?: string) => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts(prev => [...prev, { id, type, title, message }]);
+  };
+  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
   // --- ACTIONS ---
   const handleLogout = async () => {
       if (supabase) await supabase.auth.signOut();
@@ -88,11 +95,42 @@ const App: React.FC = () => {
     if (error) { addToast('error', 'Save Failed', 'Could not save prediction.'); }
   };
 
-  const addToast = (type: ToastType, title: string, message?: string) => {
-    const id = Math.random().toString(36).substring(7);
-    setToasts(prev => [...prev, { id, type, title, message }]);
+  // --- MISSING HANDLERS RESTORED ---
+  const handleSpy = async (matchId: string) => {
+      if (!user || !supabase) return;
+      if (user.tokens < 1) { addToast('error', 'No Intel', 'You need more Intel to spy.'); return; }
+      const newSpied = [...(user.spiedMatches || []), matchId];
+      const newTokens = user.tokens - 1;
+      setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
+      await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
+      addToast('success', 'Rival Revealed', '-1 Intel used. Asset acquired.');
   };
-  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
+  const handleSubstitute = async (matchId: string) => {
+      if (!user || !supabase) return;
+      if (user.substitutions < 1) { addToast('error', 'No Subs Left', 'You have used all 5 substitutions.'); return; }
+      const newUnlocked = [...(user.unlockedMatches || []), matchId];
+      const newSubs = user.substitutions - 1;
+      setUser({ ...user, substitutions: newSubs, unlockedMatches: newUnlocked });
+      await supabase.from('profiles').update({ substitutions: newSubs, unlocked_matches: newUnlocked } as any).eq('email', user.email);
+      addToast('success', (t as any).subSuccess || 'Substitution Successful', `${(t as any).substitutions || 'Substitutions'}: ${newSubs} left`);
+  };
+
+  const handleUnlockSecondChance = async () => {
+      if (!user || !supabase) return;
+      if (window.confirm("Are you sure? unlocking Second Chance reduces future points by 50%.")) {
+          setUser({ ...user, hasTakenSecondChance: true });
+          await supabase.from('profiles').update({ has_taken_second_chance: true } as any).eq('email', user.email);
+          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
+          setActiveTab('knockout');
+      }
+  };
+
+  const handleTimeTravel = (timestamp: number) => {
+      const simulatedMatches = simulateTournamentAtDate(matches, teamsData, timestamp);
+      setMatches(simulatedMatches);
+      setTournamentPhase('LIVE');
+  };
 
   // --- DERIVED STATE & HANDLERS ---
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -196,20 +234,20 @@ const App: React.FC = () => {
                         <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
                     </div>
                 )}
-                {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={()=>{}} revealedRivals={user?.spiedMatches || []} />}
+                {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
             </div>
         )}
 
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
-                   <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={() => {}} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
+                   <GroupStageSummary matches={matches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handleUnlockSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (
                    <>
                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6"><StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} /></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
-                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={() => {}} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => {}} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} />
+                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} />
                           ))}
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
@@ -222,16 +260,16 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={()=>{}} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={()=>{}} revealedRivals={user?.spiedMatches || []} />}
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
-        {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={()=>{}} onUpdate={handleScoreUpdate} />)}
+        {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
             <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
-                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity || "Change Identity"}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
+                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{(t as any).changeIdentity || "Change Identity"}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} />
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">Cancel</button>
             </div>
