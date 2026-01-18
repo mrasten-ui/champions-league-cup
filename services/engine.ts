@@ -1,7 +1,7 @@
 import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
 import { GROUP_CONFIG } from '../constants';
 import { supabase } from '../supabase';
-import { getScoutingReport } from '../scoutingData'; // Import to access local data for seeding
+import { getScoutingReport } from '../scoutingData'; 
 
 export const SCORING_RULES = {
   GROUP_EXACT: 5,
@@ -52,7 +52,6 @@ export const calculatePoints = (
     }
   }
 
-  // Update: Penalty applies from R32 matches onwards (determining R16 qualifiers)
   const penaltyRounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'];
   let finalMultiplier = 1.0;
   if (userHasPenalty && round && penaltyRounds.includes(round)) {
@@ -347,6 +346,7 @@ export const applyPredictionsToBracket = (
     return currentMatches;
 };
 
+// --- CORRECTED MAGIC WAND LOGIC ---
 export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[]): Match[] => {
   return matches.map(match => {
     if (match.homeTeamId === 'TBD' || match.awayTeamId === 'TBD') return match;
@@ -356,29 +356,58 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     
     if (!homeTeam || !awayTeam) return match;
     
-    const diff = (homeTeam.rating - awayTeam.rating) / 18; 
-    let hAdv = favorites.includes(homeTeam.id) ? 1.0 : 0;
-    let aAdv = favorites.includes(awayTeam.id) ? 1.0 : 0;
-    const baseGoals = 0.5 + (Math.random() * 3.0); 
+    let diff = 0;
+    
+    // LOGIC: FIFA Rank (Lower # is Better)
+    // We want home advantage if home rank < away rank (e.g. 1 vs 50)
+    // Formula: (AwayRank - HomeRank) / 15
+    // Example: (50 - 1) / 15 = +3.2 (Home advantage)
+    // Example: (1 - 50) / 15 = -3.2 (Away advantage)
+    
+    // Check if dynamic rank is available (from DB sync), otherwise fallback
+    if ('rank' in homeTeam && 'rank' in awayTeam && (homeTeam as any).rank && (awayTeam as any).rank) {
+       const rH = (homeTeam as any).rank;
+       const rA = (awayTeam as any).rank;
+       diff = (rA - rH) / 15; 
+    } else {
+       // Fallback: Use 'rating' (Higher # is Better)
+       // This handles static data if DB sync hasn't run
+       diff = (homeTeam.rating - awayTeam.rating) / 18;
+    }
+
+    // Favorites Tilt (+0.5 goals if user loves them)
+    let hAdv = favorites.includes(homeTeam.id) ? 0.5 : 0;
+    let aAdv = favorites.includes(awayTeam.id) ? 0.5 : 0;
+    
+    // Base goals average (randomly 1 to 2.5 goals)
+    const baseGoals = 1.0 + (Math.random() * 1.5); 
 
     let hS = Math.max(0, baseGoals + diff + hAdv);
     let aS = Math.max(0, baseGoals - diff + aAdv);
 
-    hS += (Math.random() * 4.0) - 2.0;
-    aS += (Math.random() * 4.0) - 2.0;
+    // Randomness / "Any Given Sunday" Factor (-1.5 to +1.5 goals swing)
+    hS += (Math.random() * 3.0) - 1.5;
+    aS += (Math.random() * 3.0) - 1.5;
 
     let finalHome = Math.round(Math.max(0, hS));
     let finalAway = Math.round(Math.max(0, aS));
     
+    // Cap goals to keep it realistic
     finalHome = Math.min(finalHome, 9);
     finalAway = Math.min(finalAway, 9);
     
-    if (!match.groupId && finalHome === finalAway) { 
-        const hWeight = homeTeam.rating + (favorites.includes(homeTeam.id) ? 25 : 0) + (Math.random() * 50);
-        const aWeight = awayTeam.rating + (favorites.includes(awayTeam.id) ? 25 : 0) + (Math.random() * 50);
+    // Tie-Breaker for Knockout Matches (Force a result)
+    if (!match.groupId && finalHome === finalAway) {
+        // Tie-break weighted by quality
+        const hWeight = (homeTeam as any).rank ? (200 - (homeTeam as any).rank) : homeTeam.rating;
+        const aWeight = (awayTeam as any).rank ? (200 - (awayTeam as any).rank) : awayTeam.rating;
         
-        if (hWeight > aWeight) finalHome++;
-        else finalAway++;
+        // Add huge noise to weight so underdogs can win penalties
+        if (hWeight + (Math.random() * 50) > aWeight + (Math.random() * 50)) {
+            finalHome++;
+        } else {
+            finalAway++;
+        }
     }
     
     return { ...match, homeScore: finalHome, awayScore: finalAway };
@@ -445,18 +474,9 @@ export const simulateTournamentAtDate = (
 
     const getMatchTime = (dateStr: string) => {
         try {
-            // FIXED: Handle ISO strings (e.g. 2026-06-11T19:00:00+00)
             const timestamp = new Date(dateStr).getTime();
             if (!isNaN(timestamp)) return timestamp;
-
-            // Fallback for legacy string format "June 11, 2026"
-            const parts = dateStr.split(',').map(s => s.trim());
-            const datePart = parts[0]; 
-            const year = parts[1] || '2026';
-            const timePart = parts[2] || '12:00';
-            const [monthStr, dayStr] = datePart.split(' ');
-            const monthMap: Record<string, number> = { 'June': 5, 'July': 6, 'August': 7 };
-            return new Date(Date.UTC(parseInt(year), monthMap[monthStr] || 5, parseInt(dayStr), parseInt(timePart.split(':')[0]), 0)).getTime();
+            return 0; 
         } catch(e) { return 0; }
     };
 
@@ -649,18 +669,13 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
 };
 
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
-    // If connection missing, return null to trigger UI fallback
     if (!supabase) {
         console.warn("Supabase not initialized");
         return null;
     }
 
     try {
-        // Query by specific team_id (e.g. 'ARG')
-        // Trim to handle CSV import artifacts (e.g. "ARG " from split logic)
         const safeId = teamId.trim();
-        
-        // 1. Try fetching localized report from 'scouting_reports'
         const { data: reportData, error: reportError } = await supabase
             .from('scouting_reports')
             .select('*')
@@ -669,7 +684,6 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
             .maybeSingle();
 
         if (reportData) {
-            // Found localized report!
             return {
                 id: reportData.id || 0,
                 team_id: reportData.team_id,
@@ -677,18 +691,14 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
                 strengths: reportData.strengths,
                 weaknesses: reportData.weaknesses,
                 star_player: reportData.star_player,
-                // Defaults/Placeholders for fields not in new schema
                 team_name: safeId,
                 confederation: 'FIFA',
-                fifa_rank: 0, // Should be fetched from Extended Stats
+                fifa_rank: 0, 
                 scout_notes: '',
                 recent_form: '',
                 last_5_matches: ''
             };
         }
-
-        // --- Removed fallback to scouting_overview to enforce correct table usage ---
-        
         return null;
     } catch (e) {
         console.warn("Scouting fetch exception:", e);
@@ -699,14 +709,13 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 export interface TeamFormData {
     fifaRank: number;
     history: MatchHistoryItem[];
-    recentForm: string; // "W-D-L..."
+    recentForm: string;
 }
 
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
     
     try {
-        // Use the new table "team_form_data"
         const { data, error } = await supabase
             .from('team_form_data')
             .select('*')
@@ -726,10 +735,7 @@ export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormDa
                 date: row.match_date
             }));
             
-            // Fifa rank from most recent entry (or any entry for that team)
             const fifaRank = data[0].fifa_rank;
-            
-            // Form string (last 5 matches)
             const recentForm = data.slice(0, 5).map((row: any) => row.result).join('-');
 
             return { fifaRank, history, recentForm };
@@ -740,7 +746,6 @@ export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormDa
     return null;
 };
 
-// NEW: Fetch all ranks for App Initialization
 export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
   if (!supabase) return {};
   try {
@@ -748,7 +753,6 @@ export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
     if (data) {
       const rankMap: Record<string, number> = {};
       data.forEach((row: any) => {
-        // Handle potential duplicates by taking the latest seen (or any)
         rankMap[row.team_id] = row.fifa_rank;
       });
       return rankMap;
@@ -799,7 +803,7 @@ export const seedScoutingReportsToSupabase = async (teams: Record<string, Team>)
     for (const teamId of teamIds) {
         for (const lang of languages) {
             const data = getScoutingReport(teamId, lang);
-            if (data.star_player) { // Ensure valid data
+            if (data.star_player) { 
                 records.push({
                     team_id: teamId,
                     lang: lang,
@@ -811,7 +815,6 @@ export const seedScoutingReportsToSupabase = async (teams: Record<string, Team>)
         }
     }
 
-    // Upsert to avoid duplicates
     const { error } = await supabase.from('scouting_reports').upsert(records, { onConflict: 'team_id,lang' });
     if (error) console.error("Scouting Seed Error:", error);
 };
@@ -824,20 +827,16 @@ export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
 
     for (const teamId of teamIds) {
         const team = teams[teamId];
-        // Generate 5 mock matches per team for form data
         for (let i = 0; i < 5; i++) {
-            // Pick random opponent
             let oppId = teamIds[Math.floor(Math.random() * teamIds.length)];
             while (oppId === teamId) oppId = teamIds[Math.floor(Math.random() * teamIds.length)];
             
-            // Generate result
             const outcomes = ['W', 'D', 'L'];
             const res = outcomes[Math.floor(Math.random() * outcomes.length)];
             let score = '1-1';
             if (res === 'W') score = `${Math.floor(Math.random() * 3) + 1}-${Math.floor(Math.random() * 1)}`;
             if (res === 'L') score = `${Math.floor(Math.random() * 1)}-${Math.floor(Math.random() * 3) + 1}`;
             
-            // Rank estimate
             const rank = Math.round(100 - (team.rating * 0.8));
 
             records.push({
@@ -851,9 +850,7 @@ export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
         }
     }
 
-    // Clear old data first to avoid clutter in this specific table since it lacks a unique constraint suitable for upsert on ID alone
     await supabase.from('team_form_data').delete().neq('id', 0);
-    
     const { error } = await supabase.from('team_form_data').insert(records);
     if (error) console.error("Stats Seed Error:", error);
 };
