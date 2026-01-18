@@ -54,15 +54,19 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
 
   // 1. CRITICAL FIX: Auto-assign on load once avatars are available
   useEffect(() => {
+      // Only if we don't have a current avatar (e.g. fresh signup)
+      // AND we haven't picked one yet
+      // AND the lists are actually populated
       if (!currentAvatar && !activeAvatar && menAvatars.length > 0) {
           assignRandomPreset('Male');
       }
-  }, [menAvatars, womenAvatars, currentAvatar]);
+  }, [menAvatars, womenAvatars, currentAvatar]); 
 
   // 2. Handle Gender Switch: Auto-assign a new unused avatar of that gender
   const handleGenderSwitch = (newGender: 'Male' | 'Female') => {
       if (gender === newGender) return;
       setGender(newGender);
+      // Auto-assign immediately so they never have the "wrong gender" avatar
       assignRandomPreset(newGender);
   };
 
@@ -125,6 +129,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
           onGenerate(urlData.publicUrl);
 
       } catch (uploadErr) {
+          // Fallback: Use Base64 (App.tsx handles saving this later)
           setActiveAvatar(base64Uri);
           onGenerate(base64Uri);
       }

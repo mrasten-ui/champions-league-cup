@@ -21,7 +21,7 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars (FIXED: Points to root 'men' and 'women' folders)
+  // 1. Fetch Avatars (FIXED: Looks in root 'men' and 'women' folders)
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;

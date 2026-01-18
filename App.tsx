@@ -84,7 +84,6 @@ const App: React.FC = () => {
         try {
             const res = await fetch(newAvatar);
             const blob = await res.blob();
-            // Sanitize email for filename
             const cleanEmail = user.email.replace(/[^a-z0-9]/gi, '_');
             const fileName = `avatar_${cleanEmail}_${Date.now()}.png`;
             
@@ -98,7 +97,7 @@ const App: React.FC = () => {
             } else {
                 console.error("Avatar Upload Error:", uploadError);
                 addToast('error', 'Upload Failed', 'Could not save image to storage.');
-                return; // Stop if upload fails
+                return;
             }
         } catch (e) {
             console.error("Avatar fallback upload failed", e);
@@ -303,6 +302,7 @@ const App: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
   if (!user || !session) {
+      // --- RESTORED: SMART AVATAR FILTERING ---
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
       const getAvailable = (all: string[]) => {
           const unused = all.filter(url => !usedAvatarUrls.includes(url));
@@ -397,7 +397,7 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
@@ -424,7 +424,57 @@ const App: React.FC = () => {
 
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
-      {isHelpingHandOpen && user && <HelpingHandModal isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={teamsData} initialFavorites={user.favorites} onGenerate={async (favs, scope) => { /* Magic logic */ }} lang={t} mode={activeTab === 'knockout' ? 'knockout' : 'groups'} />}
+      
+      {/* RESTORED: HELPING HAND LOGIC */}
+      {isHelpingHandOpen && user && (
+          <HelpingHandModal 
+            isOpen={isHelpingHandOpen} 
+            onClose={() => setIsHelpingHandOpen(false)} 
+            teams={teamsData} 
+            initialFavorites={user.favorites} 
+            onGenerate={async (favs, scope) => {
+                const simulatedMatches = simulateFullTournament(matches, teamsData, favs, scope);
+                const newPredictions: Prediction[] = [];
+                simulatedMatches.forEach(m => {
+                    if (m.homeScore !== null && m.awayScore !== null) {
+                         newPredictions.push({
+                             userId: user.email,
+                             matchId: m.id,
+                             home: m.homeScore,
+                             away: m.awayScore
+                         });
+                    }
+                });
+
+                setAllPredictions(prev => {
+                    const otherUsersPreds = prev.filter(p => p.userId !== user.email);
+                    const mergedMyPreds = [...prev.filter(p => p.userId === user.email)];
+                    newPredictions.forEach(np => {
+                        const idx = mergedMyPreds.findIndex(p => p.matchId === np.matchId);
+                        if (idx >= 0) mergedMyPreds[idx] = np;
+                        else mergedMyPreds.push(np);
+                    });
+                    return [...otherUsersPreds, ...mergedMyPreds];
+                });
+
+                if (supabase) {
+                    const payload = newPredictions.map(p => ({
+                        user_id: p.userId,
+                        match_id: p.matchId,
+                        home: p.home,
+                        away: p.away
+                    }));
+                    if (payload.length > 0) {
+                       await supabase.from('predictions').upsert(payload as any, { onConflict: 'user_id,match_id' });
+                    }
+                }
+                addToast('success', 'Magic Applied', `Simulated ${newPredictions.length} matches based on favorites.`);
+            }} 
+            lang={t} 
+            mode={activeTab === 'knockout' ? 'knockout' : 'groups'} 
+          />
+      )}
+
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />}
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
     </div>
