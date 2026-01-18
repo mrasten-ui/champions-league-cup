@@ -8,6 +8,7 @@ interface AvatarGeneratorProps {
   menAvatars: string[];
   womenAvatars: string[];
   usedAvatars?: string[];
+  currentAvatar?: string; // NEW PROP
 }
 
 // UTILITY: Base64 -> Blob
@@ -21,7 +22,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   lang, 
   menAvatars = [], 
   womenAvatars = [], 
-  usedAvatars = [] 
+  usedAvatars = [],
+  currentAvatar 
 }) => {
   const [viewMode, setViewMode] = useState<'ai' | 'grid'>('ai');
   const [prompt, setPrompt] = useState('');
@@ -31,18 +33,20 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
-  // Auto-select random on load
+  // Auto-select based on history or random if empty
   useEffect(() => {
-    const all = [...menAvatars, ...womenAvatars];
-    if (all.length === 0) return;
-    
-    // Try to pick one that isn't used
-    const available = all.filter(a => !usedAvatars.includes(a));
-    const pool = available.length > 0 ? available : all;
-    
-    const randomPick = pool[Math.floor(Math.random() * pool.length)];
-    if (randomPick) handleSelectPreset(randomPick);
-  }, [menAvatars, womenAvatars]);
+    // If we haven't generated anything yet, but we have a current avatar, DON'T overwrite it with a random preset
+    if (!generatedPreview && !selectedPreset && !currentAvatar) {
+        const all = [...menAvatars, ...womenAvatars];
+        if (all.length > 0) {
+            const available = all.filter(a => !usedAvatars.includes(a));
+            const pool = available.length > 0 ? available : all;
+            const randomPick = pool[Math.floor(Math.random() * pool.length)];
+            // Don't auto-fire onGenerate here, just set internal state so user sees a suggestion
+            setSelectedPreset(randomPick);
+        }
+    }
+  }, [menAvatars, womenAvatars, currentAvatar]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -86,7 +90,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       const rawBase64 = data.data[0].b64_json;
       const base64Uri = `data:image/png;base64,${rawBase64}`;
       
-      // Attempt upload
+      // Attempt upload (might fail if user is anonymous/signing up)
       try {
           const blob = await base64ToBlob(rawBase64);
           const fileName = `ai_avatar_${Date.now()}.png`;
@@ -124,7 +128,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
     onGenerate(url);
   };
 
-  const currentDisplay = generatedPreview || selectedPreset;
+  // Priority: 1. Newly Generated, 2. Selected Preset, 3. Current User Avatar (Change Mode)
+  const currentDisplay = generatedPreview || selectedPreset || currentAvatar;
 
   return (
     <div className="space-y-6">
@@ -205,7 +210,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     }}
                 />
                 
-                {/* NEW: HUGE VISIBLE BUTTON */}
+                {/* BIG VISIBLE BUTTON */}
                 <button
                     type="button" 
                     onClick={handleGenerate}
