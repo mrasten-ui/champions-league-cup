@@ -155,8 +155,7 @@ const App: React.FC = () => {
       }
   };
 
-  // --- RESTORED: LEAGUE INVITE LOGIC ---
-  // This was missing in the refactor! It ensures invite links work.
+  // --- LEAGUE INVITE LISTENER (RESTORED) ---
   useEffect(() => {
       const checkPendingLeague = async () => {
           if (user && supabase) {
@@ -173,7 +172,7 @@ const App: React.FC = () => {
           }
       };
       checkPendingLeague();
-  }, [user]); // Runs whenever user logs in
+  }, [user]);
 
   // --- DERIVED STATE & HANDLERS ---
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -263,8 +262,7 @@ const App: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
   if (!user || !session) {
-      // --- RESTORED: SMART AVATAR FILTERING ---
-      // This was missing! It stops users from picking taken avatars.
+      // --- SMART AVATAR FILTERING (RESTORED) ---
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
       const getAvailable = (all: string[]) => {
           const unused = all.filter(url => !usedAvatarUrls.includes(url));
