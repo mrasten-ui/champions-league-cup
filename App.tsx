@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
-import { LanguageCode, UserProfile, Prediction, TournamentPhase } from './types';
+import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { calculateGroupStandings, updateBracket, simulateFullTournament, applyPredictionsToBracket, simulateTournamentAtDate } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -40,6 +40,9 @@ const App: React.FC = () => {
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
+  // LIFTED STATE: Track active round here for the sticky header
+  const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
+  
   const [language, setLanguage] = useState<LanguageCode>('EN');
   const [tournamentPhase, setTournamentPhase] = useState<TournamentPhase>('PRE_LIVE');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -298,6 +301,10 @@ const App: React.FC = () => {
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
+        
+        // PASS LIFTED STATE FOR KNOCKOUT HEADER
+        activeKnockoutRound={activeKnockoutRound}
+        setActiveKnockoutRound={setActiveKnockoutRound}
       />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
@@ -324,10 +331,14 @@ const App: React.FC = () => {
                         <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
                     </div>
                 )}
-                {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
+                {/* CONNECTED KNOCKOUT COMPONENT */}
+                {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
             </div>
         )}
 
+        {/* CONNECTED KNOCKOUT COMPONENT */}
+        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
+        
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
@@ -350,7 +361,7 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} />}
+        
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>

@@ -18,22 +18,18 @@ interface KnockoutBracketProps {
   firstIncompleteGroup: string | null;
   onGoToGroup: (groupId: string) => void;
   onTeamClick?: (teamId: string) => void;
-  // FIX: Added Spy props with correct signature (string ID)
   onSpy: (matchId: string) => void;
   revealedRivals: string[]; 
+  activeRound: Round; // Now received as prop
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({ 
   matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, 
   isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick,
-  onSpy, revealedRivals 
+  onSpy, revealedRivals, activeRound 
 }) => {
-  // 1. DEFAULT TO LIST VIEW
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
-  const [activeRound, setActiveRound] = useState<Round>('R32');
 
-  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
-  
   const matchesToDisplay = useMemo(() => {
       if (viewMode === 'tree') return matches; 
       return matches
@@ -46,7 +42,6 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
       return allPredictions.filter(p => p.userId === user.email);
   }, [allPredictions, user]);
 
-  // Determine Final Winner Prediction for Celebration
   const finalMatch = matches.find(m => m.round === 'FIN');
   const finalPrediction = finalMatch ? userPredictions.find(p => p.matchId === finalMatch.id) : null;
   let finalWinnerTeam: Team | null = null;
@@ -55,56 +50,29 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
       else if (finalPrediction.away > finalPrediction.home) finalWinnerTeam = teams[finalMatch.awayTeamId];
   }
 
-  // Unlock check
   const isLocked = !isGroupStageComplete && !user?.hasTakenSecondChance;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-20">
         
-        {/* CONTROLS HEADER */}
-        <div className="flex flex-col gap-4">
-            
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                
-                {/* 1. ROUND SELECTOR (Segmented Control Style) */}
-                {viewMode === 'list' && (
-                    <div className="w-full sm:w-auto p-1.5 bg-slate-100 rounded-xl flex overflow-x-auto no-scrollbar snap-x shadow-inner border border-slate-200/60">
-                        {rounds.map(r => (
-                            <button
-                                key={r}
-                                onClick={() => setActiveRound(r)}
-                                className={`
-                                    flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap snap-center
-                                    ${activeRound === r 
-                                        ? 'bg-white text-slate-800 shadow-sm ring-1 ring-black/5 scale-[1.02]' 
-                                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
-                                    }
-                                `}
-                            >
-                                {r === 'FIN' ? 'Final' : r}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* 2. VIEW TOGGLE (Smaller, Subtle) */}
-                <div className="flex p-1 bg-white rounded-lg border border-slate-200 shadow-sm ml-auto">
-                    <button 
-                        onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                        title="List View"
-                    >
-                        <List size={16} />
-                    </button>
-                    <div className="w-px bg-slate-100 my-1 mx-1"></div>
-                    <button 
-                        onClick={() => setViewMode('tree')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'tree' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                        title="Tree View"
-                    >
-                        <GitGraph size={16} />
-                    </button>
-                </div>
+        {/* VIEW TOGGLE & INFO (Header is now in AppHeader.tsx) */}
+        <div className="flex justify-end">
+            <div className="flex p-1 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <button 
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="List View"
+                >
+                    <List size={16} />
+                </button>
+                <div className="w-px bg-slate-100 my-1 mx-1"></div>
+                <button 
+                    onClick={() => setViewMode('tree')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'tree' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Tree View"
+                >
+                    <GitGraph size={16} />
+                </button>
             </div>
         </div>
 
@@ -148,9 +116,6 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
 
                             {/* Centered Stage */}
                             <div className="flex flex-col items-center justify-center relative z-10">
-                                {/* Glow Effect */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
-                                
                                 <div className="w-full max-w-md transform transition-all duration-500 hover:scale-[1.02] relative">
                                     {/* Winner Celebration Banner */}
                                     {finalWinnerTeam && (

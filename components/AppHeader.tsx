@@ -1,9 +1,9 @@
 import React from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, CalendarDays, ListOrdered, GitMerge } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, CalendarDays, ListOrdered, GitMerge, Users, Shield, Columns, Crown } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
-import { LanguageCode, TournamentPhase } from '../types';
+import { LanguageCode, TournamentPhase, Round } from '../types';
 
 interface AppHeaderProps {
   user: any;
@@ -29,10 +29,27 @@ interface AppHeaderProps {
   matches: any[];
   teamsData: any;
   allPredictions: any[];
+  // NEW PROPS FOR KNOCKOUT
+  activeKnockoutRound?: Round;
+  setActiveKnockoutRound?: (r: Round) => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   const { user, t, matches, teamsData, allPredictions } = props;
+
+  // Helper for Icons in Knockout Buttons
+  const getRoundIcon = (r: Round) => {
+      switch(r) {
+          case 'R32': return <Users size={48} className="text-white/20" />; 
+          case 'R16': return <Shield size={42} className="text-white/20" />;
+          case 'QF': return <LayoutGrid size={42} className="text-white/20" />;
+          case 'SF': return <Columns size={42} className="text-white/20" />;
+          case 'FIN': return <Crown size={48} className="text-yellow-400/30" />;
+          default: return null;
+      }
+  };
+
+  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
   return (
     <header className="sticky top-0 z-50">
@@ -115,6 +132,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
       
+      {/* 1. GROUP STAGE SELECTOR (Existing) */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
           <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
               <div className="flex gap-2 px-4 justify-start sm:justify-center">
@@ -140,6 +158,55 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
                       <div className="relative z-10 flex flex-col items-center"><LayoutGrid size={24} className="text-white" /><span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span></div>
                   </button>
+              </div>
+          </div>
+      )}
+
+      {/* 2. KNOCKOUT ROUND SELECTOR (New - Matches Group Selector Style) */}
+      {(props.activeTab === 'knockout' || (props.activeTab === 'tournament' && props.activeKnockoutRound)) && props.setActiveKnockoutRound && (
+          <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
+              <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
+                  {rounds.map(r => {
+                      const isActive = props.activeKnockoutRound === r;
+                      const roundMatches = matches.filter(m => m.round === r);
+                      const userPredictions = allPredictions.filter(p => p.userId === user?.email);
+                      const predsCount = userPredictions.filter(p => roundMatches.some(m => m.id === p.matchId)).length;
+                      const isComplete = roundMatches.length > 0 && predsCount === roundMatches.length;
+                      const inProgress = predsCount > 0 && !isComplete;
+
+                      return (
+                          <button
+                              key={r}
+                              onClick={() => props.setActiveKnockoutRound?.(r)}
+                              className={`
+                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 
+                                  ${isActive 
+                                      ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
+                                      : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
+                                  }
+                              `}
+                          >
+                              {/* Background Texture Icon */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">
+                                  {getRoundIcon(r)}
+                              </div>
+                              <div className="absolute inset-0 bg-black/30"></div>
+                              
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>
+                                      {r === 'FIN' ? 'FINAL' : r}
+                                  </span>
+                              </div>
+
+                              <div className={`
+                                  absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
+                                  ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' 
+                                    : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' 
+                                    : 'bg-slate-500'}
+                              `}></div>
+                          </button>
+                      );
+                  })}
               </div>
           </div>
       )}
