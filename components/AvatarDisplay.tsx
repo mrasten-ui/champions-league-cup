@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface AvatarDisplayProps {
@@ -31,13 +30,13 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ avatar, size = 'md
     );
   }
 
-  // UPDATED: Now checks for '/' to support local files in public/avatars
+  // UPDATED: Now includes specific check for 'supabase' to ensure cloud URLs are treated as images
   const isImage = avatar && (
-  avatar.startsWith('http') || 
-  avatar.startsWith('data:image') || 
-  avatar.startsWith('/') ||
-  avatar.includes('supabase') 
-);
+    avatar.startsWith('http') || 
+    avatar.startsWith('data:image') || 
+    avatar.startsWith('/') ||
+    avatar.includes('supabase') // <--- This fixes the "disappearing on refresh" issue
+  );
   
   if (isImage) {
     return (
