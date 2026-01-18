@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User } from 'lucide-react';
+import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User, Shuffle } from 'lucide-react';
 import { supabase } from '../supabase';
 
 interface AvatarGeneratorProps {
@@ -8,10 +8,10 @@ interface AvatarGeneratorProps {
   menAvatars: string[];
   womenAvatars: string[];
   usedAvatars?: string[];
-  currentAvatar?: string; // NEW PROP
+  currentAvatar?: string;
 }
 
-// UTILITY: Base64 -> Blob
+// UTILITY: Base64 -> Blob (For AI Uploads)
 const base64ToBlob = async (base64: string): Promise<Blob> => {
   const res = await fetch(`data:image/png;base64,${base64}`);
   return await res.blob();
@@ -25,35 +25,53 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   usedAvatars = [],
   currentAvatar 
 }) => {
-  const [viewMode, setViewMode] = useState<'ai' | 'grid'>('ai');
-  const [prompt, setPrompt] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female'>('Male'); 
+  const [mode, setMode] = useState<'AI' | 'Presets'>('AI');
+  
+  const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  
+  // The avatar we are currently showing/using
+  const [activeAvatar, setActiveAvatar] = useState<string | null>(currentAvatar || null);
 
-  // Auto-select based on history or random if empty
+  // Helper: Get available presets for current gender
+  const getPool = (g: 'Male' | 'Female') => {
+      const source = g === 'Male' ? menAvatars : womenAvatars;
+      const unused = source.filter(url => !usedAvatars.includes(url));
+      return unused.length > 0 ? unused : source; // Fallback to all if everything is used
+  };
+
+  // Helper: Pick a random one and assign it (The "Auto-Assign" Logic)
+  const assignRandomPreset = (g: 'Male' | 'Female') => {
+      const pool = getPool(g);
+      if (pool.length > 0) {
+          const randomPick = pool[Math.floor(Math.random() * pool.length)];
+          setActiveAvatar(randomPick);
+          onGenerate(randomPick); // Notify parent immediately
+      }
+  };
+
+  // 1. On Mount: If no current avatar (Signup), auto-assign a Male one to start
   useEffect(() => {
-    // If we haven't generated anything yet, but we have a current avatar, DON'T overwrite it with a random preset
-    if (!generatedPreview && !selectedPreset && !currentAvatar) {
-        const all = [...menAvatars, ...womenAvatars];
-        if (all.length > 0) {
-            const available = all.filter(a => !usedAvatars.includes(a));
-            const pool = available.length > 0 ? available : all;
-            const randomPick = pool[Math.floor(Math.random() * pool.length)];
-            // Don't auto-fire onGenerate here, just set internal state so user sees a suggestion
-            setSelectedPreset(randomPick);
-        }
-    }
-  }, [menAvatars, womenAvatars, currentAvatar]);
+      if (!currentAvatar && menAvatars.length > 0) {
+          assignRandomPreset('Male');
+      }
+  }, []);
 
-  const handleGenerate = async () => {
+  // 2. Handle Gender Switch: Auto-assign a new unused avatar of that gender
+  const handleGenderSwitch = (newGender: 'Male' | 'Female') => {
+      if (gender === newGender) return;
+      setGender(newGender);
+      // When switching gender, we automatically assign a fresh unused preset
+      // This satisfies: "if you do not pick one, one unused will be assigned"
+      assignRandomPreset(newGender);
+  };
+
+  const handleAiGenerate = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
     setError(null);
-    setGeneratedPreview(null);
-    setSelectedPreset(null);
 
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (!apiKey) {
@@ -90,7 +108,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       const rawBase64 = data.data[0].b64_json;
       const base64Uri = `data:image/png;base64,${rawBase64}`;
       
-      // Attempt upload (might fail if user is anonymous/signing up)
+      // Attempt upload
       try {
           const blob = await base64ToBlob(rawBase64);
           const fileName = `ai_avatar_${Date.now()}.png`;
@@ -105,12 +123,12 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
             .from('avatars')
             .getPublicUrl(fileName);
 
-          setGeneratedPreview(urlData.publicUrl);
+          setActiveAvatar(urlData.publicUrl);
           onGenerate(urlData.publicUrl);
 
       } catch (uploadErr) {
-          console.warn("Upload failed (likely anon), using Base64 fallback");
-          setGeneratedPreview(base64Uri);
+          // Fallback: Use Base64 (App.tsx handles saving this later)
+          setActiveAvatar(base64Uri);
           onGenerate(base64Uri);
       }
 
@@ -122,23 +140,36 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
     }
   };
 
-  const handleSelectPreset = (url: string) => {
-    setSelectedPreset(url);
-    setGeneratedPreview(null);
-    onGenerate(url);
-  };
-
-  // Priority: 1. Newly Generated, 2. Selected Preset, 3. Current User Avatar (Change Mode)
-  const currentDisplay = generatedPreview || selectedPreset || currentAvatar;
+  const currentPool = getPool(gender);
 
   return (
     <div className="space-y-6">
-      {/* 1. BIG PREVIEW AREA */}
-      <div className="flex justify-center">
+      
+      {/* 1. GENDER SELECTION (Top Level) */}
+      <div className="flex justify-center gap-3">
+          <button 
+              type="button"
+              onClick={() => handleGenderSwitch('Male')} 
+              className={`px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400/50' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+          >
+              {lang?.genderMan || "Male"}
+          </button>
+          <button 
+              type="button"
+              onClick={() => handleGenderSwitch('Female')} 
+              className={`px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-lg ring-2 ring-pink-400/50' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+          >
+              {lang?.genderWoman || "Female"}
+          </button>
+      </div>
+
+      {/* PREVIEW + MODE TOGGLE */}
+      <div className="flex flex-col items-center gap-6">
+          {/* Big Preview Circle */}
           <div className="relative group">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-white/10 shadow-2xl flex items-center justify-center overflow-hidden shrink-0 transition-all duration-500 hover:border-blue-500/50">
-                  {currentDisplay ? (
-                      <img src={currentDisplay} className="w-full h-full object-cover animate-in zoom-in duration-500" />
+              <div className="w-36 h-36 rounded-full bg-[#0f2545] border-4 border-white/10 shadow-2xl flex items-center justify-center overflow-hidden shrink-0">
+                  {activeAvatar ? (
+                      <img src={activeAvatar} className="w-full h-full object-cover animate-in fade-in zoom-in duration-300" />
                   ) : (
                       <User size={48} className="text-slate-600" />
                   )}
@@ -149,120 +180,100 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                       </div>
                   )}
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg border border-white/20">
-                  {viewMode === 'ai' ? <Sparkles size={16} /> : <LayoutGrid size={16} />}
+              {/* Badge showing source */}
+              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-lg border border-white/20 ${mode === 'AI' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                  {mode}
               </div>
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="flex bg-black/30 p-1 rounded-xl border border-white/10">
+              <button 
+                  type="button"
+                  onClick={() => setMode('AI')} 
+                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mode === 'AI' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              >
+                  <Sparkles size={14} /> AI Studio
+              </button>
+              <button 
+                  type="button"
+                  onClick={() => setMode('Presets')} 
+                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mode === 'Presets' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              >
+                  <LayoutGrid size={14} /> Presets
+              </button>
           </div>
       </div>
 
-      {/* 2. MODE SWITCHER */}
-      <div className="bg-black/20 p-1 rounded-xl border border-white/5 flex gap-1">
-          <button 
-              type="button" 
-              onClick={() => setViewMode('ai')} 
-              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${viewMode === 'ai' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-          >
-              <Sparkles size={14} /> AI Studio
-          </button>
-          <button 
-              type="button" 
-              onClick={() => setViewMode('grid')} 
-              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-          >
-              <LayoutGrid size={14} /> Presets
-          </button>
+      {/* CONTENT AREA */}
+      <div className="bg-black/20 rounded-2xl p-4 border border-white/5 min-h-[140px]">
+          
+          {/* A) AI STUDIO MODE */}
+          {mode === 'AI' && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="text-center mb-2">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Create Unique Identity</h4>
+                      <p className="text-[10px] text-slate-400">Describe your manager look below.</p>
+                  </div>
+                  
+                  <input
+                      type="text"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit, glasses..."}
+                      className="w-full bg-[#05101c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all text-center"
+                      onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                              e.preventDefault(); 
+                              handleAiGenerate();
+                          }
+                      }}
+                  />
+                  
+                  <button
+                      type="button" 
+                      onClick={handleAiGenerate}
+                      disabled={loading || !prompt.trim()}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg border border-white/10 font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                      {loading ? "Generating..." : "Generate Magic Avatar"}
+                  </button>
+                  
+                  {error && <div className="text-[10px] text-red-300 bg-red-500/10 p-2 rounded text-center border border-red-500/20">{error}</div>}
+              </div>
+          )}
+
+          {/* B) PRESETS MODE */}
+          {mode === 'Presets' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex justify-between items-center mb-3 px-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available {gender} Avatars</span>
+                      <button 
+                          type="button" 
+                          onClick={() => assignRandomPreset(gender)} 
+                          className="flex items-center gap-1 text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider"
+                      >
+                          <Shuffle size={12} /> Pick Random
+                      </button>
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                      {currentPool.map((url, i) => (
+                          <button 
+                              type="button"
+                              key={`${gender}-${i}`} 
+                              onClick={() => { setActiveAvatar(url); onGenerate(url); }} 
+                              className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${activeAvatar === url ? 'border-green-500 scale-105 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'border-white/10 hover:border-white/30 grayscale hover:grayscale-0'}`}
+                          >
+                              <img src={url} className="w-full h-full object-cover" />
+                              {activeAvatar === url && <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center"><Check size={20} className="text-white drop-shadow-md"/></div>}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          )}
       </div>
-
-      {/* 3. AI STUDIO CONTROLS */}
-      {viewMode === 'ai' && (
-        <div className="animate-in fade-in zoom-in duration-300 space-y-4">
-             {/* Gender Toggles */}
-             <div className="flex justify-center gap-2">
-                <button 
-                    type="button" 
-                    onClick={() => setGender('Male')} 
-                    className={`px-6 py-2 text-xs font-bold uppercase rounded-full border transition-all ${gender === 'Male' ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.3)]' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
-                >
-                    {lang?.genderMan || "Male"}
-                </button>
-                <button 
-                    type="button" 
-                    onClick={() => setGender('Female')} 
-                    className={`px-6 py-2 text-xs font-bold uppercase rounded-full border transition-all ${gender === 'Female' ? 'bg-pink-600/20 border-pink-500 text-pink-400 shadow-[0_0_15px_rgba(219,39,119,0.3)]' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
-                >
-                    {lang?.genderWoman || "Female"}
-                </button>
-             </div>
-
-             {/* Input & Action Button */}
-             <div className="space-y-3">
-                <input
-                    type="text"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit..."}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-center"
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault(); 
-                            handleGenerate();
-                        }
-                    }}
-                />
-                
-                {/* BIG VISIBLE BUTTON */}
-                <button
-                    type="button" 
-                    onClick={handleGenerate}
-                    disabled={loading || !prompt.trim()}
-                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg border border-white/10 font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {loading ? <RefreshCw size={20} className="animate-spin" /> : <Wand2 size={20} />}
-                    {loading ? "Creating Identity..." : "Generate Avatar"}
-                </button>
-            </div>
-            
-            {error && <div className="text-[10px] text-red-400 bg-red-900/20 p-3 rounded-xl border border-red-500/20 flex items-center justify-center gap-2"><Bug size={14}/>{error}</div>}
-        </div>
-      )}
-
-      {/* 4. GRID MODE */}
-      {viewMode === 'grid' && (
-        <div className="animate-in fade-in zoom-in duration-300 space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-            <div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider sticky top-0 bg-[#05101c] py-1 z-10">{lang?.genderMan || "Male"}</div>
-                <div className="grid grid-cols-5 gap-2">
-                    {menAvatars.slice(0, 10).map((url, i) => (
-                        <button 
-                            type="button"
-                            key={`m-${i}`} 
-                            onClick={() => handleSelectPreset(url)} 
-                            className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-105 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'border-white/5 hover:border-white/30 grayscale hover:grayscale-0'}`}
-                        >
-                            <img src={url} className="w-full h-full object-cover" />
-                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center"><Check size={20} className="text-white drop-shadow-md"/></div>}
-                        </button>
-                    ))}
-                </div>
-            </div>
-            <div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider sticky top-0 bg-[#05101c] py-1 z-10">{lang?.genderWoman || "Female"}</div>
-                <div className="grid grid-cols-5 gap-2">
-                    {womenAvatars.slice(0, 10).map((url, i) => (
-                        <button 
-                            type="button" 
-                            key={`w-${i}`} 
-                            onClick={() => handleSelectPreset(url)} 
-                            className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-105 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'border-white/5 hover:border-white/30 grayscale hover:grayscale-0'}`}
-                        >
-                            <img src={url} className="w-full h-full object-cover" />
-                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center"><Check size={20} className="text-white drop-shadow-md"/></div>}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-      )}
     </div>
   );
 };
