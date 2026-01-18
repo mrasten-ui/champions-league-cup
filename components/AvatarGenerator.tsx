@@ -139,10 +139,10 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
           </div>
 
           <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 gap-1">
-              <button onClick={() => setViewMode('ai')} className={`p-1.5 rounded-md transition-all ${viewMode === 'ai' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-purple-400'}`}>
+              <button type="button" onClick={() => setViewMode('ai')} className={`p-1.5 rounded-md transition-all ${viewMode === 'ai' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-purple-400'}`}>
                   <Sparkles size={14} />
               </button>
-              <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-blue-400'}`}>
+              <button type="button" onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-blue-400'}`}>
                   <LayoutGrid size={14} />
               </button>
           </div>
@@ -158,8 +158,20 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                  </div>
                  
                  <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10">
-                    <button onClick={() => setGender('Male')} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}>{lang?.genderMan || "Man"}</button>
-                    <button onClick={() => setGender('Female')} className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}>{lang?.genderWoman || "Woman"}</button>
+                    <button 
+                        type="button" 
+                        onClick={() => setGender('Male')} 
+                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        {lang?.genderMan || "Male"}
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setGender('Female')} 
+                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        {lang?.genderWoman || "Female"}
+                    </button>
                  </div>
              </div>
 
@@ -170,9 +182,15 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit..."}
                     className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
-                    onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault(); 
+                            handleGenerate();
+                        }
+                    }}
                 />
                 <button
+                    type="button" 
                     onClick={handleGenerate}
                     disabled={loading || !prompt.trim()}
                     className="bg-purple-600 hover:bg-purple-500 text-white px-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50"
@@ -188,10 +206,15 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       {viewMode === 'grid' && (
         <div className="animate-in fade-in zoom-in duration-300 space-y-4">
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderMan || "Men"}</div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderMan || "Male"}</div>
                 <div className="grid grid-cols-5 gap-2">
                     {menAvatars.slice(0, 5).map((url, i) => (
-                        <button key={`m-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
+                        <button 
+                            type="button"
+                            key={`m-${i}`} 
+                            onClick={() => handleSelectPreset(url)} 
+                            className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}
+                        >
                             <img src={url} className="w-full h-full object-cover" />
                             {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
                         </button>
@@ -199,10 +222,15 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                 </div>
             </div>
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderWoman || "Women"}</div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderWoman || "Female"}</div>
                 <div className="grid grid-cols-5 gap-2">
                     {womenAvatars.slice(0, 5).map((url, i) => (
-                        <button key={`w-${i}`} onClick={() => handleSelectPreset(url)} className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}>
+                        <button 
+                            type="button" 
+                            key={`w-${i}`} 
+                            onClick={() => handleSelectPreset(url)} 
+                            className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}
+                        >
                             <img src={url} className="w-full h-full object-cover" />
                             {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
                         </button>
