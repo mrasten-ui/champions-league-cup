@@ -30,7 +30,6 @@ import { AppHeader } from './components/AppHeader';
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 
 const App: React.FC = () => {
-  // --- 1. USE CUSTOM HOOK FOR DATA ---
   const { 
     session, user, setUser, loading, matches, setMatches, teamsData, 
     allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
@@ -40,7 +39,6 @@ const App: React.FC = () => {
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
-  // LIFTED STATE: Track active round here for the sticky header
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
@@ -275,8 +273,15 @@ const App: React.FC = () => {
     if (!user || !supabase) return; 
     try {
         const query = supabase.from('predictions').delete().eq('user_id', user.email);
+        
         if (activeTab === 'groups') {
-           setAllPredictions(prev => prev.filter(p => { const isMyPred = p.userId === user.email; const match = matches.find(m => m.id === p.matchId); const isGroupMatch = match?.groupId; return !(isMyPred && isGroupMatch); }));
+           setAllPredictions(prev => prev.filter(p => {
+               const isMyPred = p.userId === user.email;
+               const match = matches.find(m => m.id === p.matchId);
+               const isGroupMatch = match?.groupId;
+               return !(isMyPred && isGroupMatch);
+           }));
+           // Simplified wipe for SQL consistency 
            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
            await query;
         } else if (activeTab === 'knockout') {
@@ -299,11 +304,24 @@ const App: React.FC = () => {
 
   if (!user || !session) {
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
-      const getAvailable = (all: string[]) => { const unused = all.filter(url => !usedAvatarUrls.includes(url)); const pool = unused.length > 0 ? unused : all; return pool.sort(() => 0.5 - Math.random()).slice(0, 5); };
+      const getAvailable = (all: string[]) => {
+          const unused = all.filter(url => !usedAvatarUrls.includes(url));
+          const pool = unused.length > 0 ? unused : all;
+          return pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+      };
       const displayMen = getAvailable(menPresets);
       const displayWomen = getAvailable(womenPresets);
+
       return (
-        <LoginScreen onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} currentLang={language} setLang={(l) => setLanguage(l)} isLoading={loading} onLogin={async () => {}} menPresets={displayMen} womenPresets={displayWomen} />
+        <LoginScreen 
+            onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} 
+            currentLang={language} 
+            setLang={(l) => setLanguage(l)} 
+            isLoading={loading} 
+            onLogin={async () => {}} 
+            menPresets={displayMen} 
+            womenPresets={displayWomen} 
+        />
       );
   }
 
@@ -396,7 +414,7 @@ const App: React.FC = () => {
                     lang={t} 
                     menAvatars={menPresets} 
                     womenAvatars={womenPresets}
-                    currentAvatar={user.avatar} // <--- Added here
+                    currentAvatar={user.avatar} 
                 />
                 
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">Cancel</button>
