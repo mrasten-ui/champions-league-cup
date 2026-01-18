@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User } from 'lucide-react';
+import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User, Camera } from 'lucide-react';
 import { supabase } from '../supabase';
 
 interface AvatarGeneratorProps {
@@ -67,7 +67,13 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
         },
         body: JSON.stringify({
           model: "dall-e-3",
-          prompt: `A square 3D render avatar of a ${gender} football manager. Description: ${prompt}. Style: High-fidelity Pixar/Disney character, cute but professional, studio lighting, solid vibrant background.`,
+          // UPDATED PROMPT: ENFORCES CENTERED, STRAIGHT-ON VIEW FOR CIRCLES
+          prompt: `A professional 3D stylized avatar of a ${gender} football manager. 
+                   KEY REQUIREMENTS: Subject looking DIRECTLY at the camera (front-facing). 
+                   COMPOSITION: Centered head-and-shoulders portrait with solid vibrant background extending to all edges. 
+                   Ensure the subject is perfectly centered so it fits in a circle crop without cutting off edges.
+                   DETAILS: ${prompt}. 
+                   STYLE: High-fidelity Pixar/Disney style, studio lighting, cute but professional.`,
           n: 1,
           size: "1024x1024",
           response_format: "b64_json", 
@@ -119,69 +125,78 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
     onGenerate(url);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-             <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                {generatedPreview ? (
-                   <img src={generatedPreview} className="w-full h-full object-cover" />
-                ) : selectedPreset ? (
-                   <img src={selectedPreset} className="w-full h-full object-cover" />
-                ) : (
-                   <User size={18} className="text-slate-400" />
-                )}
-             </div>
-             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">
-                {lang?.chooseIdentity || "CHOOSE IDENTITY"}
-             </span>
-          </div>
+  const currentDisplay = generatedPreview || selectedPreset;
 
-          <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 gap-1">
-              <button type="button" onClick={() => setViewMode('ai')} className={`p-1.5 rounded-md transition-all ${viewMode === 'ai' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-purple-400'}`}>
-                  <Sparkles size={14} />
-              </button>
-              <button type="button" onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-blue-400'}`}>
-                  <LayoutGrid size={14} />
-              </button>
+  return (
+    <div className="space-y-6">
+      {/* 1. BIGGER PREVIEW AREA */}
+      <div className="flex justify-center">
+          <div className="relative group">
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-white/10 shadow-2xl flex items-center justify-center overflow-hidden shrink-0 transition-all duration-500 hover:border-blue-500/50">
+                  {currentDisplay ? (
+                      <img src={currentDisplay} className="w-full h-full object-cover animate-in zoom-in duration-500" />
+                  ) : (
+                      <User size={48} className="text-slate-600" />
+                  )}
+                  
+                  {/* Loading Overlay */}
+                  {loading && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
+                          <RefreshCw size={32} className="text-blue-400 animate-spin" />
+                      </div>
+                  )}
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg border border-white/20">
+                  {viewMode === 'ai' ? <Sparkles size={16} /> : <LayoutGrid size={16} />}
+              </div>
           </div>
       </div>
 
-      {/* AI MODE */}
+      {/* CONTROLS */}
+      <div className="bg-black/20 p-1 rounded-xl border border-white/5 flex gap-1">
+          <button 
+              type="button" 
+              onClick={() => setViewMode('ai')} 
+              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${viewMode === 'ai' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+          >
+              <Sparkles size={14} /> AI Studio
+          </button>
+          <button 
+              type="button" 
+              onClick={() => setViewMode('grid')} 
+              className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+          >
+              <LayoutGrid size={14} /> Presets
+          </button>
+      </div>
+
+      {/* AI MODE INPUTS */}
       {viewMode === 'ai' && (
-        <div className="animate-in fade-in zoom-in duration-300 space-y-3">
-             <div className="flex items-center justify-between">
-                 <div className="flex items-center gap-2">
-                    <Sparkles size={12} className="text-purple-400" />
-                    <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">AI Studio</span>
-                 </div>
-                 
-                 <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10">
-                    <button 
-                        type="button" 
-                        onClick={() => setGender('Male')} 
-                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Male' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
-                    >
-                        {lang?.genderMan || "Male"}
-                    </button>
-                    <button 
-                        type="button" 
-                        onClick={() => setGender('Female')} 
-                        className={`px-3 py-1 text-[9px] font-black uppercase rounded-md transition-all ${gender === 'Female' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-500 hover:text-white'}`}
-                    >
-                        {lang?.genderWoman || "Female"}
-                    </button>
-                 </div>
+        <div className="animate-in fade-in zoom-in duration-300 space-y-4">
+             <div className="flex justify-center gap-2">
+                <button 
+                    type="button" 
+                    onClick={() => setGender('Male')} 
+                    className={`px-6 py-2 text-xs font-bold uppercase rounded-full border transition-all ${gender === 'Male' ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.3)]' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
+                >
+                    {lang?.genderMan || "Male"}
+                </button>
+                <button 
+                    type="button" 
+                    onClick={() => setGender('Female')} 
+                    className={`px-6 py-2 text-xs font-bold uppercase rounded-full border transition-all ${gender === 'Female' ? 'bg-pink-600/20 border-pink-500 text-pink-400 shadow-[0_0_15px_rgba(219,39,119,0.3)]' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
+                >
+                    {lang?.genderWoman || "Female"}
+                </button>
              </div>
 
-             <div className="flex gap-2">
+             <div className="relative">
                 <input
                     type="text"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit..."}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl pl-4 pr-12 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault(); 
@@ -193,46 +208,46 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                     type="button" 
                     onClick={handleGenerate}
                     disabled={loading || !prompt.trim()}
-                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                    className="absolute right-2 top-2 bottom-2 aspect-square bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
                     {loading ? <RefreshCw size={18} className="animate-spin" /> : <Wand2 size={18} />}
                 </button>
             </div>
-            {error && <div className="text-[10px] text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20 flex items-center gap-2"><Bug size={12}/>{error}</div>}
+            {error && <div className="text-[10px] text-red-400 bg-red-900/20 p-3 rounded-xl border border-red-500/20 flex items-center justify-center gap-2"><Bug size={14}/>{error}</div>}
         </div>
       )}
 
       {/* GRID MODE */}
       {viewMode === 'grid' && (
-        <div className="animate-in fade-in zoom-in duration-300 space-y-4">
+        <div className="animate-in fade-in zoom-in duration-300 space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderMan || "Male"}</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider sticky top-0 bg-[#05101c] py-1 z-10">{lang?.genderMan || "Male"}</div>
                 <div className="grid grid-cols-5 gap-2">
-                    {menAvatars.slice(0, 5).map((url, i) => (
+                    {menAvatars.slice(0, 10).map((url, i) => (
                         <button 
                             type="button"
                             key={`m-${i}`} 
                             onClick={() => handleSelectPreset(url)} 
-                            className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}
+                            className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-105 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'border-white/5 hover:border-white/30 grayscale hover:grayscale-0'}`}
                         >
                             <img src={url} className="w-full h-full object-cover" />
-                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
+                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center"><Check size={20} className="text-white drop-shadow-md"/></div>}
                         </button>
                     ))}
                 </div>
             </div>
             <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase mb-2">{lang?.genderWoman || "Female"}</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider sticky top-0 bg-[#05101c] py-1 z-10">{lang?.genderWoman || "Female"}</div>
                 <div className="grid grid-cols-5 gap-2">
-                    {womenAvatars.slice(0, 5).map((url, i) => (
+                    {womenAvatars.slice(0, 10).map((url, i) => (
                         <button 
                             type="button" 
                             key={`w-${i}`} 
                             onClick={() => handleSelectPreset(url)} 
-                            className={`relative group aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-110' : 'border-white/10 hover:border-white/40'}`}
+                            className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedPreset === url ? 'border-green-500 scale-105 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'border-white/5 hover:border-white/30 grayscale hover:grayscale-0'}`}
                         >
                             <img src={url} className="w-full h-full object-cover" />
-                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center"><Check size={16} className="text-white"/></div>}
+                            {selectedPreset === url && <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center"><Check size={20} className="text-white drop-shadow-md"/></div>}
                         </button>
                     ))}
                 </div>
