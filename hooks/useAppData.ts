@@ -13,7 +13,7 @@ export const useAppData = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Start with constants, but we will overwrite this with DB data immediately
+  // Start with constants to prevent crash, but will overwrite immediately
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   
   const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
@@ -45,11 +45,12 @@ export const useAppData = () => {
     } catch (e) { console.error("Avatar fetch error", e); }
   };
 
-  // 2. Load Game Data (UPDATED to fetch Matches)
+  // 2. Load Game Data (THIS IS THE MISSING PIECE)
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
-          // A. Fetch Matches from Supabase (New Logic)
+          // A. Fetch Matches from Supabase
+          // This pulls the correct "Next Match" links we scripted
           const { data: dbMatches, error } = await supabase
             .from('matches')
             .select('*')
@@ -59,7 +60,7 @@ export const useAppData = () => {
             // Map DB columns (snake_case) to App types (camelCase)
             const mappedMatches: Match[] = dbMatches.map((m: any) => ({
               id: m.id,
-              date: m.date,  // <--- This now pulls the real date/time!
+              date: m.date,
               venue: m.venue,
               homeTeamId: m.home_team_id || 'TBD',
               awayTeamId: m.away_team_id || 'TBD',
@@ -70,7 +71,8 @@ export const useAppData = () => {
               groupId: m.group_id,
               round: m.round,
               channels: m.channels,
-              minute: m.minute
+              minute: m.minute,
+              nextMatchId: m.next_match_id // <--- CRITICAL FOR BRACKET FLOW
             }));
             setMatches(mappedMatches);
           } else {
@@ -142,7 +144,7 @@ export const useAppData = () => {
               if (session?.user?.email) fetchUserProfile(session.user.email);
               else {
                   setLoading(false);
-                  loadGameData(); // Load data even if not logged in
+                  loadGameData(); // Load even if logged out
               }
           });
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
