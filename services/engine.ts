@@ -270,7 +270,7 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
                     if (match.homeScore > match.awayScore) {
                         winnerId = match.homeTeamId;
                         loserId = match.awayTeamId;
-                    } else {
+                    } else if (match.awayScore > match.homeScore) {
                         winnerId = match.awayTeamId;
                         loserId = match.homeTeamId;
                     }
@@ -358,51 +358,36 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     
     let diff = 0;
     
-    // LOGIC: FIFA Rank (Lower # is Better)
-    // We want home advantage if home rank < away rank (e.g. 1 vs 50)
-    // Formula: (AwayRank - HomeRank) / 15
-    // Example: (50 - 1) / 15 = +3.2 (Home advantage)
-    // Example: (1 - 50) / 15 = -3.2 (Away advantage)
-    
-    // Check if dynamic rank is available (from DB sync), otherwise fallback
     if ('rank' in homeTeam && 'rank' in awayTeam && (homeTeam as any).rank && (awayTeam as any).rank) {
        const rH = (homeTeam as any).rank;
        const rA = (awayTeam as any).rank;
        diff = (rA - rH) / 15; 
     } else {
-       // Fallback: Use 'rating' (Higher # is Better)
-       // This handles static data if DB sync hasn't run
        diff = (homeTeam.rating - awayTeam.rating) / 18;
     }
 
-    // Favorites Tilt (+0.5 goals if user loves them)
     let hAdv = favorites.includes(homeTeam.id) ? 0.5 : 0;
     let aAdv = favorites.includes(awayTeam.id) ? 0.5 : 0;
     
-    // Base goals average (randomly 1 to 2.5 goals)
     const baseGoals = 1.0 + (Math.random() * 1.5); 
 
     let hS = Math.max(0, baseGoals + diff + hAdv);
     let aS = Math.max(0, baseGoals - diff + aAdv);
 
-    // Randomness / "Any Given Sunday" Factor (-1.5 to +1.5 goals swing)
     hS += (Math.random() * 3.0) - 1.5;
     aS += (Math.random() * 3.0) - 1.5;
 
     let finalHome = Math.round(Math.max(0, hS));
     let finalAway = Math.round(Math.max(0, aS));
     
-    // Cap goals to keep it realistic
     finalHome = Math.min(finalHome, 9);
     finalAway = Math.min(finalAway, 9);
     
     // Tie-Breaker for Knockout Matches (Force a result)
     if (!match.groupId && finalHome === finalAway) {
-        // Tie-break weighted by quality
         const hWeight = (homeTeam as any).rank ? (200 - (homeTeam as any).rank) : homeTeam.rating;
         const aWeight = (awayTeam as any).rank ? (200 - (awayTeam as any).rank) : awayTeam.rating;
         
-        // Add huge noise to weight so underdogs can win penalties
         if (hWeight + (Math.random() * 50) > aWeight + (Math.random() * 50)) {
             finalHome++;
         } else {
@@ -422,6 +407,7 @@ export const simulateFullTournament = (
 ): Match[] => {
     let currentMatches = initialMatches.map(m => ({ ...m }));
 
+    // Reset scores based on scope
     currentMatches = currentMatches.map((m: Match) => {
         if (m.isLocked) return m; 
 
@@ -438,7 +424,13 @@ export const simulateFullTournament = (
     currentMatches = updateBracket(currentMatches, teams);
 
     for (let i = 0; i < 7; i++) {
+        // Filter: Find matches that need scores OR knockout matches that ended in a draw (bug fix)
         const matchesToPredict = currentMatches.filter((m: Match) => {
+            // If it's a knockout match AND score is a draw, we must re-predict it
+            if (!m.groupId && m.homeScore !== null && m.awayScore !== null) {
+                if (m.homeScore === m.awayScore) return true; // Fix the draw!
+            }
+
             if (m.homeScore !== null && m.awayScore !== null) return false;
             if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return false;
             if (scope === 'GROUPS' && !m.groupId) return false;
