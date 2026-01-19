@@ -1,68 +1,105 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
-dotenv.config({ path: '.env.local' });
+// 1. Load the .env file explicitly
+const envPath = path.resolve(process.cwd(), '.env');
+console.log(`🔍 Looking for .env file at: ${envPath}`);
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+  console.log('✅ Found and loaded .env file');
+} else {
+  console.error('❌ Could not find .env file!');
+  dotenv.config({ path: '.env.local' }); // Fallback
+}
 
-// Based on FIFA World Cup 2026 Playoff Brackets (March 2026)
-const HYPOTHETICAL_QUALIFIERS = {
-  // Group A needs UEFA Path D Winner (Favorites: Denmark or Czechia)
+// 2. Get Variables
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ Error: Missing API Credentials.");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- HYPOTHETICAL PLAYOFF WINNERS (For Testing Only) ---
+// Based on current FIFA rankings/odds for the March 2026 playoffs
+const TEST_TEAMS = {
+  // Group A: Winner of UEFA Path A (TBD vs KOR)
   'A2': { id: 'CZE', name: 'Czechia' }, 
   'A4': { id: 'CZE', name: 'Czechia' },
   'A5': { id: 'CZE', name: 'Czechia' },
 
-  // Group B needs UEFA Path A Winner (Favorite: Italy)
+  // Group B: Winner of UEFA Path B (CAN vs TBD)
   'B1': { id: 'ITA', name: 'Italy' }, 
   'B3': { id: 'ITA', name: 'Italy' },
   'B6': { id: 'ITA', name: 'Italy' },
 
-  // Group D needs UEFA Path C Winner (Favorites: Turkey or Romania)
+  // Group D: Winner of UEFA Path C (AUS vs TBD)
   'D2': { id: 'TUR', name: 'Turkey' }, 
   'D4': { id: 'TUR', name: 'Turkey' },
   'D5': { id: 'TUR', name: 'Turkey' },
 
-  // Group F needs UEFA Path B Winner (Favorites: Ukraine or Sweden)
+  // Group F: Winner of UEFA Path D (TBD vs TUN)
   'F2': { id: 'UKR', name: 'Ukraine' }, 
   'F3': { id: 'UKR', name: 'Ukraine' },
   'F6': { id: 'UKR', name: 'Ukraine' },
 
-  // Group I needs Intercontinental Playoff 2 Winner (Favorites: Iraq or Bolivia)
-  'I2': { id: 'IRQ', name: 'Iraq' }, 
-  'I3': { id: 'IRQ', name: 'Iraq' },
-  'I6': { id: 'IRQ', name: 'Iraq' },
+  // Group I: Intercontinental Playoff 1 (TBD vs NOR)
+  'I2': { id: 'CHI', name: 'Chile' }, 
+  'I3': { id: 'CHI', name: 'Chile' },
+  'I6': { id: 'CHI', name: 'Chile' },
 
-  // Group K needs Intercontinental Playoff 1 Winner (Favorites: DR Congo or Jamaica)
-  'K1': { id: 'JAM', name: 'Jamaica' }, 
-  'K4': { id: 'JAM', name: 'Jamaica' },
-  'K6': { id: 'JAM', name: 'Jamaica' },
+  // Group K: Intercontinental Playoff 2 (POR vs TBD)
+  'K1': { id: 'CRC', name: 'Costa Rica' }, 
+  'K4': { id: 'CRC', name: 'Costa Rica' },
+  'K6': { id: 'CRC', name: 'Costa Rica' },
 };
 
 async function seedTestTeams() {
   console.log('🧪 Injecting Hypothetical Playoff Winners for Testing...');
 
-  for (const [matchId, team] of Object.entries(HYPOTHETICAL_QUALIFIERS)) {
-    // We need to fetch the match first to see if TBD is home or away
-    const { data: match } = await supabase.from('matches').select('*').eq('id', matchId).single();
+  let updateCount = 0;
+
+  for (const [matchId, team] of Object.entries(TEST_TEAMS)) {
+    // 1. Fetch the match to see which side is TBD
+    const { data: match, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', matchId)
+      .maybeSingle();
     
-    if (!match) continue;
+    if (error || !match) {
+      console.warn(`⚠️ Could not find match ${matchId}`);
+      continue;
+    }
 
     const updates = {};
+    // Only replace if it is currently 'TBD' (don't overwrite real teams)
     if (match.home_team_id === 'TBD') updates.home_team_id = team.id;
     if (match.away_team_id === 'TBD') updates.away_team_id = team.id;
 
     if (Object.keys(updates).length > 0) {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('matches')
         .update(updates)
         .eq('id', matchId);
         
-      if (!error) console.log(`✅ Match ${matchId}: Replaced TBD with ${team.name}`);
+      if (!updateError) {
+        process.stdout.write('.'); // Progress dot
+        updateCount++;
+      } else {
+        console.error(`❌ Error updating ${matchId}:`, updateError.message);
+      }
     }
   }
+
+  console.log(`\n✅ Success! Filled ${updateCount} matches with test teams.`);
+  console.log('   (Italy, Czechia, Turkey, Ukraine, Chile, Costa Rica)');
 }
 
 seedTestTeams();
