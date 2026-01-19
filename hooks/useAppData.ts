@@ -21,35 +21,20 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars (FIXED: Uses SDK to generate safe URLs)
+  // 1. GENERATE LOCAL AVATARS (Auto-detect logic)
   const fetchPresetAvatars = async () => {
-    if (!supabase) return;
+    // AUTOMATIC GENERATION:
+    // This creates a list of paths from man1.png to man50.png.
+    // As long as you drop a file with the matching name into 'public/avatars/', it will show up.
     
-    // Helper: Ask Supabase for the correct public URL (No manual string building)
-    const getSafeUrl = (path: string) => {
-        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-        return data.publicUrl;
-    };
-    
-    try {
-        // A. Fetch Men (Root 'men' folder)
-        const { data: menData } = await supabase.storage.from('avatars').list('men');
-        if (menData) {
-            // Filter out system files
-            const valid = menData.filter(f => !f.name.startsWith('.'));
-            // Use the SDK helper
-            setMenPresets(valid.map(f => getSafeUrl(`men/${f.name}`)));
-        }
-        
-        // B. Fetch Women (Root 'women' folder)
-        const { data: womenData } = await supabase.storage.from('avatars').list('women');
-        if (womenData) {
-            const valid = womenData.filter(f => !f.name.startsWith('.'));
-            setWomenPresets(valid.map(f => getSafeUrl(`women/${f.name}`)));
-        }
-    } catch (e) { 
-        console.error("Avatar fetch error", e); 
-    }
+    const men = Array.from({ length: 50 }, (_, i) => `/avatars/man${i + 1}.png`);
+    // Handle the specific case we found earlier where one file was capitalized
+    if (!men.includes('/avatars/Man2.png')) men.splice(1, 1, '/avatars/Man2.png');
+
+    const women = Array.from({ length: 50 }, (_, i) => `/avatars/woman${i + 1}.png`);
+
+    setMenPresets(men);
+    setWomenPresets(women);
   };
 
   // 2. Load Game Data
@@ -109,9 +94,9 @@ export const useAppData = () => {
 
   // 4. Initial Setup Effect
   useEffect(() => {
+      fetchPresetAvatars();
+
       if (isSupabaseConfigured && supabase) {
-          fetchPresetAvatars();
-          
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
