@@ -1,499 +1,258 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
-import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
-import { getScoutingReport } from '../scoutingData';
-import { Search, X, TrendingUp, TrendingDown, Activity, BookOpen, Crown, RefreshCw, AlertCircle, Calendar, Minus, Swords, ChevronDown, Filter, Trophy, Shield, Zap } from 'lucide-react';
-
-// --- HELPER COMPONENTS ---
-
-const cleanText = (text?: string) => text ? text.replace(/^"|"$/g, '').trim() : '';
-
-const RenderPoints = ({ text }: { text?: string }) => {
-    if (!text) return <span className="italic opacity-60">Data unavailable</span>;
-    const points = text.split(/\.\s+|\.$/).filter(p => p.trim().length > 0);
-    if (points.length === 0) return <span>{text}</span>;
-    return (
-        <ul className="list-none space-y-2 mt-2">
-            {points.map((p, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs leading-relaxed font-medium text-slate-700">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-current shrink-0 opacity-40" />
-                    <span>{p.trim()}.</span>
-                </li>
-            ))}
-        </ul>
-    );
-};
-
-// A generic progress bar for comparing stats
-const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-500" }: { label: string, valA: number, valB: number, colorA?: string, colorB?: string }) => (
-    <div className="flex flex-col gap-1 w-full">
-        <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-            <span>{valA}</span>
-            <span>{label}</span>
-            <span>{valB}</span>
-        </div>
-        <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100">
-             {/* Left Bar (Team A) - Grows from right to left conceptually, but we simulate comparison */}
-             <div className="flex-1 flex justify-end pr-0.5">
-                 <div style={{ width: `${Math.min(100, (valA / 100) * 100)}%` }} className={`h-full rounded-full ${colorA} transition-all duration-500`}></div>
-             </div>
-             {/* Divider */}
-             <div className="w-0.5 bg-white z-10"></div>
-             {/* Right Bar (Team B) */}
-             <div className="flex-1 pl-0.5">
-                 <div style={{ width: `${Math.min(100, (valB / 100) * 100)}%` }} className={`h-full rounded-full ${colorB} transition-all duration-500`}></div>
-             </div>
-        </div>
-    </div>
-);
+import React, { useState, useMemo, useEffect } from 'react';
+import { Team, Translation } from '../types';
+import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X } from 'lucide-react';
+import { fetchTeamTactics, analyzeMatchup, TeamDNA } from '../services/analyst';
 
 interface ScoutingCenterProps {
   teams: Record<string, Team>;
   lang: Translation;
-  currentLang?: LanguageCode;
+  currentLang: string;
 }
 
-export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang = 'EN' }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [viewMode, setViewMode] = useState<'GRID' | 'TIERS'>('GRID');
-  
-  // COMPARATOR STATE
-  const [compareMode, setCompareMode] = useState(false);
-  const [teamAId, setTeamAId] = useState<string | null>(null);
-  const [teamBId, setTeamBId] = useState<string | null>(null);
-
-  // DATA STATE
-  const [history, setHistory] = useState<MatchHistoryItem[]>([]);
-  const [scoutingData, setScoutingData] = useState<ScoutingData | null>(null);
-  const [extendedStats, setExtendedStats] = useState<TeamFormData | null>(null);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-
-  // PREPARE LIST
-  const teamList = useMemo(() => {
-      return (Object.values(teams) as Team[])
-        .filter(t => !t.id.startsWith('TBD'))
-        .filter(t => (lang.teamNames[t.id] || t.name).toLowerCase().includes(searchTerm.toLowerCase()))
-        .sort((a, b) => (a.rank || 99) - (b.rank || 99)); // Default sort by Rank
-  }, [teams, searchTerm, lang]);
-
-  // LOAD DETAIL DATA
-  useEffect(() => {
-      if (selectedTeam) {
-          setLoadingHistory(true);
-          const loadData = async () => {
-              const [dbHistory, dbScouting, dbExtended] = await Promise.all([
-                  fetchTeamHistory(selectedTeam.id),
-                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode),
-                  fetchTeamExtendedStats(selectedTeam.id)
-              ]);
-
-              if (dbExtended) {
-                  setExtendedStats(dbExtended);
-                  setHistory(dbExtended.history);
-              } else {
-                  setHistory(dbHistory);
-              }
-
-              if (dbScouting) {
-                  setScoutingData(dbScouting);
-              } else {
-                  const localReport = getScoutingReport(selectedTeam.id, currentLang as LanguageCode);
-                  if (localReport) {
-                      setScoutingData({
-                          id: 0,
-                          team_id: selectedTeam.id,
-                          team_name: selectedTeam.name,
-                          confederation: localReport.confederation || 'FIFA',
-                          fifa_rank: localReport.fifa_rank || selectedTeam.rank || 99,
-                          star_player: localReport.star_player || 'Key Player',
-                          strengths: localReport.strengths || '',
-                          weaknesses: localReport.weaknesses || '',
-                          scout_notes: localReport.scout_notes || '',
-                          recent_form: localReport.recent_form || (selectedTeam.form ? selectedTeam.form.join('-') : 'W-D-L-W-D'),
-                          last_5_matches: localReport.last_5_matches || '',
-                          created_at: new Date().toISOString()
-                      });
-                  }
-              }
-              setLoadingHistory(false);
-          };
-          loadData();
-      } else {
-          setHistory([]);
-          setScoutingData(null);
-          setExtendedStats(null);
-      }
-  }, [selectedTeam, currentLang]);
-
-  // --- DERIVED HELPERS ---
-  const getParsedMatches = (stats: TeamFormData | null, sData: ScoutingData | null, fallbackHist: MatchHistoryItem[]) => {
-      if (stats) return stats.history;
-      if (fallbackHist.length > 0) return fallbackHist;
-      return [];
-  };
-
-  const calculateTrend = (matches: MatchHistoryItem[]) => {
-      if (!matches || matches.length === 0) return { label: 'Unknown', color: 'text-slate-400', icon: Minus, bg: 'bg-slate-100' };
-      let points = 0;
-      matches.slice(0, 5).forEach(m => {
-          if (m.result === 'W') points += 3;
-          else if (m.result === 'D') points += 1;
-      });
-      if (points >= 10) return { label: lang.trendUp, color: 'text-green-500', bg: 'bg-green-100', icon: TrendingUp };
-      if (points >= 7) return { label: lang.trendUp, color: 'text-green-600', bg: 'bg-green-50', icon: TrendingUp };
-      if (points >= 4) return { label: lang.trendFlat, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Minus };
-      return { label: lang.trendDown, color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
-  };
-
-  const parsedMatches = useMemo(() => getParsedMatches(extendedStats, scoutingData, history), [extendedStats, scoutingData, history]);
-  const trend = useMemo(() => calculateTrend(parsedMatches), [parsedMatches]);
-  
-  const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || selectedTeam?.rank || 99;
-  const displayName = selectedTeam ? (lang.teamNames[selectedTeam.id] || scoutingData?.team_name || selectedTeam.name) : '';
-
-  // --- RENDER SECTIONS ---
-
-  // 1. COMPARATOR SECTION
-  const renderComparator = () => {
-      const teamA = teamAId ? teams[teamAId] : null;
-      const teamB = teamBId ? teams[teamBId] : null;
-
-      return (
-          <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 mb-8 animate-in slide-in-from-top-4">
-              <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                     <Swords size={18} className="text-blue-600" /> Head-to-Head
-                 </h3>
-                 <button onClick={() => setCompareMode(false)} className="text-xs font-bold text-slate-400 hover:text-red-500">Close Tool</button>
-              </div>
-
-              <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-start">
-                  {/* TEAM A SELECTOR */}
-                  <div className="flex flex-col gap-2">
-                      <select 
-                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
-                        value={teamAId || ''}
-                        onChange={(e) => setTeamAId(e.target.value)}
-                      >
-                          <option value="">Select Team</option>
-                          {teamList.map(t => <option key={t.id} value={t.id}>{lang.teamNames[t.id] || t.name}</option>)}
-                      </select>
-                      {teamA && (
-                          <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
-                              <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
-                                  <img src={teamA.flag} className="w-full h-full object-cover" alt="" />
-                              </div>
-                              <div className="text-center">
-                                  <div className="text-2xl font-black text-slate-800 italic">#{teamA.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-
-                  {/* VS BADGE */}
-                  <div className="flex items-center justify-center pt-8">
-                      <div className="bg-slate-900 text-white text-[10px] font-black p-2 rounded-full shadow-lg">VS</div>
-                  </div>
-
-                  {/* TEAM B SELECTOR */}
-                  <div className="flex flex-col gap-2">
-                      <select 
-                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
-                        value={teamBId || ''}
-                        onChange={(e) => setTeamBId(e.target.value)}
-                      >
-                          <option value="">Select Team</option>
-                          {teamList.map(t => <option key={t.id} value={t.id}>{lang.teamNames[t.id] || t.name}</option>)}
-                      </select>
-                      {teamB && (
-                          <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
-                              <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
-                                  <img src={teamB.flag} className="w-full h-full object-cover" alt="" />
-                              </div>
-                              <div className="text-center">
-                                  <div className="text-2xl font-black text-slate-800 italic">#{teamB.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-              </div>
-
-              {/* STAT BARS (Only if both selected) */}
-              {teamA && teamB && (
-                  <div className="mt-8 space-y-4 pt-6 border-t border-slate-100">
-                      <StatBar label="Attack" valA={teamA.att} valB={teamB.att} />
-                      <StatBar label="Midfield" valA={teamA.mid} valB={teamB.mid} />
-                      <StatBar label="Defense" valA={teamA.def} valB={teamB.def} />
-                      <StatBar label="Overall" valA={teamA.rating} valB={teamB.rating} colorA="bg-slate-800" colorB="bg-slate-800" />
-                      
-                      <div className="bg-slate-50 p-3 rounded-xl mt-4 text-center">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Win Probability (Engine)</span>
-                          <div className="flex justify-center items-end gap-1">
-                             <span className="text-xl font-black text-blue-600">{(teamA.rating / (teamA.rating + teamB.rating) * 100).toFixed(0)}%</span>
-                             <span className="text-xs font-bold text-slate-300 mb-1">vs</span>
-                             <span className="text-xl font-black text-red-600">{(teamB.rating / (teamA.rating + teamB.rating) * 100).toFixed(0)}%</span>
-                          </div>
-                      </div>
-                  </div>
-              )}
-          </div>
-      );
-  };
-
-  // 2. GRID VIEW (Standard)
-  const renderGrid = (teams: Team[]) => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {teams.map(team => {
-            const teamName = lang.teamNames[team.id] || team.name;
-            // Mock Form Dots (Using simplified logic for grid view speed)
-            const form = team.form || ['D','D','D','D','D'];
-            
-            return (
+// 1. Reusable "Slot" Component for the Selection Arena
+const SelectionSlot: React.FC<{ 
+    label: string, 
+    team: Team | null, 
+    isActive: boolean, 
+    onClick: () => void,
+    onClear: () => void 
+}> = ({ label, team, isActive, onClick, onClear }) => (
+    <div 
+        onClick={onClick}
+        className={`relative h-24 sm:h-32 rounded-2xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${
+            isActive 
+            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200 ring-offset-2 scale-[1.02] shadow-lg' 
+            : team 
+                ? 'border-slate-200 bg-white hover:border-slate-300' 
+                : 'border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400'
+        }`}
+    >
+        {team ? (
+            <>
+                {/* Background Flag (Faded) */}
+                <img src={team.flag} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" />
+                
+                <div className="relative z-10 flex flex-col items-center">
+                     <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-2 border-white shadow-md overflow-hidden mb-1">
+                         <img src={team.flag} alt={team.name} className="w-full h-full object-cover" />
+                     </div>
+                     <span className="font-black text-slate-800 uppercase tracking-tight text-xs sm:text-sm">{team.name}</span>
+                </div>
+                
                 <button 
-                    key={team.id}
-                    onClick={() => setSelectedTeam(team)}
-                    className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-3 relative group"
+                    onClick={(e) => { e.stopPropagation(); onClear(); }}
+                    className="absolute top-2 right-2 bg-white/80 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full p-1 transition-colors z-20"
                 >
-                    <div className="relative w-14 h-9 mt-1 group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded shadow-sm overflow-hidden border border-slate-100">
-                            <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
-                        </div>
-                        {team.rank && (
-                            <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-10">
-                                {team.rank}
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="text-center w-full">
-                        <div className="font-bold text-slate-800 text-xs truncate w-full">{teamName}</div>
-                        {/* Tiny Form Dots */}
-                        <div className="flex justify-center gap-0.5 mt-1.5 opacity-60">
-                            {form.slice(-3).map((r, i) => (
-                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${r === 'W' ? 'bg-green-500' : r === 'L' ? 'bg-red-400' : 'bg-slate-300'}`}></div>
-                            ))}
-                        </div>
-                    </div>
+                    <X size={14} />
                 </button>
-            );
-        })}
+            </>
+        ) : (
+            <div className="flex flex-col items-center gap-2 text-slate-400">
+                <UserPlus size={24} className={isActive ? 'text-blue-500 animate-bounce' : ''} />
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-blue-600' : ''}`}>
+                    {isActive ? 'Select Below' : label}
+                </span>
+            </div>
+        )}
     </div>
-  );
+);
 
-  // 3. TIER VIEW (FIFA Driven)
-  const renderTiers = () => {
-      // Bucketing Logic based on FIFA Rank (Dynamic)
-      const tiers = {
-          tier1: teamList.filter(t => (t.rank || 99) <= 10),
-          tier2: teamList.filter(t => (t.rank || 99) > 10 && (t.rank || 99) <= 25),
-          tier3: teamList.filter(t => (t.rank || 99) > 25 && (t.rank || 99) <= 50),
-          tier4: teamList.filter(t => (t.rank || 99) > 50)
-      };
+// 2. Stat Bar Helper for the Results
+const AttributeBar: React.FC<{ label: string, valA: number, valB: number, colorA: string, colorB: string }> = ({ label, valA, valB, colorA, colorB }) => (
+    <div className="flex items-center gap-2 text-[10px] font-bold">
+        <div className="w-8 text-right text-slate-400">{label}</div>
+        <div className="flex-1 flex h-2 bg-slate-100 rounded-full overflow-hidden relative">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/50 z-10"></div>
+            {/* Bar A (Left) */}
+            <div className="absolute top-0 bottom-0 left-0 bg-opacity-20 transition-all duration-700" style={{ width: `${valA}%`, backgroundColor: colorA, opacity: 0.3 }}></div>
+            <div className="absolute top-0 bottom-0 left-0 transition-all duration-700" style={{ width: `${valA}%`, backgroundColor: colorA, opacity: valA > valB ? 1 : 0.6 }}></div>
+            {/* Bar B (Marker) */}
+            <div className="absolute top-[-2px] bottom-[-2px] w-1 bg-slate-900 z-20 transition-all duration-700 shadow-sm" style={{ left: `${valB}%`, backgroundColor: colorB }}></div>
+        </div>
+        <div className="w-6 text-slate-900">{valA > valB ? `+${valA-valB}` : ''}</div>
+    </div>
+);
 
-      const TierRow = ({ title, teams, icon: Icon, color }: any) => (
-          <div className="mb-6">
-              <div className={`flex items-center gap-2 mb-3 px-1 ${color}`}>
-                  <Icon size={16} />
-                  <h4 className="text-xs font-black uppercase tracking-widest">{title}</h4>
-                  <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-full ml-auto text-slate-500">{teams.length} Teams</span>
-              </div>
-              {renderGrid(teams)}
-          </div>
-      );
+// --- MAIN COMPONENT ---
+export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang }) => {
+  const [slotA, setSlotA] = useState<string | null>(null);
+  const [slotB, setSlotB] = useState<string | null>(null);
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B' | null>('A'); // Start by asking for Home team
+  
+  const [dnaA, setDnaA] = useState<TeamDNA | null>(null);
+  const [dnaB, setDnaB] = useState<TeamDNA | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-      return (
-          <div className="space-y-2">
-              <TierRow title="World Class (Rank 1-10)" teams={tiers.tier1} icon={Trophy} color="text-yellow-600" />
-              <TierRow title="Challengers (Rank 11-25)" teams={tiers.tier2} icon={Swords} color="text-blue-600" />
-              <TierRow title="Dark Horses (Rank 26-50)" teams={tiers.tier3} icon={Zap} color="text-purple-600" />
-              <TierRow title="Underdogs (Rank 50+)" teams={tiers.tier4} icon={Shield} color="text-slate-500" />
-          </div>
-      );
+  // 1. Fetch DNA when slots change (Passing currentLang!)
+  useEffect(() => {
+    if (slotA) fetchTeamTactics(slotA, currentLang).then(setDnaA);
+    else setDnaA(null);
+  }, [slotA, currentLang]);
+
+  useEffect(() => {
+    if (slotB) fetchTeamTactics(slotB, currentLang).then(setDnaB);
+    else setDnaB(null);
+  }, [slotB, currentLang]);
+
+  // 2. Run Analysis when both teams are ready (Passing currentLang!)
+  const analysis = useMemo(() => {
+    if (!slotA || !slotB || !dnaA || !dnaB) return null;
+    return analyzeMatchup(teams[slotA], dnaA, teams[slotB], dnaB, currentLang);
+  }, [slotA, slotB, dnaA, dnaB, teams, currentLang]);
+
+  // 3. Handle "Hotel Booking" Style Selection
+  const handleTeamClick = (teamId: string) => {
+    if (activeSlot === 'A') {
+        setSlotA(teamId);
+        setActiveSlot('B'); // Auto-advance to next slot
+    } else if (activeSlot === 'B') {
+        setSlotB(teamId);
+        setActiveSlot(null); // Comparison ready!
+    } else {
+        // If nothing active, assume we want to replace Slot A
+        setSlotA(teamId);
+        setActiveSlot('B');
+    }
   };
+
+  const teamList = useMemo(() => Object.values(teams).sort((a, b) => (a.rank || 99) - (b.rank || 99)), [teams]);
+  const filteredTeams = useMemo(() => teamList.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())), [teamList, searchTerm]);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-24">
-      {/* HEADER & SEARCH */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-6 opacity-5"><BookOpen size={140} /></div>
-        <div className="relative z-10">
-           <div className="flex justify-between items-start">
-               <div>
-                    <h2 className="text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-2">
-                        <Search size={24} className="text-blue-400" />
-                        {lang.scoutReport}
-                    </h2>
-                    <p className="text-slate-300 text-xs font-medium max-w-xs opacity-80 mb-4">
-                        Analyze matchups, check form, and scout your next prediction.
-                    </p>
-               </div>
-               {/* Comparator Toggle */}
-               {!compareMode && (
-                   <button 
-                     onClick={() => setCompareMode(true)}
-                     className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border border-white/10"
-                   >
-                       <Swords size={14} /> VS Tool
-                   </button>
-               )}
-           </div>
+    <div className="pb-24 animate-fade-in space-y-6">
+      
+      {/* SELECTION ARENA */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+          <div className="flex items-center justify-between mb-4">
+              <h2 className="font-black uppercase tracking-widest flex items-center gap-2 text-slate-800">
+                  <Swords size={20} className="text-blue-600" /> {lang.vsTool || "Matchup Engine"}
+              </h2>
+              {slotA && slotB && (
+                  <button onClick={() => { setSlotA(null); setSlotB(null); setActiveSlot('A'); }} className="text-[10px] font-bold text-slate-400 hover:text-blue-600 flex items-center gap-1">
+                      <RefreshCw size={12} /> {lang.resetBtn}
+                  </button>
+              )}
+          </div>
 
-           <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder={lang.searchNation}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-slate-400 backdrop-blur-sm focus:outline-none focus:bg-white/20 transition-all text-sm"
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center">
+              <SelectionSlot 
+                  label="Home Team" 
+                  team={slotA ? teams[slotA] : null} 
+                  isActive={activeSlot === 'A'} 
+                  onClick={() => setActiveSlot('A')}
+                  onClear={() => { setSlotA(null); setActiveSlot('A'); }}
               />
-           </div>
-        </div>
-      </div>
+              
+              <div className="flex flex-col items-center justify-center">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black text-xs sm:text-sm border-2 ${analysis ? 'bg-amber-400 border-amber-500 text-white animate-pulse' : 'bg-slate-100 border-slate-200 text-slate-300'}`}>
+                      VS
+                  </div>
+              </div>
 
-      {/* COMPARATOR (Conditional) */}
-      {compareMode && renderComparator()}
-
-      {/* VIEW TOGGLES */}
-      <div className="flex items-center justify-between px-1">
-          <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-              <button 
-                onClick={() => setViewMode('GRID')}
-                className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'GRID' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                  All Teams
-              </button>
-              <button 
-                onClick={() => setViewMode('TIERS')}
-                className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'TIERS' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                  Rank Tiers
-              </button>
-          </div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {teamList.length} Nations
+              <SelectionSlot 
+                  label="Away Team" 
+                  team={slotB ? teams[slotB] : null} 
+                  isActive={activeSlot === 'B'} 
+                  onClick={() => setActiveSlot('B')}
+                  onClear={() => { setSlotB(null); setActiveSlot('B'); }}
+              />
           </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      {viewMode === 'GRID' ? renderGrid(teamList) : renderTiers()}
+      {/* ANALYSIS RESULTS (Only show if both selected) */}
+      {analysis && (
+          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden animate-in slide-in-from-bottom-4">
+                {/* Header Narrative */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center">
+                    <div className="flex justify-center items-center gap-2 opacity-80 mb-2">
+                        <Brain size={16} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{lang.aiInsight || "AI Analysis"}</span>
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold leading-relaxed">"{analysis.story}"</p>
+                    <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-medium">
+                        <Target size={14} className="text-amber-400" />
+                        Key Factor: <span className="font-bold text-amber-300">{analysis.keyFactor}</span>
+                    </div>
+                </div>
 
-      {/* DETAIL MODAL (Preserved from previous, just using new state) */}
-      {selectedTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-           <div 
-             className="absolute inset-0 bg-slate-900/90 backdrop-blur-md transition-opacity"
-             onClick={() => setSelectedTeam(null)}
-           ></div>
+                {/* Data Grid */}
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.tacticalAnalysis}</h3>
+                        <AttributeBar label={lang.attack} valA={analysis.home.attributes.attack} valB={analysis.away.attributes.attack} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label={lang.defense} valA={analysis.home.attributes.defense} valB={analysis.away.attributes.defense} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label="PACE" valA={analysis.home.attributes.pace} valB={analysis.away.attributes.pace} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label="TECH" valA={analysis.home.attributes.technique} valB={analysis.away.attributes.technique} colorA="#3b82f6" colorB="#ef4444" />
+                    </div>
 
-           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-              
-              {/* MODAL HEADER */}
-              <div className="relative h-32 bg-[#0f2545] shrink-0">
-                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-5"></div>
-                  <div className="absolute -bottom-8 left-6 w-24 h-16 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2">
-                      <img src={selectedTeam.flag} alt={selectedTeam.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                      <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank}</span>
-                      <div className="text-4xl font-black text-white italic tracking-tighter drop-shadow-md">#{displayRank}</div>
-                  </div>
-                  <button onClick={() => setSelectedTeam(null)} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors backdrop-blur-sm">
-                    <X size={20} />
-                  </button>
-              </div>
-
-              {/* MODAL BODY */}
-              <div className="flex-1 overflow-y-auto pt-12 px-6 pb-6 bg-slate-50">
-                  <div className="mb-6">
-                      <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{displayName}</h2>
-                      <div className="flex items-center gap-2">
-                          <span className="bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">{selectedTeam.id}</span>
-                          {scoutingData?.confederation && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border border-blue-200">{scoutingData.confederation}</span>
-                          )}
-                      </div>
-                  </div>
-
-                  {/* Star Player */}
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-5 flex items-center gap-4 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-400/10 rounded-full blur-2xl group-hover:bg-yellow-400/20 transition-all"></div>
-                      <div className="bg-yellow-100 text-yellow-600 p-3 rounded-full shrink-0 relative z-10">
-                          <Crown size={24} fill="currentColor" className="text-yellow-500" />
-                      </div>
-                      <div className="relative z-10">
-                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer}</div>
-                          <div className="text-xl font-black text-slate-900 leading-none">{cleanText(scoutingData?.star_player) || selectedTeam.starPlayer}</div>
-                      </div>
-                  </div>
-
-                  {/* Analysis */}
-                  {scoutingData && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                          <div className="bg-green-50/60 rounded-xl p-4 border border-green-100/50">
-                              <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={14} /> {lang.strengthsLabel}</h4>
-                              <RenderPoints text={cleanText(scoutingData.strengths)} />
-                          </div>
-                          <div className="bg-red-50/60 rounded-xl p-4 border border-red-100/50">
-                              <h4 className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle size={14} /> {lang.weaknessesLabel}</h4>
-                              <RenderPoints text={cleanText(scoutingData.weaknesses)} />
-                          </div>
-                      </div>
-                  )}
-
-                  {/* Form & History */}
-                  <div className="mb-2">
-                      <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide}</h3>
-                          {trend && (
-                              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${trend.bg}`}>
-                                  <trend.icon size={12} className={trend.color} />
-                                  <span className={`text-[10px] font-black uppercase tracking-wide ${trend.color}`}>{trend.label}</span>
-                              </div>
-                          )}
-                      </div>
-                      
-                      {loadingHistory ? (
-                          <div className="flex justify-center py-4"><RefreshCw className="animate-spin text-slate-300" /></div>
-                      ) : (
-                          <>
-                             <div className="flex gap-2 mb-4">
-                                  {(parsedMatches || []).slice(0, 5).map((m, i) => {
-                                      const r = m.result;
-                                      const color = r === 'W' ? 'bg-green-500 shadow-green-200' : r === 'D' ? 'bg-slate-400 shadow-slate-200' : 'bg-red-500 shadow-red-200';
-                                      return (
-                                          <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white shadow-md ${color} transform transition-transform hover:scale-110`}>{r}</div>
-                                      )
-                                  })}
+                    <div className="flex flex-col justify-center">
+                        <div className="text-center mb-2">
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance}</span>
+                        </div>
+                        <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                             <div className="bg-blue-500 flex items-center justify-start px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${analysis.winProb}%` }}>
+                                {analysis.winProb}%
                              </div>
-                             
-                             <div className="space-y-2">
-                                {(parsedMatches || []).slice(0, 5).map((m, idx) => {
-                                    const oppName = lang.teamNames[m.opponent] || m.opponent;
-                                    return (
-                                        <div key={idx} className="bg-white border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm">
-                                            <div className="font-bold text-slate-700 uppercase tracking-tight">{oppName.replace(/^vs\s+/i, '')}</div>
-                                            <span className={`font-mono font-black px-2 py-0.5 rounded text-[10px] ${m.result === 'W' ? 'bg-green-100 text-green-700' : m.result === 'L' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{m.score}</span>
-                                        </div>
-                                    );
-                                })}
+                             <div className="bg-red-500 flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${100 - analysis.winProb}%` }}>
+                                {100 - analysis.winProb}%
                              </div>
-                          </>
-                      )}
-                  </div>
-              </div>
-              
-              <div className="p-4 bg-white border-t border-slate-100 shrink-0">
-                  <button onClick={() => setSelectedTeam(null)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs transition-colors shadow-lg">
-                      {lang.closeReport}
-                  </button>
-              </div>
-           </div>
-        </div>
+                        </div>
+                        <div className="flex justify-between mt-1 px-1">
+                            <span className="text-[10px] font-bold text-blue-600">{teams[slotA!].name}</span>
+                            <span className="text-[10px] font-bold text-red-600">{teams[slotB!].name}</span>
+                        </div>
+                    </div>
+                </div>
+          </div>
       )}
+
+      {/* TEAM SELECTOR GRID */}
+      <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  {activeSlot ? `${lang.selectTeam}: ${activeSlot === 'A' ? 'Home' : 'Away'}` : lang.allNations}
+              </h3>
+              <div className="relative w-40">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                  <input 
+                    type="text" 
+                    placeholder={lang.searchNation} 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500"
+                  />
+              </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {filteredTeams.map(team => {
+                  const isSelected = slotA === team.id || slotB === team.id;
+                  return (
+                      <button 
+                          key={team.id} 
+                          onClick={() => handleTeamClick(team.id)}
+                          disabled={isSelected && activeSlot !== null} 
+                          className={`
+                              flex items-center gap-3 p-3 rounded-xl border transition-all text-left
+                              ${isSelected 
+                                ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed' 
+                                : activeSlot 
+                                    ? 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer' 
+                                    : 'bg-white border-slate-200 hover:bg-slate-50'}
+                          `}
+                      >
+                          <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 shrink-0">
+                              <img src={team.flag} alt={team.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                              <div className="font-bold text-slate-800 text-xs truncate">{team.name}</div>
+                              <div className="text-[9px] font-medium text-slate-400">{lang.fifaRank} {team.rank}</div>
+                          </div>
+                      </button>
+                  );
+              })}
+          </div>
+      </div>
     </div>
   );
 };
