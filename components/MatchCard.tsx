@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Trophy, Check } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -184,12 +184,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (prediction.home > prediction.away) predictedWinnerId = match.homeTeamId;
         else if (prediction.away > prediction.home) predictedWinnerId = match.awayTeamId;
     }
+
+    // NEW: Check if this area should be "actionable" (scouting in groups, or predicting in knockout)
+    const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
+    const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
     
     return (
-        // FIX: Removed 'overflow-hidden' to allow badges/shadows to pop out.
         <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group`}>
              
-             {/* Header - Added rounded-t-2xl to maintain corner shape since parent overflow is visible */}
+             {/* Header */}
              <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between rounded-t-2xl">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-full justify-center">
                     {isLive ? (
@@ -220,14 +223,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 {/* Home Team */}
                 <div 
                     onClick={() => handleTeamAreaClick('home')}
-                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
-                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-blue-50/50 active:scale-95' : ''
+                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all relative group/team ${
+                        isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
                     } ${
                         predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
                     } ${
                         predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
+                    {/* Scouting Icon Indicator (Visible on hover or faintly always) */}
+                    {!isKnockout && isHomeClickable && (
+                        <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
+                            <Search size={14} />
+                        </div>
+                    )}
+
                     <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
@@ -237,7 +247,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             #{homeRank}
                             </div>
                         )}
-                        {/* Knockout Selection Checkmark */}
                         {isKnockout && predictedWinnerId === match.homeTeamId && (
                             <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
                                 <Check size={14} strokeWidth={4} />
@@ -252,8 +261,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300">
                             <div className="text-3xl font-black text-slate-200">VS</div>
-                            
-                            {/* SUBSTITUTION BUTTON (For Knockouts) */}
                             {canSubstitute && (
                                 <div className="mt-2">
                                     <button 
@@ -266,14 +273,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     </button>
                                 </div>
                             )}
-                            
-                            {/* Unlocked Badge */}
                             {isUnlockedBySub && (
                                 <div className="mt-2 flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-green-200 animate-in fade-in">
                                     <Unlock size={10} /> {lang.unlocked}
                                 </div>
                             )}
-                            
                             {isLocked && !isUnlockedBySub && !canSubstitute && (
                                 <div className="mt-2 text-[9px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
                                     <Lock size={10} /> {lang.lockedState}
@@ -281,7 +285,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )}
                         </div>
                     ) : (
-                        // === GROUP STAGE VIEW (Using ScoreStepper) ===
                         <div className="flex flex-col items-center gap-4">
                             {!isLocked ? (
                                 <div className="flex items-center gap-2 relative">
@@ -298,7 +301,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         isLocked={isLocked}
                                         onActivate={handleActivate} 
                                     />
-                                    
                                     {isUnlockedBySub && (
                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap border border-white">
                                             <Unlock size={8} /> {lang.unlocked}
@@ -316,13 +318,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 <span className="opacity-50 text-xl mx-1">:</span>
                                                 <span>{match.awayScore ?? 0}</span>
                                             </div>
-                                            
                                             {pointsEarned !== null && !isAdminMode && (
                                                 <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
                                                     +{pointsEarned} {lang.points}
                                                 </div>
                                             )}
-                                            
                                             {prediction && (
                                                 <div className="text-[10px] text-slate-400 font-bold mt-1">
                                                     {lang.myPick}: {prediction.home}-{prediction.away}
@@ -332,13 +332,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     ) : (
                                         <div className="flex flex-col items-center gap-3">
                                              <div className="text-3xl font-black text-slate-300">VS</div>
-                                             
                                              {prediction && (
                                                 <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                                     {lang.myPick}: {prediction.home}-{prediction.away}
                                                 </div>
                                              )}
-
                                              {canSubstitute ? (
                                                  <button 
                                                      onClick={handleSubClick}
@@ -360,7 +358,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                     )}
                     
-                    {/* Reveal Rival Button (Intel) */}
+                    {/* Reveal Rival Button */}
                     <div className="flex items-center justify-center w-full mt-3">
                         {!showRivals && canSpy && (
                             <button 
@@ -382,14 +380,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 {/* Away Team */}
                 <div 
                     onClick={() => handleTeamAreaClick('away')}
-                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all ${
-                        isKnockout && !isLocked ? 'cursor-pointer hover:bg-blue-50/50 active:scale-95' : ''
+                    className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all relative group/team ${
+                        isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''
                     } ${
                         predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''
                     } ${
                         predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
+                    {/* Scouting Icon Indicator */}
+                    {!isKnockout && isAwayClickable && (
+                        <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
+                            <Search size={14} />
+                        </div>
+                    )}
+
                     <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
@@ -399,7 +404,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             #{awayRank}
                             </div>
                         )}
-                        {/* Knockout Selection Checkmark */}
                         {isKnockout && predictedWinnerId === match.awayTeamId && (
                             <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
                                 <Check size={14} strokeWidth={4} />
@@ -410,7 +414,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             </div>
 
-            {/* HEAD-TO-HEAD & RIVALS SECTIONS */}
+            {/* HEAD-TO-HEAD & RIVALS SECTIONS (Keep Existing Code below) */}
             {h2hData && !isLocked && !isKnockout && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -465,7 +469,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* Rivals Section - Added rounded-b-2xl for corner fix */}
+            {/* Rivals Section */}
             {showRivals && rivals.length > 0 && (
                 <div className="bg-[#0f2545] p-4 animate-in slide-in-from-top-2 border-t border-white/10 rounded-b-2xl">
                     <div className="flex items-center justify-between mb-3">

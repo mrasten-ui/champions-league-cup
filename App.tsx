@@ -76,33 +76,19 @@ const App: React.FC = () => {
   const updateAvatar = async (newAvatar: string) => {
     if (!user || !supabase) return;
     let finalUrl = newAvatar;
-
-    // AI Fallback Upload
     if (newAvatar.startsWith('data:')) {
         try {
             const res = await fetch(newAvatar);
             const blob = await res.blob();
             const cleanEmail = user.email.replace(/[^a-z0-9]/gi, '_');
             const fileName = `avatar_${cleanEmail}_${Date.now()}.png`;
-            
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(fileName, blob, { contentType: 'image/png', upsert: true });
-
+            const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { contentType: 'image/png', upsert: true });
             if (!uploadError) {
                 const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
                 finalUrl = data.publicUrl;
-            } else {
-                addToast('error', 'Upload Failed', 'Could not save image.');
-                return;
-            }
-        } catch (e) {
-            addToast('error', 'Error', 'Failed to process image.');
-            return;
-        }
+            } else { addToast('error', 'Upload Failed', 'Could not save image.'); return; }
+        } catch (e) { addToast('error', 'Error', 'Failed to process image.'); return; }
     }
-
-    // Save URL to DB
     setUser({ ...user, avatar: finalUrl });
     await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
     setShowAvatarEditor(false);
@@ -113,7 +99,6 @@ const App: React.FC = () => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
     if (!match || (match.isLocked && !user.unlockedMatches?.includes(matchId))) return;
-
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -164,25 +149,14 @@ const App: React.FC = () => {
       const userKey = user?.email || 'anon';
       const storageKey = `rasten_intro_seen_${code}_${userKey}`;
       const hasSeen = localStorage.getItem(storageKey);
-
       if (!hasSeen) {
           const videoUrl = INTRO_VIDEOS[code];
-          if (videoUrl) {
-              setIntroVideoUrl(videoUrl);
-              setShowIntroModal(true);
-              try { localStorage.setItem(storageKey, 'true'); } catch (e) { /* ignore */ }
-          }
+          if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); try { localStorage.setItem(storageKey, 'true'); } catch (e) {} }
       }
       setLanguage(code);
   };
 
-  const handleReplayIntro = () => {
-      const videoUrl = INTRO_VIDEOS[language];
-      if (videoUrl) {
-          setIntroVideoUrl(videoUrl);
-          setShowIntroModal(true);
-      }
-  };
+  const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
 
   useEffect(() => {
       const checkPendingLeague = async () => {
@@ -227,6 +201,7 @@ const App: React.FC = () => {
     }
   }, [user?.email, user?.hasTakenSecondChance, allPredictions, isAdminMode, teamsData]);
 
+  // --- NAVIGATION LOGIC ---
   const handlePrevGroup = useCallback(() => {
     const idx = GROUP_CONFIG.findIndex(g => g.id === activeGroup);
     setActiveGroup(GROUP_CONFIG[(idx - 1 + GROUP_CONFIG.length) % GROUP_CONFIG.length].id);
@@ -238,6 +213,19 @@ const App: React.FC = () => {
     setActiveGroup(GROUP_CONFIG[(idx + 1) % GROUP_CONFIG.length].id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeGroup]);
+
+  // NEW: Knockout Navigation Logic
+  const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const handlePrevRound = () => {
+    const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
+    if (idx > 0) { setActiveKnockoutRound(ROUND_ORDER[idx - 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    else setActiveTab('groups');
+  };
+  const handleNextRound = () => {
+      const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
+      if (idx < ROUND_ORDER.length - 1) { setActiveKnockoutRound(ROUND_ORDER[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      else setActiveTab('scouting'); // Or manager?
+  };
 
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -369,7 +357,33 @@ const App: React.FC = () => {
                 )}
             </div>
         )}
-        {activeTab === 'knockout' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
+        {activeTab === 'knockout' && (
+            <div className="flex flex-col h-full animate-fade-in">
+                <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
+                
+                {/* NEW: Knockout Navigation Buttons */}
+                <div className="mt-8 flex justify-center pb-8">
+                     <div className="flex gap-3 w-full max-w-lg">
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group">
+                            <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                            <span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span>
+                        </button>
+                        
+                        {activeKnockoutRound !== 'FIN' ? (
+                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group">
+                                <span>Next Round</span>
+                                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        ) : (
+                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group">
+                                <span>Start Scouting</span>
+                                <ScanEye size={18} />
+                            </button>
+                        )}
+                     </div>
+                </div>
+            </div>
+        )}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
