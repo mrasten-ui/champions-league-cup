@@ -21,36 +21,34 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars (UPDATED: Uses SDK to generate bulletproof URLs)
+  // 1. Fetch Avatars (FIXED: Uses SDK to generate safe URLs)
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     
-    // Helper: Let Supabase generate the correct public URL for us
-    const getUrl = (path: string) => {
+    // Helper: Ask Supabase for the correct public URL (No manual string building)
+    const getSafeUrl = (path: string) => {
         const { data } = supabase.storage.from('avatars').getPublicUrl(path);
         return data.publicUrl;
     };
     
     try {
-        // A. Fetch Men
-        const { data: menData, error: menError } = await supabase.storage.from('avatars').list('men');
+        // A. Fetch Men (Root 'men' folder)
+        const { data: menData } = await supabase.storage.from('avatars').list('men');
         if (menData) {
-            const valid = menData.filter(f => !f.name.startsWith('.')); // Ignore .emptyFolder
-            setMenPresets(valid.map(f => getUrl(`men/${f.name}`)));
-        } else if (menError) {
-            console.error("Error listing men avatars:", menError);
+            // Filter out system files
+            const valid = menData.filter(f => !f.name.startsWith('.'));
+            // Use the SDK helper
+            setMenPresets(valid.map(f => getSafeUrl(`men/${f.name}`)));
         }
         
-        // B. Fetch Women
-        const { data: womenData, error: womenError } = await supabase.storage.from('avatars').list('women');
+        // B. Fetch Women (Root 'women' folder)
+        const { data: womenData } = await supabase.storage.from('avatars').list('women');
         if (womenData) {
             const valid = womenData.filter(f => !f.name.startsWith('.'));
-            setWomenPresets(valid.map(f => getUrl(`women/${f.name}`)));
-        } else if (womenError) {
-            console.error("Error listing women avatars:", womenError);
+            setWomenPresets(valid.map(f => getSafeUrl(`women/${f.name}`)));
         }
     } catch (e) { 
-        console.error("Avatar fetch crash", e); 
+        console.error("Avatar fetch error", e); 
     }
   };
 
@@ -112,7 +110,7 @@ export const useAppData = () => {
   // 4. Initial Setup Effect
   useEffect(() => {
       if (isSupabaseConfigured && supabase) {
-          fetchPresetAvatars(); // Run immediately
+          fetchPresetAvatars();
           
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
