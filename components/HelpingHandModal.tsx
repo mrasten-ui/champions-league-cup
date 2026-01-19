@@ -61,9 +61,9 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
           <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"><X size={28} /></button>
           
           <div className="flex justify-center mb-6">
-             {/* UPDATED: Orange Theme */}
-             <div className="bg-orange-500/10 p-5 rounded-[2rem] border border-orange-500/20 shadow-[0_0_40px_rgba(249,115,22,0.15)]">
-                <Wand2 size={44} className="text-orange-500" />
+             {/* UPDATED: Gold Theme */}
+             <div className="bg-yellow-500/10 p-5 rounded-[2rem] border border-yellow-500/20 shadow-[0_0_40px_rgba(250,204,21,0.15)]">
+                <Wand2 size={44} className="text-yellow-400" />
              </div>
           </div>
           <h2 className="text-3xl font-black uppercase tracking-tighter mb-2 italic">{getActionTitle()}</h2>
@@ -87,7 +87,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                   disabled={isDisabled}
                   className={`relative flex flex-col items-center p-4 rounded-3xl border-2 transition-all duration-300 ${
                     isSelected 
-                      ? 'bg-white border-orange-500 shadow-xl scale-105 z-10' // UPDATED: Orange Border
+                      ? 'bg-white border-yellow-400 shadow-xl scale-105 z-10' // UPDATED: Gold Border
                       : isDisabled
                         ? 'bg-slate-100 border-transparent opacity-30 grayscale cursor-not-allowed'
                         : 'bg-white border-transparent hover:border-slate-300 hover:shadow-lg'
@@ -101,8 +101,8 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                   </span>
                   
                   {isSelected && (
-                    /* UPDATED: Orange Badge */
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
+                    /* UPDATED: Gold Badge */
+                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
                       <Check size={14} strokeWidth={4} />
                     </div>
                   )}
@@ -124,11 +124,11 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
              className="w-full sm:w-auto bg-[#0f172a] hover:bg-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/5"
            >
              {isGenerating ? (
-                /* UPDATED: Orange Icon */
-                <RefreshCw size={24} className="animate-spin text-orange-500" />
+                /* UPDATED: Gold Icon */
+                <RefreshCw size={24} className="animate-spin text-yellow-400" />
              ) : (
-                /* UPDATED: Orange Icon */
-                <Sparkles size={24} className="text-orange-500" />
+                /* UPDATED: Gold Icon */
+                <Sparkles size={24} className="text-yellow-400" />
              )}
              <span>{isGenerating ? lang.simulating : lang.runSim}</span>
            </button>
