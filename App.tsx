@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
+// ADDED ScanEye to this import list 👇
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { calculateGroupStandings, updateBracket, simulateFullTournament, applyPredictionsToBracket, simulateTournamentAtDate } from './services/engine';
@@ -214,7 +215,7 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeGroup]);
 
-  // NEW: Knockout Navigation Logic
+  // Knockout Navigation Logic
   const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const handlePrevRound = () => {
     const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
@@ -224,7 +225,7 @@ const App: React.FC = () => {
   const handleNextRound = () => {
       const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
       if (idx < ROUND_ORDER.length - 1) { setActiveKnockoutRound(ROUND_ORDER[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      else setActiveTab('scouting'); // Or manager?
+      else setActiveTab('scouting'); 
   };
 
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
@@ -361,7 +362,7 @@ const App: React.FC = () => {
             <div className="flex flex-col h-full animate-fade-in">
                 <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
                 
-                {/* NEW: Knockout Navigation Buttons */}
+                {/* Knockout Navigation Buttons */}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
                         <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group">
