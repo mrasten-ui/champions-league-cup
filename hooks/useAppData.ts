@@ -7,13 +7,14 @@ import {
 } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
+import { fetchAllTeamTactics } from '../services/analyst'; // <--- IMPORT THIS
 
 export const useAppData = () => {
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Start with constants to prevent crash, but will overwrite immediately
+  // Start with constants, but we will overwrite this immediately
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   
   const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
@@ -45,19 +46,17 @@ export const useAppData = () => {
     } catch (e) { console.error("Avatar fetch error", e); }
   };
 
-  // 2. Load Game Data (THIS IS THE MISSING PIECE)
+  // 2. Load Game Data
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
           // A. Fetch Matches from Supabase
-          // This pulls the correct "Next Match" links we scripted
-          const { data: dbMatches, error } = await supabase
+          const { data: dbMatches } = await supabase
             .from('matches')
             .select('*')
             .order('id', { ascending: true });
 
           if (dbMatches && dbMatches.length > 0) {
-            // Map DB columns (snake_case) to App types (camelCase)
             const mappedMatches: Match[] = dbMatches.map((m: any) => ({
               id: m.id,
               date: m.date,
@@ -72,11 +71,9 @@ export const useAppData = () => {
               round: m.round,
               channels: m.channels,
               minute: m.minute,
-              nextMatchId: m.next_match_id // <--- CRITICAL FOR BRACKET FLOW
+              nextMatchId: m.next_match_id 
             }));
             setMatches(mappedMatches);
-          } else {
-            console.warn("No matches found in DB, using constants.");
           }
 
           // B. Fetch Predictions
@@ -98,12 +95,32 @@ export const useAppData = () => {
               setUsersDb(pMap);
           }
 
-          // D. Fetch Team Ranks
-          const rankMap = await fetchAllTeamRanks();
-          if (Object.keys(rankMap).length > 0) {
+          // D. Fetch Team Data (Stats + Ranks) - THE FIX
+          const [rankMap, tacticsMap] = await Promise.all([
+              fetchAllTeamRanks(),
+              fetchAllTeamTactics()
+          ]);
+
+          if (Object.keys(rankMap).length > 0 || Object.keys(tacticsMap).length > 0) {
               setTeamsData(prev => {
                   const next = { ...prev };
-                  Object.keys(rankMap).forEach(tid => { if (next[tid]) next[tid] = { ...next[tid], rank: rankMap[tid] }; });
+                  Object.keys(next).forEach(tid => {
+                      if (next[tid]) {
+                          // 1. Update Rank
+                          if (rankMap[tid]) {
+                              next[tid].rank = rankMap[tid];
+                          }
+                          // 2. Update Stats from Tactics (Fixes the "Rubbish" values)
+                          if (tacticsMap[tid]) {
+                              const t = tacticsMap[tid];
+                              next[tid].att = t.att;
+                              next[tid].mid = t.mid;
+                              next[tid].def = t.def;
+                              // Calculate a real rating (Average of the 3 main stats)
+                              next[tid].rating = Math.round((t.att + t.mid + t.def) / 3);
+                          }
+                      }
+                  });
                   return next;
               });
           }
@@ -144,7 +161,7 @@ export const useAppData = () => {
               if (session?.user?.email) fetchUserProfile(session.user.email);
               else {
                   setLoading(false);
-                  loadGameData(); // Load even if logged out
+                  loadGameData();
               }
           });
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

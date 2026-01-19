@@ -25,8 +25,7 @@ const DEFAULT_DNA: TeamDNA = {
 };
 
 /**
- * Fetches the specific tactical data for a team from Supabase.
- * Automatically selects the narrative in the correct language.
+ * Fetches the specific tactical data for a ONE team.
  */
 export const fetchTeamTactics = async (teamId: string, lang: string = 'EN'): Promise<TeamDNA> => {
     if (!supabase) return DEFAULT_DNA;
@@ -38,9 +37,7 @@ export const fetchTeamTactics = async (teamId: string, lang: string = 'EN'): Pro
         .maybeSingle();
 
     if (data) {
-        // Safe access to localized narrative stored in the JSONB column
         const narrativeMap = data.narrative || {};
-        // Fallback chain: Requested Lang -> EN -> Default Text
         const localizedNarrative = narrativeMap[lang] || narrativeMap['EN'] || "Tactical profile available.";
 
         return {
@@ -61,14 +58,34 @@ export const fetchTeamTactics = async (teamId: string, lang: string = 'EN'): Pro
 };
 
 /**
+ * NEW: Fetches stats for ALL teams at once to populate the main app state.
+ * This fixes the "Rubbish Content" issue by overwriting the default 75s.
+ */
+export const fetchAllTeamTactics = async () => {
+    if (!supabase) return {};
+    
+    try {
+        const { data } = await supabase.from('team_tactics').select('*');
+        const map: Record<string, any> = {};
+        if (data) {
+            data.forEach(row => {
+                map[row.team_id] = row;
+            });
+        }
+        return map;
+    } catch (e) {
+        console.error("Error fetching all tactics:", e);
+        return {};
+    }
+};
+
+/**
  * Compares two teams and their DNA to generate a predictive story.
- * Includes localized logic for the "Key Factor" and "Story" text.
  */
 export const analyzeMatchup = (home: Team, hDNA: TeamDNA, away: Team, rDNA: TeamDNA, lang: string = 'EN') => {
   let story = "";
   let keyFactor = "";
 
-  // Helper for simple translation maps inside logic
   const t = (en: string, no: string, sco: string, us: string) => {
       if (lang === 'NO') return no;
       if (lang === 'SCO') return sco;
@@ -76,9 +93,7 @@ export const analyzeMatchup = (home: Team, hDNA: TeamDNA, away: Team, rDNA: Team
       return en;
   };
 
-  // 1. Narrative Engine (Localized)
-  // Check for specific tactical clashes (Possession vs Low Block, High Press vs Possession, etc.)
-  
+  // 1. Narrative Engine
   if (hDNA.style === 'Possession' && rDNA.style === 'Low Block') {
     story = t(
         `${home.name} will dominate the ball, but ${away.name} is built to frustrate.`,
@@ -125,8 +140,7 @@ export const analyzeMatchup = (home: Team, hDNA: TeamDNA, away: Team, rDNA: Team
     keyFactor = t("Midfield Control", "Midtbanekontroll", "The Engine Room", "Midfield Play");
   }
 
-  // 2. Win Probability Calculation
-  // Weighted: Attack (30%), Defense (30%), Midfield (20%), Technique (20%)
+  // 2. Win Probability
   const calculatePower = (dna: TeamDNA) => 
     (dna.attributes.attack * 0.3) + (dna.attributes.defense * 0.3) + (dna.attributes.midfield * 0.2) + (dna.attributes.technique * 0.2);
 
