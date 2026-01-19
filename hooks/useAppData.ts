@@ -21,30 +21,36 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars (SUPABASE VERSION)
+  // 1. Fetch Avatars (UPDATED: Uses SDK to generate bulletproof URLs)
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     
-    // Construct the Public URL base
-    const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+    // Helper: Let Supabase generate the correct public URL for us
+    const getUrl = (path: string) => {
+        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+        return data.publicUrl;
+    };
     
     try {
-        // A. Fetch Men from root 'men' folder
-        const { data: menData } = await supabase.storage.from('avatars').list('men');
+        // A. Fetch Men
+        const { data: menData, error: menError } = await supabase.storage.from('avatars').list('men');
         if (menData) {
-            // Filter out system files (.emptyFolder, .DS_Store)
-            const valid = menData.filter(f => !f.name.startsWith('.'));
+            const valid = menData.filter(f => !f.name.startsWith('.')); // Ignore .emptyFolder
             setMenPresets(valid.map(f => getUrl(`men/${f.name}`)));
+        } else if (menError) {
+            console.error("Error listing men avatars:", menError);
         }
         
-        // B. Fetch Women from root 'women' folder
-        const { data: womenData } = await supabase.storage.from('avatars').list('women');
+        // B. Fetch Women
+        const { data: womenData, error: womenError } = await supabase.storage.from('avatars').list('women');
         if (womenData) {
             const valid = womenData.filter(f => !f.name.startsWith('.'));
             setWomenPresets(valid.map(f => getUrl(`women/${f.name}`)));
+        } else if (womenError) {
+            console.error("Error listing women avatars:", womenError);
         }
     } catch (e) { 
-        console.error("Avatar fetch error", e); 
+        console.error("Avatar fetch crash", e); 
     }
   };
 
@@ -106,7 +112,8 @@ export const useAppData = () => {
   // 4. Initial Setup Effect
   useEffect(() => {
       if (isSupabaseConfigured && supabase) {
-          fetchPresetAvatars();
+          fetchPresetAvatars(); // Run immediately
+          
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
