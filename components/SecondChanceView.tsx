@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round } from '../types';
-import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2, Users, Shield, LayoutGrid, Columns, Crown } from 'lucide-react';
+import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, Users, Shield, LayoutGrid, Columns, Crown } from 'lucide-react';
 import { KnockoutBracket } from './KnockoutBracket';
 
 interface SecondChanceViewProps {
@@ -26,7 +26,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
 }) => {
   const [isHovering, setIsHovering] = useState(false);
   
-  // FIX: Manage local round state since KnockoutBracket is now stateless
+  // FIX: Manage local round state since KnockoutBracket requires it
   const [activeRound, setActiveRound] = useState<Round>('R32');
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
@@ -111,7 +111,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
 
       {hasUnlocked ? (
           <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-200">
-             {/* FIX: Add Round Selector here since it was removed from KnockoutBracket */}
+             {/* Local Round Selector for Second Chance */}
              <div className="bg-slate-50 border-b border-slate-200 p-4 rounded-t-3xl overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 justify-start sm:justify-center min-w-max">
                     {rounds.map(r => {

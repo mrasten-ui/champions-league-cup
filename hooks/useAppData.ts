@@ -21,26 +21,31 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. Fetch Avatars (FIXED: Looks in root 'men' and 'women' folders)
+  // 1. Fetch Avatars (SUPABASE VERSION)
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
+    
+    // Construct the Public URL base
     const getUrl = (path: string) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+    
     try {
-        // Fetch Men (Root Folder)
+        // A. Fetch Men from root 'men' folder
         const { data: menData } = await supabase.storage.from('avatars').list('men');
         if (menData) {
-            // Filter out system files
+            // Filter out system files (.emptyFolder, .DS_Store)
             const valid = menData.filter(f => !f.name.startsWith('.'));
             setMenPresets(valid.map(f => getUrl(`men/${f.name}`)));
         }
         
-        // Fetch Women (Root Folder)
+        // B. Fetch Women from root 'women' folder
         const { data: womenData } = await supabase.storage.from('avatars').list('women');
         if (womenData) {
             const valid = womenData.filter(f => !f.name.startsWith('.'));
             setWomenPresets(valid.map(f => getUrl(`women/${f.name}`)));
         }
-    } catch (e) { console.error("Avatar fetch error", e); }
+    } catch (e) { 
+        console.error("Avatar fetch error", e); 
+    }
   };
 
   // 2. Load Game Data
@@ -87,7 +92,6 @@ export const useAppData = () => {
               };
               setUser(profile);
           } else {
-              // Safety Fallback
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
                   const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5 };

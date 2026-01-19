@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, CalendarDays, ListOrdered, GitMerge, Users, Shield, Columns, Crown } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
