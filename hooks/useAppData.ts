@@ -12,7 +12,10 @@ export const useAppData = () => {
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Start with constants, but we will overwrite this with DB data immediately
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
+  
   const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
   const [allPredictions, setAllPredictions] = useState<Prediction[]>(MOCK_PREDICTIONS);
   const [usersDb, setUsersDb] = useState<Record<string, UserProfile>>({});
@@ -21,29 +24,64 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // 1. GENERATE LOCAL AVATARS (Auto-detect logic)
+  // 1. Fetch Avatars
   const fetchPresetAvatars = async () => {
-    // AUTOMATIC GENERATION:
-    // This creates a list of paths from man1.png to man50.png.
-    // As long as you drop a file with the matching name into 'public/avatars/', it will show up.
-    
-    const men = Array.from({ length: 50 }, (_, i) => `/avatars/man${i + 1}.png`);
-    // Handle the specific case we found earlier where one file was capitalized
-    if (!men.includes('/avatars/Man2.png')) men.splice(1, 1, '/avatars/Man2.png');
-
-    const women = Array.from({ length: 50 }, (_, i) => `/avatars/woman${i + 1}.png`);
-
-    setMenPresets(men);
-    setWomenPresets(women);
+    if (!supabase) return;
+    const getSafeUrl = (path: string) => {
+        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+        return data.publicUrl;
+    };
+    try {
+        const { data: menData } = await supabase.storage.from('avatars').list('men');
+        if (menData) {
+            const valid = menData.filter(f => !f.name.startsWith('.'));
+            setMenPresets(valid.map(f => getSafeUrl(`men/${f.name}`)));
+        }
+        const { data: womenData } = await supabase.storage.from('avatars').list('women');
+        if (womenData) {
+            const valid = womenData.filter(f => !f.name.startsWith('.'));
+            setWomenPresets(valid.map(f => getSafeUrl(`women/${f.name}`)));
+        }
+    } catch (e) { console.error("Avatar fetch error", e); }
   };
 
-  // 2. Load Game Data
+  // 2. Load Game Data (UPDATED to fetch Matches)
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
+          // A. Fetch Matches from Supabase (New Logic)
+          const { data: dbMatches, error } = await supabase
+            .from('matches')
+            .select('*')
+            .order('id', { ascending: true });
+
+          if (dbMatches && dbMatches.length > 0) {
+            // Map DB columns (snake_case) to App types (camelCase)
+            const mappedMatches: Match[] = dbMatches.map((m: any) => ({
+              id: m.id,
+              date: m.date,  // <--- This now pulls the real date/time!
+              venue: m.venue,
+              homeTeamId: m.home_team_id || 'TBD',
+              awayTeamId: m.away_team_id || 'TBD',
+              homeScore: m.home_score,
+              awayScore: m.away_score,
+              status: m.status,
+              isLocked: m.is_locked,
+              groupId: m.group_id,
+              round: m.round,
+              channels: m.channels,
+              minute: m.minute
+            }));
+            setMatches(mappedMatches);
+          } else {
+            console.warn("No matches found in DB, using constants.");
+          }
+
+          // B. Fetch Predictions
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) setAllPredictions(preds.map((p: any) => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away })));
 
+          // C. Fetch Profiles
           const { data: profiles } = await supabase.from('profiles').select('*');
           if (profiles) {
               const pMap: Record<string, UserProfile> = {};
@@ -57,6 +95,8 @@ export const useAppData = () => {
               });
               setUsersDb(pMap);
           }
+
+          // D. Fetch Team Ranks
           const rankMap = await fetchAllTeamRanks();
           if (Object.keys(rankMap).length > 0) {
               setTeamsData(prev => {
@@ -94,18 +134,21 @@ export const useAppData = () => {
 
   // 4. Initial Setup Effect
   useEffect(() => {
-      fetchPresetAvatars();
-
       if (isSupabaseConfigured && supabase) {
+          fetchPresetAvatars();
+          
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
-              else setLoading(false);
+              else {
+                  setLoading(false);
+                  loadGameData(); // Load data even if not logged in
+              }
           });
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
-              else { setUser(null); setLoading(false); }
+              else { setUser(null); setLoading(false); loadGameData(); }
           });
           return () => subscription.unsubscribe();
       } else { setLoading(false); }
