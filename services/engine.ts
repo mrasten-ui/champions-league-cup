@@ -426,10 +426,11 @@ export const simulateFullTournament = (
     for (let i = 0; i < 7; i++) {
         // Filter: Find matches that need scores OR knockout matches that ended in a draw (bug fix)
         const matchesToPredict = currentMatches.filter((m: Match) => {
-            // If it's a knockout match AND score is a draw, we must re-predict it
+            // FIX START: If it's a knockout match AND score is a draw, re-predict it
             if (!m.groupId && m.homeScore !== null && m.awayScore !== null) {
                 if (m.homeScore === m.awayScore) return true; // Fix the draw!
             }
+            // FIX END
 
             if (m.homeScore !== null && m.awayScore !== null) return false;
             if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return false;
