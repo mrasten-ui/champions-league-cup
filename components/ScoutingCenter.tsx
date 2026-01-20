@@ -9,7 +9,7 @@ interface ScoutingCenterProps {
   currentLang: string;
 }
 
-// 1. Reusable "Slot" Component for the Selection Arena
+// 1. Reusable "Slot" Component
 const SelectionSlot: React.FC<{ 
     label: string, 
     team: Team | null, 
@@ -57,33 +57,30 @@ const SelectionSlot: React.FC<{
     </div>
 );
 
-// 2. Stat Bar Helper for the Results
+// 2. Stat Bar Helper
 const AttributeBar: React.FC<{ label: string, valA: number, valB: number, colorA: string, colorB: string }> = ({ label, valA, valB, colorA, colorB }) => (
     <div className="flex items-center gap-2 text-[10px] font-bold">
         <div className="w-8 text-right text-slate-400">{label}</div>
         <div className="flex-1 flex h-2 bg-slate-100 rounded-full overflow-hidden relative">
             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/50 z-10"></div>
-            {/* Bar A (Left) */}
             <div className="absolute top-0 bottom-0 left-0 bg-opacity-20 transition-all duration-700" style={{ width: `${valA}%`, backgroundColor: colorA, opacity: 0.3 }}></div>
             <div className="absolute top-0 bottom-0 left-0 transition-all duration-700" style={{ width: `${valA}%`, backgroundColor: colorA, opacity: valA > valB ? 1 : 0.6 }}></div>
-            {/* Bar B (Marker) */}
             <div className="absolute top-[-2px] bottom-[-2px] w-1 bg-slate-900 z-20 transition-all duration-700 shadow-sm" style={{ left: `${valB}%`, backgroundColor: colorB }}></div>
         </div>
         <div className="w-6 text-slate-900">{valA > valB ? `+${valA-valB}` : ''}</div>
     </div>
 );
 
-// --- MAIN COMPONENT ---
 export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, currentLang }) => {
   const [slotA, setSlotA] = useState<string | null>(null);
   const [slotB, setSlotB] = useState<string | null>(null);
-  const [activeSlot, setActiveSlot] = useState<'A' | 'B' | null>('A'); // Start by asking for Home team
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B' | null>('A'); 
   
   const [dnaA, setDnaA] = useState<TeamDNA | null>(null);
   const [dnaB, setDnaB] = useState<TeamDNA | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Fetch DNA when slots change (Passing currentLang!)
+  // 1. Fetch DNA
   useEffect(() => {
     if (slotA) fetchTeamTactics(slotA, currentLang).then(setDnaA);
     else setDnaA(null);
@@ -94,28 +91,32 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
     else setDnaB(null);
   }, [slotB, currentLang]);
 
-  // 2. Run Analysis when both teams are ready (Passing currentLang!)
+  // 2. Analysis
   const analysis = useMemo(() => {
     if (!slotA || !slotB || !dnaA || !dnaB) return null;
     return analyzeMatchup(teams[slotA], dnaA, teams[slotB], dnaB, currentLang);
   }, [slotA, slotB, dnaA, dnaB, teams, currentLang]);
 
-  // 3. Handle "Hotel Booking" Style Selection
   const handleTeamClick = (teamId: string) => {
     if (activeSlot === 'A') {
         setSlotA(teamId);
-        setActiveSlot('B'); // Auto-advance to next slot
+        setActiveSlot('B'); 
     } else if (activeSlot === 'B') {
         setSlotB(teamId);
-        setActiveSlot(null); // Comparison ready!
+        setActiveSlot(null); 
     } else {
-        // If nothing active, assume we want to replace Slot A
         setSlotA(teamId);
         setActiveSlot('B');
     }
   };
 
-  const teamList = useMemo(() => Object.values(teams).sort((a, b) => (a.rank || 99) - (b.rank || 99)), [teams]);
+  // --- THE FIX: Filter out "TBD" and "TBC" ---
+  const teamList = useMemo(() => {
+      return Object.values(teams)
+        .filter(t => t.id !== 'TBD' && t.id !== 'TBC' && t.name !== 'TBD') // <--- REMOVES THE EMPTY CELL
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99));
+  }, [teams]);
+
   const filteredTeams = useMemo(() => teamList.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())), [teamList, searchTerm]);
 
   return (
@@ -159,7 +160,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
           </div>
       </div>
 
-      {/* ANALYSIS RESULTS (Only show if both selected) */}
+      {/* ANALYSIS RESULTS */}
       {analysis && (
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden animate-in slide-in-from-bottom-4">
                 {/* Header Narrative */}
