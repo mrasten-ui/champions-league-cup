@@ -26,17 +26,18 @@ export const LANGUAGES = [
   { code: 'US' as LanguageCode, name: 'English (US)', flag: 'https://flagcdn.com/w160/us.png' }
 ];
 
+// --- REALISTIC 2026 TEAM LIST ---
 const BASE_TEAM_NAMES: Record<string, string> = {
   MEX: "Mexico", RSA: "South Africa", KOR: "Korea Republic", CZE: "Czechia",
-  CAN: "Canada", BIH: "Bosnia", QAT: "Qatar", SUI: "Switzerland",
-  HAI: "Haiti", SCO: "Scotland", BRA: "Brazil", MAR: "Morocco",
-  USA: "USA", PAR: "Paraguay", AUS: "Australia", KOS: "Kosovo",
-  GER: "Germany", CUW: "Curacao", CIV: "Ivory Coast", ECU: "Ecuador",
+  CAN: "Canada", SRB: "Serbia", QAT: "Qatar", SUI: "Switzerland",
+  DEN: "Denmark", SCO: "Scotland", BRA: "Brazil", MAR: "Morocco", // Denmark added!
+  USA: "USA", PAR: "Paraguay", AUS: "Australia", NGA: "Nigeria",
+  GER: "Germany", ITA: "Italy", CIV: "Ivory Coast", ECU: "Ecuador", // Italy added!
   NED: "Netherlands", JPN: "Japan", ALB: "Albania", TUN: "Tunisia",
   BEL: "Belgium", EGY: "Egypt", IRN: "Iran", NZL: "New Zealand",
   ESP: "Spain", CPV: "Cabo Verde", KSA: "Saudi Arabia", URU: "Uruguay",
-  FRA: "France", SEN: "Senegal", BOL: "Bolivia", NOR: "Norway",
-  ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
+  FRA: "France", SEN: "Senegal", CHI: "Chile", NOR: "Norway",
+  ARG: "Argentina", ALG: "Algeria", AUT: "Austria", IRQ: "Iraq",
   POR: "Portugal", COD: "Congo DR", UZB: "Uzbekistan", COL: "Colombia",
   ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
   TBD: "TBD"
@@ -44,22 +45,21 @@ const BASE_TEAM_NAMES: Record<string, string> = {
 
 const TEAM_NAMES_NO: Record<string, string> = {
   MEX: "Mexico", RSA: "Sør-Afrika", KOR: "Sør-Korea", CZE: "Tsjekkia",
-  CAN: "Canada", BIH: "Bosnia", QAT: "Qatar", SUI: "Sveits",
-  HAI: "Haiti", SCO: "Skottland", BRA: "Brasil", MAR: "Marokko",
-  USA: "USA", PAR: "Paraguay", AUS: "Australia", KOS: "Kosovo",
-  GER: "Tyskland", CUW: "Curacao", CIV: "Elfenbenskysten", ECU: "Ecuador",
+  CAN: "Canada", SRB: "Serbia", QAT: "Qatar", SUI: "Sveits",
+  DEN: "Danmark", SCO: "Skottland", BRA: "Brasil", MAR: "Marokko",
+  USA: "USA", PAR: "Paraguay", AUS: "Australia", NGA: "Nigeria",
+  GER: "Tyskland", ITA: "Italia", CIV: "Elfenbenskysten", ECU: "Ecuador",
   NED: "Nederland", JPN: "Japan", ALB: "Albania", TUN: "Tunisia",
   BEL: "Belgia", EGY: "Egypt", IRN: "Iran", NZL: "New Zealand",
   ESP: "Spania", CPV: "Kapp Verde", KSA: "Saudi-Arabia", URU: "Uruguay",
-  FRA: "Frankrike", SEN: "Senegal", BOL: "Bolivia", NOR: "Norge",
-  ARG: "Argentina", ALG: "Algerie", AUT: "Østerrike", JOR: "Jordan",
+  FRA: "Frankrike", SEN: "Senegal", CHI: "Chile", NOR: "Norge",
+  ARG: "Argentina", ALG: "Algerie", AUT: "Østerrike", IRQ: "Irak",
   POR: "Portugal", COD: "DR Kongo", UZB: "Usbekistan", COL: "Colombia",
   ENG: "England", CRO: "Kroatia", GHA: "Ghana", PAN: "Panama",
   TBD: "TBD"
 };
 
 // --- TRANSLATIONS (DEFINED BEFORE EXPORT) ---
-
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
     groups: "Groups", knockout: "Knockout", leaderboard: "Leaderboard", myPredictions: "My Picks",
@@ -241,66 +241,6 @@ const US_TRANSLATION: Translation = {
     teamCol: "Team", grpCol: "Grp", myPickShort: "Pick", watchOn: "Watch on",
 };
 
-const NO_TRANSLATION: Translation = {
-    ...EN_TRANSLATION,
-    genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
-    groups: "Gruppene", knockout: "Sluttspill", leaderboard: "Resultatliste", myPredictions: "Mine Tips",
-    match: "Kamp", standings: "Tabell", points: "P", goalDiff: "MF", goalsFor: "M+",
-    magicWand: "Tryllestav", revealRival: "Se Tips", qualified: "Kvalifisert", draw: "Uavgjort",
-    welcome: "Velkommen tilbake", loginMode: "Logg Inn", signupMode: "Ny Konto", emailLabel: "E-postadresse",
-    passwordLabel: "Passord", nameLabel: "Manager Navn", enterBtn: "Gå til Stadion", subTitle: "Den Ultimate Turneringen",
-    selectAvatar: "Velg Identitet", treeView: "Tre", listView: "Runder", createIdentity: "Opprett Din Identitet",
-    genAvatarBtn: "Lag AI Persona", genAvatarTitle: "AI Studio", genAvatarDesc: "Beskriv din managerstil. Vår AI maler den.", genAvatarPlaceholder: "f.eks. En taktisk ringrev med lue", generate: "Generer", useAvatar: "Bruk Persona", orChoosePreset: "Eller velg en ferdig stil",
-    secondChanceTab: "Ny Sjanse", secondChanceTitle: "Ny Sjanse Modus", secondChanceDesc: "Stemte ikke gruppetipsene dine? Lås opp de ekte lagene for sluttspillet.", secondChanceBtn: "Lås opp ekte oppsett (-50% poeng)", secondChanceUnlockWarn: "Advarsel: Aktivering av Ny Sjanse halverer alle fremtidige poeng. Dette kan ikke angres.",
-    refreshTeams: "Oppdater Lag", refreshTeamsDesc: "Oppdater sluttspillet med de nyeste kvalifiserte lagene.",
-    deadline: "Frist:", deadlinePassed: "Frist Ute", lockedState: "Låst", secondChanceActive: "Ny Sjanse Aktiv", pointsReduced: "Poeng redusert med 50%",
-    managersTab: "Managere", progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
-    profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
-    rule1Title: "1. Tipp Gruppene", rule1Desc: "Fyll inn resultat for alle gruppekamper. Tabellen oppdateres automatisk.", rule2Title: "2. Sluttspillet", rule2Desc: "Dine grupperesultater skaper sluttspillet. Tipp vinnere helt til finalen!",
-    rule3Title: "3. Live Modus", rule3Desc: "Følg kamper live og se poengene dine mot rivaler i sanntid.", rule4Title: "4. Hjelpende Hånd", rule4Desc: "Bruk Tryllestaven for å automatisk generere tips basert på dine favorittlag.",
-    rule5Title: "5. Ny Sjanse", rule5Desc: "Bommet du på gruppene? Lås opp de ekte lagene for sluttspillet. Pris: 50% av fremtidige poeng.",
-    scoreExact: "Eksakt Resultat (f.eks 2-1)", scoreResult: "Riktig Utfall (Seier/Uavgjort)", scorePenalty: "Straff for Ny Sjanse", scoreKnockoutTitle: "Sluttspillpoeng", scoreKnockoutDesc: "Standard poeng gis for å tippe riktig lag som går videre til neste runde.",
-    specialConditions: "Spesielle Betingelser", gotIt: "Skjønner", analysisTab: "Analyse", analysisTitle: "Hva Hvis?", selectRival: "Sammenlign med",
-    maxPotential: "Maks Potensial", swingMatches: "Vippekamper", pathVictory: "Veien til Seier", noSwings: "Ingen forskjeller funnet i kommende kamper.",
-    me: "Meg", vs: "MOT", risk: "Gevinst/Tap", proTip: "Profft Tips:", aiInsight: "AI Innsikt:",
-    swingExplainerTitle: "Hva er Gevinst/Tap?", swingExplainerDesc: "Poeng du kan tjene i forhold til rivalene dine. Hvis du tipper rett og de bommer, 'vipper' du resultatet i din favør.",
-    simulationTitle: "Simulering", projectedStandings: "Prognose", resetBtn: "Nullstill", punditSays: "Eksperten Sier:",
-    tacticalAnalysisTitle: "Taktisk Analyse", tacticalAnalysisDesc: "Juster resultatene under for å se hvordan det påvirker tabellen.",
-    criticalGames: "Nøkkelkamper", vsTool: "Duell Verktøy", closeTool: "Lukk Verktøy", selectTeam: "Velg Lag", winChance: "Vinnersjanse",
-    tier1: "Verdensklasse (1-10)", tier2: "Utfordrere (11-25)", tier3: "Outsidere (26-50)", tier4: "Underdogs (50+)", tierView: "Nivåer",
-    allNations: "Alle Nasjoner", compareBtn: "Sammenlign", compareActive: "Sammenligner", addToCompare: "Legg til Duell", simulatedRank: "Simulert Rank",
-    rivalWatch: "Rivalene", whoAdvances: "Hvem går videre?", filterNext48: "48 Timer", resetSim: "Nullstill",
-    analysisOpportunity: "Mulighet", analysisOpportunityDesc: "Beste Utfall", analysisPitfall: "Felle", analysisPitfallDesc: "Verste Utfall",
-    analysisRealistic: "Realistisk", analysisRealisticDesc: "AI Tips", analysisRoast: "Eksperten", analysisRoastDesc: "Slakt Meg",
-    analysisCorrectWinner: "🔥 Riktig Vinner! Poeng sikret.", analysisIncorrectWinner: "⚠️ Feil Vinner. Opphenting trengs.", analysisExact: "🎯 Bullseye! Eksakt resultat.",
-    analysisResult: "🛡️ Riktig Utfall. Poeng sikret.", analysisWaiting: "Venter på avspark...", scoutingTab: "Speiding", scoutReport: "Speiderrapport",
-    attack: "ANG", midfield: "MID", defense: "FOR", overall: "TOT", starPlayer: "Nøkkelspiller", formGuide: "Formkurve", searchNation: "Søk nasjon...",
-    fifaRank: "FIFA Ranking", tacticalAnalysis: "Taktisk Analyse", closeReport: "Lukk Rapport", strengthsLabel: "Styrker", weaknessesLabel: "Svakheter",
-    trendLabel: "Trend", trendUp: "I Form", trendDown: "Sliter", trendFlat: "Varierende", lastMatches: "Siste Kamper",
-    backToGroup: "Tilbake til Gruppe", backTo: "Tilbake til", goToBracket: "Gå til Sluttspill", prevGroup: "Forrige Gruppe", nextGroup: "Neste Gruppe",
-    overviewBtn: "Oversikt", bracketBtn: "Sluttspill", allBtn: "Alle", tablesBtn: "Tabeller", confirmClear: "Er du sikker på at du vil slette tipsene dine?",
-    finishGroupBtn: "Fullfør Gruppe {0}", revealBtn: "Avslør", tokensLeft: "Intel", spyCost: "1 Intel", rivalLive: "Rival Live Status",
-    rivalIntel: "Rival Etterretning", scenarioAnalysis: "Scenarioanalyse", now: "Nå", noPick: "Ingen Tips", myPick: "Mitt Tips", advanced: "Videre",
-    live: "LIVE", ft: "SLUTT", substitutions: "Bytter", makeSub: "Gjør Bytte", subConfirm: "Bruk 1 bytte for å åpne?", subSuccess: "Kamp Åpnet!", unlocked: "ÅPEN",
-    tabTournament: "Turneringen", tabManager: "Manager", subnavSchedule: "Terminliste", subnavTables: "Tabeller", subnavBracket: "Treet",
-    rank: "Plass", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Tabell", bankedOnly: "Kun Bankede", scoringRulesInfo: "Poengregler:",
-    lbBreakdown: "Poengfordeling", lbAccuracy: "Treffsikkerhet", lbExact: "Eksakte Tips", lbCorrect: "Riktig Utfall", lbGroupPts: "Gruppespill", lbKoPts: "Sluttspill",
-    lbGlobal: "Globalt", lbLeague: "Liga", liveToggle: "LIVE", bankedToggle: "BANKET", lbQualified: "Videre", lbQualifiedDesc: "Riktig Avansement",
-    lbGroupRes: "Grupperesultat", journeyTitle: "Din Turneringsreise", journeyDesc: "Følg din fremgang i tippingen.", picksMade: "Tips Levert",
-    completion: "Ferdig", searchPlaceholder: "Søk lag...", noMatches: "Ingen kamper funnet", noMatchesHint: "Prøv å endre filter eller søkeord.",
-    groupStagePoints: "Gruppespill Poeng", filterAll: "Alle", filterUpcoming: "Kommende", filterLive: "Live", filterFinished: "Ferdig",
-    simKnockoutTitle: "Simuler Sluttspill", simGroupTitle: "Simuler Gruppespill", simKnockoutDesc: "Velg opptil 3 lag. Vi genererer hele sluttspillet basert på disse favorittene!",
-    simGroupDesc: "Velg opptil 3 lag. Vi fyller ut ALLE gruppespillkamper umiddelbart!", runSim: "Kjør Simulering", simulating: "Simulerer...", selected: "Valgt",
-    clearAll: "Slett Alt", openHand: "Åpne Hjelper", champion: "Mester", grandFinal: "Finale", thirdPlacePlayoff: "Bronsefinale",
-    scrollHint: "Scroll horisontalt for å se hele treet →", nextRound: "Neste Runde", prevRound: "Forrige Runde", lockedBracketTitle: "Sluttspill Låst",
-    lockedBracketDesc: "Du må tippe alle gruppekampene før du får tilgang til sluttspillet.", allGroupTables: "Alle Gruppetabeller", bestThirdPlace: "Beste 3. Plasser",
-    top8Advance: "Topp 8 går til R32", eliminationLine: "Eliminasjonslinje", teamCol: "Team", grpCol: "Grp", teamNames: TEAM_NAMES_NO, teamOverviews: {},
-    headToHead: "Innbyrdes oppgjør", wins: "Seire", draws: "Uavgjort", totalMeetings: "møter", firstMeeting: "Første møte noensinne!",
-    firstMeetingDesc: "Vi fant ingen tidligere kamper mellom disse lagene. Historien starter nå!", showingLast5: "Viser siste 5 av {0} møter",
-    noHistory: "Ingen historikk funnet.", loadingHistory: "Laster historikk...", days: "Dager", hours: "Timer", minutes: "Min", seconds: "Sek",
-    myPickShort: "Tips", watchOn: "Se på",
-};
-
 // --- DATA EXPORTS ---
 
 export const TRANSLATIONS: Record<LanguageCode, Translation> = {
@@ -312,40 +252,40 @@ export const TRANSLATIONS: Record<LanguageCode, Translation> = {
 
 const FLAG_MAP: Record<string, string> = {
   MEX: "mx", RSA: "za", KOR: "kr", CZE: "cz",
-  CAN: "ca", BIH: "ba", QAT: "qa", SUI: "ch",
-  HAI: "ht", SCO: "gb-sct", BRA: "br", MAR: "ma",
-  USA: "us", PAR: "py", AUS: "au", KOS: "xk",
-  GER: "de", CUW: "cw", CIV: "ci", ECU: "ec",
+  CAN: "ca", SRB: "rs", QAT: "qa", SUI: "ch",
+  DEN: "dk", SCO: "gb-sct", BRA: "br", MAR: "ma",
+  USA: "us", PAR: "py", AUS: "au", NGA: "ng",
+  GER: "de", ITA: "it", CIV: "ci", ECU: "ec",
   NED: "nl", JPN: "jp", ALB: "al", TUN: "tn",
   BEL: "be", EGY: "eg", IRN: "ir", NZL: "nz",
   ESP: "es", CPV: "cv", KSA: "sa", URU: "uy",
-  FRA: "fr", SEN: "sn", BOL: "bo", NOR: "no",
-  ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
+  FRA: "fr", SEN: "sn", CHI: "cl", NOR: "no",
+  ARG: "ar", ALG: "dz", AUT: "at", IRQ: "iq",
   POR: "pt", COD: "cd", UZB: "uz", COL: "co",
   ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
   TBD: ""
 };
 
-// REAL STATS LOOKUP TABLE (Projected 2026 Rankings)
+// REAL STATS LOOKUP TABLE (Updated with Denmark, Italy, etc.)
 const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: number }> = {
   MEX: { rank: 16, att: 79, mid: 78, def: 77 },
   RSA: { rank: 61, att: 73, mid: 72, def: 70 },
   KOR: { rank: 22, att: 81, mid: 79, def: 76 },
   CZE: { rank: 44, att: 76, mid: 77, def: 75 },
   CAN: { rank: 27, att: 79, mid: 77, def: 75 },
-  BIH: { rank: 71, att: 73, mid: 74, def: 72 },
+  SRB: { rank: 32, att: 78, mid: 78, def: 76 },
   QAT: { rank: 53, att: 72, mid: 73, def: 71 },
   SUI: { rank: 18, att: 78, mid: 81, def: 83 },
-  HAI: { rank: 84, att: 68, mid: 66, def: 64 },
+  DEN: { rank: 21, att: 80, mid: 82, def: 81 }, // Denmark
   SCO: { rank: 36, att: 75, mid: 79, def: 78 },
   BRA: { rank: 5, att: 89, mid: 87, def: 84 },
   MAR: { rank: 8, att: 81, mid: 84, def: 87 },
   USA: { rank: 14, att: 80, mid: 81, def: 78 },
   PAR: { rank: 38, att: 74, mid: 75, def: 76 },
   AUS: { rank: 26, att: 75, mid: 76, def: 77 },
-  KOS: { rank: 80, att: 70, mid: 72, def: 69 },
+  NGA: { rank: 30, att: 78, mid: 75, def: 72 }, // Nigeria
   GER: { rank: 10, att: 85, mid: 87, def: 84 },
-  CUW: { rank: 82, att: 69, mid: 67, def: 66 },
+  ITA: { rank: 9, att: 83, mid: 86, def: 85 },  // Italy
   CIV: { rank: 42, att: 79, mid: 78, def: 76 },
   ECU: { rank: 23, att: 77, mid: 79, def: 78 },
   NED: { rank: 7, att: 84, mid: 86, def: 87 },
@@ -362,12 +302,12 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
   URU: { rank: 17, att: 83, mid: 84, def: 83 },
   FRA: { rank: 3, att: 92, mid: 89, def: 88 },
   SEN: { rank: 12, att: 82, mid: 80, def: 83 },
-  BOL: { rank: 76, att: 68, mid: 67, def: 66 },
+  CHI: { rank: 40, att: 74, mid: 75, def: 73 }, // Chile
   NOR: { rank: 29, att: 87, mid: 79, def: 75 },
   ARG: { rank: 2, att: 91, mid: 88, def: 85 },
   ALG: { rank: 34, att: 78, mid: 77, def: 75 },
   AUT: { rank: 24, att: 77, mid: 80, def: 78 },
-  JOR: { rank: 64, att: 71, mid: 69, def: 67 },
+  IRQ: { rank: 58, att: 72, mid: 70, def: 69 }, // Iraq
   POR: { rank: 6, att: 88, mid: 89, def: 84 },
   COD: { rank: 56, att: 75, mid: 73, def: 72 },
   UZB: { rank: 50, att: 71, mid: 72, def: 70 },
@@ -376,7 +316,7 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
   CRO: { rank: 11, att: 78, mid: 85, def: 82 },
   GHA: { rank: 72, att: 76, mid: 75, def: 73 },
   PAN: { rank: 30, att: 72, mid: 71, def: 71 },
-  TBD: { rank: 99, att: 50, mid: 50, def: 50 } // Fallback
+  TBD: { rank: 99, att: 50, mid: 50, def: 50 } 
 };
 
 export const TEAMS: Record<string, Team> = {};
@@ -397,22 +337,23 @@ Object.keys(BASE_TEAM_NAMES).forEach(id => {
     };
 });
 
+// --- UPDATED GROUPS WITH REALISTIC TEAMS ---
 export const GROUP_CONFIG = [
   { id: 'A', teams: ['MEX', 'RSA', 'KOR', 'CZE'] },
-  { id: 'B', teams: ['CAN', 'BIH', 'QAT', 'SUI'] },
-  { id: 'C', teams: ['HAI', 'SCO', 'BRA', 'MAR'] },
-  { id: 'D', teams: ['USA', 'PAR', 'AUS', 'KOS'] },
-  { id: 'E', teams: ['GER', 'CUW', 'CIV', 'ECU'] },
+  { id: 'B', teams: ['CAN', 'SRB', 'QAT', 'SUI'] }, // SRB replaces BIH
+  { id: 'C', teams: ['DEN', 'SCO', 'BRA', 'MAR'] }, // DEN replaces HAI
+  { id: 'D', teams: ['USA', 'PAR', 'AUS', 'NGA'] }, // NGA replaces KOS
+  { id: 'E', teams: ['GER', 'ITA', 'CIV', 'ECU'] }, // ITA replaces CUW
   { id: 'F', teams: ['NED', 'JPN', 'ALB', 'TUN'] },
   { id: 'G', teams: ['BEL', 'EGY', 'IRN', 'NZL'] },
   { id: 'H', teams: ['ESP', 'CPV', 'KSA', 'URU'] },
-  { id: 'I', teams: ['FRA', 'SEN', 'BOL', 'NOR'] },
-  { id: 'J', teams: ['ARG', 'ALG', 'AUT', 'JOR'] },
+  { id: 'I', teams: ['FRA', 'SEN', 'CHI', 'NOR'] }, // CHI replaces BOL
+  { id: 'J', teams: ['ARG', 'ALG', 'AUT', 'IRQ'] }, // IRQ replaces JOR
   { id: 'K', teams: ['POR', 'COD', 'UZB', 'COL'] },
   { id: 'L', teams: ['ENG', 'CRO', 'GHA', 'PAN'] }
 ];
 
-// Helper to assign mock channels cyclically to simulate real broadcast rights
+// Helper to assign mock channels
 const assignChannels = (matchIndex: number) => ({
   EN: matchIndex % 2 === 0 ? 'BBC One' : 'ITV1',
   SCO: matchIndex % 2 === 0 ? 'BBC Scotland' : 'STV',
@@ -444,12 +385,10 @@ rounds.forEach((round, idx) => {
     const count = counts[idx];
     for(let i=1; i<=count; i++) {
         let nextMatchId: string | undefined = undefined;
-        // Logic to link winners to next match
         if (round === 'R32') nextMatchId = `R16_${Math.ceil(i/2)}`;
         else if (round === 'R16') nextMatchId = `QF_${Math.ceil(i/2)}`;
         else if (round === 'QF') nextMatchId = `SF_${Math.ceil(i/2)}`;
-        else if (round === 'SF') nextMatchId = `FIN_1`; // Winner goes to final
-        // 3RD and FIN do not have a next match for the bracket flow
+        else if (round === 'SF') nextMatchId = `FIN_1`;
 
         INITIAL_MATCHES.push({
             id: `${round}_${i}`,
