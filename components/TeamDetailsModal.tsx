@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
@@ -59,6 +58,7 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
         if (dbScouting) {
             setScoutingData(dbScouting);
         } else {
+            // Fallback if DB is empty
             const localReport = getScoutingReport(team.id, currentLang);
             if (localReport) {
                 setScoutingData({
@@ -73,7 +73,8 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                     scout_notes: localReport.scout_notes || '',
                     recent_form: localReport.recent_form || '',
                     last_5_matches: localReport.last_5_matches || '',
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    lang: currentLang // <--- ADDED MISSING PROPERTY
                 });
             }
         }
@@ -96,14 +97,14 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
           if (m.result === 'W') points += 3;
           else if (m.result === 'D') points += 1;
       });
-      if (points >= 10) return { label: lang.trendUp, color: 'text-green-500', bg: 'bg-green-100', icon: TrendingUp };
-      if (points >= 7) return { label: lang.trendUp, color: 'text-green-600', bg: 'bg-green-50', icon: TrendingUp };
-      if (points >= 4) return { label: lang.trendFlat, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Minus };
-      return { label: lang.trendDown, color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
+      if (points >= 10) return { label: lang.trendUp || 'Heating Up', color: 'text-green-500', bg: 'bg-green-100', icon: TrendingUp };
+      if (points >= 7) return { label: lang.trendUp || 'Heating Up', color: 'text-green-600', bg: 'bg-green-50', icon: TrendingUp };
+      if (points >= 4) return { label: lang.trendFlat || 'Inconsistent', color: 'text-yellow-600', bg: 'bg-yellow-50', icon: Minus };
+      return { label: lang.trendDown || 'Cooling Off', color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
   })();
 
   const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || team.rank || '-';
-  const displayName = lang.teamNames[team.id] || scoutingData?.team_name || team.name;
+  const displayName = (lang.teamNames && lang.teamNames[team.id]) || scoutingData?.team_name || team.name;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
