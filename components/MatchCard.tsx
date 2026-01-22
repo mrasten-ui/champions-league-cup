@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -185,7 +185,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         else if (prediction.away > prediction.home) predictedWinnerId = match.awayTeamId;
     }
 
-    // NEW: Check if this area should be "actionable" (scouting in groups, or predicting in knockout)
     const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
     const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
     
@@ -193,24 +192,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group`}>
              
              {/* Header */}
-             <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between rounded-t-2xl">
+             <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between rounded-t-2xl min-h-[36px]">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-full justify-center">
                     {isLive ? (
                          <span className="flex items-center gap-1 text-red-600 animate-pulse">
                             <Activity size={12} /> {lang.live} {match.minute ? `'${match.minute}` : ''}
                          </span>
-                    ) : isFinished ? (
-                        <span className="flex items-center gap-1">
-                            <Clock size={12} /> {lang.ft}
-                        </span>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <Clock size={12} /> 
-                            <span>{new Date(match.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                            {match.venue && (
+                            {isFinished ? (
+                                <span className="flex items-center gap-1 text-slate-700">
+                                    <Clock size={12} /> {lang.ft}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1">
+                                    <Clock size={12} /> 
+                                    {new Date(match.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
+                            
+                            {/* Always show venue if present */}
+                            {match.venue && match.venue !== 'TBD' && (
                                 <>
                                     <span className="text-slate-300">•</span>
-                                    <span className="truncate max-w-[150px]">{match.venue}</span>
+                                    <span className="flex items-center gap-1 truncate max-w-[140px] text-slate-400" title={match.venue}>
+                                        <MapPin size={10} />
+                                        <span className="truncate">{match.venue.split(',')[0]}</span>
+                                    </span>
                                 </>
                             )}
                         </div>
@@ -231,7 +239,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
-                    {/* Scouting Icon Indicator (Visible on hover or faintly always) */}
                     {!isKnockout && isHomeClickable && (
                         <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
                             <Search size={14} />
@@ -388,7 +395,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
-                    {/* Scouting Icon Indicator */}
                     {!isKnockout && isAwayClickable && (
                         <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
                             <Search size={14} />
