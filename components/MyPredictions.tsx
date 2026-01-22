@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Match, Team, Prediction, UserProfile, Translation } from '../types';
 import { MatchCard } from './MatchCard';
-import { Lock, Save, X, AlertTriangle, Briefcase, ChevronRight, RefreshCw } from 'lucide-react';
+import { Briefcase, RefreshCw } from 'lucide-react';
 import { calculatePoints } from '../services/engine';
 
 interface MyPredictionsProps {
@@ -26,62 +26,12 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
   onGoToGroup,
   onGoToBracket,
   onUnlockSecondChance,
-  onSubstitute, // This is the REAL commit function from App.tsx
+  onSubstitute,
   onUpdate
 }) => {
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'LOCKED' | 'OPEN'>('ALL');
   
-  // --- THE VAULT LOGIC (Pending Changes) ---
-  const [pendingSubstitutions, setPendingSubstitutions] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Helper to check if a match is truly locked or temporarily unlocked by us
-  const isMatchUnlocked = (matchId: string) => {
-      return (currentUser.unlockedMatches || []).includes(matchId) || pendingSubstitutions.has(matchId);
-  };
-
-  // 1. Queue the Sub (Don't spend token yet)
-  const handleQueueSub = (matchId: string) => {
-      const newPending = new Set(pendingSubstitutions);
-      if (newPending.has(matchId)) {
-          newPending.delete(matchId); // Toggle off
-      } else {
-          // Check limits logic
-          const currentUsed = (currentUser.unlockedMatches || []).length;
-          const pendingCount = newPending.size;
-          const totalAllowed = 5; // Hardcoded max subs
-          // Or strictly use user.substitutions (remaining)
-          if (currentUser.substitutions - pendingCount > 0) {
-              newPending.add(matchId);
-          } else {
-              alert("No substitutions left!");
-              return;
-          }
-      }
-      setPendingSubstitutions(newPending);
-  };
-
-  // 2. Commit Changes
-  const handleSaveChanges = async () => {
-      setIsSaving(true);
-      // Execute all pending subs sequentially
-      for (const matchId of Array.from(pendingSubstitutions)) {
-          await onSubstitute(matchId);
-      }
-      setPendingSubstitutions(new Set()); // Clear queue
-      setIsSaving(false);
-  };
-
-  // 3. Cancel Changes
-  const handleCancelChanges = () => {
-      if (window.confirm("Discard unsaved changes?")) {
-          setPendingSubstitutions(new Set());
-      }
-  };
-
   const sortedMatches = useMemo(() => {
-    // We only care about matches the user has predicted OR matches that are locked
-    // But typically "My Predictions" shows everything relevant.
     return matches.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches]);
 
@@ -89,13 +39,13 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
       if (activeFilter === 'ALL') return sortedMatches;
       return sortedMatches.filter(m => {
           const isLocked = (['LIVE', 'FT', 'FINISHED'].includes(m.status) || m.isLocked);
-          const isUnlocked = isMatchUnlocked(m.id);
+          const isUnlocked = (currentUser.unlockedMatches || []).includes(m.id);
           
           if (activeFilter === 'LOCKED') return isLocked && !isUnlocked;
           if (activeFilter === 'OPEN') return !isLocked || isUnlocked;
           return true;
       });
-  }, [sortedMatches, activeFilter, pendingSubstitutions, currentUser.unlockedMatches]);
+  }, [sortedMatches, activeFilter, currentUser.unlockedMatches]);
 
   // Calculate Stats
   const totalPoints = useMemo(() => {
@@ -107,9 +57,6 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
           return acc;
       }, 0);
   }, [matches, allPredictions, currentUser]);
-
-  const pendingCount = pendingSubstitutions.size;
-  const remainingSubsDisplay = currentUser.substitutions - pendingCount;
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
@@ -135,8 +82,8 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                           {lang.manager}
                       </span>
                       <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-bold flex items-center gap-2">
-                          <RefreshCw size={14} className={remainingSubsDisplay > 0 ? "text-green-400" : "text-red-400"} />
-                          {remainingSubsDisplay} Subs Left
+                          <RefreshCw size={14} className={currentUser.substitutions > 0 ? "text-green-400" : "text-red-400"} />
+                          {currentUser.substitutions} Subs Left
                       </span>
                   </div>
               </div>
@@ -176,63 +123,25 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                           match={match}
                           homeTeam={teams[match.homeTeamId]}
                           awayTeam={teams[match.awayTeamId]}
-                          onUpdate={onUpdate} // Updates score immediately (optimistic)
+                          onUpdate={onUpdate}
                           lang={lang}
                           locale={'en-GB'}
                           userTokens={currentUser.tokens}
-                          rivals={[]} // Hide rivals in manager view to reduce noise
+                          rivals={[]} // Hide rivals in manager view
                           onSpy={() => {}}
                           revealedRivals={[]}
                           currentUser={currentUser}
                           allPredictions={allPredictions}
                           phase={'LIVE'} // Force live logic to enable locking mechanics
                           isAdminMode={false}
-                          
-                          // THE VAULT LOGIC:
-                          // We hijack the onSubstitute to add to our local pending queue instead of committing
-                          onSubstitute={() => handleQueueSub(match.id)}
-                          
-                          // Visual State:
-                          substitutionsLeft={remainingSubsDisplay}
-                          isUnlockedBySub={isMatchUnlocked(match.id)} // Show as unlocked if in pending queue
+                          onSubstitute={() => onSubstitute(match.id)}
+                          substitutionsLeft={currentUser.substitutions}
+                          isUnlockedBySub={(currentUser.unlockedMatches || []).includes(match.id)}
                       />
                   ))}
               </div>
           )}
       </div>
-
-      {/* SAVE BAR (THE VAULT ACTION) */}
-      {pendingCount > 0 && (
-          <div className="fixed bottom-6 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[600px] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-center justify-between border-2 border-yellow-500 animate-in slide-in-from-bottom-4">
-              <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-slate-900">
-                      <Save size={20} strokeWidth={3} />
-                  </div>
-                  <div>
-                      <div className="text-sm font-black uppercase tracking-wide text-yellow-400">Unsaved Changes</div>
-                      <div className="text-[10px] font-medium text-slate-300">
-                          Committing {pendingCount} substitution{pendingCount > 1 ? 's' : ''}. This cannot be undone.
-                      </div>
-                  </div>
-              </div>
-              <div className="flex gap-2">
-                  <button 
-                    onClick={handleCancelChanges}
-                    disabled={isSaving}
-                    className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-                  >
-                      <X size={18} />
-                  </button>
-                  <button 
-                    onClick={handleSaveChanges}
-                    disabled={isSaving}
-                    className="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
-                  >
-                      {isSaving ? <RefreshCw className="animate-spin" size={16} /> : 'Save'}
-                  </button>
-              </div>
-          </div>
-      )}
     </div>
   );
 };
