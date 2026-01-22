@@ -7,13 +7,9 @@ import { getScoutingReport } from '../scoutingData';
 
 // --- MATH HELPER: Sigmoid Curve for Realistic Odds ---
 const calculateWinProbability = (ratingA: number, ratingB: number) => {
-    // We scale the difference so that a +10 rating gap is a huge advantage
     const diff = ratingA - ratingB;
-    const scalingFactor = 0.12; // Adjusts how "steep" the advantage is
-    
-    // Sigmoid Function: 1 / (1 + e^-x)
+    const scalingFactor = 0.12; 
     const prob = 1 / (1 + Math.exp(-diff * scalingFactor));
-    
     return (prob * 100).toFixed(0);
 };
 
@@ -504,8 +500,12 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                         </div>
                         {/* UPDATE: Use Sigmoid win probability here too */}
                         {(() => {
-                            const pA = parseInt(calculateWinProbability(analysis.home.attributes.overall, analysis.away.attributes.overall));
+                            // FIX: Access .rating from the TEAMS object, NOT analysis.attributes
+                            const ratingA = teams[slotA!]?.rating || 50;
+                            const ratingB = teams[slotB!]?.rating || 50;
+                            const pA = parseInt(calculateWinProbability(ratingA, ratingB));
                             const pB = 100 - pA;
+                            
                             return (
                                 <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                                      <div className="bg-blue-500 flex items-center justify-start px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${pA}%` }}>
