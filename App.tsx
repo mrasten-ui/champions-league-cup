@@ -66,22 +66,13 @@ const App: React.FC = () => {
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
   // --- CORE LOGIC: SEPARATE OFFICIAL REALITY FROM USER REALITY ---
-  
-  // 1. userMatches: This is the "Predicted World". It takes the official matches and overlays the user's picks.
-  //    We use this for the "Groups" tab, "Knockout" tab (My Bracket), and "Manager" tab.
   const userMatches = useMemo(() => {
       if (!user) return matches;
-      
-      // Filter predictions for this user
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
-      
-      // Handle Second Chance logic (exclude group picks if 2nd chance is active)
       if (user.hasTakenSecondChance) {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
       }
-
-      // Apply predictions to generate the user's specific bracket state
       return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
   }, [matches, teamsData, allPredictions, user]);
 
@@ -120,7 +111,7 @@ const App: React.FC = () => {
     const match = matches.find(m => m.id === matchId);
     if (!match || (match.isLocked && !user.unlockedMatches?.includes(matchId))) return;
     
-    // Optimistic Update: Update the ALL predictions list immediately
+    // Optimistic Update
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -163,7 +154,7 @@ const App: React.FC = () => {
   };
 
   const handleTimeTravel = (timestamp: number) => {
-      // For debug/simulation, we DO update the official matches locally
+      // For debug/simulation only - updates official reality
       const simulatedMatches = simulateTournamentAtDate(matches, teamsData, timestamp);
       setMatches(simulatedMatches);
       setTournamentPhase('LIVE');
@@ -254,7 +245,7 @@ const App: React.FC = () => {
     return false;
   }, [activeTab, allPredictions, user, matches]);
 
-  // --- THE BIN: RESET LOGIC (Corrected) ---
+  // --- THE BIN: RESET LOGIC ---
   const handleClearPredictions = useCallback(async () => {
     if (!user || !supabase) return; 
     try {
@@ -288,6 +279,7 @@ const App: React.FC = () => {
 
   const getSimMode = (): 'knockout' | 'groups' => {
       if (activeTab === 'knockout') return 'knockout';
+      if (activeTab === 'tournament' && tournamentSubTab === 'bracket') return 'knockout';
       return 'groups';
   };
 
@@ -337,7 +329,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* TOURNAMENT TAB (LIVE REALITY) - Uses 'matches' (official) */}
+        {/* TOURNAMENT TAB (LIVE REALITY) */}
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <div className="flex justify-center mb-6">
@@ -358,12 +350,11 @@ const App: React.FC = () => {
                         <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
                     </div>
                 )}
-                {/* Official Bracket (matches) */}
                 {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
             </div>
         )}
 
-        {/* GROUPS TAB (PREDICTION REALITY) - Uses 'userMatches' */}
+        {/* GROUPS TAB (PREDICTION REALITY) */}
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
@@ -387,7 +378,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* KNOCKOUT TAB (PREDICTION REALITY) - Uses 'userMatches' */}
+        {/* KNOCKOUT TAB (PREDICTION REALITY) */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
@@ -432,7 +423,7 @@ const App: React.FC = () => {
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
-      {/* THE MAGIC HAND MODAL */}
+      {/* THE MAGIC HAND MODAL (Fixed State Merge Logic) */}
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} 
@@ -447,9 +438,10 @@ const App: React.FC = () => {
                     setUser({ ...user, favorites: favs });
                 }
 
+                // Force Scope: KNOCKOUT if we are in knockout/bracket tab, else GROUPS
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
 
-                // Simulate based on userMatches to get the flow correct
+                // Use 'userMatches' so we build upon existing picks (if any)
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope);
                 
                 const relevantMatches = simulatedMatches.filter(m => {
@@ -472,12 +464,19 @@ const App: React.FC = () => {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
                             addToast('success', 'Magic Applied', `Generated scores for ${predictionsToSave.length} matches.`);
-                            // Optimistically update prediction state to refresh userMatches
+                            
+                            // CRITICAL FIX: Merge new predictions, do NOT wipe old ones
                             setAllPredictions(prev => {
+                                // 1. Keep other users' predictions
                                 const others = prev.filter(p => p.userId !== user.email);
-                                return [...others, ...predictionsToSave.map(p => ({ 
+                                // 2. Keep current user's OLD predictions (that aren't being updated now)
+                                const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
+                                // 3. Add the NEW predictions
+                                const myNewPreds = predictionsToSave.map(p => ({ 
                                     userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away 
-                                }))];
+                                }));
+                                
+                                return [...others, ...myOldPreds, ...myNewPreds];
                             });
                         } else {
                             addToast('error', 'Save Failed', 'Could not save magic predictions.');
