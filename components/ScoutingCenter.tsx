@@ -259,28 +259,30 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                     onClick={() => handleTeamClick(team.id)}
                     className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-3 relative group"
                 >
+                    {/* INFO BUTTON (Moved to Card Bottom-Right) */}
+                    <div 
+                        onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); }}
+                        className="absolute bottom-2 right-2 text-slate-300 hover:text-blue-600 hover:scale-110 transition-all z-20 p-1"
+                    >
+                        <div className="w-5 h-5 rounded-full border border-current flex items-center justify-center">
+                            <Info size={10} strokeWidth={3} />
+                        </div>
+                    </div>
+
                     <div className="relative w-14 h-9 mt-1 group-hover:scale-105 transition-transform">
                         <div className="w-full h-full rounded shadow-sm overflow-hidden border border-slate-100">
                             <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
                         </div>
                         
-                        {/* RANK BADGE (Top Right) */}
+                        {/* RANK BADGE (Top Right of Flag) */}
                         {team.rank && (
                             <div className="absolute -top-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-10">
                                 {team.rank}
                             </div>
                         )}
-
-                        {/* INFO BUTTON (Bottom Right - Triggers Modal) */}
-                        <div 
-                            onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); }}
-                            className="absolute -bottom-2 -right-2 bg-white text-blue-600 hover:bg-blue-50 hover:scale-110 w-6 h-6 flex items-center justify-center rounded-full border border-blue-100 shadow-md z-20 transition-all"
-                        >
-                            <Info size={12} strokeWidth={3} />
-                        </div>
                     </div>
                     
-                    <div className="text-center w-full">
+                    <div className="text-center w-full px-4">
                         <div className="font-bold text-slate-800 text-xs truncate w-full">{teamName}</div>
                     </div>
                 </button>
@@ -321,7 +323,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   return (
     <div className="pb-24 animate-fade-in space-y-6">
       
-      {/* MATCHUP ENGINE (Top Section) */}
+      {/* VS MATCHUP ENGINE (Top Section) */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-4">
               <h2 className="font-black uppercase tracking-widest flex items-center gap-2 text-slate-800">
