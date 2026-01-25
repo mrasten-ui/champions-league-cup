@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, Target, C
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../constants';
 
-// --- SUB-COMPONENTS ---
+// --- SUB-COMPONENTS  ---
 
 const ScoreStepper: React.FC<{ 
     value: number; 
