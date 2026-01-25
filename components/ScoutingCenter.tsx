@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Team, Translation, LanguageCode, MatchHistoryItem, ScoutingData } from '../types';
-import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown, Shield, Zap, Trophy } from 'lucide-react';
+import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown, Shield, Zap, Trophy, Info } from 'lucide-react';
 import { fetchTeamTactics, analyzeMatchup, TeamDNA } from '../services/analyst';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
@@ -75,25 +75,6 @@ const AttributeBar: React.FC<{ label: string, valA: number, valB: number, colorA
     </div>
 );
 
-const StatBar = ({ label, valA, valB, colorA = "bg-blue-500", colorB = "bg-red-500" }: { label: string, valA: number, valB: number, colorA?: string, colorB?: string }) => (
-    <div className="flex flex-col gap-1 w-full">
-        <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-            <span>{valA}</span>
-            <span>{label}</span>
-            <span>{valB}</span>
-        </div>
-        <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100">
-             <div className="flex-1 flex justify-end pr-0.5">
-                 <div style={{ width: `${Math.min(100, (valA / 100) * 100)}%` }} className={`h-full rounded-full ${colorA} transition-all duration-500`}></div>
-             </div>
-             <div className="w-0.5 bg-white z-10"></div>
-             <div className="flex-1 pl-0.5">
-                 <div style={{ width: `${Math.min(100, (valB / 100) * 100)}%` }} className={`h-full rounded-full ${colorB} transition-all duration-500`}></div>
-             </div>
-        </div>
-    </div>
-);
-
 const RenderPoints = ({ text }: { text?: string }) => {
     if (!text) return <span className="italic opacity-60">Data unavailable</span>;
     const points = text.split(/\.\s+|\.$/).filter(p => p.trim().length > 0);
@@ -132,11 +113,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'TIERS'>('GRID');
-  const [compareMode, setCompareMode] = useState(false);
-  
-  // Comparator State
-  const [teamAId, setTeamAId] = useState<string | null>(null);
-  const [teamBId, setTeamBId] = useState<string | null>(null);
   
   // Modal Data State
   const [history, setHistory] = useState<MatchHistoryItem[]>([]);
@@ -175,8 +151,9 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
         setSlotB(teamId);
         setActiveSlot(null); 
     } else {
-        // If no slot active, open detailed modal
-        setSelectedTeam(teams[teamId]);
+        // If no slot active, default to filling Slot A
+        setSlotA(teamId);
+        setActiveSlot('B');
     }
   };
 
@@ -270,102 +247,11 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || selectedTeam?.rank || 99;
   const modalTeamName = selectedTeam ? getTeamName(selectedTeam) : '';
 
-  // Render Comparator
-  const renderComparator = () => {
-      const teamA = teamAId ? teams[teamAId] : null;
-      const teamB = teamBId ? teams[teamBId] : null;
-
-      // Calculate REALISTIC win probability
-      const probA = (teamA && teamB) ? calculateWinProbability(teamA.rating, teamB.rating) : '50';
-      const probB = (teamA && teamB) ? (100 - parseInt(probA)).toString() : '50';
-
-      return (
-          <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 mb-8 animate-in slide-in-from-top-4">
-              <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                     <Swords size={18} className="text-blue-600" /> Head-to-Head
-                 </h3>
-                 <button onClick={() => setCompareMode(false)} className="text-xs font-bold text-slate-400 hover:text-red-500">Close Tool</button>
-              </div>
-
-              <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-start">
-                  {/* Team A Selection */}
-                  <div className="flex flex-col gap-2">
-                      <select 
-                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
-                        value={teamAId || ''}
-                        onChange={(e) => setTeamAId(e.target.value)}
-                      >
-                          <option value="">Select Team</option>
-                          {teamList.map(t => <option key={t.id} value={t.id}>{getTeamName(t)}</option>)}
-                      </select>
-                      {teamA && (
-                          <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
-                              <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
-                                  <img src={teamA.flag} className="w-full h-full object-cover" alt="" />
-                              </div>
-                              <div className="text-center">
-                                  <div className="text-2xl font-black text-slate-800 italic">#{teamA.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-
-                  <div className="flex items-center justify-center pt-8">
-                      <div className="bg-slate-900 text-white text-[10px] font-black p-2 rounded-full shadow-lg">VS</div>
-                  </div>
-
-                  {/* Team B Selection */}
-                  <div className="flex flex-col gap-2">
-                      <select 
-                        className="w-full text-xs font-bold p-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500"
-                        value={teamBId || ''}
-                        onChange={(e) => setTeamBId(e.target.value)}
-                      >
-                          <option value="">Select Team</option>
-                          {teamList.map(t => <option key={t.id} value={t.id}>{getTeamName(t)}</option>)}
-                      </select>
-                      {teamB && (
-                          <div className="flex flex-col items-center gap-2 mt-2 animate-in fade-in">
-                              <div className="w-16 h-10 rounded shadow-md overflow-hidden border border-slate-100">
-                                  <img src={teamB.flag} className="w-full h-full object-cover" alt="" />
-                              </div>
-                              <div className="text-center">
-                                  <div className="text-2xl font-black text-slate-800 italic">#{teamB.rank}</div>
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FIFA Rank</div>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-              </div>
-
-              {teamA && teamB && (
-                  <div className="mt-8 space-y-4 pt-6 border-t border-slate-100">
-                      <StatBar label="Attack" valA={teamA.att} valB={teamB.att} />
-                      <StatBar label="Midfield" valA={teamA.mid} valB={teamB.mid} />
-                      <StatBar label="Defense" valA={teamA.def} valB={teamB.def} />
-                      
-                      <div className="bg-slate-50 p-3 rounded-xl mt-4 text-center">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Win Probability (Engine)</span>
-                          <div className="flex justify-center items-end gap-1">
-                             <span className="text-xl font-black text-blue-600">{probA}%</span>
-                             <span className="text-xs font-bold text-slate-300 mb-1">vs</span>
-                             <span className="text-xl font-black text-red-600">{probB}%</span>
-                          </div>
-                      </div>
-                  </div>
-              )}
-          </div>
-      );
-  };
-
   // Render Grid Helper
   const renderGrid = (teams: Team[]) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {teams.map(team => {
             const teamName = getTeamName(team);
-            const form = team.form || ['D','D','D','D','D'];
             
             return (
                 <button 
@@ -377,20 +263,25 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                         <div className="w-full h-full rounded shadow-sm overflow-hidden border border-slate-100">
                             <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
                         </div>
+                        
+                        {/* RANK BADGE (Top Right) */}
                         {team.rank && (
-                            <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-10">
+                            <div className="absolute -top-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-10">
                                 {team.rank}
                             </div>
                         )}
+
+                        {/* INFO BUTTON (Bottom Right - Triggers Modal) */}
+                        <div 
+                            onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); }}
+                            className="absolute -bottom-2 -right-2 bg-white text-blue-600 hover:bg-blue-50 hover:scale-110 w-6 h-6 flex items-center justify-center rounded-full border border-blue-100 shadow-md z-20 transition-all"
+                        >
+                            <Info size={12} strokeWidth={3} />
+                        </div>
                     </div>
                     
                     <div className="text-center w-full">
                         <div className="font-bold text-slate-800 text-xs truncate w-full">{teamName}</div>
-                        <div className="flex justify-center gap-0.5 mt-1.5 opacity-60">
-                            {form.slice(-3).map((r, i) => (
-                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${r === 'W' ? 'bg-green-500' : r === 'L' ? 'bg-red-400' : 'bg-slate-300'}`}></div>
-                            ))}
-                        </div>
                     </div>
                 </button>
             );
@@ -430,7 +321,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   return (
     <div className="pb-24 animate-fade-in space-y-6">
       
-      {/* VS MATCHUP ENGINE (Top Section) */}
+      {/* MATCHUP ENGINE (Top Section) */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-4">
               <h2 className="font-black uppercase tracking-widest flex items-center gap-2 text-slate-800">
@@ -470,7 +361,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
           </div>
       </div>
 
-      {/* ANALYSIS RESULTS (VS TOOL) */}
+      {/* ANALYSIS RESULTS */}
       {analysis && (
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden animate-in slide-in-from-bottom-4">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center">
@@ -498,9 +389,8 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                         <div className="text-center mb-2">
                             <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance}</span>
                         </div>
-                        {/* UPDATE: Use Sigmoid win probability here too */}
                         {(() => {
-                            // FIX: Access .rating from the TEAMS object, NOT analysis.attributes
+                            // Fixed: grab ratings directly from TEAMS object
                             const ratingA = teams[slotA!]?.rating || 50;
                             const ratingB = teams[slotB!]?.rating || 50;
                             const pA = parseInt(calculateWinProbability(ratingA, ratingB));
@@ -542,13 +432,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   >
                       Rank Tiers
                   </button>
-                  {/* VS Compare Button Trigger */}
-                  <button 
-                    onClick={() => setCompareMode(true)}
-                    className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${compareMode ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-blue-600'}`}
-                  >
-                      VS Tool
-                  </button>
               </div>
               <div className="relative w-32 sm:w-40">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -561,8 +444,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   />
               </div>
           </div>
-
-          {compareMode && renderComparator()}
 
           {viewMode === 'GRID' ? renderGrid(filteredTeams) : renderTiers()}
       </div>
