@@ -30,49 +30,31 @@ const TEAM_SLOTS = {
 };
 
 // 3. THE OFFICIAL SCHEDULE (UTC TIMES)
-// Note: 'Z' at the end tells the browser "This is UTC time".
-// Example: 20:00Z will show as 22:00 in Norway (CEST +2) or 16:00 in New York (EDT -4)
 const SCHEDULE = [
   // --- OPENING DAY (June 11) ---
-  // Mexico City (UTC-6) 15:00 -> 21:00 UTC
   { id: 1, group: 'A', home: 'A1', away: 'A2', date: '2026-06-11T21:00:00Z', venue: 'Estadio Azteca, Mexico City' }, 
-  // Guadalajara (UTC-6) 20:00 -> 02:00 UTC (Next Day)
   { id: 2, group: 'A', home: 'A3', away: 'A4', date: '2026-06-12T02:00:00Z', venue: 'Estadio Akron, Guadalajara' },
 
   // --- DAY 2 (June 12) ---
-  // Toronto (UTC-4) 15:00 -> 19:00 UTC
   { id: 3, group: 'B', home: 'B1', away: 'B2', date: '2026-06-12T19:00:00Z', venue: 'BMO Field, Toronto' }, 
-  // Los Angeles (UTC-7) 18:00 -> 01:00 UTC (Next Day)
   { id: 4, group: 'D', home: 'D1', away: 'D2', date: '2026-06-13T01:00:00Z', venue: 'SoFi Stadium, Los Angeles' }, 
 
   // --- DAY 3 (June 13) ---
-  // Boston (UTC-4) 15:00 -> 19:00 UTC
   { id: 5, group: 'C', home: 'C3', away: 'C4', date: '2026-06-13T19:00:00Z', venue: 'Gillette Stadium, Boston' },
-  // Vancouver (UTC-7) 12:00 -> 19:00 UTC
   { id: 6, group: 'D', home: 'D3', away: 'D4', date: '2026-06-13T19:00:00Z', venue: 'BC Place, Vancouver' },
-  // NY/NJ (UTC-4) 15:00 -> 19:00 UTC
   { id: 7, group: 'C', home: 'C1', away: 'C2', date: '2026-06-13T19:00:00Z', venue: 'MetLife Stadium, New York/NJ' },
-  // SF (UTC-7) 19:00 -> 02:00 UTC
   { id: 8, group: 'B', home: 'B3', away: 'B4', date: '2026-06-14T02:00:00Z', venue: 'Levi\'s Stadium, San Francisco' },
 
   // --- DAY 4 (June 14) ---
-  // Philadelphia (UTC-4) 15:00 -> 19:00 UTC
   { id: 9,  group: 'E', home: 'E1', away: 'E2', date: '2026-06-14T19:00:00Z', venue: 'Lincoln Financial Field, Philadelphia' },
-  // Houston (UTC-5) 14:00 -> 19:00 UTC
   { id: 10, group: 'E', home: 'E3', away: 'E4', date: '2026-06-14T19:00:00Z', venue: 'NRG Stadium, Houston' },
-  // Dallas (UTC-5) 17:00 -> 22:00 UTC
   { id: 11, group: 'F', home: 'F1', away: 'F2', date: '2026-06-14T22:00:00Z', venue: 'AT&T Stadium, Dallas' },
-  // Monterrey (UTC-6) 19:00 -> 01:00 UTC
   { id: 12, group: 'F', home: 'F3', away: 'F4', date: '2026-06-15T01:00:00Z', venue: 'Estadio BBVA, Monterrey' },
 
   // --- DAY 5 (June 15) ---
-  // Miami (UTC-4) 15:00 -> 19:00 UTC
   { id: 13, group: 'H', home: 'H1', away: 'H2', date: '2026-06-15T19:00:00Z', venue: 'Hard Rock Stadium, Miami' },
-  // Atlanta (UTC-4) 18:00 -> 22:00 UTC
   { id: 14, group: 'H', home: 'H3', away: 'H4', date: '2026-06-15T22:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta' },
-  // LA (UTC-7) 15:00 -> 22:00 UTC
   { id: 15, group: 'G', home: 'G1', away: 'G2', date: '2026-06-15T22:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
-  // Seattle (UTC-7) 18:00 -> 01:00 UTC
   { id: 16, group: 'G', home: 'G3', away: 'G4', date: '2026-06-16T01:00:00Z', venue: 'Lumen Field, Seattle' },
 
   // --- DAY 6 (June 16) ---
@@ -87,11 +69,7 @@ const SCHEDULE = [
   { id: 23, group: 'K', home: 'K1', away: 'K2', date: '2026-06-18T00:00:00Z', venue: 'NRG Stadium, Houston' },
   { id: 24, group: 'K', home: 'K3', away: 'K4', date: '2026-06-18T03:00:00Z', venue: 'Estadio Azteca, Mexico City' },
 
-  // --- MATCHDAY 2 & 3 (Using Simplified UTC Slots) ---
-  // Afternoon Slot: 19:00 UTC
-  // Evening Slot: 22:00 UTC
-  // Late Slot: 01:00 UTC
-  
+  // --- MATCHDAY 2 & 3 ---
   { id: 25, group: 'A', home: 'A2', away: 'A4', date: '2026-06-18T22:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta' },
   { id: 26, group: 'B', home: 'B2', away: 'B4', date: '2026-06-19T01:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
   { id: 27, group: 'B', home: 'B1', away: 'B3', date: '2026-06-19T03:00:00Z', venue: 'BC Place, Vancouver' },
@@ -204,17 +182,37 @@ async function seedOfficialSchedule() {
   const finalMatches = [];
   const matchesByGroup = {};
 
+  // HELPER: Assign TV Channels
+  const getChannels = (homeId, awayId) => {
+      const channels = { US: 'FOX', NO: 'NRK', EN: 'BBC' }; // Default UK to BBC
+      
+      // Scotland logic
+      if (homeId === 'SCO' || awayId === 'SCO') {
+          channels['SCO'] = 'STV'; // Scotland-specific branding for ITV matches
+          channels['EN'] = 'ITV';  // Often if on STV it's on ITV in England
+      } 
+      // England logic
+      else if (homeId === 'ENG' || awayId === 'ENG') {
+          channels['EN'] = 'BBC'; // Default to BBC for major England games
+          channels['SCO'] = 'BBC';
+      }
+      return channels;
+  };
+
   // 1. GROUP MATCHES
   for (const item of SCHEDULE) {
     if (item.group) {
         matchesByGroup[item.group] = (matchesByGroup[item.group] || 0) + 1;
         const appMatchId = `${item.group}${matchesByGroup[item.group]}`;
         
+        const homeId = TEAM_SLOTS[item.home] || 'TBD';
+        const awayId = TEAM_SLOTS[item.away] || 'TBD';
+
         finalMatches.push({
             id: appMatchId,
             group_id: item.group,
-            home_team_id: TEAM_SLOTS[item.home] || 'TBD',
-            away_team_id: TEAM_SLOTS[item.away] || 'TBD',
+            home_team_id: homeId,
+            away_team_id: awayId,
             home_score: null,
             away_score: null,
             date: item.date,
@@ -222,7 +220,7 @@ async function seedOfficialSchedule() {
             status: 'UPCOMING',
             is_locked: false,
             next_match_id: null,
-            channels: { EN: 'FOX', NO: 'NRK' }
+            channels: getChannels(homeId, awayId)
         });
     } else {
         // 2. KNOCKOUT MATCHES
@@ -264,7 +262,7 @@ async function seedOfficialSchedule() {
             status: 'UPCOMING',
             is_locked: false,
             next_match_id: nextId,
-            channels: { EN: 'FOX', NO: 'NRK' }
+            channels: { EN: 'BBC', NO: 'NRK', US: 'FOX' } // Default for knockouts
         });
     }
   }
