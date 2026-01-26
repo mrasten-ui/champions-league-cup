@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { GroupStanding, Team, Translation } from '../types';
+import { Team, Translation, GroupStanding } from '../types';
 
 interface StandingsTableProps {
   standings: GroupStanding[];
@@ -8,85 +7,95 @@ interface StandingsTableProps {
   lang: Translation;
   compact?: boolean;
   onTeamClick?: (teamId: string) => void;
+  highlightedTeamId?: string | null; // NEW PROP
 }
 
-export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, teams, lang, compact = false, onTeamClick }) => {
-  const containerClass = compact 
-    ? "bg-white" 
-    : "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6";
-
-  const handleRowClick = (e: React.MouseEvent, teamId: string) => {
-      e.stopPropagation();
-      if (onTeamClick && !teamId.startsWith('TBD')) {
-          onTeamClick(teamId);
-      }
-  };
-
+export const StandingsTable: React.FC<StandingsTableProps> = ({ 
+  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId 
+}) => {
   return (
-    <div className={containerClass}>
-      {!compact && (
-        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
-          <h3 className="font-bold text-slate-700 uppercase tracking-wide text-sm">{lang.standings}</h3>
-        </div>
-      )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-            <tr>
-              <th className="px-4 py-3 font-medium">#</th>
-              <th className="px-4 py-3 font-medium">{lang.teamCol}</th>
-              <th className="px-2 py-3 font-medium text-center">PL</th>
-              <th className="px-2 py-3 font-medium text-center">{lang.goalDiff}</th>
-              <th className="px-4 py-3 font-medium text-right">{lang.points}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((row, index) => {
-              const team = teams[row.teamId];
-              // Use localized team name if available
-              const teamName = lang.teamNames[team.id] || team.name;
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+          <tr>
+            <th className="py-2 pl-3 w-8">#</th>
+            <th className="py-2">{lang.team || "Team"}</th>
+            <th className="py-2 text-center w-8">{lang.mp || "MP"}</th>
+            {!compact && (
+                <>
+                    <th className="py-2 text-center w-8 hidden sm:table-cell">{lang.w || "W"}</th>
+                    <th className="py-2 text-center w-8 hidden sm:table-cell">{lang.d || "D"}</th>
+                    <th className="py-2 text-center w-8 hidden sm:table-cell">{lang.l || "L"}</th>
+                    <th className="py-2 text-center w-10 hidden sm:table-cell">{lang.gf || "GF"}</th>
+                    <th className="py-2 text-center w-10 hidden sm:table-cell">{lang.ga || "GA"}</th>
+                </>
+            )}
+            <th className="py-2 text-center w-10">{lang.gd || "GD"}</th>
+            <th className="py-2 text-center w-10 font-bold text-slate-700">{lang.pts || "Pts"}</th>
+            {!compact && <th className="py-2 w-16 text-center text-[9px] opacity-50 hidden sm:table-cell">{lang.form || "Form"}</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {standings.map((row, index) => {
+            const team = teams[row.teamId];
+            const isHighlighted = highlightedTeamId === row.teamId;
 
-              const isQualified = index < 2; // Top 2 direct qualify
-              const isPossible = index === 2; // 3rd place potential
-              
-              let rowClass = 'border-b border-slate-50 last:border-0';
-              let rankColor = 'text-slate-400';
-              
-              if (isQualified) {
-                rowClass += ' bg-green-50/40';
-                rankColor = 'text-green-600';
-              } else if (isPossible) {
-                rowClass += ' bg-yellow-50/30';
-                rankColor = 'text-yellow-600';
-              }
-
-              return (
-                <tr key={row.teamId} className={rowClass}>
-                  <td className={`px-4 py-3 font-medium ${rankColor}`}>
-                    {index + 1}
-                  </td>
-                  <td 
-                    onClick={(e) => handleRowClick(e, team.id)}
-                    className={`px-4 py-3 font-bold text-slate-800 flex items-center gap-2 ${onTeamClick ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
-                  >
-                    <div className="w-6 h-4 rounded-sm overflow-hidden border border-slate-200 relative shrink-0">
-                        {team?.flag ? (
-                             <img src={team.flag} alt="" className="w-full h-full object-cover" />
-                        ) : null}
+            return (
+              <tr 
+                key={row.teamId} 
+                onClick={() => onTeamClick && onTeamClick(row.teamId)}
+                className={`
+                    group transition-all duration-1000 ease-out cursor-pointer
+                    ${isHighlighted 
+                        ? 'bg-yellow-200 scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)] z-10 relative' 
+                        : 'hover:bg-slate-50 bg-white'
+                    }
+                `}
+              >
+                <td className={`pl-3 py-3 font-bold text-[10px] ${index < 2 ? 'text-green-600' : 'text-slate-400'}`}>
+                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${index < 2 ? 'bg-green-100' : 'bg-slate-100'}`}>
+                        {index + 1}
                     </div>
-                    <span className={`truncate ${isQualified ? 'text-green-900' : ''}`}>{teamName}</span>
-                    {isQualified && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 ml-1 shrink-0" title={lang.qualified}></span>}
-                    {isPossible && <span className="inline-block w-1.5 h-1.5 rounded-full bg-yellow-400 ml-1 shrink-0"></span>}
-                  </td>
-                  <td className="px-2 py-3 text-center text-slate-600">{row.played}</td>
-                  <td className="px-2 py-3 text-center text-slate-600">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
-                  <td className="px-4 py-3 text-right font-black text-slate-900">{row.pts}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </td>
+                <td className="py-3">
+                    <div className="flex items-center gap-3">
+                        {team?.flag && (
+                            <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" />
+                        )}
+                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'}`}>
+                            {lang.teamNames[row.teamId] || team?.name || row.teamId}
+                        </span>
+                    </div>
+                </td>
+                <td className="text-center font-medium text-slate-500">{row.played}</td>
+                {!compact && (
+                    <>
+                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.won}</th>
+                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.drawn}</th>
+                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.lost}</th>
+                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.gf}</th>
+                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.ga}</th>
+                    </>
+                )}
+                <td className={`text-center font-bold ${row.gd > 0 ? 'text-green-600' : row.gd < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                    {row.gd > 0 ? `+${row.gd}` : row.gd}
+                </td>
+                <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
+                {!compact && (
+                    <td className="text-center hidden sm:table-cell">
+                        <div className="flex items-center justify-center gap-0.5">
+                            {/* Dummy form indicators for visuals */}
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < 3 ? 'bg-green-400' : 'bg-slate-200'}`}></div>
+                            ))}
+                        </div>
+                    </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };

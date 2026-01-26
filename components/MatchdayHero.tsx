@@ -21,21 +21,21 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   return (
     <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto">
-      {/* MATCH OF THE DAY HEADLINE */}
-      <div className="flex items-center justify-center gap-2 mb-2">
-          <Star size={14} className="text-yellow-500 fill-yellow-500" />
-          <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Match of the Day</span>
-          <Star size={14} className="text-yellow-500 fill-yellow-500" />
-      </div>
-
       <div className="relative bg-[#0f2545] rounded-3xl overflow-hidden shadow-2xl border border-slate-700/50 group">
         
+        {/* NEW: Internal Match of the Day Headline */}
+        <div className="bg-black/40 border-b border-white/5 py-2 flex justify-center items-center gap-2 relative z-20">
+             <Star size={12} className="text-yellow-400 fill-yellow-400 animate-pulse" />
+             <span className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.25em] shadow-black drop-shadow-sm">Match of the Day</span>
+             <Star size={12} className="text-yellow-400 fill-yellow-400 animate-pulse" />
+        </div>
+
         {/* Decorative Background */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10"></div>
 
         {/* Header: Status & Venue */}
-        <div className="relative z-10 flex justify-between items-center px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+        <div className="relative z-10 flex justify-between items-center px-6 py-3 border-b border-white/5 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center gap-2">
                 {isLive ? (
                     <span className="flex items-center gap-1.5 text-[10px] font-black text-red-400 uppercase tracking-widest bg-red-900/30 px-2 py-1 rounded-full border border-red-500/30 animate-pulse">

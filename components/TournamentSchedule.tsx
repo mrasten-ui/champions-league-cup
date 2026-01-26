@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Match, Team, Translation, Prediction, UserProfile, LanguageCode } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -14,9 +14,11 @@ interface TournamentScheduleProps {
   lang: Translation;
   currentLang: string;
   onTeamClick: (teamId: string) => void;
+  onJumpToTable?: (groupId: string, teamId: string) => void;
+  onJumpToBracket?: (matchId: string) => void;
 }
 
-// MAPPING: Language Code -> Team ID (You may need to adjust IDs based on your data)
+// MAPPING: Language Code -> Team ID (Ensure these match your DB IDs perfectly)
 const LANG_TEAM_MAP: Record<string, string> = {
     'NO': 'Norway',
     'SCO': 'Scotland',
@@ -24,11 +26,11 @@ const LANG_TEAM_MAP: Record<string, string> = {
     'EN': 'England' 
 };
 
-// OTHER SUPPORTED TEAMS (For Step 3)
+// OTHER SUPPORTED TEAMS (Priority Tier 2)
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket 
 }) => {
   // 1. SMART DEFAULT: Check if today has matches
   const [filterDate, setFilterDate] = useState<string>(() => {
@@ -50,7 +52,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
-  // 3. FILTERING LOGIC (The pool of matches to choose from)
+  // 3. FILTERING LOGIC
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
@@ -100,7 +102,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     if (top10Match) return top10Match;
 
     // RULE 5: Lowest Combined Ranking (The "Biggest" Game)
-    // We sort the remaining matches by combined rank and take the first one.
     const sortedByRank = [...daysMatches].sort((a, b) => {
         const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
         const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
@@ -186,6 +187,20 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         const isHighStakes = !match.groupId && match.round !== 'R32';
                         const readOnlyMatch = { ...match, isLocked: true };
 
+                        // CLICK LOGIC: Check type and Jump accordingly
+                        const handleSpecificClick = (teamId: string) => {
+                            if (match.groupId && onJumpToTable) {
+                                // CASE 1: Group Match -> Jump to Table
+                                onJumpToTable(match.groupId, teamId);
+                            } else if (match.round && onJumpToBracket) {
+                                // CASE 2: Knockout Match -> Jump to Bracket
+                                onJumpToBracket(match.id);
+                            } else {
+                                // CASE 3: Default -> Show Team Details
+                                onTeamClick(teamId);
+                            }
+                        };
+
                         return (
                             <div key={match.id} className="relative">
                                 <MatchCard 
@@ -203,7 +218,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     allPredictions={[]}
                                     phase={'LIVE'}
                                     isAdminMode={false}
-                                    onTeamClick={onTeamClick}
+                                    onTeamClick={handleSpecificClick} // PASS SMART HANDLER
                                     showStatusBadge={true} 
                                 />
                                 {isHighStakes && (
