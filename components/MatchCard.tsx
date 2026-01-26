@@ -151,7 +151,43 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return match.venue || 'FRIENDLY';
     };
 
-    // --- TOP LEFT LOGIC ---
+    // --- TV CHANNEL LOGIC (UPDATED) ---
+    const getTvChannel = () => {
+        if (!match.channels) return null;
+        
+        // Detect Region from Locale String
+        let regionKey = 'US'; // Default fallback
+        const loc = locale.toLowerCase();
+
+        if (loc.includes('no')) regionKey = 'NO';
+        else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
+        else if (loc.startsWith('en')) regionKey = 'EN'; // Default generic English to UK/Intl channels
+
+        // Check for specific Scotland override if available in translations
+        if ((lang as any).isScotland && match.channels['SCO']) {
+            regionKey = 'SCO';
+        }
+
+        let channel = match.channels[regionKey];
+
+        // Fallback Chain
+        if (!channel) {
+            channel = match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
+        }
+
+        if (!channel) return null;
+
+        return (
+            <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}>
+                <Tv size={12} />
+                <span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">
+                    {channel}
+                </span>
+            </div>
+        );
+    };
+
+    // --- LEFT STATUS LOGIC ---
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) {
@@ -162,47 +198,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             );
         }
-        // Upcoming: Show Time
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
                     {new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-                </span>
-            </div>
-        );
-    };
-
-    // --- TOP RIGHT LOGIC (TV CHANNEL) ---
-    const getTvChannel = () => {
-        if (!match.channels) return null;
-        
-        // 1. Try Exact Match (e.g. 'NO', 'no-NO')
-        let channel = match.channels[locale];
-
-        // 2. If not found, try extracting Region Code (e.g. 'no-NO' -> 'NO')
-        if (!channel && locale.includes('-')) {
-            const region = locale.split('-')[1].toUpperCase(); // 'NO' from 'no-NO'
-            channel = match.channels[region];
-        }
-
-        // 3. Special Case for UK (en-GB -> 'EN' or 'SCO')
-        if (!channel && (locale === 'en-GB' || locale.includes('GB'))) {
-            channel = match.channels['EN']; 
-        }
-
-        // 4. Fallback to US or English
-        if (!channel) {
-            channel = match.channels['US'] || match.channels['EN'] || Object.values(match.channels)[0];
-        }
-
-        if (!channel) return null;
-
-        return (
-            <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}>
-                <Tv size={12} />
-                <span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">
-                    {channel}
                 </span>
             </div>
         );
@@ -250,15 +250,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
-             {/* 1. NAVY HEADER STRIP (For ALL Cards) */}
+             {/* 1. NAVY HEADER STRIP */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
-                
-                {/* LEFT: Kickoff Time OR Live Status */}
-                <div className="w-1/3 flex items-center justify-start">
-                    {getLeftStatus()}
-                </div>
-
-                {/* CENTER: Group / Stage */}
+                <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     <div className="flex items-center gap-1.5">
                         {match.round && <Trophy size={12} className="text-amber-400" />}
@@ -267,11 +261,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </span>
                     </div>
                 </div>
-
-                {/* RIGHT: TV Channel */}
-                <div className="w-1/3 flex items-center justify-end">
-                    {getTvChannel()}
-                </div>
+                <div className="w-1/3 flex items-center justify-end">{getTvChannel()}</div>
              </div>
 
              {/* 2. CENTRAL STAGE */}
@@ -292,31 +282,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                     <div className="flex flex-col items-center">
                         <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
-                        {/* POINTS DISPLAY */}
                         {match.groupId && homeTeamPoints !== undefined && (
                             <span className="text-[9px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>
                         )}
                     </div>
                 </div>
 
-                {/* Center: Steppers or Display Score */}
+                {/* Center Score/Inputs */}
                 <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 min-w-[80px]">
                     {isKnockout ? (
-                        /* KNOCKOUT MODE */
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
                             <div className="text-2xl font-black text-slate-200">VS</div>
                             <div className="mt-1 w-full">{renderControlButtons()}</div>
                         </div>
                     ) : (
-                        /* GROUP MODE */
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
-                                /* INPUT MODE */
                                 <div className="flex items-center gap-2 relative">
                                     <ScoreStepper value={localHome} onChange={(v) => handleScoreChange('home', v)} isLocked={isLocked} onActivate={handleActivate} />
                                     <span className="font-black text-slate-300 text-lg">-</span>
                                     <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
-                                    
                                     {isUnlockedBySub && isDirty && (
                                         <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
                                             <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce">
@@ -326,7 +311,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             ) : (
-                                /* DISPLAY MODE */
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
                                     {(isLive || isFinished || match.homeScore !== null) ? (
                                         <>
@@ -335,7 +319,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 <span className="opacity-50 text-xl mx-1">:</span>
                                                 <span>{match.awayScore ?? 0}</span>
                                             </div>
-                                            
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && (
                                                 <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
                                                     +{pointsEarned} {lang.points}
@@ -377,7 +360,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                     <div className="flex flex-col items-center">
                         <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
-                        {/* POINTS DISPLAY */}
                         {match.groupId && awayTeamPoints !== undefined && (
                             <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>
                         )}
@@ -395,7 +377,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         <ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} />
                     </div>
-                    {/* H2H Bars & List */}
                     <div className="flex flex-col gap-2">
                         {h2hData.totalMatches > 0 ? (
                             <div className="flex h-1.5 rounded-full overflow-hidden w-full shadow-sm bg-slate-100">
@@ -457,7 +438,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     
-                    {/* LEFT: Stadium (Venue) */}
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0">
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">
