@@ -184,7 +184,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                           recent_form: localReport.recent_form || '',
                           last_5_matches: localReport.last_5_matches || '',
                           created_at: new Date().toISOString(),
-                          lang: currentLang
+                          // lang is now optional in types, so we can omit it or pass currentLang
                       });
                   }
               }
