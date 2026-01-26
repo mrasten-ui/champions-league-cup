@@ -114,21 +114,25 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
                         const isHighStakes = !match.groupId && match.round !== 'R32';
+                        
+                        // FORCE LOCK: Ensure this view is strictly read-only (Facts)
+                        const readOnlyMatch = { ...match, isLocked: true };
+
                         return (
                             <div key={match.id} className="relative">
                                 <MatchCard 
-                                    match={match}
+                                    match={readOnlyMatch}
                                     homeTeam={teams[match.homeTeamId]}
                                     awayTeam={teams[match.awayTeamId]}
-                                    onUpdate={() => {}} // Read-only
+                                    onUpdate={() => {}} // Disabled update
                                     lang={lang}
                                     locale={currentLang}
-                                    userTokens={0}
-                                    rivals={[]}
-                                    onSpy={() => {}}
+                                    userTokens={0} // Hide tokens/spy
+                                    rivals={[]} // Hide rivals
+                                    onSpy={() => {}} 
                                     revealedRivals={[]}
                                     currentUser={user}
-                                    allPredictions={userPredictions}
+                                    allPredictions={[]} // Pass EMPTY predictions to hide "My Pick"
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={onTeamClick}

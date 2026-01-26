@@ -1,6 +1,6 @@
 import React from 'react';
 import { Match, Team, Translation, GroupStanding } from '../types';
-import { Activity, Zap, TrendingUp } from 'lucide-react';
+import { Activity, Clock, MapPin, Trophy } from 'lucide-react';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -13,80 +13,103 @@ interface MatchdayHeroProps {
 export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, onTeamClick }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
-  // Determine if match is live based on status
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
+  const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
+
+  // Helper to find team rank in group
+  const getRank = (teamId: string) => groupStandings?.findIndex(g => g.teamId === teamId) ?? -1;
 
   return (
-    <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-xl border border-slate-800">
-        {/* Live Badge / Header */}
-        <div className="bg-blue-600 px-4 py-2 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            {isLive ? (
-              <span className="flex items-center gap-1.5 text-[10px] font-black text-white uppercase tracking-tighter">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                {lang.live || "Live Now"}
-              </span>
-            ) : (
-              <span className="text-[10px] font-black text-blue-100 uppercase tracking-widest flex items-center gap-1">
-                <Zap size={12} /> {lang.filterUpcoming || "Next Match"}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] font-bold text-blue-200 uppercase">{match.venue}</span>
+    <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto">
+      <div className="relative bg-[#0f2545] rounded-3xl overflow-hidden shadow-2xl border border-slate-700/50 group">
+        
+        {/* Decorative Background */}
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10"></div>
+
+        {/* Header: Status & Venue */}
+        <div className="relative z-10 flex justify-between items-center px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+                {isLive ? (
+                    <span className="flex items-center gap-1.5 text-[10px] font-black text-red-400 uppercase tracking-widest bg-red-900/30 px-2 py-1 rounded-full border border-red-500/30 animate-pulse">
+                        <Activity size={10} /> Live Now • {match.minute}'
+                    </span>
+                ) : (
+                    <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <Clock size={10} /> {isFinished ? "Full Time" : new Date(match.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                )}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                <MapPin size={10} />
+                <span className="truncate max-w-[150px]">{match.venue.split(',')[0]}</span>
+            </div>
         </div>
 
-        {/* Hero Scoreboard */}
-        <div className="p-6 grid grid-cols-3 items-center text-white bg-gradient-to-b from-slate-900 to-slate-800">
-          {/* Home Team */}
-          <div className="flex flex-col items-center gap-3 cursor-pointer group" onClick={() => onTeamClick(home.id)}>
-            <div className="relative">
-                <img src={home?.flag} className="w-16 h-12 object-cover rounded shadow-lg border border-slate-700 group-hover:scale-110 transition-transform" alt={home?.name} />
+        {/* Main Content */}
+        <div className="relative z-10 p-6 sm:p-8 flex items-center justify-between">
+            
+            {/* Home Team */}
+            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => onTeamClick(home.id)}>
+                <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
+                    <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
+                    {groupStandings && (
+                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
+                            #{getRank(home.id) + 1}
+                        </div>
+                    )}
+                </div>
+                <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>
             </div>
-            <span className="text-xs font-black text-center uppercase tracking-tight">{lang.teamNames[home.id] || home.name}</span>
-          </div>
 
-          {/* Score / Time */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="text-4xl font-black tracking-tighter tabular-nums flex gap-2">
-              <span>{match.homeScore ?? 0}</span>
-              <span className="opacity-50">:</span>
-              <span>{match.awayScore ?? 0}</span>
+            {/* Scoreboard */}
+            <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
+                {match.homeScore !== null ? (
+                    <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
+                        <span>{match.homeScore}</span>
+                        <span className="text-white/20 text-4xl mx-1">:</span>
+                        <span>{match.awayScore}</span>
+                    </div>
+                ) : (
+                    <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
+                )}
+                
+                {match.status === 'PEN' && (
+                    <div className="mt-2 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-md border border-white/5">
+                        Penalties
+                    </div>
+                )}
             </div>
-            <div className="px-2 py-1 bg-slate-700/50 rounded text-[10px] font-bold text-slate-400">
-              {isLive ? `${match.minute}'` : match.status}
-            </div>
-          </div>
 
-          {/* Away Team */}
-          <div className="flex flex-col items-center gap-3 cursor-pointer group" onClick={() => onTeamClick(away.id)}>
-            <div className="relative">
-                <img src={away?.flag} className="w-16 h-12 object-cover rounded shadow-lg border border-slate-700 group-hover:scale-110 transition-transform" alt={away?.name} />
+            {/* Away Team */}
+            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => onTeamClick(away.id)}>
+                <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
+                    <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
+                    {groupStandings && (
+                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
+                            #{getRank(away.id) + 1}
+                        </div>
+                    )}
+                </div>
+                <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>
             </div>
-            <span className="text-xs font-black text-center uppercase tracking-tight">{lang.teamNames[away.id] || away.name}</span>
-          </div>
         </div>
 
-        {/* Live Table Snippet (Optional Context) */}
+        {/* Footer: Group Context */}
         {groupStandings && (
-          <div className="bg-slate-800/50 border-t border-slate-700 p-4">
-            <div className="flex items-center gap-2 mb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              <TrendingUp size={12} /> Group {match.groupId} Live Stakes
+            <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
+                <div className="flex items-center gap-2">
+                    <Trophy size={12} className="text-yellow-500" />
+                    <span>Group {match.groupId}</span>
+                </div>
+                <div className="flex gap-4">
+                    {groupStandings.slice(0, 2).map((row, i) => (
+                        <span key={row.teamId} className={row.teamId === match.homeTeamId || row.teamId === match.awayTeamId ? 'text-white font-bold' : ''}>
+                            {i+1}. {teams[row.teamId]?.name} ({row.pts}pts)
+                        </span>
+                    ))}
+                </div>
             </div>
-            <div className="space-y-2">
-              {groupStandings.map((row, idx) => {
-                const isMatchTeam = row.teamId === match.homeTeamId || row.teamId === match.awayTeamId;
-                return (
-                  <div key={row.teamId} className={`flex items-center text-[11px] ${isMatchTeam ? 'text-white font-bold' : 'text-slate-500 font-medium'}`}>
-                    <span className="w-4">{idx + 1}</span>
-                    <span className="flex-1 truncate">{lang.teamNames[row.teamId] || teams[row.teamId]?.name}</span>
-                    <span className="w-8 text-center">{row.gd > 0 ? `+${row.gd}` : row.gd}</span>
-                    <span className="w-8 text-right text-blue-400">{row.pts}pts</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         )}
       </div>
     </div>
