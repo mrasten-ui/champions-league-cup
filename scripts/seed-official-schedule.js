@@ -182,18 +182,22 @@ async function seedOfficialSchedule() {
   const finalMatches = [];
   const matchesByGroup = {};
 
-  // HELPER: Assign TV Channels
+  // HELPER: Assign TV Channels (UPDATED)
   const getChannels = (homeId, awayId) => {
-      const channels = { US: 'FOX', NO: 'NRK', EN: 'BBC' }; // Default UK to BBC
+      const channels = { 
+          US: 'FOX', 
+          NO: 'NRK', 
+          EN: 'BBC' // Default for UK/English users
+      }; 
       
       // Scotland logic
       if (homeId === 'SCO' || awayId === 'SCO') {
-          channels['SCO'] = 'STV'; // Scotland-specific branding for ITV matches
-          channels['EN'] = 'ITV';  // Often if on STV it's on ITV in England
+          channels['SCO'] = 'STV'; // Scotland-specific branding
+          channels['EN'] = 'ITV';  // ITV usually carries STV games in England
       } 
       // England logic
       else if (homeId === 'ENG' || awayId === 'ENG') {
-          channels['EN'] = 'BBC'; // Default to BBC for major England games
+          channels['EN'] = 'BBC'; 
           channels['SCO'] = 'BBC';
       }
       return channels;
@@ -220,6 +224,7 @@ async function seedOfficialSchedule() {
             status: 'UPCOMING',
             is_locked: false,
             next_match_id: null,
+            // CRITICAL FIX: Use the helper instead of hardcoded object
             channels: getChannels(homeId, awayId)
         });
     } else {
@@ -262,7 +267,8 @@ async function seedOfficialSchedule() {
             status: 'UPCOMING',
             is_locked: false,
             next_match_id: nextId,
-            channels: { EN: 'BBC', NO: 'NRK', US: 'FOX' } // Default for knockouts
+            // CRITICAL FIX: Default channels for Knockouts (usually all BBC/ITV share)
+            channels: { EN: 'BBC', NO: 'NRK', US: 'FOX', SCO: 'STV' } 
         });
     }
   }
