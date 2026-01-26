@@ -56,35 +56,61 @@ const ScoreStepper: React.FC<{
   );
 };
 
-// Helper component for Countdown
-const CountdownTimer: React.FC<{ targetDate: string; lang: Translation }> = ({ targetDate, lang }) => {
+// Corner Badge Component
+const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match, lang }) => {
+    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
+    const todayStr = new Date().toDateString();
+    const matchDateStr = new Date(match.date).toDateString();
+    const isToday = todayStr === matchDateStr;
+
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
+        if (!isToday || isLive || isFinished) return;
         const updateTimer = () => {
             const now = new Date();
-            const target = new Date(targetDate);
+            const target = new Date(match.date);
             const diff = target.getTime() - now.getTime();
-
-            if (diff <= 0) {
-                setTimeLeft('00:00');
-                return;
-            }
-
+            if (diff <= 0) { setTimeLeft('00:00'); return; }
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            
-            setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+            setTimeLeft(`${hours}:${minutes.toString().padStart(2, '0')}`);
         };
-
         updateTimer();
-        const interval = setInterval(updateTimer, 60000); // Update every minute
+        const interval = setInterval(updateTimer, 60000);
         return () => clearInterval(interval);
-    }, [targetDate]);
+    }, [match.date, isToday, isLive, isFinished]);
 
+    if (isFinished) {
+        return (
+            <div className="absolute -top-3 -right-2 z-20 bg-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-slate-300 shadow-sm">
+                {lang.ft || "FT"}
+            </div>
+        );
+    }
+
+    if (isLive) {
+        return (
+            <div className="absolute -top-3 -right-2 z-20 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-red-700 shadow-sm flex items-center gap-1 animate-pulse">
+                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                {match.minute ? `${match.minute}'` : (lang.live || "LIVE")}
+            </div>
+        );
+    }
+
+    if (isToday) {
+        return (
+             <div className="absolute -top-3 -right-2 z-20 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-yellow-500 shadow-sm flex items-center gap-1">
+                <Clock size={10} /> {timeLeft}
+             </div>
+        );
+    }
+
+    // Upcoming (Future)
     return (
-        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 px-3 py-2 rounded justify-center w-full animate-pulse border border-blue-100">
-            <Clock size={12} /> {lang.startsIn || "Starts in"} {timeLeft}
+        <div className="absolute -top-3 -right-2 z-20 bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-rose-200 shadow-sm">
+            {lang.filterUpcoming || "Upcoming"}
         </div>
     );
 };
@@ -156,9 +182,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const canSpy = !isSpied && userTokens > 0 && !isRealLifeLocked && rivals.length > 0;
     const showRivals = isSpied || isRealLifeLocked;
 
-    // --- BUTTON RENDERING LOGIC ---
+    // --- CENTER BUTTON LOGIC ---
     const renderControlButtons = () => {
-        // 1. SUB BUTTON (Priority 1: Unlocking feature)
+        // 1. SUB BUTTON (Replaces "Upcoming" in the center)
         if (canSubstitute) {
             return (
                 <button 
@@ -172,7 +198,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             );
         }
 
-        // 2. SAVE BUTTON (Priority 2: Action needed)
+        // 2. SAVE BUTTON
         if (isUnlockedBySub && isDirty) {
             return (
                 <button 
@@ -195,21 +221,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             );
         }
 
-        // 4. LOCKED STATUS (Countdown / Upcoming)
+        // 4. LOCKED - DO NOT SHOW STATUS HERE (Status is now in the corner badge)
         if (isLocked) {
-            const today = new Date().toDateString();
-            const matchDay = new Date(match.date).toDateString();
-            const isToday = today === matchDay;
-
-            if (isToday) {
-                return <CountdownTimer targetDate={match.date} lang={lang} />;
-            } else {
-                return (
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded justify-center w-full border border-slate-200">
-                        <Calendar size={12} /> {lang.filterUpcoming || "Upcoming"}
-                    </div>
-                );
-            }
+            return null; 
         }
 
         return null;
@@ -225,38 +239,32 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
     
     return (
-        <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group`}>
+        <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group mt-3`}>
              
-             {/* Header */}
+             {/* NEW: CORNER STATUS BADGE */}
+             <MatchStatusBadge match={match} lang={lang} />
+
+             {/* Header - Navy Blue */}
              <div className="px-3 py-2 border-b border-[#1a3a6c] bg-[#0f2545] flex items-center justify-between rounded-t-2xl min-h-[36px]">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 w-full justify-center">
-                    {isLive ? (
-                         <span className="flex items-center gap-1 text-red-400 animate-pulse">
-                            <Activity size={12} /> {lang.live} {match.minute ? `'${match.minute}` : ''}
-                         </span>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            {isFinished ? (
-                                <span className="flex items-center gap-1 text-slate-400">
-                                    <Clock size={12} /> {lang.ft}
+                    <div className="flex items-center gap-2">
+                        {/* Only show Date/Time here if NOT finished/live, as redundancy */}
+                        {!isLive && !isFinished && (
+                            <span className="flex items-center gap-1 text-white">
+                                <Clock size={12} /> 
+                                {new Date(match.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
+                        {match.venue && match.venue !== 'TBD' && (
+                            <>
+                                {!isLive && !isFinished && <span className="text-slate-500">•</span>}
+                                <span className="flex items-center gap-1 truncate max-w-[140px] text-slate-400" title={match.venue}>
+                                    <MapPin size={10} />
+                                    <span className="truncate">{match.venue.split(',')[0]}</span>
                                 </span>
-                            ) : (
-                                <span className="flex items-center gap-1 text-white">
-                                    <Clock size={12} /> 
-                                    {new Date(match.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            )}
-                            {match.venue && match.venue !== 'TBD' && (
-                                <>
-                                    <span className="text-slate-500">•</span>
-                                    <span className="flex items-center gap-1 truncate max-w-[140px] text-slate-400" title={match.venue}>
-                                        <MapPin size={10} />
-                                        <span className="truncate">{match.venue.split(',')[0]}</span>
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                    )}
+                            </>
+                        )}
+                    </div>
                 </div>
              </div>
 
@@ -276,12 +284,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'
                     }`}
                 >
-                    {!isKnockout && isHomeClickable && (
-                        <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
-                            <Search size={14} />
-                        </div>
-                    )}
-
                     <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
@@ -289,11 +291,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {homeTeam?.rank && (
                             <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-8 h-8 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">
                             #{homeTeam.rank}
-                            </div>
-                        )}
-                        {isKnockout && predictedWinnerId === match.homeTeamId && (
-                            <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
-                                <Check size={14} strokeWidth={4} />
                             </div>
                         )}
                     </div>
@@ -357,6 +354,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 </div>
                                              )}
                                              
+                                             {/* SUB BUTTON GOES HERE */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
@@ -389,22 +387,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     }}
                     className={`flex-1 flex flex-col items-center justify-center gap-3 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}
                 >
-                    {!isKnockout && isAwayClickable && (
-                        <div className="absolute top-2 right-2 text-slate-300 group-hover/team:text-blue-500 transition-colors">
-                            <Search size={14} />
-                        </div>
-                    )}
                     <div className="relative shadow-sm rounded-lg overflow-visible w-20 h-14 sm:w-24 sm:h-16 pointer-events-none">
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
                         {awayTeam?.rank && (
                             <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-8 h-8 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>
-                        )}
-                        {isKnockout && predictedWinnerId === match.awayTeamId && (
-                            <div className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full p-1 shadow-lg border-2 border-white animate-in zoom-in">
-                                <Check size={14} strokeWidth={4} />
-                            </div>
                         )}
                     </div>
                     <span className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
