@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, LayoutGrid, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { calculateGroupStandings, simulateFullTournament, applyPredictionsToBracket, simulateTournamentAtDate } from './services/engine';
@@ -8,6 +8,7 @@ import { StandingsTable } from './components/StandingsTable';
 import { MagicWand } from './components/MagicWand';
 import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
+import { KnockoutTreeView } from './components/KnockoutTreeView';
 import { Leaderboard } from './components/Leaderboard';
 import { MyPredictions } from './components/MyPredictions';
 import { PlayerProgress } from './components/PlayerProgress';
@@ -21,6 +22,7 @@ import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
+import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
@@ -34,9 +36,8 @@ const App: React.FC = () => {
     allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
   } = useAppData();
 
-  // REMOVED 'tournament' from the activeTab type and state
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'analysis' | 'scouting'>('groups');
-  
+  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
+  const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
@@ -65,7 +66,9 @@ const App: React.FC = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // --- CORE LOGIC ---
+  // --- CORE LOGIC: PREDICTION VS REALITY ---
+  
+  // 1. User Matches: Includes their specific predictions. Used for "Knockout" tab (Prediction Game).
   const userMatches = useMemo(() => {
       if (!user) return matches;
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
@@ -75,6 +78,18 @@ const App: React.FC = () => {
       }
       return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
   }, [matches, teamsData, allPredictions, user]);
+
+  // 2. Live Results: Maps actual scores to prediction format for the read-only "Tournament" tree.
+  const liveResultsAsPredictions = useMemo(() => {
+      return matches
+        .filter(m => m.homeScore !== null && m.awayScore !== null)
+        .map(m => ({ 
+            matchId: m.id, 
+            home: m.homeScore!, 
+            away: m.awayScore!, 
+            userId: 'LIVE_SYSTEM' 
+        }));
+  }, [matches]);
 
   // --- ACTIONS ---
   const handleLogout = async () => {
@@ -231,8 +246,8 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // REMOVED 'tournament' from the tabs list
-  const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'manager', 'analysis'], [tournamentPhase]);
+  // RESTORED 'tournament' to navTabs
+  const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'tournament', 'manager', 'analysis'], [tournamentPhase]);
   
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   
@@ -279,6 +294,7 @@ const App: React.FC = () => {
 
   const getSimMode = (): 'knockout' | 'groups' => {
       if (activeTab === 'knockout') return 'knockout';
+      if (activeTab === 'tournament' && tournamentSubTab === 'bracket') return 'knockout';
       return 'groups';
   };
 
@@ -328,9 +344,74 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* TOURNAMENT TAB HAS BEEN REMOVED FOR REDESIGN */}
+        {/* NEW: TOURNAMENT HUB (Live Reality - Official Data) */}
+        {activeTab === 'tournament' && (
+            <div className="flex flex-col h-full animate-fade-in">
+                {/* Hub Navigation */}
+                <div className="flex justify-center mb-6">
+                   <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
+                      {(['schedule', 'tables', 'bracket'] as const).map(sub => (
+                         <button key={sub} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
+                            {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{(t as any)[`subnav${sub.charAt(0).toUpperCase() + sub.slice(1)}`]}
+                         </button>
+                      ))}
+                   </div>
+                </div>
 
-        {/* GROUPS TAB (PREDICTION REALITY) */}
+                {/* 1. SCHEDULE VIEW */}
+                {tournamentSubTab === 'schedule' && (
+                    <TournamentSchedule 
+                        matches={matches} 
+                        teams={teamsData} 
+                        userPredictions={allPredictions.filter(p => p.userId === user?.email)} 
+                        user={user} 
+                        lang={t} 
+                        currentLang={language} 
+                        onTeamClick={(id) => setViewingTeamId(id)} 
+                    />
+                )}
+
+                {/* 2. TABLES VIEW */}
+                {tournamentSubTab === 'tables' && (
+                    <div className="pb-20">
+                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 no-scrollbar px-1">
+                            {GROUP_CONFIG.map(g => (
+                                <div key={g.id} className="snap-center shrink-0 w-[85vw] md:w-[22rem]">
+                                    <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                                        <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center">
+                                            <h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3>
+                                        </div>
+                                        {/* Uses official match data to calculate official tables */}
+                                        <StandingsTable 
+                                            standings={calculateGroupStandings(g.id, matches, teamsData)} 
+                                            teams={teamsData} 
+                                            lang={t} 
+                                            compact={true} 
+                                            onTeamClick={(id) => setViewingTeamId(id)} 
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
+                    </div>
+                )}
+                
+                {/* 3. BRACKET VIEW (OFFICIAL) */}
+                {tournamentSubTab === 'bracket' && (
+                    <KnockoutTreeView 
+                        matches={matches} 
+                        teams={teamsData} 
+                        // CRITICAL: We pass actual results masquerading as predictions so the tree renders the official timeline
+                        userPredictions={liveResultsAsPredictions} 
+                        onUpdate={() => {}} // Read-only
+                        lang={t}
+                    />
+                )}
+            </div>
+        )}
+
+        {/* GROUPS TAB (PREDICTION GAME) */}
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
@@ -354,7 +435,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* KNOCKOUT TAB (PREDICTION REALITY) */}
+        {/* KNOCKOUT TAB (PREDICTION GAME) - Uses Interactive Step-by-Step Bracket */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
@@ -381,10 +462,13 @@ const App: React.FC = () => {
                 </div>
             </div>
         )}
+        
+        {/* ... (Leaderboard, Manager, etc. tabs - Unchanged) ... */}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
 
+      {/* ... (Modals - Unchanged) ... */}
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
@@ -399,6 +483,7 @@ const App: React.FC = () => {
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
+      {/* ... (Magic Wand Logic - Unchanged) ... */}
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} 
@@ -412,10 +497,8 @@ const App: React.FC = () => {
                     await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email);
                     setUser({ ...user, favorites: favs });
                 }
-
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope);
-                
                 const relevantMatches = simulatedMatches.filter(m => {
                     if (safeScope === 'GROUPS') return !!m.groupId;
                     if (safeScope === 'KNOCKOUT') return !!m.round;
@@ -436,14 +519,12 @@ const App: React.FC = () => {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
                             addToast('success', 'Magic Applied', `Generated scores for ${predictionsToSave.length} matches.`);
-                            
                             setAllPredictions(prev => {
                                 const others = prev.filter(p => p.userId !== user.email);
                                 const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
                                 const myNewPreds = predictionsToSave.map(p => ({ 
                                     userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away 
                                 }));
-                                
                                 return [...others, ...myOldPreds, ...myNewPreds];
                             });
                         } else {

@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Match, Team, Translation, Prediction, UserProfile } from '../types';
-import { Calendar, MapPin, Clock, Search, Trophy, Activity } from 'lucide-react';
+import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
+import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
+import { MatchdayHero } from './MatchdayHero';
+import { calculateGroupStandings } from '../services/engine';
 
 interface TournamentScheduleProps {
   matches: Match[];
   teams: Record<string, Team>;
-  userPredictions: Prediction[];
+  userPredictions: Prediction[]; // Optional: Just to show "My Pick" vs "Actual" if desired
   user: UserProfile | null;
   lang: Translation;
   currentLang: string;
@@ -16,9 +19,11 @@ interface TournamentScheduleProps {
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
 }) => {
+  // Initialize with 'ALL' or finding the closest date to today could be added here
   const [filterDate, setFilterDate] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 1. Extract unique dates from the actual schedule
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
@@ -29,105 +34,40 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
+  // 2. Identify a "Hero Match" (Live or High Profile Upcoming)
+  const heroMatch = useMemo(() => {
+    // Priority: Live > Upcoming > specific high profile
+    return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
+           matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
+  }, [matches]);
+
+  // 3. Get context for the Hero Match (e.g. Group Table)
+  const heroStandings = useMemo(() => {
+    if (!heroMatch?.groupId) return undefined;
+    return calculateGroupStandings(heroMatch.groupId, matches, teams);
+  }, [heroMatch, matches, teams]);
+
+  // 4. Filter matches based on user selection
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
           const away = teams[m.awayTeamId] || { name: 'TBD' };
           
-          const matchesDate = filterDate === 'ALL' || (m.date && new Date(m.date).toDateString() === filterDate);
-          const matchesSearch = searchTerm === '' || 
+          // Date Filter
+          const dateMatch = filterDate === 'ALL' || (m.date && new Date(m.date).toDateString() === filterDate);
+          
+          // Search Filter
+          const searchMatch = searchTerm === '' || 
               home.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-              away.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (m.venue && m.venue.toLowerCase().includes(searchTerm.toLowerCase()));
-
-          return matchesDate && matchesSearch;
+              away.name.toLowerCase().includes(searchTerm.toLowerCase());
+              
+          return dateMatch && searchMatch;
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // Identify the Hero Match: First LIVE match, or the first UPCOMING match
-  const heroMatch = useMemo(() => {
-    if (searchTerm || filterDate !== 'ALL') return null;
-    const live = matches.find(m => m.status === 'LIVE');
-    if (live) return live;
-    return matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
-  }, [matches, searchTerm, filterDate]);
-
-  const formatDate = (dateStr: string) => {
-      if (!dateStr || dateStr === 'TBD') return 'TBD';
-      return new Date(dateStr).toLocaleDateString(currentLang === 'NO' ? 'nb-NO' : 'en-GB', {
-          weekday: 'short', month: 'short', day: 'numeric'
-      });
-  };
-
-  const formatTime = (dateStr: string) => {
-      if (!dateStr || dateStr === 'TBD') return '';
-      return new Date(dateStr).toLocaleTimeString(currentLang === 'NO' ? 'nb-NO' : 'en-GB', {
-          hour: '2-digit', minute: '2-digit'
-      });
-  };
-
-  const renderMatchCard = (match: Match, isHero = false) => {
-    const home = teams[match.homeTeamId];
-    const away = teams[match.awayTeamId];
-    const homeName = home ? home.name : (match.homeTeamId === 'TBD' ? 'TBD' : match.homeTeamId);
-    const awayName = away ? away.name : (match.awayTeamId === 'TBD' ? 'TBD' : match.awayTeamId);
-    const prediction = userPredictions.find(p => p.matchId === match.id);
-
-    return (
-        <div key={match.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all ${isHero ? 'ring-2 ring-blue-500 shadow-lg mb-6' : 'hover:shadow-md'}`}>
-            {/* Header */}
-            <div className={`${isHero ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500'} px-3 py-2 border-b border-slate-100 flex justify-between items-center`}>
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide">
-                    {match.status === 'LIVE' ? <Activity size={12} className="animate-pulse" /> : <Calendar size={12} />}
-                    <span>{match.status === 'LIVE' ? (lang.live || "LIVE") : formatDate(match.date)}</span>
-                    <span className={isHero ? 'opacity-50' : 'text-slate-300'}>|</span>
-                    <Clock size={12} />
-                    <span>{formatTime(match.date)}</span>
-                </div>
-                {isHero && <span className="text-[9px] font-black bg-white text-blue-600 px-2 py-0.5 rounded-full">FEATURED</span>}
-            </div>
-
-            {/* Teams Grid */}
-            <div className={`p-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 ${isHero ? 'bg-gradient-to-b from-blue-50/30 to-white' : ''}`}>
-                <div className="flex flex-col items-center gap-2 cursor-pointer" onClick={() => home && onTeamClick(home.id)}>
-                    <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-100">
-                        {home?.flag && <img src={home.flag} alt={homeName} className="w-full h-full object-cover" />}
-                    </div>
-                    <span className="text-xs font-black text-slate-800 text-center leading-tight">{homeName}</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                    {match.status === 'FINISHED' || match.status === 'FT' || match.status === 'LIVE' ? (
-                        <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-lg font-black tracking-tighter shadow-inner">
-                            {match.homeScore ?? 0} - {match.awayScore ?? 0}
-                        </div>
-                    ) : (
-                        <div className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                            VS
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex flex-col items-center gap-2 cursor-pointer" onClick={() => away && onTeamClick(away.id)}>
-                    <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-100">
-                        {away?.flag && <img src={away.flag} alt={awayName} className="w-full h-full object-cover" />}
-                    </div>
-                    <span className="text-xs font-black text-slate-800 text-center leading-tight">{awayName}</span>
-                </div>
-            </div>
-
-            {prediction && (
-                <div className="px-3 py-2 bg-blue-50 border-t border-blue-100 flex justify-between items-center">
-                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{lang.myPick || "My Prediction"}</span>
-                    <span className="text-xs font-bold text-blue-800">{prediction.home} - {prediction.away}</span>
-                </div>
-            )}
-        </div>
-    );
-  };
-
   return (
-    <div className="pb-20 animate-fade-in bg-slate-50 min-h-screen">
+    <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
+        {/* Date Navigation */}
         <DateRibbon 
             dates={uniqueDates} 
             selectedDate={filterDate} 
@@ -135,39 +75,80 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
             lang={lang} 
         />
         
-        <div className="p-4">
+        <div className="p-4 max-w-2xl mx-auto">
+            {/* Search Bar */}
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
                     type="text" 
-                    placeholder={lang.searchNation || "Search nations or venues..."}
+                    placeholder={lang.searchNation || "Search fixtures..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
 
-            {/* Render Hero Match if visible */}
-            {heroMatch && !searchTerm && filterDate === 'ALL' && (
-                <>
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Featured Match</h3>
-                    {renderMatchCard(heroMatch, true)}
-                </>
+            {/* Matchday Hero - Contextual Header */}
+            {heroMatch && filterDate === 'ALL' && !searchTerm && (
+                <MatchdayHero 
+                    match={heroMatch} 
+                    teams={teams} 
+                    groupStandings={heroStandings} 
+                    lang={lang}
+                    onTeamClick={onTeamClick}
+                />
             )}
 
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">
-                {filterDate === 'ALL' ? 'Full Schedule' : 'Matches for ' + formatDate(filterDate)}
-            </h3>
-
+            {/* Fixture List */}
             <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        {filterDate === 'ALL' 
+                            ? (lang.subnavSchedule || 'Schedule') 
+                            : new Date(filterDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+                        }
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                        {filteredMatches.length} Matches
+                    </span>
+                </div>
+
                 {filteredMatches.length > 0 ? (
-                    filteredMatches
-                        .filter(m => m.id !== heroMatch?.id || searchTerm !== '' || filterDate !== 'ALL')
-                        .map(match => renderMatchCard(match))
+                    filteredMatches.map(match => {
+                        const isHighStakes = !match.groupId && match.round !== 'R32';
+                        return (
+                            <div key={match.id} className="relative">
+                                <MatchCard 
+                                    match={match}
+                                    homeTeam={teams[match.homeTeamId]}
+                                    awayTeam={teams[match.awayTeamId]}
+                                    // Pass empty function for update since this is Read-Only
+                                    onUpdate={() => {}} 
+                                    prediction={userPredictions.find(p => p.matchId === match.id)}
+                                    lang={lang}
+                                    locale={currentLang}
+                                    userTokens={0}
+                                    rivals={[]}
+                                    onSpy={() => {}}
+                                    revealedRivals={[]}
+                                    currentUser={user}
+                                    allPredictions={userPredictions}
+                                    phase={'LIVE'}
+                                    isAdminMode={false}
+                                    onTeamClick={onTeamClick}
+                                />
+                                {isHighStakes && (
+                                    <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
+                                        <AlertTriangle size={12} />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
                 ) : (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-                        <Calendar size={40} className="mx-auto mb-4 text-slate-200" />
-                        <div className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.noMatches || "No matches found"}</div>
+                    <div className="flex flex-col items-center justify-center py-12 opacity-50">
+                        <CalendarDays size={48} className="text-slate-300 mb-2" />
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No matches found</p>
                     </div>
                 )}
             </div>

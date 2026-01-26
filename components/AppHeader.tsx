@@ -29,7 +29,6 @@ interface AppHeaderProps {
   matches: any[];
   teamsData: any;
   allPredictions: any[];
-  // NEW PROPS FOR KNOCKOUT
   activeKnockoutRound?: Round;
   setActiveKnockoutRound?: (r: Round) => void;
 }
@@ -37,7 +36,6 @@ interface AppHeaderProps {
 export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   const { user, t, matches, teamsData, allPredictions } = props;
 
-  // Helper for Icons in Knockout Buttons
   const getRoundIcon = (r: Round) => {
       switch(r) {
           case 'R32': return <Users size={48} className="text-white/20" />; 
@@ -53,6 +51,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   return (
     <header className="sticky top-0 z-50">
+      {/* 1. TOP BAR */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
           <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -108,6 +107,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               </div>
           </div>
       </div>
+
+      {/* 2. TAB NAVIGATION */}
       <div className="bg-[#0f2545]/95 backdrop-blur-md border-b border-white/5 shadow-2xl relative z-10">
           <div className="max-w-5xl mx-auto px-4 overflow-x-auto no-scrollbar">
               <nav className="flex justify-center">
@@ -132,7 +133,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
       
-      {/* 1. GROUP STAGE SELECTOR (Existing) */}
+      {/* 3. GROUP NAV (Only for Groups Tab) */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
           <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
               <div className="flex gap-2 px-4 justify-start sm:justify-center">
@@ -162,8 +163,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       )}
 
-      {/* 2. KNOCKOUT ROUND SELECTOR (New - Matches Group Selector Style) */}
-      {(props.activeTab === 'knockout' || (props.activeTab === 'tournament' && props.activeKnockoutRound)) && props.setActiveKnockoutRound && (
+      {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
+      {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
           <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
                   {rounds.map(r => {
@@ -186,18 +187,15 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   }
                               `}
                           >
-                              {/* Background Texture Icon */}
                               <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">
                                   {getRoundIcon(r)}
                               </div>
                               <div className="absolute inset-0 bg-black/30"></div>
-                              
                               <div className="absolute inset-0 flex items-center justify-center">
                                   <span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>
                                       {r === 'FIN' ? 'FINAL' : r}
                                   </span>
                               </div>
-
                               <div className={`
                                   absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
                                   ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' 
