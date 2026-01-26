@@ -13,7 +13,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayStr = new Date().toDateString();
 
-  // Scroll to selected date on load/change
+  // Auto-scroll to active date
   useEffect(() => {
     if (scrollRef.current && selectedDate !== 'ALL') {
       const selectedEl = scrollRef.current.querySelector(`[data-date="${selectedDate}"]`) as HTMLElement;
@@ -27,20 +27,24 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
-      const scrollAmount = 300;
-      scrollRef.current.scrollBy({ 
-        left: direction === 'left' ? -scrollAmount : scrollAmount, 
-        behavior: 'smooth' 
-      });
+      const scrollAmount = 200;
+      scrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
+  const getRelativeLabel = (dateStr: string) => {
+    const dateObj = new Date(dateStr);
+    const now = new Date();
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    
+    if (dateObj.toDateString() === todayStr) return { main: lang.today || "Today", sub: "" };
+    if (dateObj.toDateString() === tomorrow.toDateString()) return { main: lang.tomorrow || "Tom", sub: "" };
+    if (dateObj.toDateString() === yesterday.toDateString()) return { main: lang.yesterday || "Yest", sub: "" };
+    
     return {
-        weekday: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-        day: d.getDate(),
-        month: d.toLocaleDateString('en-GB', { month: 'short' })
+        main: dateObj.getDate(),
+        sub: dateObj.toLocaleDateString('en-GB', { weekday: 'short' })
     };
   };
 
@@ -54,7 +58,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         <button 
           onClick={() => onDateSelect('ALL')}
           className={`
-            h-full px-4 border-r border-white/10 flex flex-col items-center justify-center gap-1 transition-colors min-w-[4rem]
+            h-full px-4 border-r border-white/10 flex flex-col items-center justify-center gap-1 transition-colors min-w-[4.5rem]
             ${selectedDate === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}
           `}
         >
@@ -62,7 +66,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
           <span className="text-[9px] font-black uppercase tracking-widest">{lang.filterAll || "All"}</span>
         </button>
 
-        {/* Desktop Left Arrow */}
+        {/* Left Arrow (Desktop) */}
         <button 
             onClick={() => handleScroll('left')}
             className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -76,9 +80,12 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
           className="flex-1 flex items-center overflow-x-auto no-scrollbar h-full snap-x"
         >
           {dates.map(dateStr => {
-            const { weekday, day, month } = formatDate(dateStr);
+            const label = getRelativeLabel(dateStr);
             const isSelected = selectedDate === dateStr;
             const today = isToday(dateStr);
+            
+            // If it's a relative label (Today/Tom), we display it differently than numeric dates
+            const isRelative = typeof label.main === 'string';
 
             return (
               <button 
@@ -96,15 +103,23 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
                 {today && !isSelected && (
                     <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-sm"></div>
                 )}
-                <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">{weekday}</span>
-                <span className={`text-2xl font-black leading-none my-0.5 ${isSelected ? 'scale-110' : ''}`}>{day}</span>
-                <span className="text-[8px] font-bold uppercase opacity-60">{month}</span>
+                
+                {isRelative ? (
+                    <span className={`text-xs font-black uppercase tracking-wider ${isSelected ? 'scale-110' : ''}`}>
+                        {label.main}
+                    </span>
+                ) : (
+                    <>
+                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">{label.sub}</span>
+                        <span className={`text-2xl font-black leading-none my-0.5 ${isSelected ? 'scale-110' : ''}`}>{label.main}</span>
+                    </>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Desktop Right Arrow */}
+        {/* Right Arrow (Desktop) */}
         <button 
             onClick={() => handleScroll('right')}
             className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-l border-white/10"

@@ -19,10 +19,16 @@ interface TournamentScheduleProps {
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
 }) => {
-  const [filterDate, setFilterDate] = useState<string>('ALL');
+  // 1. SMART DEFAULT: Check if today has matches when component mounts
+  const [filterDate, setFilterDate] = useState<string>(() => {
+      const todayStr = new Date().toDateString();
+      const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
+      return hasMatchesToday ? todayStr : 'ALL';
+  });
+  
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Extract unique dates from the actual schedule
+  // 2. Extract unique dates
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
@@ -33,28 +39,24 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
-  // 2. Identify a "Hero Match" (Live or High Profile Upcoming)
+  // 3. Hero Match Logic
   const heroMatch = useMemo(() => {
     return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
            matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
   }, [matches]);
 
-  // 3. Get context for the Hero Match (e.g. Group Table)
   const heroStandings = useMemo(() => {
     if (!heroMatch?.groupId) return undefined;
     return calculateGroupStandings(heroMatch.groupId, matches, teams);
   }, [heroMatch, matches, teams]);
 
-  // 4. Filter matches based on user selection
+  // 4. Filtering Logic
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
           const away = teams[m.awayTeamId] || { name: 'TBD' };
           
-          // Date Filter
           const dateMatch = filterDate === 'ALL' || (m.date && new Date(m.date).toDateString() === filterDate);
-          
-          // Search Filter
           const searchMatch = searchTerm === '' || 
               home.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
               away.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -63,9 +65,27 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
+  // 5. HELPER: Get Relative Headline (Today, Yesterday, Tomorrow)
+  const getDateHeadline = (dateStr: string) => {
+      if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
+
+      const dateObj = new Date(dateStr);
+      const today = new Date();
+      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+      const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+
+      if (dateObj.toDateString() === today.toDateString()) return lang.today || "Today";
+      if (dateObj.toDateString() === tomorrow.toDateString()) return lang.tomorrow || "Tomorrow";
+      if (dateObj.toDateString() === yesterday.toDateString()) return lang.yesterday || "Yesterday";
+
+      // Fallback to standard full date
+      return dateObj.toLocaleDateString(currentLang === 'NO' ? 'no-NO' : 'en-GB', { 
+          weekday: 'long', month: 'long', day: 'numeric' 
+      });
+  };
+
   return (
     <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
-        {/* Date Navigation */}
         <DateRibbon 
             dates={uniqueDates} 
             selectedDate={filterDate} 
@@ -74,7 +94,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
         />
         
         <div className="p-4 max-w-2xl mx-auto">
-            {/* Search Bar */}
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
@@ -86,7 +105,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {/* Matchday Hero - Contextual Header */}
             {heroMatch && filterDate === 'ALL' && !searchTerm && (
                 <MatchdayHero 
                     match={heroMatch} 
@@ -97,14 +115,11 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             )}
 
-            {/* Fixture List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        {filterDate === 'ALL' 
-                            ? (lang.subnavSchedule || 'Schedule') 
-                            : new Date(filterDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-                        }
+                    {/* DYNAMIC HEADLINE */}
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
+                        {getDateHeadline(filterDate)}
                     </h3>
                     <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
                         {filteredMatches.length} Matches
@@ -114,8 +129,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
                         const isHighStakes = !match.groupId && match.round !== 'R32';
-                        
-                        // FORCE LOCK: Ensure this view is strictly read-only (Facts)
+                        // Force Read-Only Mode
                         const readOnlyMatch = { ...match, isLocked: true };
 
                         return (
@@ -124,15 +138,15 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     match={readOnlyMatch}
                                     homeTeam={teams[match.homeTeamId]}
                                     awayTeam={teams[match.awayTeamId]}
-                                    onUpdate={() => {}} // Disabled update
+                                    onUpdate={() => {}} 
                                     lang={lang}
                                     locale={currentLang}
-                                    userTokens={0} // Hide tokens/spy
-                                    rivals={[]} // Hide rivals
-                                    onSpy={() => {}} 
+                                    userTokens={0}
+                                    rivals={[]}
+                                    onSpy={() => {}}
                                     revealedRivals={[]}
                                     currentUser={user}
-                                    allPredictions={[]} // Pass EMPTY predictions to hide "My Pick"
+                                    allPredictions={[]}
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={onTeamClick}
