@@ -7,7 +7,7 @@ interface LogoProps {
 }
 
 /**
- * High-resolution Logo Component using local assets.
+ * High-resolution Logo Component using local assets 1.
  * Ensure 'public/logo.png' exists (512x512 recommended).
  */
 export const Logo: React.FC<LogoProps> = ({ className = "w-12 h-12", variant = 'theme' }) => {
