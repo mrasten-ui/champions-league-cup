@@ -7,7 +7,7 @@ import {
 } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
-import { fetchAllTeamTactics } from '../services/analyst'; // <--- IMPORT THIS
+import { fetchAllTeamTactics } from '../services/analyst';
 
 export const useAppData = () => {
   const [session, setSession] = useState<any>(null);
@@ -95,35 +95,51 @@ export const useAppData = () => {
               setUsersDb(pMap);
           }
 
-          // D. Fetch Team Data (Stats + Ranks) - THE FIX
-          const [rankMap, tacticsMap] = await Promise.all([
+          // D. Fetch Team Data (Stats + Ranks + FORM)
+          // We fetch Rankings, Tactics, AND Scouting Data (for Form)
+          const [rankMap, tacticsMap, scoutingData] = await Promise.all([
               fetchAllTeamRanks(),
-              fetchAllTeamTactics()
+              fetchAllTeamTactics(),
+              supabase.from('scouting_overview').select('team_id, recent_form')
           ]);
 
-          if (Object.keys(rankMap).length > 0 || Object.keys(tacticsMap).length > 0) {
-              setTeamsData(prev => {
-                  const next = { ...prev };
-                  Object.keys(next).forEach(tid => {
-                      if (next[tid]) {
-                          // 1. Update Rank
-                          if (rankMap[tid]) {
-                              next[tid].rank = rankMap[tid];
-                          }
-                          // 2. Update Stats from Tactics (Fixes the "Rubbish" values)
-                          if (tacticsMap[tid]) {
-                              const t = tacticsMap[tid];
-                              next[tid].att = t.att;
-                              next[tid].mid = t.mid;
-                              next[tid].def = t.def;
-                              // Calculate a real rating (Average of the 3 main stats)
-                              next[tid].rating = Math.round((t.att + t.mid + t.def) / 3);
-                          }
+          setTeamsData(prev => {
+              const next = { ...prev };
+              
+              // Helper to map form string "W-L-D" to array ['W','L','D']
+              const formMap: Record<string, string[]> = {};
+              if (scoutingData.data) {
+                  scoutingData.data.forEach((row: any) => {
+                      if (row.recent_form) {
+                          // Clean up string and split
+                          formMap[row.team_id] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c);
                       }
                   });
-                  return next;
+              }
+
+              Object.keys(next).forEach(tid => {
+                  if (next[tid]) {
+                      // 1. Update Rank
+                      if (rankMap[tid]) {
+                          next[tid].rank = rankMap[tid];
+                      }
+                      // 2. Update Stats from Tactics
+                      if (tacticsMap[tid]) {
+                          const t = tacticsMap[tid];
+                          next[tid].att = t.att;
+                          next[tid].mid = t.mid;
+                          next[tid].def = t.def;
+                          next[tid].rating = Math.round((t.att + t.mid + t.def) / 3);
+                      }
+                      // 3. Update Historical Form (Critical for Table)
+                      if (formMap[tid]) {
+                          next[tid].form = formMap[tid];
+                      }
+                  }
               });
-          }
+              return next;
+          });
+
       } catch (e) { console.error("Data Load Error", e); }
   };
 

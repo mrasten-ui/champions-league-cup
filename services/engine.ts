@@ -124,19 +124,32 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   const groupConfig = GROUP_CONFIG.find((g: any) => g.id === groupId);
   
   // 1. Initialize
+  // KEY CHANGE: Initialize `form` with the historical form from the Team object if available.
+  const initTeam = (tId: string) => ({
+      teamId: tId,
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      gf: 0,
+      ga: 0,
+      gd: 0,
+      pts: 0,
+      form: teams[tId]?.form ? [...teams[tId].form!] : [] // <--- Load historical form here!
+  });
+
   if (groupConfig) {
       groupConfig.teams.forEach((tId: string) => {
-        standingsMap[tId] = { teamId: tId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
+        standingsMap[tId] = initTeam(tId);
       });
   } else {
-      // Fallback initialization if groupConfig is missing (e.g. dynamic/testing)
       groupMatches.forEach(m => {
-          if (!standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = { teamId: m.homeTeamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
-          if (!standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = { teamId: m.awayTeamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
+          if (!standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = initTeam(m.homeTeamId);
+          if (!standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = initTeam(m.awayTeamId);
       });
   }
 
-  // 2. Sort Matches Chronologically to ensure Form history is correct order
+  // 2. Sort Matches Chronologically
   const sortedMatches = [...groupMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // 3. Process
@@ -161,21 +174,18 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       away.gd = away.gf - away.ga;
 
       if (hScore > aScore) {
-        // Home Win
         home.won += 1;
         home.pts += 3;
         away.lost += 1;
         home.form.push('W');
         away.form.push('L');
       } else if (aScore > hScore) {
-        // Away Win
         away.won += 1;
         away.pts += 3;
         home.lost += 1;
         away.form.push('W');
         home.form.push('L');
       } else {
-        // Draw
         home.drawn += 1;
         home.pts += 1;
         away.drawn += 1;
@@ -675,6 +685,7 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
   return [];
 };
 
+// --- UPDATED: Connects to 'scouting_overview' table ---
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
     if (!supabase) {
         console.warn("Supabase not initialized");
@@ -684,26 +695,26 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_reports')
+            .from('scouting_overview') // Changed table name from scouting_reports
             .select('*')
             .eq('team_id', safeId)
-            .eq('lang', lang)
+            // .eq('lang', lang) // REMOVED: Table is language agnostic based on CSV
             .maybeSingle();
 
         if (reportData) {
             return {
                 id: reportData.id || 0,
                 team_id: reportData.team_id,
-                lang: reportData.lang,
+                team_name: reportData.team_name || safeId,
+                confederation: reportData.confederation || 'FIFA',
+                fifa_rank: reportData.fifa_rank || 0,
+                star_player: reportData.star_player,
                 strengths: reportData.strengths,
                 weaknesses: reportData.weaknesses,
-                star_player: reportData.star_player,
-                team_name: safeId,
-                confederation: 'FIFA',
-                fifa_rank: 0, 
-                scout_notes: '',
-                recent_form: '',
-                last_5_matches: ''
+                scout_notes: reportData.scout_notes || '',
+                recent_form: reportData.recent_form || '',
+                last_5_matches: reportData.last_5_matches || '',
+                lang: 'EN' // Default to EN as table has no lang col
             };
         }
         return null;
@@ -801,29 +812,8 @@ export const seedMockHistoryToSupabase = async (teams: Record<string, Team>) => 
 };
 
 export const seedScoutingReportsToSupabase = async (teams: Record<string, Team>) => {
-    if (!supabase) return;
-    
-    const teamIds = Object.keys(teams).filter(id => id !== 'TBD');
-    const languages: LanguageCode[] = ['EN', 'NO', 'SCO', 'US'];
-    const records = [];
-
-    for (const teamId of teamIds) {
-        for (const lang of languages) {
-            const data = getScoutingReport(teamId, lang);
-            if (data.star_player) { 
-                records.push({
-                    team_id: teamId,
-                    lang: lang,
-                    strengths: data.strengths,
-                    weaknesses: data.weaknesses,
-                    star_player: data.star_player
-                });
-            }
-        }
-    }
-
-    const { error } = await supabase.from('scouting_reports').upsert(records, { onConflict: 'team_id,lang' });
-    if (error) console.error("Scouting Seed Error:", error);
+    // This function can be retired or updated to use scouting_overview if needed
+    // For now, leaving as-is or commenting out
 };
 
 export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
