@@ -246,7 +246,6 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // RESTORED 'tournament' to navTabs
   const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'tournament', 'manager', 'analysis'], [tournamentPhase]);
   
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
@@ -344,7 +343,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* NEW: TOURNAMENT HUB (Live Reality - Official Data) */}
+        {/* TOURNAMENT HUB (Live Reality - Official Data) */}
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 {/* Hub Navigation */}
@@ -421,7 +420,9 @@ const App: React.FC = () => {
                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6"><StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} /></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
-                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} />
+                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} 
+                              showStatusBadge={false} // HIDE BADGE ON GROUPS
+                              />
                           ))}
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
@@ -463,12 +464,14 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* ... (Leaderboard, Manager, etc. tabs - Unchanged) ... */}
+        {/* LEADERBOARD TAB */}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
+        
+        {/* MANAGER TAB */}
         {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
       </main>
 
-      {/* ... (Modals - Unchanged) ... */}
+      {/* MODALS */}
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
@@ -483,7 +486,6 @@ const App: React.FC = () => {
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
-      {/* ... (Magic Wand Logic - Unchanged) ... */}
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} 

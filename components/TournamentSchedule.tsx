@@ -19,7 +19,6 @@ interface TournamentScheduleProps {
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
 }) => {
-  // 1. SMART DEFAULT: Check if today has matches when component mounts
   const [filterDate, setFilterDate] = useState<string>(() => {
       const todayStr = new Date().toDateString();
       const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
@@ -28,7 +27,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 2. Extract unique dates
+  // 1. Extract unique dates
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
@@ -39,7 +38,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
-  // 3. Hero Match Logic
+  // 2. Hero Match Logic
   const heroMatch = useMemo(() => {
     return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
            matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
@@ -50,7 +49,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return calculateGroupStandings(heroMatch.groupId, matches, teams);
   }, [heroMatch, matches, teams]);
 
-  // 4. Filtering Logic
+  // 3. Filtering Logic
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
@@ -65,7 +64,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // 5. HELPER: Get Relative Headline (Today, Yesterday, Tomorrow)
+  // 4. HELPER: Get Relative Headline
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
 
@@ -78,7 +77,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       if (dateObj.toDateString() === tomorrow.toDateString()) return lang.tomorrow || "Tomorrow";
       if (dateObj.toDateString() === yesterday.toDateString()) return lang.yesterday || "Yesterday";
 
-      // Fallback to standard full date
       return dateObj.toLocaleDateString(currentLang === 'NO' ? 'no-NO' : 'en-GB', { 
           weekday: 'long', month: 'long', day: 'numeric' 
       });
@@ -117,7 +115,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
-                    {/* DYNAMIC HEADLINE */}
                     <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
                         {getDateHeadline(filterDate)}
                     </h3>
@@ -150,6 +147,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={onTeamClick}
+                                    showStatusBadge={true} // ENABLE BADGE ON TOURNAMENT TAB
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">

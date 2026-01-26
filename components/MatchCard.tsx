@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin, Save, Calendar } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin, Save } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -23,6 +23,7 @@ interface MatchCardProps {
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
   onTeamClick?: (teamId: string) => void;
+  showStatusBadge?: boolean; 
 }
 
 const ScoreStepper: React.FC<{ 
@@ -56,7 +57,7 @@ const ScoreStepper: React.FC<{
   );
 };
 
-// Corner Badge Component
+// Internal Badge Component
 const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match, lang }) => {
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
@@ -84,7 +85,7 @@ const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match
 
     if (isFinished) {
         return (
-            <div className="absolute -top-3 -right-2 z-20 bg-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-slate-300 shadow-sm">
+            <div className="bg-slate-700 text-slate-300 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-slate-600 shadow-sm">
                 {lang.ft || "FT"}
             </div>
         );
@@ -92,7 +93,7 @@ const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match
 
     if (isLive) {
         return (
-            <div className="absolute -top-3 -right-2 z-20 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-red-700 shadow-sm flex items-center gap-1 animate-pulse">
+            <div className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-red-500 shadow-sm flex items-center gap-1.5 animate-pulse">
                 <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                 {match.minute ? `${match.minute}'` : (lang.live || "LIVE")}
             </div>
@@ -101,22 +102,21 @@ const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match
 
     if (isToday) {
         return (
-             <div className="absolute -top-3 -right-2 z-20 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-yellow-500 shadow-sm flex items-center gap-1">
+             <div className="bg-yellow-400 text-[#0f2545] text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-yellow-300 shadow-sm flex items-center gap-1">
                 <Clock size={10} /> {timeLeft}
              </div>
         );
     }
 
-    // Upcoming (Future)
     return (
-        <div className="absolute -top-3 -right-2 z-20 bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-rose-200 shadow-sm">
+        <div className="bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-rose-400 shadow-sm">
             {lang.filterUpcoming || "Upcoming"}
         </div>
     );
 };
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick
+    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -182,9 +182,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const canSpy = !isSpied && userTokens > 0 && !isRealLifeLocked && rivals.length > 0;
     const showRivals = isSpied || isRealLifeLocked;
 
-    // --- CENTER BUTTON LOGIC ---
     const renderControlButtons = () => {
-        // 1. SUB BUTTON (Replaces "Upcoming" in the center)
         if (canSubstitute) {
             return (
                 <button 
@@ -197,8 +195,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </button>
             );
         }
-
-        // 2. SAVE BUTTON
         if (isUnlockedBySub && isDirty) {
             return (
                 <button 
@@ -210,8 +206,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </button>
             );
         }
-
-        // 3. UNLOCKED BADGE
         if (isUnlockedBySub && !isDirty) {
             return (
                 <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 w-full">
@@ -220,12 +214,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             );
         }
-
-        // 4. LOCKED - DO NOT SHOW STATUS HERE (Status is now in the corner badge)
-        if (isLocked) {
-            return null; 
-        }
-
         return null;
     };
 
@@ -241,15 +229,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group mt-3`}>
              
-             {/* NEW: CORNER STATUS BADGE */}
-             <MatchStatusBadge match={match} lang={lang} />
-
              {/* Header - Navy Blue */}
-             <div className="px-3 py-2 border-b border-[#1a3a6c] bg-[#0f2545] flex items-center justify-between rounded-t-2xl min-h-[36px]">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 w-full justify-center">
+             <div className="px-3 py-2 border-b border-[#1a3a6c] bg-[#0f2545] flex items-center justify-between rounded-t-2xl min-h-[36px] relative">
+                
+                <div className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
                     <div className="flex items-center gap-2">
-                        {/* Only show Date/Time here if NOT finished/live, as redundancy */}
-                        {!isLive && !isFinished && (
+                        {!isLive && (
                             <span className="flex items-center gap-1 text-white">
                                 <Clock size={12} /> 
                                 {new Date(match.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -257,7 +242,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         )}
                         {match.venue && match.venue !== 'TBD' && (
                             <>
-                                {!isLive && !isFinished && <span className="text-slate-500">•</span>}
+                                {!isLive && <span className="text-slate-500">•</span>}
                                 <span className="flex items-center gap-1 truncate max-w-[140px] text-slate-400" title={match.venue}>
                                     <MapPin size={10} />
                                     <span className="truncate">{match.venue.split(',')[0]}</span>
@@ -266,6 +251,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         )}
                     </div>
                 </div>
+
+                {/* Right: Status Badge (If enabled) */}
+                {showStatusBadge && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <MatchStatusBadge match={match} lang={lang} />
+                    </div>
+                )}
              </div>
 
             {/* Main Content */}
@@ -289,9 +281,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
                         {homeTeam?.rank && (
-                            <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-8 h-8 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">
-                            #{homeTeam.rank}
-                            </div>
+                            <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-8 h-8 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>
                         )}
                     </div>
                     <span className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
@@ -341,20 +331,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-3 w-full">
-                                             {/* PLACEHOLDER SCOREBOARD for Scheduled Matches */}
                                              <div className="px-5 py-3 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2">
                                                 <span>-</span>
                                                 <span className="opacity-50 text-lg mx-1">:</span>
                                                 <span>-</span>
                                              </div>
-                                             
                                              {prediction && (
                                                 <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                                     {lang.myPick}: {prediction.home}-{prediction.away}
                                                 </div>
                                              )}
-                                             
-                                             {/* SUB BUTTON GOES HERE */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
@@ -363,7 +349,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                     )}
                     
-                    {/* Reveal Rival Button */}
                     <div className="flex items-center justify-center w-full mt-3">
                         {!showRivals && canSpy && (
                             <button onClick={(e) => { e.stopPropagation(); onSpy(match.id); }} className="group w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition-all shadow-sm hover:shadow-md active:scale-95">
@@ -450,7 +435,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* Rivals Section */}
             {showRivals && rivals.length > 0 && (
                 <div className="bg-[#0f2545] p-4 animate-in slide-in-from-top-2 border-t border-white/10 rounded-b-2xl">
                     <div className="flex items-center justify-between mb-3">
