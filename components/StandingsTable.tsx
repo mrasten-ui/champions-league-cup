@@ -39,6 +39,9 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
           {standings.map((row, index) => {
             const team = teams[row.teamId];
             const isHighlighted = highlightedTeamId === row.teamId;
+            
+            // NEW: Get last 5 matches
+            const recentForm = row.form ? row.form.slice(-5) : [];
 
             return (
               <tr 
@@ -81,13 +84,29 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                     {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
                 <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
+                
+                {/* REAL FORM DISPLAY */}
                 {!compact && (
                     <td className="text-center hidden sm:table-cell">
-                        <div className="flex items-center justify-center gap-0.5">
-                            {/* Dummy form indicators for visuals */}
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < 3 ? 'bg-green-400' : 'bg-slate-200'}`}></div>
-                            ))}
+                        <div className="flex items-center justify-center gap-1">
+                            {recentForm.length > 0 ? (
+                                recentForm.map((result, i) => {
+                                    let bgClass = 'bg-slate-200';
+                                    if (result === 'W') bgClass = 'bg-green-500';
+                                    if (result === 'L') bgClass = 'bg-rose-500';
+                                    if (result === 'D') bgClass = 'bg-slate-400';
+                                    
+                                    return (
+                                        <div 
+                                            key={i} 
+                                            title={result}
+                                            className={`w-1.5 h-1.5 rounded-full ${bgClass}`}
+                                        ></div>
+                                    );
+                                })
+                            ) : (
+                                <span className="text-[9px] text-slate-300">-</span>
+                            )}
                         </div>
                     </td>
                 )}

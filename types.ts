@@ -2,7 +2,7 @@ export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
 
 export interface Translation {
   [key: string]: string | any; // Fallback for generic keys
-  teamNames: Record<string, string>; // <--- CRITICAL for Scouting Center
+  teamNames: Record<string, string>;
 }
 
 export type Round = 'R32' | 'R16' | 'QF' | 'SF' | 'FIN' | '3RD';
@@ -68,6 +68,7 @@ export interface GroupStanding {
   ga: number;
   gd: number;
   pts: number;
+  form: string[]; // NEW: Stores 'W', 'D', 'L' history
 }
 
 export interface HeadToHeadStats {

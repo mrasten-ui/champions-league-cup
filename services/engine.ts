@@ -123,13 +123,24 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   const standingsMap: Record<string, GroupStanding> = {};
   const groupConfig = GROUP_CONFIG.find((g: any) => g.id === groupId);
   
+  // 1. Initialize
   if (groupConfig) {
       groupConfig.teams.forEach((tId: string) => {
-        standingsMap[tId] = { teamId: tId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+        standingsMap[tId] = { teamId: tId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
+      });
+  } else {
+      // Fallback initialization if groupConfig is missing (e.g. dynamic/testing)
+      groupMatches.forEach(m => {
+          if (!standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = { teamId: m.homeTeamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
+          if (!standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = { teamId: m.awayTeamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0, form: [] };
       });
   }
 
-  groupMatches.forEach(match => {
+  // 2. Sort Matches Chronologically to ensure Form history is correct order
+  const sortedMatches = [...groupMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // 3. Process
+  sortedMatches.forEach(match => {
     if (match.homeScore !== null && match.awayScore !== null) {
       const home = standingsMap[match.homeTeamId];
       const away = standingsMap[match.awayTeamId];
@@ -150,18 +161,27 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       away.gd = away.gf - away.ga;
 
       if (hScore > aScore) {
+        // Home Win
         home.won += 1;
         home.pts += 3;
         away.lost += 1;
+        home.form.push('W');
+        away.form.push('L');
       } else if (aScore > hScore) {
+        // Away Win
         away.won += 1;
         away.pts += 3;
         home.lost += 1;
+        away.form.push('W');
+        home.form.push('L');
       } else {
+        // Draw
         home.drawn += 1;
         home.pts += 1;
         away.drawn += 1;
         away.pts += 1;
+        home.form.push('D');
+        away.form.push('D');
       }
     }
   });
@@ -346,7 +366,6 @@ export const applyPredictionsToBracket = (
     return currentMatches;
 };
 
-// --- CORRECTED MAGIC WAND LOGIC ---
 export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[]): Match[] => {
   return matches.map(match => {
     if (match.homeTeamId === 'TBD' || match.awayTeamId === 'TBD') return match;
@@ -383,7 +402,6 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     finalHome = Math.min(finalHome, 9);
     finalAway = Math.min(finalAway, 9);
     
-    // Tie-Breaker for Knockout Matches (Force a result)
     if (!match.groupId && finalHome === finalAway) {
         const hWeight = (homeTeam as any).rank ? (200 - (homeTeam as any).rank) : homeTeam.rating;
         const aWeight = (awayTeam as any).rank ? (200 - (awayTeam as any).rank) : awayTeam.rating;
@@ -407,7 +425,6 @@ export const simulateFullTournament = (
 ): Match[] => {
     let currentMatches = initialMatches.map(m => ({ ...m }));
 
-    // Reset scores based on scope
     currentMatches = currentMatches.map((m: Match) => {
         if (m.isLocked) return m; 
 
@@ -424,13 +441,10 @@ export const simulateFullTournament = (
     currentMatches = updateBracket(currentMatches, teams);
 
     for (let i = 0; i < 7; i++) {
-        // Filter: Find matches that need scores OR knockout matches that ended in a draw (bug fix)
         const matchesToPredict = currentMatches.filter((m: Match) => {
-            // FIX START: If it's a knockout match AND score is a draw, re-predict it
             if (!m.groupId && m.homeScore !== null && m.awayScore !== null) {
-                if (m.homeScore === m.awayScore) return true; // Fix the draw!
+                if (m.homeScore === m.awayScore) return true; 
             }
-            // FIX END
 
             if (m.homeScore !== null && m.awayScore !== null) return false;
             if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return false;
