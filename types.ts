@@ -1,7 +1,7 @@
 export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
 
 export interface Translation {
-  [key: string]: string | any; // Fallback for generic keys
+  [key: string]: string | any;
   teamNames: Record<string, string>;
 }
 
@@ -35,7 +35,7 @@ export interface Team {
   def: number;
   overview?: string;
   starPlayer?: string;
-  form?: string[];
+  form?: string[]; // Stores 'W', 'D', 'L' history
 }
 
 export interface Prediction {
@@ -68,7 +68,7 @@ export interface GroupStanding {
   ga: number;
   gd: number;
   pts: number;
-  form: string[]; // Stores 'W', 'D', 'L' history
+  form: string[]; 
 }
 
 export interface HeadToHeadStats {
@@ -95,6 +95,7 @@ export interface MatchHistoryItem {
     date: string;
 }
 
+// MATCHES YOUR NEW DB TABLE 'scouting_overview'
 export interface ScoutingData {
     id: number;
     team_id: string;
@@ -108,7 +109,7 @@ export interface ScoutingData {
     recent_form?: string;
     last_5_matches?: string;
     created_at?: string;
-    lang?: string; // Made optional as new table doesn't have it
+    lang?: string; 
 }
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';

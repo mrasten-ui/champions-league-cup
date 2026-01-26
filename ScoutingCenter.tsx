@@ -184,8 +184,10 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                           recent_form: localReport.recent_form || '',
                           last_5_matches: localReport.last_5_matches || '',
                           created_at: new Date().toISOString(),
-                          // lang is now optional in types, so we can omit it or pass currentLang
+                          // lang is optional in ScoutingData type
                       });
+                  } else {
+                      setScoutingData(null);
                   }
               }
               setLoadingHistory(false);
@@ -281,7 +283,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       </div>
 
       {/* ANALYSIS RESULTS */}
-      {analysis && (
+      {analysis && slotA && slotB && (
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden animate-in slide-in-from-bottom-4">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center">
                     <div className="flex justify-center items-center gap-2 opacity-80 mb-2">
@@ -298,15 +300,15 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.tacticalAnalysis}</h3>
-                        <AttributeBar label={lang.attack} valA={analysis.home.attributes.attack} valB={analysis.away.attributes.attack} colorA="#3b82f6" colorB="#ef4444" />
-                        <AttributeBar label={lang.defense} valA={analysis.home.attributes.defense} valB={analysis.away.attributes.defense} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label={lang.attack || "Attack"} valA={analysis.home.attributes.attack} valB={analysis.away.attributes.attack} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label={lang.defense || "Defense"} valA={analysis.home.attributes.defense} valB={analysis.away.attributes.defense} colorA="#3b82f6" colorB="#ef4444" />
                         <AttributeBar label="PACE" valA={analysis.home.attributes.pace} valB={analysis.away.attributes.pace} colorA="#3b82f6" colorB="#ef4444" />
                         <AttributeBar label="TECH" valA={analysis.home.attributes.technique} valB={analysis.away.attributes.technique} colorA="#3b82f6" colorB="#ef4444" />
                     </div>
 
                     <div className="flex flex-col justify-center">
                         <div className="text-center mb-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance}</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance || "Win Chance"}</span>
                         </div>
                         <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                              <div className="bg-blue-500 flex items-center justify-start px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${analysis.winProb}%` }}>
@@ -317,8 +319,8 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                              </div>
                         </div>
                         <div className="flex justify-between mt-1 px-1">
-                            <span className="text-[10px] font-bold text-blue-600">{getTeamName(teams[slotA!])}</span>
-                            <span className="text-[10px] font-bold text-red-600">{getTeamName(teams[slotB!])}</span>
+                            <span className="text-[10px] font-bold text-blue-600">{getTeamName(teams[slotA])}</span>
+                            <span className="text-[10px] font-bold text-red-600">{getTeamName(teams[slotB])}</span>
                         </div>
                     </div>
                 </div>
@@ -329,13 +331,13 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
-                  {activeSlot ? `${lang.selectTeam}: ${activeSlot === 'A' ? 'Home' : 'Away'}` : lang.allNations}
+                  {activeSlot ? `${lang.selectTeam || "Select Team"}: ${activeSlot === 'A' ? 'Home' : 'Away'}` : (lang.allNations || "All Nations")}
               </h3>
               <div className="relative w-40">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input 
                     type="text" 
-                    placeholder={lang.searchNation} 
+                    placeholder={lang.searchNation || "Search..."} 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500"
@@ -366,7 +368,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                           </div>
                           <div className="min-w-0">
                               <div className="font-bold text-slate-800 text-xs truncate">{translatedName}</div>
-                              <div className="text-[9px] font-medium text-slate-400">{lang.fifaRank} {team.rank}</div>
+                              <div className="text-[9px] font-medium text-slate-400">{lang.fifaRank || "Rank"} {team.rank}</div>
                           </div>
                       </button>
                   );
@@ -390,7 +392,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       <img src={selectedTeam.flag} alt={selectedTeam.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                      <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank}</span>
+                      <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank || "FIFA Rank"}</span>
                       <div className="text-4xl font-black text-white italic tracking-tighter drop-shadow-md">#{displayRank}</div>
                   </div>
                   <button onClick={() => setSelectedTeam(null)} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors backdrop-blur-sm">
@@ -417,7 +419,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                           <Crown size={24} fill="currentColor" className="text-yellow-500" />
                       </div>
                       <div className="relative z-10">
-                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer}</div>
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer || "Star Player"}</div>
                           <div className="text-xl font-black text-slate-900 leading-none">{cleanText(scoutingData?.star_player) || selectedTeam.starPlayer}</div>
                       </div>
                   </div>
@@ -426,11 +428,11 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   {scoutingData && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                           <div className="bg-green-50/60 rounded-xl p-4 border border-green-100/50">
-                              <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={14} /> {lang.strengthsLabel}</h4>
+                              <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={14} /> {lang.strengthsLabel || "Strengths"}</h4>
                               <RenderPoints text={cleanText(scoutingData.strengths)} />
                           </div>
                           <div className="bg-red-50/60 rounded-xl p-4 border border-red-100/50">
-                              <h4 className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle size={14} /> {lang.weaknessesLabel}</h4>
+                              <h4 className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle size={14} /> {lang.weaknessesLabel || "Weaknesses"}</h4>
                               <RenderPoints text={cleanText(scoutingData.weaknesses)} />
                           </div>
                       </div>
@@ -439,7 +441,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   {/* Form & History */}
                   <div className="mb-2">
                       <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide}</h3>
+                          <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide || "Form Guide"}</h3>
                           {trend && (
                               <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${trend.bg}`}>
                                   <trend.icon size={12} className={trend.color} />
@@ -480,7 +482,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               
               <div className="p-4 bg-white border-t border-slate-100 shrink-0">
                   <button onClick={() => setSelectedTeam(null)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs transition-colors shadow-lg">
-                      {lang.closeReport}
+                      {lang.closeReport || "Close Report"}
                   </button>
               </div>
            </div>

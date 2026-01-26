@@ -124,7 +124,7 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   const groupConfig = GROUP_CONFIG.find((g: any) => g.id === groupId);
   
   // 1. Initialize
-  // KEY CHANGE: Initialize `form` with the historical form from the Team object if available.
+  // KEY FIX: This now pulls the 'form' from the teams object if available (which useAppData fills from DB)
   const initTeam = (tId: string) => ({
       teamId: tId,
       played: 0,
@@ -135,7 +135,7 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       ga: 0,
       gd: 0,
       pts: 0,
-      form: teams[tId]?.form ? [...teams[tId].form!] : [] // <--- Load historical form here!
+      form: teams[tId]?.form ? [...teams[tId].form!] : [] 
   });
 
   if (groupConfig) {
@@ -152,7 +152,7 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   // 2. Sort Matches Chronologically
   const sortedMatches = [...groupMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // 3. Process
+  // 3. Process Live Tournament Matches (Add new W/D/L on top of historical form)
   sortedMatches.forEach(match => {
     if (match.homeScore !== null && match.awayScore !== null) {
       const home = standingsMap[match.homeTeamId];
@@ -695,10 +695,9 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_overview') // Changed table name from scouting_reports
+            .from('scouting_overview') // Correct Table Name
             .select('*')
             .eq('team_id', safeId)
-            // .eq('lang', lang) // REMOVED: Table is language agnostic based on CSV
             .maybeSingle();
 
         if (reportData) {
@@ -714,7 +713,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
                 scout_notes: reportData.scout_notes || '',
                 recent_form: reportData.recent_form || '',
                 last_5_matches: reportData.last_5_matches || '',
-                lang: 'EN' // Default to EN as table has no lang col
+                lang: 'EN' // Default
             };
         }
         return null;
@@ -812,8 +811,7 @@ export const seedMockHistoryToSupabase = async (teams: Record<string, Team>) => 
 };
 
 export const seedScoutingReportsToSupabase = async (teams: Record<string, Team>) => {
-    // This function can be retired or updated to use scouting_overview if needed
-    // For now, leaving as-is or commenting out
+    // Deprecated in favor of manual CSV upload or admin script
 };
 
 export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
