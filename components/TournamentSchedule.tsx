@@ -32,16 +32,34 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket 
 }) => {
-  // 1. SMART DEFAULT: Check if today has matches
+  
+  // 1. SMART DEFAULT: Check if today has matches. 
+  // If NOT, find the next available day with matches.
   const [filterDate, setFilterDate] = useState<string>(() => {
-      const todayStr = new Date().toDateString();
+      const now = new Date();
+      const todayStr = now.toDateString();
+      
+      // A. Check for matches occurring today
       const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
-      return hasMatchesToday ? todayStr : 'ALL';
+      if (hasMatchesToday) return todayStr;
+
+      // B. If no matches today, find the closest future match date
+      // We filter for valid dates in the future and sort by time ascending
+      const nextMatch = matches
+        .filter(m => m.date && m.date !== 'TBD' && new Date(m.date) > now)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+      if (nextMatch) {
+          return new Date(nextMatch.date).toDateString();
+      }
+
+      // C. Fallback (e.g. tournament over or data missing)
+      return 'ALL';
   });
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 2. Extract unique dates
+  // 2. Extract unique dates for the Ribbon
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
@@ -133,7 +151,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   };
 
   // SMART CLICK HANDLER GENERATOR
-  // This ensures both the Hero and the List items behave identically
+  // Used by both Hero and List items to ensure consistent navigation behavior
   const createClickHandler = (match: Match) => (teamId: string) => {
       if (match.groupId && onJumpToTable) {
           // Group Game -> Jump to Table
@@ -169,7 +187,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {/* DATE HEADLINE (Moved Above Hero) */}
+            {/* DATE HEADLINE (Moved ABOVE the Match of the Day) */}
             <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
                     {getDateHeadline(filterDate)}
@@ -186,7 +204,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
-                    // Use the smart handler here!
+                    // Apply Smart Interaction to Hero Flags
                     onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
@@ -218,7 +236,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     allPredictions={[]}
                                     phase={'LIVE'}
                                     isAdminMode={false}
-                                    // Use the smart handler here too!
+                                    // Apply Smart Interaction to List Items
                                     onTeamClick={createClickHandler(match)} 
                                     showStatusBadge={true} 
                                 />
