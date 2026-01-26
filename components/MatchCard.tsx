@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon } from 'lucide-react'; // <--- FIX: Aliased Lock to LockIcon
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -88,7 +88,6 @@ const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match
 
     if (isFinished) return <div className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-slate-600 shadow-sm">{lang.ft || "FT"}</div>;
     if (isLive) return <div className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-red-500 shadow-sm flex items-center gap-1.5 animate-pulse"><div className="w-1.5 h-1.5 bg-white rounded-full"></div>{match.minute ? `${match.minute}'` : (lang.live || "LIVE")}</div>;
-    // Removing the countdown from the badge here since user wants explicit time on the left of header
     return <div className="bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-white/30 shadow-sm">{lang.filterUpcoming || "Upcoming"}</div>;
 };
 
@@ -110,6 +109,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const isKnockout = !!match.round; 
 
+    // --- LOGIC HOOKS ---
     useEffect(() => {
         if (!isDirty) {
             setLocalHome(prediction ? prediction.home : null);
@@ -137,6 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
 
+    // --- HANDLERS ---
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -152,6 +153,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     };
 
+    // --- DISPLAY HELPERS ---
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
         : null;
@@ -183,6 +185,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     };
 
+    // --- RENDER CONTROLS ---
     const renderControlButtons = () => {
         if (canSubstitute) {
             return (
@@ -370,6 +373,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         <ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} />
                     </div>
+                    {/* H2H Bars & List */}
                     <div className="flex flex-col gap-2">
                         {h2hData.totalMatches > 0 ? (
                             <div className="flex h-1.5 rounded-full overflow-hidden w-full shadow-sm bg-slate-100">
@@ -398,7 +402,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <Lock size={10} className="text-yellow-400" />
+                            <LockIcon size={10} className="text-yellow-400" /> {/* ALIASED LOCK ICON */}
                             <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
                         </div>
                         {prediction && (
@@ -446,7 +450,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <span>+{pointsEarned} PTS</span>
                             </div>
                         )}
-                        {match.isLocked && <Lock size={10} className="text-slate-400" />}
+                        {match.isLocked && <LockIcon size={10} className="text-slate-400" />} {/* ALIASED LOCK ICON */}
                     </div>
                 </div>
             )}
