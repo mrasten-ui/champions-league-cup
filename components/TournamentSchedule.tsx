@@ -4,7 +4,7 @@ import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
 import { MatchdayHero } from './MatchdayHero';
-import { calculateGroupStandings } from '../services/engine';
+import { calculateGroupStandings, getAllGroupStandings } from '../services/engine';
 
 interface TournamentScheduleProps {
   matches: Match[];
@@ -100,7 +100,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
         // NEW LOGIC: REST DAY FALLBACK
         // If the selected day is empty (Rest Day), fall back to the "ALL" logic 
-        // to show the Next Available Exciting Game instead of nothing.
         if (candidatePool.length === 0) {
              candidatePool = matches.filter(m => 
                 ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status) ||
@@ -133,7 +132,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     if (top10Match) return top10Match;
 
     // 4. Biggest Clash (Lowest Combined Rank)
-    // Sort remaining matches by combined rank
     const sortedByRank = [...candidatePool].sort((a, b) => {
         const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
         const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
@@ -178,6 +176,16 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }
   };
 
+  // Points Map for List
+  const teamPointsMap = useMemo(() => {
+      const allStandings = getAllGroupStandings(matches, teams);
+      const points: Record<string, number> = {};
+      Object.values(allStandings).flat().forEach(standing => {
+          points[standing.teamId] = standing.pts;
+      });
+      return points;
+  }, [matches, teams]);
+
   return (
     <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
         <DateRibbon 
@@ -199,7 +207,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {/* DATE HEADLINE */}
+            {/* DATE HEADLINE (Moved ABOVE the Match of the Day) */}
             <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
                     {getDateHeadline(filterDate)}
@@ -209,23 +217,22 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 </span>
             </div>
 
-            {/* HERO MATCH (Falls back to next available if today is empty) */}
+            {/* MATCH OF THE DAY HERO */}
             {heroMatch && !searchTerm && (
                 <MatchdayHero 
                     match={heroMatch} 
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
+                    // Apply Smart Interaction to Hero Flags
                     onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
 
-            {/* MATCH LIST */}
+            {/* List */}
             <div className="space-y-4">
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
-                        // Don't duplicate the hero match if we are looking at the specific day it belongs to
-                        // But if we fell back to a future match because today was empty, SHOW the list matches (if any exist, though logic implies none exist if we fell back)
                         if (filterDate !== 'ALL' && match.id === heroMatch?.id && new Date(match.date).toDateString() === filterDate) return null;
 
                         const isHighStakes = !match.groupId && match.round !== 'R32';
@@ -250,6 +257,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     isAdminMode={false}
                                     onTeamClick={createClickHandler(match)} 
                                     showStatusBadge={true} 
+                                    homeTeamPoints={teamPointsMap[match.homeTeamId]}
+                                    awayTeamPoints={teamPointsMap[match.awayTeamId]}
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">

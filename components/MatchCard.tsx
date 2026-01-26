@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin, Save, Trophy, AlertTriangle } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -23,7 +23,9 @@ interface MatchCardProps {
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
   onTeamClick?: (teamId: string) => void;
-  showStatusBadge?: boolean; 
+  showStatusBadge?: boolean;
+  homeTeamPoints?: number;
+  awayTeamPoints?: number;
 }
 
 // --- 1. SUB-COMPONENTS ---
@@ -84,16 +86,17 @@ const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match
         return () => clearInterval(interval);
     }, [match.date, isToday, isLive, isFinished]);
 
-    if (isFinished) return <div className="bg-slate-700 text-slate-300 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-slate-600 shadow-sm">{lang.ft || "FT"}</div>;
+    if (isFinished) return <div className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-slate-600 shadow-sm">{lang.ft || "FT"}</div>;
     if (isLive) return <div className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-red-500 shadow-sm flex items-center gap-1.5 animate-pulse"><div className="w-1.5 h-1.5 bg-white rounded-full"></div>{match.minute ? `${match.minute}'` : (lang.live || "LIVE")}</div>;
-    if (isToday) return <div className="bg-yellow-400 text-[#0f2545] text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-yellow-300 shadow-sm flex items-center gap-1"><Clock size={10} /> {timeLeft}</div>;
-    return <div className="bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-rose-400 shadow-sm">{lang.filterUpcoming || "Upcoming"}</div>;
+    // Removing the countdown from the badge here since user wants explicit time on the left of header
+    return <div className="bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-white/30 shadow-sm">{lang.filterUpcoming || "Upcoming"}</div>;
 };
 
 // --- 2. MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false
+    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
+    homeTeamPoints, awayTeamPoints
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -107,7 +110,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const isKnockout = !!match.round; 
 
-    // --- LOGIC HOOKS ---
     useEffect(() => {
         if (!isDirty) {
             setLocalHome(prediction ? prediction.home : null);
@@ -135,7 +137,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
 
-    // --- HANDLERS ---
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -151,7 +152,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     };
 
-    // --- DISPLAY HELPERS ---
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
         : null;
@@ -166,8 +166,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const getContextLabel = () => {
         if (match.round) {
             const rounds: Record<string, string> = { 
-                'R32': 'Round of 32', 'R16': 'Round of 16', 'QF': 'Quarter Final', 
-                'SF': 'Semi Final', 'FIN': 'Final', '3RD': '3rd Place' 
+                'R32': lang.roundOf32 || 'Round of 32', 
+                'R16': lang.roundOf16 || 'Round of 16', 
+                'QF': lang.quarterFinal || 'Quarter Final', 
+                'SF': lang.semiFinal || 'Semi Final', 
+                'FIN': lang.final || 'Final', 
+                '3RD': lang.thirdPlace || '3rd Place' 
             };
             return rounds[match.round] || match.round;
         }
@@ -175,7 +179,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return match.venue || 'Friendly';
     };
 
-    // --- RENDER CONTROLS (Save, Sub, etc.) ---
+    const getLocalTime = () => {
+        return new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    };
+
     const renderControlButtons = () => {
         if (canSubstitute) {
             return (
@@ -217,16 +224,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
-             {/* 1. HEADER STRIP (Light Grey) */}
-             <div className="bg-slate-50 border-b border-slate-100 py-2 px-3 flex justify-between items-center h-10">
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {getContextLabel()}
-                    </span>
-                    {match.round && <Trophy size={12} className="text-amber-400" />}
+             {/* 1. NAVY HEADER STRIP (For ALL Cards) */}
+             <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
+                
+                {/* LEFT: Kickoff Time */}
+                <div className="w-1/3 flex items-center justify-start text-xs font-bold text-slate-300">
+                    <Clock size={12} className="mr-1.5" />
+                    <span>{getLocalTime()}</span>
                 </div>
-                {/* Status Badge only if showStatusBadge is true */}
-                {showStatusBadge && <MatchStatusBadge match={match} lang={lang} />}
+
+                {/* CENTER: Group / Stage */}
+                <div className="w-1/3 flex items-center justify-center text-center">
+                    <div className="flex items-center gap-1.5">
+                        {match.round && <Trophy size={12} className="text-amber-400" />}
+                        <span className="text-xs font-black uppercase tracking-widest shadow-black/50 drop-shadow-sm whitespace-nowrap">
+                            {getContextLabel()}
+                        </span>
+                    </div>
+                </div>
+
+                {/* RIGHT: Status Badge (If Live Mode) */}
+                <div className="w-1/3 flex items-center justify-end">
+                    {showStatusBadge && <MatchStatusBadge match={match} lang={lang} />}
+                </div>
              </div>
 
              {/* 2. CENTRAL STAGE */}
@@ -245,19 +265,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
                     </div>
-                    <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
+                    <div className="flex flex-col items-center">
+                        <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
+                        {/* POINTS DISPLAY */}
+                        {match.groupId && homeTeamPoints !== undefined && (
+                            <span className="text-[9px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Center: Steppers or Display Score */}
                 <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 min-w-[80px]">
                     {isKnockout ? (
-                        /* KNOCKOUT MODE: VS or Buttons */
+                        /* KNOCKOUT MODE */
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
                             <div className="text-2xl font-black text-slate-200">VS</div>
                             <div className="mt-1 w-full">{renderControlButtons()}</div>
                         </div>
                     ) : (
-                        /* GROUP MODE: Steppers or Big Score */
+                        /* GROUP MODE */
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
                                 /* INPUT MODE */
@@ -275,7 +301,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             ) : (
-                                /* DISPLAY MODE (Locked) */
+                                /* DISPLAY MODE */
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
                                     {(isLive || isFinished || match.homeScore !== null) ? (
                                         <>
@@ -285,7 +311,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 <span>{match.awayScore ?? 0}</span>
                                             </div>
                                             
-                                            {/* POINTS DISPLAY: Shown in Center if Footer is Hidden */}
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && (
                                                 <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
                                                     +{pointsEarned} {lang.points}
@@ -293,7 +318,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             )}
                                         </>
                                     ) : (
-                                        /* LOCKED PREDICTION */
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-4 py-2 rounded-xl font-mono text-2xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2">
                                                 <span>-</span><span className="opacity-50 text-lg mx-1">:</span><span>-</span>
@@ -326,7 +350,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
                     </div>
-                    <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
+                    <div className="flex flex-col items-center">
+                        <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
+                        {/* POINTS DISPLAY */}
+                        {match.groupId && awayTeamPoints !== undefined && (
+                            <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -340,7 +370,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         <ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} />
                     </div>
-                    {/* H2H Bars & List */}
                     <div className="flex flex-col gap-2">
                         {h2hData.totalMatches > 0 ? (
                             <div className="flex h-1.5 rounded-full overflow-hidden w-full shadow-sm bg-slate-100">
@@ -365,7 +394,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* Rivals Section */}
             {showRivals && rivals.length > 0 && (
                 <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
                     <div className="flex items-center justify-between mb-2">
@@ -398,11 +426,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* 4. FOOTER STRIP ("The Blue Thing") - ONLY IF showStatusBadge is TRUE */}
+            {/* 4. FOOTER STRIP ("The Blue Thing") - ONLY IF showStatusBadge is TRUE (Live Mode) */}
             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     
+                    {/* LEFT: Stadium (Venue) */}
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0">
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">
