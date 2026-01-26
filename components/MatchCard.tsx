@@ -147,33 +147,22 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             };
             return rounds[match.round] || match.round;
         }
-        // Force Singular "GROUP"
-        if (match.groupId) return `GROUP ${match.groupId}`;
+        if (match.groupId) return `${lang.groups || 'GROUP'} ${match.groupId}`;
         return match.venue || 'FRIENDLY';
     };
 
-    // --- TEMPORAL SWAP LOGIC (Top Left) ---
+    // --- TOP LEFT LOGIC ---
     const getLeftStatus = () => {
-        // 1. FINISHED -> Show FT
-        if (isFinished) {
-            return (
-                <div className="flex items-center gap-1.5 text-slate-300">
-                    <span className="text-[10px] font-black uppercase tracking-widest">FT</span>
-                </div>
-            );
-        }
-        // 2. LIVE -> Show Red Dot + Minute
+        if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) {
             return (
                 <div className="flex items-center gap-1.5 text-red-400 animate-pulse">
                     <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div>
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                        {match.minute ? `${match.minute}'` : 'LIVE'}
-                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span>
                 </div>
             );
         }
-        // 3. UPCOMING -> Show Clock + Time
+        // Upcoming: Show Time
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
@@ -184,14 +173,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
-    // --- BROADCASTER LOGIC (Top Right) ---
+    // --- TOP RIGHT LOGIC (TV CHANNEL) ---
     const getTvChannel = () => {
         if (!match.channels) return null;
         
-        // Logic: Try exact locale (e.g., 'NO'), then fallback to 'US' or 'EN', then first available.
-        // We strip the locale part of the key if it matches (e.g. key is 'NO', value is 'NRK')
-        const channel = match.channels[locale] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
-        
+        // 1. Try Exact Match (e.g. 'NO', 'no-NO')
+        let channel = match.channels[locale];
+
+        // 2. If not found, try extracting Region Code (e.g. 'no-NO' -> 'NO')
+        if (!channel && locale.includes('-')) {
+            const region = locale.split('-')[1].toUpperCase(); // 'NO' from 'no-NO'
+            channel = match.channels[region];
+        }
+
+        // 3. Special Case for UK (en-GB -> 'EN' or 'SCO')
+        if (!channel && (locale === 'en-GB' || locale.includes('GB'))) {
+            channel = match.channels['EN']; 
+        }
+
+        // 4. Fallback to US or English
+        if (!channel) {
+            channel = match.channels['US'] || match.channels['EN'] || Object.values(match.channels)[0];
+        }
+
         if (!channel) return null;
 
         return (
@@ -249,7 +253,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {/* 1. NAVY HEADER STRIP (For ALL Cards) */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
                 
-                {/* LEFT: Temporal Swap (Time OR Live Status) */}
+                {/* LEFT: Kickoff Time OR Live Status */}
                 <div className="w-1/3 flex items-center justify-start">
                     {getLeftStatus()}
                 </div>
@@ -448,7 +452,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {/* 4. FOOTER STRIP ("The Blue Thing") - ONLY IF showStatusBadge is TRUE (Live Mode) */}
+            {/* 4. FOOTER STRIP (Venue/Stadium) - ONLY IF showStatusBadge is TRUE (Live Mode) */}
             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
