@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon } from 'lucide-react'; // <--- FIX: Aliased Lock to LockIcon
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon, Tv } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -59,36 +59,6 @@ const ScoreStepper: React.FC<{
       </button>
     </div>
   );
-};
-
-const MatchStatusBadge: React.FC<{ match: Match; lang: Translation }> = ({ match, lang }) => {
-    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
-    const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-    const todayStr = new Date().toDateString();
-    const matchDateStr = new Date(match.date).toDateString();
-    const isToday = todayStr === matchDateStr;
-
-    const [timeLeft, setTimeLeft] = useState('');
-
-    useEffect(() => {
-        if (!isToday || isLive || isFinished) return;
-        const updateTimer = () => {
-            const now = new Date();
-            const target = new Date(match.date);
-            const diff = target.getTime() - now.getTime();
-            if (diff <= 0) { setTimeLeft('00:00'); return; }
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            setTimeLeft(`${hours}:${minutes.toString().padStart(2, '0')}`);
-        };
-        updateTimer();
-        const interval = setInterval(updateTimer, 60000);
-        return () => clearInterval(interval);
-    }, [match.date, isToday, isLive, isFinished]);
-
-    if (isFinished) return <div className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-slate-600 shadow-sm">{lang.ft || "FT"}</div>;
-    if (isLive) return <div className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-red-500 shadow-sm flex items-center gap-1.5 animate-pulse"><div className="w-1.5 h-1.5 bg-white rounded-full"></div>{match.minute ? `${match.minute}'` : (lang.live || "LIVE")}</div>;
-    return <div className="bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-white/30 shadow-sm">{lang.filterUpcoming || "Upcoming"}</div>;
 };
 
 // --- 2. MAIN COMPONENT ---
@@ -177,12 +147,61 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             };
             return rounds[match.round] || match.round;
         }
-        if (match.groupId) return `${lang.groups || 'Group'} ${match.groupId}`;
-        return match.venue || 'Friendly';
+        // Force Singular "GROUP"
+        if (match.groupId) return `GROUP ${match.groupId}`;
+        return match.venue || 'FRIENDLY';
     };
 
-    const getLocalTime = () => {
-        return new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    // --- TEMPORAL SWAP LOGIC (Top Left) ---
+    const getLeftStatus = () => {
+        // 1. FINISHED -> Show FT
+        if (isFinished) {
+            return (
+                <div className="flex items-center gap-1.5 text-slate-300">
+                    <span className="text-[10px] font-black uppercase tracking-widest">FT</span>
+                </div>
+            );
+        }
+        // 2. LIVE -> Show Red Dot + Minute
+        if (isLive) {
+            return (
+                <div className="flex items-center gap-1.5 text-red-400 animate-pulse">
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                        {match.minute ? `${match.minute}'` : 'LIVE'}
+                    </span>
+                </div>
+            );
+        }
+        // 3. UPCOMING -> Show Clock + Time
+        return (
+            <div className="flex items-center gap-1.5 text-slate-300">
+                <Clock size={12} />
+                <span className="text-[10px] font-bold">
+                    {new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                </span>
+            </div>
+        );
+    };
+
+    // --- BROADCASTER LOGIC (Top Right) ---
+    const getTvChannel = () => {
+        if (!match.channels) return null;
+        
+        // Logic: Try exact locale (e.g., 'NO'), then fallback to 'US' or 'EN', then first available.
+        // We strip the locale part of the key if it matches (e.g. key is 'NO', value is 'NRK')
+        const channel = match.channels[locale] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
+        
+        if (!channel) return null;
+
+        return (
+            <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}>
+                <Tv size={12} />
+                <span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">
+                    {channel}
+                </span>
+            </div>
+        );
     };
 
     // --- RENDER CONTROLS ---
@@ -230,10 +249,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {/* 1. NAVY HEADER STRIP (For ALL Cards) */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
                 
-                {/* LEFT: Kickoff Time */}
-                <div className="w-1/3 flex items-center justify-start text-xs font-bold text-slate-300">
-                    <Clock size={12} className="mr-1.5" />
-                    <span>{getLocalTime()}</span>
+                {/* LEFT: Temporal Swap (Time OR Live Status) */}
+                <div className="w-1/3 flex items-center justify-start">
+                    {getLeftStatus()}
                 </div>
 
                 {/* CENTER: Group / Stage */}
@@ -246,9 +264,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
 
-                {/* RIGHT: Status Badge (If Live Mode) */}
+                {/* RIGHT: TV Channel */}
                 <div className="w-1/3 flex items-center justify-end">
-                    {showStatusBadge && <MatchStatusBadge match={match} lang={lang} />}
+                    {getTvChannel()}
                 </div>
              </div>
 
@@ -402,7 +420,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <LockIcon size={10} className="text-yellow-400" /> {/* ALIASED LOCK ICON */}
+                            <LockIcon size={10} className="text-yellow-400" />
                             <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
                         </div>
                         {prediction && (
@@ -450,7 +468,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <span>+{pointsEarned} PTS</span>
                             </div>
                         )}
-                        {match.isLocked && <LockIcon size={10} className="text-slate-400" />} {/* ALIASED LOCK ICON */}
+                        {match.isLocked && <LockIcon size={10} className="text-slate-400" />}
                     </div>
                 </div>
             )}

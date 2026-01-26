@@ -224,6 +224,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
+                    locale={currentLang} // <--- Added locale prop
                     // Apply Smart Interaction to Hero Flags
                     onTeamClick={createClickHandler(heroMatch)}
                 />
