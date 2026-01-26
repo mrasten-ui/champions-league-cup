@@ -1,6 +1,6 @@
 import React from 'react';
 import { Match, Team, Translation, GroupStanding } from '../types';
-import { Activity, Clock, MapPin, Trophy } from 'lucide-react';
+import { Activity, Clock, MapPin, Trophy, Star } from 'lucide-react';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -21,6 +21,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   return (
     <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500 max-w-4xl mx-auto">
+      {/* MATCH OF THE DAY HEADLINE */}
+      <div className="flex items-center justify-center gap-2 mb-2">
+          <Star size={14} className="text-yellow-500 fill-yellow-500" />
+          <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Match of the Day</span>
+          <Star size={14} className="text-yellow-500 fill-yellow-500" />
+      </div>
+
       <div className="relative bg-[#0f2545] rounded-3xl overflow-hidden shadow-2xl border border-slate-700/50 group">
         
         {/* Decorative Background */}

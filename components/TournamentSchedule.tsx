@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Match, Team, Translation, Prediction, UserProfile } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile, LanguageCode } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -16,9 +16,21 @@ interface TournamentScheduleProps {
   onTeamClick: (teamId: string) => void;
 }
 
+// MAPPING: Language Code -> Team ID (You may need to adjust IDs based on your data)
+const LANG_TEAM_MAP: Record<string, string> = {
+    'NO': 'Norway',
+    'SCO': 'Scotland',
+    'US': 'USA',
+    'EN': 'England' 
+};
+
+// OTHER SUPPORTED TEAMS (For Step 3)
+const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
+
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
 }) => {
+  // 1. SMART DEFAULT: Check if today has matches
   const [filterDate, setFilterDate] = useState<string>(() => {
       const todayStr = new Date().toDateString();
       const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
@@ -27,7 +39,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Extract unique dates
+  // 2. Extract unique dates
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
@@ -38,18 +50,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
-  // 2. Hero Match Logic
-  const heroMatch = useMemo(() => {
-    return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
-           matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
-  }, [matches]);
-
-  const heroStandings = useMemo(() => {
-    if (!heroMatch?.groupId) return undefined;
-    return calculateGroupStandings(heroMatch.groupId, matches, teams);
-  }, [heroMatch, matches, teams]);
-
-  // 3. Filtering Logic
+  // 3. FILTERING LOGIC (The pool of matches to choose from)
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
@@ -64,10 +65,61 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // 4. HELPER: Get Relative Headline
+  // 4. "MATCH OF THE DAY" SELECTION LOGIC
+  const heroMatch = useMemo(() => {
+    // If user is searching, don't show a hero
+    if (searchTerm) return null;
+
+    // If "ALL" is selected, default to the most relevant LIVE or UPCOMING match globally
+    if (filterDate === 'ALL') {
+        return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
+               matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
+    }
+
+    // --- ALGORITHM FOR SPECIFIC DAY ---
+    const daysMatches = filteredMatches;
+    if (daysMatches.length === 0) return null;
+
+    // RULE 2: Check User's Language Team
+    const myTeamId = LANG_TEAM_MAP[currentLang];
+    const myMatch = daysMatches.find(m => m.homeTeamId === myTeamId || m.awayTeamId === myTeamId);
+    if (myMatch) return myMatch;
+
+    // RULE 3: Check Other Supported Languages
+    const priorityMatch = daysMatches.find(m => 
+        PRIORITY_TEAMS.includes(m.homeTeamId) || PRIORITY_TEAMS.includes(m.awayTeamId)
+    );
+    if (priorityMatch) return priorityMatch;
+
+    // RULE 4: Check Top 10 FIFA Rank
+    const top10Match = daysMatches.find(m => {
+        const homeRank = teams[m.homeTeamId]?.rank || 100;
+        const awayRank = teams[m.awayTeamId]?.rank || 100;
+        return homeRank <= 10 || awayRank <= 10;
+    });
+    if (top10Match) return top10Match;
+
+    // RULE 5: Lowest Combined Ranking (The "Biggest" Game)
+    // We sort the remaining matches by combined rank and take the first one.
+    const sortedByRank = [...daysMatches].sort((a, b) => {
+        const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
+        const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
+        return rankA - rankB; // Ascending (lower is better)
+    });
+
+    return sortedByRank[0];
+
+  }, [matches, filteredMatches, teams, currentLang, filterDate, searchTerm]);
+
+  // Get Context for Hero
+  const heroStandings = useMemo(() => {
+    if (!heroMatch?.groupId) return undefined;
+    return calculateGroupStandings(heroMatch.groupId, matches, teams);
+  }, [heroMatch, matches, teams]);
+
+  // Helper for Date Headlines
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
-
       const dateObj = new Date(dateStr);
       const today = new Date();
       const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -92,6 +144,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
         />
         
         <div className="p-4 max-w-2xl mx-auto">
+            {/* Search Bar */}
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
@@ -103,7 +156,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {heroMatch && filterDate === 'ALL' && !searchTerm && (
+            {/* MATCH OF THE DAY HERO */}
+            {heroMatch && !searchTerm && (
                 <MatchdayHero 
                     match={heroMatch} 
                     teams={teams} 
@@ -113,6 +167,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             )}
 
+            {/* List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
@@ -125,8 +180,10 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
+                        // Don't repeat the Hero match in the list if we are looking at a specific day
+                        if (filterDate !== 'ALL' && match.id === heroMatch?.id) return null;
+
                         const isHighStakes = !match.groupId && match.round !== 'R32';
-                        // Force Read-Only Mode
                         const readOnlyMatch = { ...match, isLocked: true };
 
                         return (
@@ -147,7 +204,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={onTeamClick}
-                                    showStatusBadge={true} // ENABLE BADGE ON TOURNAMENT TAB
+                                    showStatusBadge={true} 
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
