@@ -39,21 +39,16 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       const now = new Date();
       const todayStr = now.toDateString();
       
-      // A. Check for matches occurring today
       const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
       if (hasMatchesToday) return todayStr;
 
-      // B. If no matches today, find the closest future match date
-      // We filter for valid dates in the future and sort by time ascending
+      // Fallback: Find closest future match
       const nextMatch = matches
         .filter(m => m.date && m.date !== 'TBD' && new Date(m.date) > now)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
-      if (nextMatch) {
-          return new Date(nextMatch.date).toDateString();
-      }
+      if (nextMatch) return new Date(nextMatch.date).toDateString();
 
-      // C. Fallback (e.g. tournament over or data missing)
       return 'ALL';
   });
   
@@ -70,7 +65,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [matches]);
 
-  // 3. FILTERING LOGIC
+  // 3. FILTERING LOGIC (For the list below the hero)
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
@@ -85,39 +80,61 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // 4. "MATCH OF THE DAY" SELECTION LOGIC
+  // 4. "MATCH OF THE DAY" SELECTION LOGIC (Updated)
   const heroMatch = useMemo(() => {
     if (searchTerm) return null;
 
+    let candidatePool: Match[] = [];
+
+    // CASE A: User selected 'ALL' -> Look at all Live/Upcoming matches
     if (filterDate === 'ALL') {
-        return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
-               matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
+        candidatePool = matches.filter(m => 
+            ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status) ||
+            (m.status === 'UPCOMING' && m.date !== 'TBD' && new Date(m.date) > new Date())
+        );
+    } 
+    // CASE B: Specific Date Selected
+    else {
+        // First, try to find a hero from the *Selected Date*
+        candidatePool = filteredMatches;
+
+        // NEW LOGIC: REST DAY FALLBACK
+        // If the selected day is empty (Rest Day), fall back to the "ALL" logic 
+        // to show the Next Available Exciting Game instead of nothing.
+        if (candidatePool.length === 0) {
+             candidatePool = matches.filter(m => 
+                ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status) ||
+                (m.status === 'UPCOMING' && m.date !== 'TBD' && new Date(m.date) > new Date())
+             );
+        }
     }
 
-    const daysMatches = filteredMatches;
-    if (daysMatches.length === 0) return null;
+    if (candidatePool.length === 0) return null;
 
-    // Priority 1: User's Language
+    // --- APPLY PRIORITY RULES TO THE POOL ---
+
+    // 1. My Language Team
     const myTeamId = LANG_TEAM_MAP[currentLang];
-    const myMatch = daysMatches.find(m => m.homeTeamId === myTeamId || m.awayTeamId === myTeamId);
+    const myMatch = candidatePool.find(m => m.homeTeamId === myTeamId || m.awayTeamId === myTeamId);
     if (myMatch) return myMatch;
 
-    // Priority 2: Priority Nations
-    const priorityMatch = daysMatches.find(m => 
+    // 2. Priority Nations (Norway, Scotland, USA, England)
+    const priorityMatch = candidatePool.find(m => 
         PRIORITY_TEAMS.includes(m.homeTeamId) || PRIORITY_TEAMS.includes(m.awayTeamId)
     );
     if (priorityMatch) return priorityMatch;
 
-    // Priority 3: Top 10 Teams
-    const top10Match = daysMatches.find(m => {
+    // 3. Top 10 Ranked Teams
+    const top10Match = candidatePool.find(m => {
         const homeRank = teams[m.homeTeamId]?.rank || 100;
         const awayRank = teams[m.awayTeamId]?.rank || 100;
         return homeRank <= 10 || awayRank <= 10;
     });
     if (top10Match) return top10Match;
 
-    // Priority 4: Biggest Rank Clash (Lowest combined rank)
-    const sortedByRank = [...daysMatches].sort((a, b) => {
+    // 4. Biggest Clash (Lowest Combined Rank)
+    // Sort remaining matches by combined rank
+    const sortedByRank = [...candidatePool].sort((a, b) => {
         const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
         const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
         return rankA - rankB;
@@ -133,7 +150,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return calculateGroupStandings(heroMatch.groupId, matches, teams);
   }, [heroMatch, matches, teams]);
 
-  // Helper for Date Headlines
+  // Date Headline Helper
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
       const dateObj = new Date(dateStr);
@@ -150,17 +167,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       });
   };
 
-  // SMART CLICK HANDLER GENERATOR
-  // Used by both Hero and List items to ensure consistent navigation behavior
+  // Click Handler Generator
   const createClickHandler = (match: Match) => (teamId: string) => {
       if (match.groupId && onJumpToTable) {
-          // Group Game -> Jump to Table
           onJumpToTable(match.groupId, teamId);
       } else if (match.round && onJumpToBracket) {
-          // Knockout Game -> Jump to Bracket
           onJumpToBracket(match.id);
       } else {
-          // Fallback -> Modal
           onTeamClick(teamId);
       }
   };
@@ -175,7 +188,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
         />
         
         <div className="p-4 max-w-2xl mx-auto">
-            {/* Search Bar */}
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
@@ -187,7 +199,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {/* DATE HEADLINE (Moved ABOVE the Match of the Day) */}
+            {/* DATE HEADLINE */}
             <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
                     {getDateHeadline(filterDate)}
@@ -197,24 +209,24 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 </span>
             </div>
 
-            {/* MATCH OF THE DAY HERO */}
+            {/* HERO MATCH (Falls back to next available if today is empty) */}
             {heroMatch && !searchTerm && (
                 <MatchdayHero 
                     match={heroMatch} 
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
-                    // Apply Smart Interaction to Hero Flags
                     onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
 
-            {/* List */}
+            {/* MATCH LIST */}
             <div className="space-y-4">
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
-                        // Don't repeat the Hero match in the list if we are looking at a specific day
-                        if (filterDate !== 'ALL' && match.id === heroMatch?.id) return null;
+                        // Don't duplicate the hero match if we are looking at the specific day it belongs to
+                        // But if we fell back to a future match because today was empty, SHOW the list matches (if any exist, though logic implies none exist if we fell back)
+                        if (filterDate !== 'ALL' && match.id === heroMatch?.id && new Date(match.date).toDateString() === filterDate) return null;
 
                         const isHighStakes = !match.groupId && match.round !== 'R32';
                         const readOnlyMatch = { ...match, isLocked: true };
@@ -236,7 +248,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     allPredictions={[]}
                                     phase={'LIVE'}
                                     isAdminMode={false}
-                                    // Apply Smart Interaction to List Items
                                     onTeamClick={createClickHandler(match)} 
                                     showStatusBadge={true} 
                                 />
@@ -251,7 +262,9 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 opacity-50">
                         <CalendarDays size={48} className="text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No matches found</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            {lang.noMatches || "No matches scheduled"}
+                        </p>
                     </div>
                 )}
             </div>
