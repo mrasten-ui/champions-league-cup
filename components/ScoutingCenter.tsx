@@ -1,17 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Team, Translation, LanguageCode, MatchHistoryItem, ScoutingData } from '../types';
-import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown, Shield, Zap, Trophy, Info } from 'lucide-react';
+import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown } from 'lucide-react';
 import { fetchTeamTactics, analyzeMatchup, TeamDNA } from '../services/analyst';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
-
-// --- MATH HELPER: Sigmoid Curve for Realistic Odds ---
-const calculateWinProbability = (ratingA: number, ratingB: number) => {
-    const diff = ratingA - ratingB;
-    const scalingFactor = 0.12; 
-    const prob = 1 / (1 + Math.exp(-diff * scalingFactor));
-    return (prob * 100).toFixed(0);
-};
 
 // --- SUB-COMPONENTS ---
 
@@ -112,7 +104,6 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   // Grid/Modal State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [viewMode, setViewMode] = useState<'GRID' | 'TIERS'>('GRID');
   
   // Modal Data State
   const [history, setHistory] = useState<MatchHistoryItem[]>([]);
@@ -151,9 +142,8 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
         setSlotB(teamId);
         setActiveSlot(null); 
     } else {
-        // If no slot active, default to filling Slot A
-        setSlotA(teamId);
-        setActiveSlot('B');
+        // If no slot active, open detailed modal
+        setSelectedTeam(teams[teamId]);
     }
   };
 
@@ -162,43 +152,58 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       if (selectedTeam) {
           setLoadingHistory(true);
           const loadData = async () => {
-              const [dbHistory, dbScouting, dbExtended] = await Promise.all([
-                  fetchTeamHistory(selectedTeam.id),
-                  fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode),
-                  fetchTeamExtendedStats(selectedTeam.id)
-              ]);
+              try {
+                  // Run promises independently to prevent one failure from blocking others
+                  const dbHistoryPromise = fetchTeamHistory(selectedTeam.id).catch(() => []);
+                  const dbScoutingPromise = fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode).catch(() => null);
+                  const dbExtendedPromise = fetchTeamExtendedStats(selectedTeam.id).catch(() => null);
 
-              if (dbExtended) {
-                  setExtendedStats(dbExtended);
-                  setHistory(dbExtended.history);
-              } else {
-                  setHistory(dbHistory);
-              }
+                  const [dbHistory, dbScouting, dbExtended] = await Promise.all([
+                      dbHistoryPromise,
+                      dbScoutingPromise,
+                      dbExtendedPromise
+                  ]);
 
-              if (dbScouting) {
-                  setScoutingData(dbScouting);
-              } else {
-                  // Fallback to local file if DB empty
-                  const localReport = getScoutingReport(selectedTeam.id, currentLang as LanguageCode);
-                  if (localReport) {
-                      setScoutingData({
-                          id: 0,
-                          team_id: selectedTeam.id,
-                          team_name: selectedTeam.name,
-                          confederation: localReport.confederation || 'FIFA',
-                          fifa_rank: localReport.fifa_rank || selectedTeam.rank || 99,
-                          star_player: localReport.star_player || 'Key Player',
-                          strengths: localReport.strengths || '',
-                          weaknesses: localReport.weaknesses || '',
-                          scout_notes: localReport.scout_notes || '',
-                          recent_form: localReport.recent_form || '',
-                          last_5_matches: localReport.last_5_matches || '',
-                          created_at: new Date().toISOString(),
-                          lang: currentLang
-                      });
+                  // 1. Extended Stats Logic
+                  if (dbExtended) {
+                      setExtendedStats(dbExtended);
+                      setHistory(dbExtended.history);
+                  } else {
+                      setHistory(dbHistory || []);
                   }
+
+                  // 2. Scouting Data Logic (DB vs Local Fallback)
+                  if (dbScouting) {
+                      setScoutingData(dbScouting);
+                  } else {
+                      // Fallback to local file if DB empty or failed
+                      const localReport = getScoutingReport(selectedTeam.id, currentLang as LanguageCode);
+                      if (localReport) {
+                          setScoutingData({
+                              id: 0,
+                              team_id: selectedTeam.id,
+                              team_name: selectedTeam.name,
+                              confederation: localReport.confederation || 'FIFA',
+                              fifa_rank: localReport.fifa_rank || selectedTeam.rank || 99,
+                              star_player: localReport.star_player || 'Key Player',
+                              strengths: localReport.strengths || '',
+                              weaknesses: localReport.weaknesses || '',
+                              scout_notes: localReport.scout_notes || '',
+                              recent_form: localReport.recent_form || '',
+                              last_5_matches: localReport.last_5_matches || '',
+                              created_at: new Date().toISOString(),
+                          });
+                      } else {
+                          setScoutingData(null);
+                      }
+                  }
+              } catch (error) {
+                  console.error("Failed to load scouting data", error);
+                  // Ensure we don't leave it in a loading state forever
+                  setScoutingData(null);
+              } finally {
+                  setLoadingHistory(false);
               }
-              setLoadingHistory(false);
           };
           loadData();
       } else {
@@ -224,7 +229,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
 
   const getParsedMatches = (stats: TeamFormData | null, fallbackHist: MatchHistoryItem[]) => {
       if (stats) return stats.history;
-      if (fallbackHist.length > 0) return fallbackHist;
+      if (fallbackHist && fallbackHist.length > 0) return fallbackHist;
       return [];
   };
 
@@ -247,83 +252,10 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || selectedTeam?.rank || 99;
   const modalTeamName = selectedTeam ? getTeamName(selectedTeam) : '';
 
-  // Render Grid Helper
-  const renderGrid = (teams: Team[]) => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {teams.map(team => {
-            const teamName = getTeamName(team);
-            
-            return (
-                <button 
-                    key={team.id}
-                    onClick={() => handleTeamClick(team.id)}
-                    className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col items-center gap-3 relative group"
-                >
-                    {/* INFO BUTTON (Moved to Card Bottom-Right) */}
-                    <div 
-                        onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); }}
-                        className="absolute bottom-2 right-2 text-slate-300 hover:text-blue-600 hover:scale-110 transition-all z-20 p-1"
-                    >
-                        <div className="w-5 h-5 rounded-full border border-current flex items-center justify-center">
-                            <Info size={10} strokeWidth={3} />
-                        </div>
-                    </div>
-
-                    <div className="relative w-14 h-9 mt-1 group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded shadow-sm overflow-hidden border border-slate-100">
-                            <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
-                        </div>
-                        
-                        {/* RANK BADGE (Top Right of Flag) */}
-                        {team.rank && (
-                            <div className="absolute -top-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-10">
-                                {team.rank}
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="text-center w-full px-4">
-                        <div className="font-bold text-slate-800 text-xs truncate w-full">{teamName}</div>
-                    </div>
-                </button>
-            );
-        })}
-    </div>
-  );
-
-  const renderTiers = () => {
-      const tiers = {
-          tier1: teamList.filter(t => (t.rank || 99) <= 10),
-          tier2: teamList.filter(t => (t.rank || 99) > 10 && (t.rank || 99) <= 25),
-          tier3: teamList.filter(t => (t.rank || 99) > 25 && (t.rank || 99) <= 50),
-          tier4: teamList.filter(t => (t.rank || 99) > 50)
-      };
-
-      const TierRow = ({ title, teams, icon: Icon, color }: any) => (
-          <div className="mb-6">
-              <div className={`flex items-center gap-2 mb-3 px-1 ${color}`}>
-                  <Icon size={16} />
-                  <h4 className="text-xs font-black uppercase tracking-widest">{title}</h4>
-                  <span className="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded-full ml-auto text-slate-500">{teams.length} Teams</span>
-              </div>
-              {renderGrid(teams)}
-          </div>
-      );
-
-      return (
-          <div className="space-y-2">
-              <TierRow title={lang.tier1 || "World Class"} teams={tiers.tier1} icon={Trophy} color="text-yellow-600" />
-              <TierRow title={lang.tier2 || "Challengers"} teams={tiers.tier2} icon={Swords} color="text-blue-600" />
-              <TierRow title={lang.tier3 || "Dark Horses"} teams={tiers.tier3} icon={Zap} color="text-purple-600" />
-              <TierRow title={lang.tier4 || "Underdogs"} teams={tiers.tier4} icon={Shield} color="text-slate-500" />
-          </div>
-      );
-  };
-
   return (
     <div className="pb-24 animate-fade-in space-y-6">
       
-      {/* VS MATCHUP ENGINE (Top Section) */}
+      {/* VS MATCHUP ENGINE */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-4">
               <h2 className="font-black uppercase tracking-widest flex items-center gap-2 text-slate-800">
@@ -364,7 +296,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       </div>
 
       {/* ANALYSIS RESULTS */}
-      {analysis && (
+      {analysis && slotA && slotB && (
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden animate-in slide-in-from-bottom-4">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white text-center">
                     <div className="flex justify-center items-center gap-2 opacity-80 mb-2">
@@ -381,37 +313,27 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.tacticalAnalysis}</h3>
-                        <AttributeBar label={lang.attack} valA={analysis.home.attributes.attack} valB={analysis.away.attributes.attack} colorA="#3b82f6" colorB="#ef4444" />
-                        <AttributeBar label={lang.defense} valA={analysis.home.attributes.defense} valB={analysis.away.attributes.defense} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label={lang.attack || "Attack"} valA={analysis.home.attributes.attack} valB={analysis.away.attributes.attack} colorA="#3b82f6" colorB="#ef4444" />
+                        <AttributeBar label={lang.defense || "Defense"} valA={analysis.home.attributes.defense} valB={analysis.away.attributes.defense} colorA="#3b82f6" colorB="#ef4444" />
                         <AttributeBar label="PACE" valA={analysis.home.attributes.pace} valB={analysis.away.attributes.pace} colorA="#3b82f6" colorB="#ef4444" />
                         <AttributeBar label="TECH" valA={analysis.home.attributes.technique} valB={analysis.away.attributes.technique} colorA="#3b82f6" colorB="#ef4444" />
                     </div>
 
                     <div className="flex flex-col justify-center">
                         <div className="text-center mb-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance}</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{lang.winChance || "Win Chance"}</span>
                         </div>
-                        {(() => {
-                            // Fixed: grab ratings directly from TEAMS object
-                            const ratingA = teams[slotA!]?.rating || 50;
-                            const ratingB = teams[slotB!]?.rating || 50;
-                            const pA = parseInt(calculateWinProbability(ratingA, ratingB));
-                            const pB = 100 - pA;
-                            
-                            return (
-                                <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                     <div className="bg-blue-500 flex items-center justify-start px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${pA}%` }}>
-                                        {pA}%
-                                     </div>
-                                     <div className="bg-red-500 flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${pB}%` }}>
-                                        {pB}%
-                                     </div>
-                                </div>
-                            );
-                        })()}
+                        <div className="relative h-6 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                             <div className="bg-blue-500 flex items-center justify-start px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${analysis.winProb}%` }}>
+                                {analysis.winProb}%
+                             </div>
+                             <div className="bg-red-500 flex items-center justify-end px-2 text-[10px] font-bold text-white transition-all duration-1000" style={{ width: `${100 - analysis.winProb}%` }}>
+                                {100 - analysis.winProb}%
+                             </div>
+                        </div>
                         <div className="flex justify-between mt-1 px-1">
-                            <span className="text-[10px] font-bold text-blue-600">{getTeamName(teams[slotA!])}</span>
-                            <span className="text-[10px] font-bold text-red-600">{getTeamName(teams[slotB!])}</span>
+                            <span className="text-[10px] font-bold text-blue-600">{getTeamName(teams[slotA])}</span>
+                            <span className="text-[10px] font-bold text-red-600">{getTeamName(teams[slotB])}</span>
                         </div>
                     </div>
                 </div>
@@ -421,25 +343,14 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
       {/* TEAM SELECTOR GRID */}
       <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-              <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                  <button 
-                    onClick={() => setViewMode('GRID')}
-                    className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'GRID' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                      All Teams
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('TIERS')}
-                    className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'TIERS' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                      Rank Tiers
-                  </button>
-              </div>
-              <div className="relative w-32 sm:w-40">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  {activeSlot ? `${lang.selectTeam || "Select Team"}: ${activeSlot === 'A' ? 'Home' : 'Away'}` : (lang.allNations || "All Nations")}
+              </h3>
+              <div className="relative w-40">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input 
                     type="text" 
-                    placeholder={lang.searchNation} 
+                    placeholder={lang.searchNation || "Search..."} 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500"
@@ -447,7 +358,35 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               </div>
           </div>
 
-          {viewMode === 'GRID' ? renderGrid(filteredTeams) : renderTiers()}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {filteredTeams.map(team => {
+                  const isSelected = slotA === team.id || slotB === team.id;
+                  const translatedName = getTeamName(team);
+                  return (
+                      <button 
+                          key={team.id} 
+                          onClick={() => handleTeamClick(team.id)}
+                          disabled={isSelected && activeSlot !== null} 
+                          className={`
+                              flex items-center gap-3 p-3 rounded-xl border transition-all text-left
+                              ${isSelected 
+                                ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed' 
+                                : activeSlot 
+                                    ? 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer' 
+                                    : 'bg-white border-slate-200 hover:bg-slate-50'}
+                          `}
+                      >
+                          <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 shrink-0">
+                              <img src={team.flag} alt={translatedName} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                              <div className="font-bold text-slate-800 text-xs truncate">{translatedName}</div>
+                              <div className="text-[9px] font-medium text-slate-400">{lang.fifaRank || "Rank"} {team.rank}</div>
+                          </div>
+                      </button>
+                  );
+              })}
+          </div>
       </div>
 
       {/* DEEP DIVE MODAL (Detailed Report) */}
@@ -466,7 +405,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                       <img src={selectedTeam.flag} alt={selectedTeam.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                      <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank}</span>
+                      <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank || "FIFA Rank"}</span>
                       <div className="text-4xl font-black text-white italic tracking-tighter drop-shadow-md">#{displayRank}</div>
                   </div>
                   <button onClick={() => setSelectedTeam(null)} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors backdrop-blur-sm">
@@ -493,7 +432,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                           <Crown size={24} fill="currentColor" className="text-yellow-500" />
                       </div>
                       <div className="relative z-10">
-                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer}</div>
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer || "Star Player"}</div>
                           <div className="text-xl font-black text-slate-900 leading-none">{cleanText(scoutingData?.star_player) || selectedTeam.starPlayer}</div>
                       </div>
                   </div>
@@ -502,11 +441,11 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   {scoutingData && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                           <div className="bg-green-50/60 rounded-xl p-4 border border-green-100/50">
-                              <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={14} /> {lang.strengthsLabel}</h4>
+                              <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><TrendingUp size={14} /> {lang.strengthsLabel || "Strengths"}</h4>
                               <RenderPoints text={cleanText(scoutingData.strengths)} />
                           </div>
                           <div className="bg-red-50/60 rounded-xl p-4 border border-red-100/50">
-                              <h4 className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle size={14} /> {lang.weaknessesLabel}</h4>
+                              <h4 className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle size={14} /> {lang.weaknessesLabel || "Weaknesses"}</h4>
                               <RenderPoints text={cleanText(scoutingData.weaknesses)} />
                           </div>
                       </div>
@@ -515,7 +454,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                   {/* Form & History */}
                   <div className="mb-2">
                       <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide}</h3>
+                          <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Activity size={16} className="text-slate-400" /> {lang.formGuide || "Form Guide"}</h3>
                           {trend && (
                               <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${trend.bg}`}>
                                   <trend.icon size={12} className={trend.color} />
@@ -556,7 +495,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               
               <div className="p-4 bg-white border-t border-slate-100 shrink-0">
                   <button onClick={() => setSelectedTeam(null)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs transition-colors shadow-lg">
-                      {lang.closeReport}
+                      {lang.closeReport || "Close Report"}
                   </button>
               </div>
            </div>
