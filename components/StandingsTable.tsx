@@ -40,7 +40,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             const team = teams[row.teamId];
             const isHighlighted = highlightedTeamId === row.teamId;
             
-            // NEW: Get last 5 matches
+            // Get last 5 matches
             const recentForm = row.form ? row.form.slice(-5) : [];
 
             return (
@@ -85,7 +85,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 </td>
                 <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
                 
-                {/* REAL FORM DISPLAY */}
+                {/* FORM DISPLAY */}
                 {!compact && (
                     <td className="text-center hidden sm:table-cell">
                         <div className="flex items-center justify-center gap-1">

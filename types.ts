@@ -68,7 +68,7 @@ export interface GroupStanding {
   ga: number;
   gd: number;
   pts: number;
-  form: string[]; // NEW: Stores 'W', 'D', 'L' history
+  form: string[]; // Stores 'W', 'D', 'L' history
 }
 
 export interface HeadToHeadStats {
@@ -98,17 +98,17 @@ export interface MatchHistoryItem {
 export interface ScoutingData {
     id: number;
     team_id: string;
-    lang: string;
-    strengths: string;
-    weaknesses: string;
-    star_player: string;
     team_name?: string;
     confederation?: string;
     fifa_rank?: number;
+    star_player: string;
+    strengths: string;
+    weaknesses: string;
     scout_notes?: string;
     recent_form?: string;
     last_5_matches?: string;
     created_at?: string;
+    lang?: string; // Made optional as new table doesn't have it
 }
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
