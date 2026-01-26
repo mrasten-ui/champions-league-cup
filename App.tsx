@@ -55,6 +55,10 @@ const App: React.FC = () => {
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
 
+  // NEW: Flash/Highlight States for jumping from Schedule
+  const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
+  const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
+
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
   const currentLocale = localeMap[language];
@@ -65,6 +69,50 @@ const App: React.FC = () => {
     setToasts(prev => [...prev, { id, type, title, message }]);
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
+  // --- ACTIONS: NAVIGATION JUMPS ---
+  
+  const handleJumpToTable = (groupId: string, teamId: string) => {
+      // 1. Switch to Table View
+      setTournamentSubTab('tables');
+      
+      // 2. Set the team to flash yellow
+      setHighlightedTeamId(teamId);
+
+      // 3. Scroll to the group card after a tiny delay to allow render
+      setTimeout(() => {
+          const element = document.getElementById(`group-card-${groupId}`);
+          if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+      }, 100);
+
+      // 4. Remove flash effect after 2 seconds
+      setTimeout(() => {
+          setHighlightedTeamId(null);
+      }, 2000);
+  };
+
+  const handleJumpToBracket = (matchId: string) => {
+      // 1. Switch to Bracket View
+      setTournamentSubTab('bracket');
+
+      // 2. Set match to flash
+      setHighlightedMatchId(matchId);
+
+      // 3. Scroll to match card
+      setTimeout(() => {
+          const element = document.getElementById(`bracket-match-${matchId}`);
+          if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }
+      }, 100);
+
+      // 4. Remove flash
+      setTimeout(() => {
+          setHighlightedMatchId(null);
+      }, 2000);
+  };
 
   // --- CORE LOGIC: PREDICTION VS REALITY ---
   
@@ -344,7 +392,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* TOURNAMENT HUB (Live Reality - Official Data) */}
+        {/* NEW: TOURNAMENT HUB (Live Reality - Official Data) */}
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 {/* Hub Navigation */}
@@ -368,25 +416,29 @@ const App: React.FC = () => {
                         lang={t} 
                         currentLang={language} 
                         onTeamClick={(id) => setViewingTeamId(id)} 
+                        onJumpToTable={handleJumpToTable} // NEW: Pass the jump handler
+                        onJumpToBracket={handleJumpToBracket} // NEW: Pass the jump handler
                     />
                 )}
 
-                {/* 2. TABLES VIEW - VERTICAL LIST ON MOBILE, 2-COL GRID ON PC */}
+                {/* 2. TABLES VIEW */}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
                             {GROUP_CONFIG.map(g => (
-                                <div key={g.id} className="w-full">
+                                <div key={g.id} id={`group-card-${g.id}`} className="w-full">
                                     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden h-full">
                                         <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center">
                                             <h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3>
                                         </div>
+                                        {/* Uses official match data to calculate official tables */}
                                         <StandingsTable 
                                             standings={calculateGroupStandings(g.id, matches, teamsData)} 
                                             teams={teamsData} 
                                             lang={t} 
                                             compact={true} 
-                                            onTeamClick={(id) => setViewingTeamId(id)} 
+                                            onTeamClick={(id) => setViewingTeamId(id)}
+                                            highlightedTeamId={highlightedTeamId} // NEW: Pass flash prop
                                         />
                                     </div>
                                 </div>
@@ -404,6 +456,7 @@ const App: React.FC = () => {
                         userPredictions={liveResultsAsPredictions} 
                         onUpdate={() => {}} // Read-only
                         lang={t}
+                        highlightedMatchId={highlightedMatchId} // NEW: Pass flash prop
                     />
                 )}
             </div>
@@ -419,7 +472,7 @@ const App: React.FC = () => {
                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6"><StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} /></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
-                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} />
+                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} showStatusBadge={false} />
                           ))}
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
