@@ -160,11 +160,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         const loc = locale.toLowerCase();
 
         if (loc.includes('no')) regionKey = 'NO';
-        else if (loc.includes('us')) regionKey = 'US'; // Explicit US check
         else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
-        
-        // Fallback for generic 'en' to 'EN' (UK/Intl) only if NOT 'en-us'
-        else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
+        else if (loc.startsWith('en')) regionKey = 'EN'; // Default generic English to UK/Intl channels
 
         // Check for specific Scotland override if available in translations
         if ((lang as any).isScotland && match.channels['SCO']) {
@@ -253,7 +250,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
-             {/* 1. NAVY HEADER STRIP (For ALL Cards) */}
+             {/* 1. NAVY HEADER STRIP */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
@@ -281,7 +278,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
-                        {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
+                        {/* UPDATED: Increased size to w-6 h-6 and font to text-[10px] */}
+                        {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
                     </div>
                     <div className="flex flex-col items-center">
                         <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
@@ -359,7 +357,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
-                        {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
+                        {/* UPDATED: Increased size to w-6 h-6 and font to text-[10px] */}
+                        {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
                     </div>
                     <div className="flex flex-col items-center">
                         <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
@@ -441,7 +440,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     
-                    {/* LEFT: Stadium (Venue) */}
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0">
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">
