@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin, Save } from 'lucide-react';
+import { Clock, Activity, Lock, ScanEye, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, Search, MapPin, Save, Calendar } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 
@@ -23,8 +23,6 @@ interface MatchCardProps {
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
   onTeamClick?: (teamId: string) => void;
-  // Added optional prediction prop for read-only views if needed, though usually calculated internally
-  prediction?: Prediction | undefined; 
 }
 
 const ScoreStepper: React.FC<{ 
@@ -56,6 +54,39 @@ const ScoreStepper: React.FC<{
       </button>
     </div>
   );
+};
+
+// Helper component for Countdown
+const CountdownTimer: React.FC<{ targetDate: string; lang: Translation }> = ({ targetDate, lang }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        const updateTimer = () => {
+            const now = new Date();
+            const target = new Date(targetDate);
+            const diff = target.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setTimeLeft('00:00');
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    return (
+        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 px-3 py-2 rounded justify-center w-full animate-pulse border border-blue-100">
+            <Clock size={12} /> {lang.startsIn || "Starts in"} {timeLeft}
+        </div>
+    );
 };
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
@@ -125,7 +156,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const canSpy = !isSpied && userTokens > 0 && !isRealLifeLocked && rivals.length > 0;
     const showRivals = isSpied || isRealLifeLocked;
 
+    // --- BUTTON RENDERING LOGIC ---
     const renderControlButtons = () => {
+        // 1. SUB BUTTON (Priority 1: Unlocking feature)
         if (canSubstitute) {
             return (
                 <button 
@@ -138,6 +171,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </button>
             );
         }
+
+        // 2. SAVE BUTTON (Priority 2: Action needed)
         if (isUnlockedBySub && isDirty) {
             return (
                 <button 
@@ -149,6 +184,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </button>
             );
         }
+
+        // 3. UNLOCKED BADGE
         if (isUnlockedBySub && !isDirty) {
             return (
                 <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 w-full">
@@ -157,13 +194,24 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             );
         }
+
+        // 4. LOCKED STATUS (Countdown / Upcoming)
         if (isLocked) {
-            return (
-                <div className="text-[9px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-50 px-3 py-2 rounded justify-center w-full">
-                    <Lock size={12} /> {lang.lockedState}
-                </div>
-            );
+            const today = new Date().toDateString();
+            const matchDay = new Date(match.date).toDateString();
+            const isToday = today === matchDay;
+
+            if (isToday) {
+                return <CountdownTimer targetDate={match.date} lang={lang} />;
+            } else {
+                return (
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded justify-center w-full border border-slate-200">
+                        <Calendar size={12} /> {lang.filterUpcoming || "Upcoming"}
+                    </div>
+                );
+            }
         }
+
         return null;
     };
 
@@ -179,7 +227,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'} relative group`}>
              
-             {/* Header - NOW NAVY BLUE to match Hero */}
+             {/* Header */}
              <div className="px-3 py-2 border-b border-[#1a3a6c] bg-[#0f2545] flex items-center justify-between rounded-t-2xl min-h-[36px]">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300 w-full justify-center">
                     {isLive ? (
@@ -252,7 +300,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <span className={`font-black text-slate-800 text-xs sm:text-sm leading-none uppercase tracking-tight text-center max-w-[100px] truncate ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
                 </div>
 
-                {/* CENTER: VS / Controls */}
+                {/* CENTER: Score/Controls */}
                 <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 min-w-[80px]">
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
@@ -296,12 +344,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-3 w-full">
-                                             <div className="text-3xl font-black text-slate-300">VS</div>
+                                             {/* PLACEHOLDER SCOREBOARD for Scheduled Matches */}
+                                             <div className="px-5 py-3 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2">
+                                                <span>-</span>
+                                                <span className="opacity-50 text-lg mx-1">:</span>
+                                                <span>-</span>
+                                             </div>
+                                             
                                              {prediction && (
                                                 <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                                                     {lang.myPick}: {prediction.home}-{prediction.away}
                                                 </div>
                                              )}
+                                             
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
