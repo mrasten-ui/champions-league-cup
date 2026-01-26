@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
+import { RefreshCw, LayoutGrid, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { calculateGroupStandings, simulateFullTournament, applyPredictionsToBracket, simulateTournamentAtDate } from './services/engine';
@@ -21,7 +21,6 @@ import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
-import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
@@ -35,8 +34,9 @@ const App: React.FC = () => {
     allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
   } = useAppData();
 
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
-  const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
+  // REMOVED 'tournament' from the activeTab type and state
+  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'analysis' | 'scouting'>('groups');
+  
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
@@ -65,7 +65,7 @@ const App: React.FC = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // --- CORE LOGIC: SEPARATE OFFICIAL REALITY FROM USER REALITY ---
+  // --- CORE LOGIC ---
   const userMatches = useMemo(() => {
       if (!user) return matches;
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
@@ -154,7 +154,6 @@ const App: React.FC = () => {
   };
 
   const handleTimeTravel = (timestamp: number) => {
-      // For debug/simulation only - updates official reality
       const simulatedMatches = simulateTournamentAtDate(matches, teamsData, timestamp);
       setMatches(simulatedMatches);
       setTournamentPhase('LIVE');
@@ -231,10 +230,12 @@ const App: React.FC = () => {
 
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'tournament', 'manager', 'analysis'], [tournamentPhase]);
+  
+  // REMOVED 'tournament' from the tabs list
+  const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'manager', 'analysis'], [tournamentPhase]);
+  
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   
-  // Use userMatches for standings in prediction mode
   const standings = useMemo(() => calculateGroupStandings(activeGroup, userMatches, teamsData), [activeGroup, userMatches, teamsData]);
   const groupMatchesList = userMatches.filter(m => m.groupId === activeGroup);
   
@@ -245,7 +246,6 @@ const App: React.FC = () => {
     return false;
   }, [activeTab, allPredictions, user, matches]);
 
-  // --- THE BIN: RESET LOGIC ---
   const handleClearPredictions = useCallback(async () => {
     if (!user || !supabase) return; 
     try {
@@ -279,7 +279,6 @@ const App: React.FC = () => {
 
   const getSimMode = (): 'knockout' | 'groups' => {
       if (activeTab === 'knockout') return 'knockout';
-      if (activeTab === 'tournament' && tournamentSubTab === 'bracket') return 'knockout';
       return 'groups';
   };
 
@@ -329,30 +328,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* TOURNAMENT TAB (LIVE REALITY) */}
-        {activeTab === 'tournament' && (
-            <div className="flex flex-col h-full animate-fade-in">
-                <div className="flex justify-center mb-6">
-                   <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
-                      {(['schedule', 'tables', 'bracket'] as const).map(sub => (
-                         <button key={sub} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
-                            {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{(t as any)[`subnav${sub.charAt(0).toUpperCase() + sub.slice(1)}`]}
-                         </button>
-                      ))}
-                   </div>
-                </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
-                {tournamentSubTab === 'tables' && (
-                    <div className="pb-20">
-                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 no-scrollbar px-1">
-                            {GROUP_CONFIG.map(g => (<div key={g.id} className="snap-center shrink-0 w-[85vw] md:w-[22rem]"><div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden"><div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div><StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} /></div></div>))}
-                        </div>
-                        <div className="text-center text-xs text-slate-400 font-medium uppercase tracking-widest animate-pulse">Swipe for more groups &rarr;</div>
-                    </div>
-                )}
-                {tournamentSubTab === 'bracket' && <KnockoutBracket matches={matches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />}
-            </div>
-        )}
+        {/* TOURNAMENT TAB HAS BEEN REMOVED FOR REDESIGN */}
 
         {/* GROUPS TAB (PREDICTION REALITY) */}
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
@@ -423,7 +399,6 @@ const App: React.FC = () => {
       <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
-      {/* THE MAGIC HAND MODAL (Fixed State Merge Logic) */}
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} 
@@ -438,10 +413,7 @@ const App: React.FC = () => {
                     setUser({ ...user, favorites: favs });
                 }
 
-                // Force Scope: KNOCKOUT if we are in knockout/bracket tab, else GROUPS
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
-
-                // Use 'userMatches' so we build upon existing picks (if any)
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope);
                 
                 const relevantMatches = simulatedMatches.filter(m => {
@@ -465,13 +437,9 @@ const App: React.FC = () => {
                         if (!error) {
                             addToast('success', 'Magic Applied', `Generated scores for ${predictionsToSave.length} matches.`);
                             
-                            // CRITICAL FIX: Merge new predictions, do NOT wipe old ones
                             setAllPredictions(prev => {
-                                // 1. Keep other users' predictions
                                 const others = prev.filter(p => p.userId !== user.email);
-                                // 2. Keep current user's OLD predictions (that aren't being updated now)
                                 const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
-                                // 3. Add the NEW predictions
                                 const myNewPreds = predictionsToSave.map(p => ({ 
                                     userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away 
                                 }));
