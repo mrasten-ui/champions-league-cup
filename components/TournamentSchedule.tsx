@@ -9,7 +9,7 @@ import { calculateGroupStandings } from '../services/engine';
 interface TournamentScheduleProps {
   matches: Match[];
   teams: Record<string, Team>;
-  userPredictions: Prediction[]; // Optional: Just to show "My Pick" vs "Actual" if desired
+  userPredictions: Prediction[];
   user: UserProfile | null;
   lang: Translation;
   currentLang: string;
@@ -19,7 +19,6 @@ interface TournamentScheduleProps {
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick 
 }) => {
-  // Initialize with 'ALL' or finding the closest date to today could be added here
   const [filterDate, setFilterDate] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -36,7 +35,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   // 2. Identify a "Hero Match" (Live or High Profile Upcoming)
   const heroMatch = useMemo(() => {
-    // Priority: Live > Upcoming > specific high profile
     return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
            matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
   }, [matches]);
@@ -122,9 +120,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     match={match}
                                     homeTeam={teams[match.homeTeamId]}
                                     awayTeam={teams[match.awayTeamId]}
-                                    // Pass empty function for update since this is Read-Only
-                                    onUpdate={() => {}} 
-                                    prediction={userPredictions.find(p => p.matchId === match.id)}
+                                    onUpdate={() => {}} // Read-only
                                     lang={lang}
                                     locale={currentLang}
                                     userTokens={0}
