@@ -18,7 +18,7 @@ interface TournamentScheduleProps {
   onJumpToBracket?: (matchId: string) => void;
 }
 
-// MAPPING: Language Code -> Team ID (Ensure these match your DB IDs perfectly)
+// MAPPING: Language Code -> Team ID
 const LANG_TEAM_MAP: Record<string, string> = {
     'NO': 'Norway',
     'SCO': 'Scotland',
@@ -69,31 +69,28 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   // 4. "MATCH OF THE DAY" SELECTION LOGIC
   const heroMatch = useMemo(() => {
-    // If user is searching, don't show a hero
     if (searchTerm) return null;
 
-    // If "ALL" is selected, default to the most relevant LIVE or UPCOMING match globally
     if (filterDate === 'ALL') {
         return matches.find(m => ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(m.status)) ||
                matches.find(m => m.status === 'UPCOMING' && m.date !== 'TBD');
     }
 
-    // --- ALGORITHM FOR SPECIFIC DAY ---
     const daysMatches = filteredMatches;
     if (daysMatches.length === 0) return null;
 
-    // RULE 2: Check User's Language Team
+    // Priority 1: User's Language
     const myTeamId = LANG_TEAM_MAP[currentLang];
     const myMatch = daysMatches.find(m => m.homeTeamId === myTeamId || m.awayTeamId === myTeamId);
     if (myMatch) return myMatch;
 
-    // RULE 3: Check Other Supported Languages
+    // Priority 2: Priority Nations
     const priorityMatch = daysMatches.find(m => 
         PRIORITY_TEAMS.includes(m.homeTeamId) || PRIORITY_TEAMS.includes(m.awayTeamId)
     );
     if (priorityMatch) return priorityMatch;
 
-    // RULE 4: Check Top 10 FIFA Rank
+    // Priority 3: Top 10 Teams
     const top10Match = daysMatches.find(m => {
         const homeRank = teams[m.homeTeamId]?.rank || 100;
         const awayRank = teams[m.awayTeamId]?.rank || 100;
@@ -101,11 +98,11 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     });
     if (top10Match) return top10Match;
 
-    // RULE 5: Lowest Combined Ranking (The "Biggest" Game)
+    // Priority 4: Biggest Rank Clash (Lowest combined rank)
     const sortedByRank = [...daysMatches].sort((a, b) => {
         const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
         const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
-        return rankA - rankB; // Ascending (lower is better)
+        return rankA - rankB;
     });
 
     return sortedByRank[0];
@@ -135,6 +132,21 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       });
   };
 
+  // SMART CLICK HANDLER GENERATOR
+  // This ensures both the Hero and the List items behave identically
+  const createClickHandler = (match: Match) => (teamId: string) => {
+      if (match.groupId && onJumpToTable) {
+          // Group Game -> Jump to Table
+          onJumpToTable(match.groupId, teamId);
+      } else if (match.round && onJumpToBracket) {
+          // Knockout Game -> Jump to Bracket
+          onJumpToBracket(match.id);
+      } else {
+          // Fallback -> Modal
+          onTeamClick(teamId);
+      }
+  };
+
   return (
     <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
         <DateRibbon 
@@ -157,6 +169,16 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
+            {/* DATE HEADLINE (Moved Above Hero) */}
+            <div className="flex items-center justify-between px-1 mb-4">
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
+                    {getDateHeadline(filterDate)}
+                </h3>
+                <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                    {filteredMatches.length} Matches
+                </span>
+            </div>
+
             {/* MATCH OF THE DAY HERO */}
             {heroMatch && !searchTerm && (
                 <MatchdayHero 
@@ -164,21 +186,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
-                    onTeamClick={onTeamClick}
+                    // Use the smart handler here!
+                    onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
 
             {/* List */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
-                        {getDateHeadline(filterDate)}
-                    </h3>
-                    <span className="text-[10px] font-bold text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-                        {filteredMatches.length} Matches
-                    </span>
-                </div>
-
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
                         // Don't repeat the Hero match in the list if we are looking at a specific day
@@ -186,20 +200,6 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
                         const isHighStakes = !match.groupId && match.round !== 'R32';
                         const readOnlyMatch = { ...match, isLocked: true };
-
-                        // CLICK LOGIC: Check type and Jump accordingly
-                        const handleSpecificClick = (teamId: string) => {
-                            if (match.groupId && onJumpToTable) {
-                                // CASE 1: Group Match -> Jump to Table
-                                onJumpToTable(match.groupId, teamId);
-                            } else if (match.round && onJumpToBracket) {
-                                // CASE 2: Knockout Match -> Jump to Bracket
-                                onJumpToBracket(match.id);
-                            } else {
-                                // CASE 3: Default -> Show Team Details
-                                onTeamClick(teamId);
-                            }
-                        };
 
                         return (
                             <div key={match.id} className="relative">
@@ -218,7 +218,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     allPredictions={[]}
                                     phase={'LIVE'}
                                     isAdminMode={false}
-                                    onTeamClick={handleSpecificClick} // PASS SMART HANDLER
+                                    // Use the smart handler here too!
+                                    onTeamClick={createClickHandler(match)} 
                                     showStatusBadge={true} 
                                 />
                                 {isHighStakes && (
