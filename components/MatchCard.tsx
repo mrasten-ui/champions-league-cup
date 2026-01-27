@@ -73,8 +73,8 @@ const TbdSlot: React.FC<{
                     <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-repeat"></div>
                 )}
                 
-                {/* Label Overlay */}
-                <div className="relative z-10 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100">
+                {/* Label Overlay - White Pill for Clarity */}
+                <div className="relative z-10 bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
                     <span className="text-[8px] font-black text-slate-800 uppercase text-center leading-none block">
                         {source.label}
                     </span>
@@ -97,8 +97,8 @@ const TbdSlot: React.FC<{
                     </div>
                 </div>
 
-                {/* Label Overlay */}
-                <div className="relative z-10 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
+                {/* Label Overlay - White Pill */}
+                <div className="relative z-10 bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
                     <div className="flex gap-1 text-[7px] font-black text-slate-800 uppercase leading-none">
                         <span>{potentialTeams[0].id}</span>
                         <span className="text-slate-400 font-normal">/</span>
@@ -109,22 +109,33 @@ const TbdSlot: React.FC<{
         );
     }
 
-    // 3. 3RD PLACE / GENERIC
+    // 3. 3RD PLACE / GENERIC (Full Color Logo)
     if (source.type === '3RD_PLACE') {
         return (
             <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
-                <span className="relative z-10 text-[9px] font-black text-slate-500 uppercase text-center leading-tight">
-                    {lang.thirdPlace || "3rd Place"}
-                </span>
+                {/* COLOR LOGO: No grayscale, bg-contain to fit, opacity-50 for visibility */}
+                <div className="absolute inset-0 opacity-50 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+                
+                {/* Text Pill */}
+                <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
+                    <span className="text-[8px] font-black text-slate-600 uppercase text-center leading-none block">
+                        {lang.thirdPlace || "3rd Place"}
+                    </span>
+                </div>
             </div>
         );
     }
 
-    // 4. FALLBACK
+    // 4. FALLBACK TBD (Standard)
     return (
-        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TBD</span>
+        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
+             {/* Use Logo Background here too for consistency */}
+             <div className="absolute inset-0 opacity-30 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+             
+             {/* Text Pill */}
+             <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">TBD</span>
+             </div>
         </div>
     );
 };
@@ -514,38 +525,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 ))}
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {showRivals && rivals.length > 0 && (
-                <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                            <LockIcon size={10} className="text-yellow-400" />
-                            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
-                        </div>
-                        {prediction && (
-                            <span className="text-[10px] font-bold text-white/40">
-                                {lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span>
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
-                        {rivals.map(rival => {
-                            const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
-                            return (
-                                <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" />
-                                        <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
-                                    </div>
-                                    <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">
-                                        {rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}
-                                    </span>
-                                </div>
-                            );
-                        })}
                     </div>
                 </div>
             )}

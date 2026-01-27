@@ -62,14 +62,16 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 2. 3RD PLACE
+    // 2. 3RD PLACE (Full Color Logo)
     if (source.type === '3RD_PLACE') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-                <div className="absolute inset-0 opacity-20 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
-                <span className="relative z-10 text-[9px] sm:text-[10px] font-black text-white/50 uppercase text-center leading-tight">
-                    {lang.thirdPlace || "3rd Place"}
-                </span>
+                <div className="absolute inset-0 opacity-50 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+                <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
+                    <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-tight block">
+                        {lang.thirdPlace || "3rd Place"}
+                    </span>
+                </div>
             </div>
         );
     }
@@ -88,7 +90,7 @@ const TbdHeroSlot: React.FC<{
                 </div>
                 
                 {/* Label */}
-                <div className="relative z-10 flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+                <div className="relative z-10 flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/70 px-2 py-1 rounded backdrop-blur-sm">
                     <span>{potentialTeams[0].id}</span>
                     <span className="text-white/50 font-normal">/</span>
                     <span>{potentialTeams[1].id}</span>
@@ -99,8 +101,11 @@ const TbdHeroSlot: React.FC<{
 
     // 4. FALLBACK TBD
     return (
-        <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative">
-            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">TBD</span>
+        <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 opacity-30 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+            <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
+                <span className="text-[10px] font-black text-white uppercase tracking-widest block">TBD</span>
+            </div>
         </div>
     );
 };
