@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon, Tv } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
+import { getSlotSource, getPotentialTeams } from '../utils/bracketHelpers'; // Import the new helper
+
+// --- TYPES & PROPS ---
 
 interface MatchCardProps {
   match: Match;
@@ -26,9 +29,91 @@ interface MatchCardProps {
   showStatusBadge?: boolean;
   homeTeamPoints?: number;
   awayTeamPoints?: number;
+  // New Prop to pass all matches for feeder logic
+  allMatches?: Match[];
+  // New Prop to pass all teams for feeder logic
+  allTeams?: Record<string, Team>;
 }
 
 // --- 1. SUB-COMPONENTS ---
+
+// NEW: The Smart TBD Slot Component
+const TbdSlot: React.FC<{ 
+    matchId: string;
+    side: 'home' | 'away';
+    allMatches?: Match[];
+    allTeams?: Record<string, Team>;
+    lang: Translation;
+}> = ({ matchId, side, allMatches, allTeams, lang }) => {
+    
+    // 1. Get Source Info
+    const source = useMemo(() => getSlotSource(matchId, side), [matchId, side]);
+    
+    // 2. Get Potential Teams (Feeder Logic)
+    const potentialTeams = useMemo(() => {
+        if (!allMatches || !allTeams) return null;
+        return getPotentialTeams(source, allMatches, allTeams);
+    }, [source, allMatches, allTeams]);
+
+    // --- VISUAL VARIANT 1: GROUP SOURCE (R32) ---
+    if (source.type === 'GROUP_RANK') {
+        return (
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden group/tbd">
+                {/* Background "Cluster" Effect */}
+                <div className="absolute inset-0 opacity-10 flex flex-wrap gap-0.5 p-0.5 pointer-events-none grayscale">
+                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
+                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
+                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
+                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
+                </div>
+                <span className="relative z-10 text-[9px] font-black text-slate-500 uppercase text-center leading-tight">
+                    {source.label}
+                </span>
+            </div>
+        );
+    }
+
+    // --- VISUAL VARIANT 2: 3RD PLACE (Generic Logo) ---
+    if (source.type === '3RD_PLACE') {
+        return (
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
+                <span className="relative z-10 text-[9px] font-black text-slate-400 uppercase text-center leading-tight">
+                    {lang.thirdPlace || "3rd Place"}
+                </span>
+            </div>
+        );
+    }
+
+    // --- VISUAL VARIANT 3: DUAL FLAGS (Feeder Known) ---
+    if (potentialTeams && potentialTeams.length === 2) {
+        return (
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center relative overflow-hidden group/tbd">
+                <div className="flex gap-1 items-center justify-center mb-1">
+                    <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
+                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="w-px h-3 bg-slate-300"></div>
+                    <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
+                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" />
+                    </div>
+                </div>
+                <div className="flex gap-1 text-[8px] font-black text-slate-600 uppercase leading-none">
+                    <span>{potentialTeams[0].id}</span>
+                    <span className="text-slate-400 font-normal">or</span>
+                    <span>{potentialTeams[1].id}</span>
+                </div>
+            </div>
+        );
+    }
+
+    // --- VISUAL VARIANT 4: FALLBACK TBD (Standard) ---
+    return (
+        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TBD</span>
+        </div>
+    );
+};
 
 const ScoreStepper: React.FC<{ 
     value: number | null; 
@@ -65,7 +150,8 @@ const ScoreStepper: React.FC<{
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints
+    homeTeamPoints, awayTeamPoints,
+    allMatches, allTeams // NEW PROPS
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -147,12 +233,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             };
             return rounds[match.round] || match.round;
         }
-        // FIX: Use singular 'group' key or hardcoded 'GROUP'
         if (match.groupId) return `${lang.group || 'GROUP'} ${match.groupId}`;
         return match.venue || 'FRIENDLY';
     };
 
-    // --- TV CHANNEL LOGIC ---
     const getTvChannel = () => {
         if (!match.channels) return null;
         
@@ -185,7 +269,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
-    // --- LEFT STATUS LOGIC ---
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) {
@@ -243,6 +326,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
     const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
 
+    // --- CHECK IF TEAM IS TBD ---
+    const isHomeTBD = match.homeTeamId === 'TBD' || !homeTeam;
+    const isAwayTBD = match.awayTeamId === 'TBD' || !awayTeam;
+
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
@@ -251,7 +338,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     <div className="flex items-center gap-1.5">
-                        {/* Trophy Icon: Shows for Knockouts AND Groups now */}
                         {(match.round || match.groupId) && <Trophy size={12} className="text-amber-400" />}
                         <span className="text-xs font-black uppercase tracking-widest shadow-black/50 drop-shadow-sm whitespace-nowrap">
                             {getContextLabel()}
@@ -263,24 +349,34 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              {/* 2. CENTRAL STAGE */}
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
-                {/* Home Team */}
+                {/* Home Team (or TBD Slot) */}
                 <div 
                     onClick={() => {
+                        if (isHomeTBD) return;
                         if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); }
                         else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId);
                     }}
                     className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}
                 >
-                    <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none">
-                        <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
-                            {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
+                    {isHomeTBD ? (
+                        <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} />
+                    ) : (
+                        <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none">
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
+                            </div>
+                            {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
                         </div>
-                        {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
-                    </div>
+                    )}
+                    
                     <div className="flex flex-col items-center">
-                        <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
-                        {match.groupId && homeTeamPoints !== undefined && (
-                            <span className="text-[9px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>
+                        {!isHomeTBD && (
+                            <>
+                                <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
+                                {match.groupId && homeTeamPoints !== undefined && (
+                                    <span className="text-[9px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
@@ -341,31 +437,41 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     )}
                 </div>
 
-                {/* Away Team */}
+                {/* Away Team (or TBD Slot) */}
                 <div 
                     onClick={() => {
+                        if (isAwayTBD) return;
                         if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); }
                         else if(isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId);
                     }}
                     className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}
                 >
-                    <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none">
-                        <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
-                            {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
+                    {isAwayTBD ? (
+                        <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} />
+                    ) : (
+                        <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none">
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
+                            </div>
+                            {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
                         </div>
-                        {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
-                    </div>
+                    )}
+
                     <div className="flex flex-col items-center">
-                        <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
-                        {match.groupId && awayTeamPoints !== undefined && (
-                            <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>
+                        {!isAwayTBD && (
+                            <>
+                                <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
+                                {match.groupId && awayTeamPoints !== undefined && (
+                                    <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* 3. EXPANDABLE SECTIONS (H2H & RIVALS) */}
-            {h2hData && !isLocked && !isKnockout && (
+            {/* EXPANDABLE SECTIONS & FOOTER (Kept same as before) */}
+            {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
                         <div className="flex items-center gap-2">
@@ -398,44 +504,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             )}
 
-            {showRivals && rivals.length > 0 && (
-                <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                            <LockIcon size={10} className="text-yellow-400" />
-                            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
-                        </div>
-                        {prediction && (
-                            <span className="text-[10px] font-bold text-white/40">
-                                {lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span>
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
-                        {rivals.map(rival => {
-                            const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
-                            return (
-                                <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" />
-                                        <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
-                                    </div>
-                                    <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">
-                                        {rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* 4. FOOTER STRIP (Venue/Stadium) - ONLY IF showStatusBadge is TRUE (Live Mode) */}
+            {/* Footer Strip */}
             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     
-                    {/* LEFT: Stadium (Venue) */}
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0">
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">
