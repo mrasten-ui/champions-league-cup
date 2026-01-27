@@ -3,12 +3,13 @@ import { Match, Team, Prediction, UserProfile, Translation, TournamentPhase } fr
 import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
+import { ActionableMatchCarousel } from './ActionableMatchCarousel'; // Ensure this is imported if used, otherwise remove
 import { SubstitutionModal } from './SubstitutionModal';
-import { calculateMaxPotentialPoints } from '../services/engine';
-import { Trophy, Users, LayoutGrid } from 'lucide-react';
+import { Trophy, LayoutGrid, Lock } from 'lucide-react';
 
 interface ManagerHubProps {
-  matches: Match[];
+  matches: Match[];        // Official schedule (Real Status/Scores)
+  userMatches: Match[];    // User's predicted bracket (Predicted Teams)
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
@@ -20,22 +21,22 @@ interface ManagerHubProps {
 }
 
 export const ManagerHub: React.FC<ManagerHubProps> = ({
-  matches, teams, allPredictions, currentUser, lang, 
+  matches, userMatches, teams, allPredictions, currentUser, lang, 
   onSubstitute, onUnlockSecondChance, onUpdate, phase
 }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const userPredictions = allPredictions.filter(p => p.userId === currentUser.email);
   
-  // --- 1. DATA ORGANIZATION ---
+  // --- 1. DATA ORGANIZATION (Using User's Predicted Bracket) ---
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
       const knockouts: Record<string, Match[]> = {
           'R32': [], 'R16': [], 'QF': [], 'SF': [], 'FIN': [], '3RD': []
       };
 
-      matches.forEach(m => {
-          // Only show "Real" matches (where teams are decided)
+      // Use userMatches to determine WHO is playing (Prediction Path)
+      userMatches.forEach(m => {
           if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
 
           if (m.groupId) {
@@ -46,40 +47,29 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           }
       });
 
-      // Sort groups alphabetically
       const sortedGroups = Object.keys(groups).sort().reduce((obj, key) => {
           obj[key] = groups[key].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           return obj;
       }, {} as Record<string, Match[]>);
 
       return { groups: sortedGroups, knockouts };
-  }, [matches]);
+  }, [userMatches]); // Dependency on userMatches
 
   // --- 2. HELPERS ---
   const activeMatch = useMemo(() => matches.find(m => m.id === selectedMatchId), [selectedMatchId, matches]);
 
   const canSubMatch = (m: Match) => {
-      // Can sub if: 
-      // 1. Game is not finished/live (usually locked status handles this)
-      // 2. User has subs remaining
-      // 3. User hasn't already unlocked it (if unlocked, just edit)
-      // Actually, if unlocked, they can just edit. 
-      // If locked, they need to "Sub". 
-      
       const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(m.status);
       if (isLiveOrDone) return false;
-      
-      // If unlocked, it's just editing, handled inside modal logic. 
-      // The button on the stamp opens the modal regardless, 
-      // but we visually show the button only if action is possible.
-      
-      return m.isLocked; // If it's unlocked (open), they can edit freely in other views, but here we treat all locked games as potential subs.
+      return m.isLocked; 
   };
+
+  const hasKnockouts = Object.values(groupedMatches.knockouts).some(arr => arr.length > 0);
 
   return (
     <div className="pb-24 animate-fade-in space-y-8">
       
-      {/* PROFILE HEADER */}
+      {/* 1. PROFILE HEADER */}
       <ResourceHeader 
         user={currentUser} 
         lang={lang} 
@@ -88,75 +78,106 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         totalPoints={0}
       />
 
-      {/* SECOND CHANCE */}
+      {/* 2. SECOND CHANCE */}
       <SecondChancePromo 
         hasTaken={currentUser.hasTakenSecondChance}
         onUnlock={onUnlockSecondChance}
         lang={lang}
       />
 
-      {/* --- GRID: KNOCKOUT STAGES (Priority) --- */}
-      {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
-          if (roundMatches.length === 0) return null;
-          return (
-              <div key={round} className="space-y-3">
-                  <div className="flex items-center gap-2 px-1 text-slate-400">
-                      <Trophy size={14} />
-                      <h3 className="text-xs font-black uppercase tracking-widest">{round}</h3>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {roundMatches.map(m => (
-                          <PredictionStamp 
-                              key={m.id}
-                              match={m}
-                              homeTeam={teams[m.homeTeamId]}
-                              awayTeam={teams[m.awayTeamId]}
-                              prediction={userPredictions.find(p => p.matchId === m.id)}
-                              onOpenSub={() => setSelectedMatchId(m.id)}
-                              canSubstitute={canSubMatch(m)}
-                              userHasPenalty={currentUser.hasTakenSecondChance}
-                              lang={lang}
-                          />
-                      ))}
-                  </div>
+      {/* 3. KNOCKOUT STAGES GRID (Boxed) */}
+      {hasKnockouts && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-[#0f2545] px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+                  <Trophy size={16} className="text-amber-400" />
+                  <span className="text-sm font-black text-white uppercase tracking-widest">{lang.knockouts || "Knockout Stage"}</span>
               </div>
-          );
-      })}
+              
+              <div className="p-4 space-y-6">
+                  {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
+                      if (roundMatches.length === 0) return null;
+                      return (
+                          <div key={round}>
+                              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-100 pb-1">{round}</h3>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                  {roundMatches.map(userMatch => {
+                                      // Find REAL match for status/scores
+                                      const realMatch = matches.find(m => m.id === userMatch.id);
+                                      if (!realMatch) return null;
 
-      {/* --- GRID: GROUPS --- */}
-      <div className="space-y-6">
-          <div className="flex items-center gap-2 px-1 text-slate-400 border-b border-slate-100 pb-2">
-              <LayoutGrid size={14} />
-              <h3 className="text-xs font-black uppercase tracking-widest">{lang.groups || "Group Stage"}</h3>
-          </div>
-          
-          {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => (
-              <div key={groupId}>
-                  <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-2 ml-1">Group {groupId}</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {groupMatches.map(m => (
-                          <PredictionStamp 
-                              key={m.id}
-                              match={m}
-                              homeTeam={teams[m.homeTeamId]}
-                              awayTeam={teams[m.awayTeamId]}
-                              prediction={userPredictions.find(p => p.matchId === m.id)}
-                              onOpenSub={() => setSelectedMatchId(m.id)}
-                              canSubstitute={canSubMatch(m)}
-                              userHasPenalty={currentUser.hasTakenSecondChance}
-                              lang={lang}
-                          />
-                      ))}
-                  </div>
+                                      return (
+                                          <PredictionStamp 
+                                              key={userMatch.id}
+                                              match={realMatch} // Pass REAL match for status
+                                              homeTeam={teams[userMatch.homeTeamId]} // Pass PREDICTED team
+                                              awayTeam={teams[userMatch.awayTeamId]} // Pass PREDICTED team
+                                              prediction={userPredictions.find(p => p.matchId === userMatch.id)}
+                                              onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                              canSubstitute={canSubMatch(realMatch)}
+                                              userHasPenalty={currentUser.hasTakenSecondChance}
+                                              lang={lang}
+                                          />
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      );
+                  })}
               </div>
-          ))}
+          </div>
+      )}
+
+      {/* 4. GROUP STAGE GRID (Boxed) */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-[#0f2545] px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+              <LayoutGrid size={16} className="text-blue-400" />
+              <span className="text-sm font-black text-white uppercase tracking-widest">{lang.groups || "Group Stage"}</span>
+          </div>
+
+          <div className="p-4 space-y-8">
+              {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => (
+                  <div key={groupId} className="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-center gap-3 mb-4">
+                          <span className="bg-[#0f2545] text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">
+                              Group {groupId}
+                          </span>
+                          <div className="h-px bg-slate-200 flex-1"></div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {groupMatches.map(userMatch => {
+                              const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
+                              return (
+                                  <PredictionStamp 
+                                      key={userMatch.id}
+                                      match={realMatch}
+                                      homeTeam={teams[userMatch.homeTeamId]}
+                                      awayTeam={teams[userMatch.awayTeamId]}
+                                      prediction={userPredictions.find(p => p.matchId === userMatch.id)}
+                                      onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                      canSubstitute={canSubMatch(realMatch)}
+                                      userHasPenalty={currentUser.hasTakenSecondChance}
+                                      lang={lang}
+                                  />
+                              );
+                          })}
+                      </div>
+                  </div>
+              ))}
+          </div>
       </div>
 
-      {/* --- MODAL --- */}
+      {/* MODAL */}
       {selectedMatchId && activeMatch && (
           <SubstitutionModal 
               match={activeMatch}
-              homeTeam={teams[activeMatch.homeTeamId]}
+              homeTeam={teams[activeMatch.homeTeamId]} // Note: Modal shows REAL match participants usually, but if editing prediction, maybe show predicted? 
+              // Actually, sub modal needs to show what the user IS predicting. 
+              // But wait, if they sub, they might be changing a match that effectively DOESN'T exist in real life yet (TBD vs TBD).
+              // BUT Substitution is usually for *Real* games. 
+              // Let's assume activeMatch (from matches) has the correct TBD/Real IDs. 
+              // If it's a future knockout that is TBD, can they sub it? No, it's not locked. They can just edit in bracket.
+              // So Subs are only for LOCKED matches. Locked matches usually have teams.
               awayTeam={teams[activeMatch.awayTeamId]}
               currentUser={currentUser}
               allPredictions={allPredictions}
