@@ -1,26 +1,122 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding } from '../types';
 import { Activity, Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
+import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
 interface MatchdayHeroProps {
   match: Match;
   teams: Record<string, Team>;
   groupStandings?: GroupStanding[];
   lang: Translation;
-  locale?: string; // Added locale for time/channel logic
+  locale?: string;
   onTeamClick: (id: string) => void;
+  allMatches?: Match[]; // New Prop required for TBD logic
 }
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick }) => {
+// --- SUB-COMPONENT: HERO TBD SLOT ---
+const TbdHeroSlot: React.FC<{ 
+    matchId: string;
+    side: 'home' | 'away';
+    allMatches?: Match[];
+    allTeams?: Record<string, Team>;
+    lang: Translation;
+}> = ({ matchId, side, allMatches, allTeams, lang }) => {
+    
+    const source = useMemo(() => getSlotSource(matchId, side), [matchId, side]);
+    
+    const potentialTeams = useMemo(() => {
+        if (!allMatches || !allTeams) return null;
+        return getPotentialTeams(source, allMatches, allTeams);
+    }, [source, allMatches, allTeams]);
+
+    const groupTeams = useMemo(() => {
+        if (source.type !== 'GROUP_RANK' || !allMatches || !allTeams) return [];
+        return getGroupTeams(source.groupId, allMatches, allTeams);
+    }, [source, allMatches, allTeams]);
+
+    // 1. GROUP SOURCE (Full Color Stripes - Hero Size)
+    if (source.type === 'GROUP_RANK') {
+        return (
+            <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-lg backdrop-blur-sm">
+                {/* Full Color Flags */}
+                {groupTeams.length > 0 ? (
+                    <div className="absolute inset-0 flex w-full h-full opacity-90">
+                        {groupTeams.map(team => (
+                            <div key={team.id} className="h-full flex-1 relative border-r border-black/10 last:border-0">
+                                <img src={team.flag} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    // Fallback Pattern
+                    <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                )}
+                {/* Label */}
+                <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
+                    <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-none block">
+                        {source.label}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
+    // 2. 3RD PLACE
+    if (source.type === '3RD_PLACE') {
+        return (
+            <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                <div className="absolute inset-0 opacity-20 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
+                <span className="relative z-10 text-[9px] sm:text-[10px] font-black text-white/50 uppercase text-center leading-tight">
+                    {lang.thirdPlace || "3rd Place"}
+                </span>
+            </div>
+        );
+    }
+
+    // 3. DUAL FLAGS (Feeder Known)
+    if (potentialTeams && potentialTeams.length === 2) {
+        return (
+            <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-blue-400/50 bg-blue-900/40 flex flex-col items-center justify-center relative overflow-hidden shadow-lg">
+                <div className="flex gap-0.5 items-center justify-center mb-1 w-full px-1">
+                    <div className="w-6 h-4 sm:w-8 sm:h-6 rounded border border-white/20 shadow-sm overflow-hidden">
+                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="text-[10px] font-bold text-white/50 mx-1">/</div>
+                    <div className="w-6 h-4 sm:w-8 sm:h-6 rounded border border-white/20 shadow-sm overflow-hidden">
+                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" alt="" />
+                    </div>
+                </div>
+                <div className="flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/40 px-2 py-0.5 rounded">
+                    <span>{potentialTeams[0].id}</span>
+                    <span className="text-white/50 font-normal">or</span>
+                    <span>{potentialTeams[1].id}</span>
+                </div>
+            </div>
+        );
+    }
+
+    // 4. FALLBACK TBD
+    return (
+        <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative">
+            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">TBD</span>
+        </div>
+    );
+};
+
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
 
+  // Checks for TBD
+  const isHomeTBD = match.homeTeamId === 'TBD' || !home;
+  const isAwayTBD = match.awayTeamId === 'TBD' || !away;
+
   // Helper to find team rank in group
   const getRank = (teamId: string) => groupStandings?.findIndex(g => g.teamId === teamId) ?? -1;
 
-  // --- HELPER LOGIC (Matches MatchCard Option 1) ---
+  // --- HELPER LOGIC ---
 
   const getContextLabel = () => {
       if (match.round) {
@@ -60,7 +156,22 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   const getTvChannel = () => {
       if (!match.channels) return null;
-      const channel = match.channels[locale] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
+      let regionKey = 'US';
+      const loc = (locale || 'en-GB').toLowerCase();
+
+      if (loc.includes('no')) regionKey = 'NO';
+      else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
+      else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
+
+      if ((lang as any).isScotland && match.channels['SCO']) {
+          regionKey = 'SCO';
+      }
+
+      let channel = match.channels[regionKey];
+      if (!channel) {
+          channel = match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
+      }
+
       if (!channel) return null;
       return (
           <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}>
@@ -87,15 +198,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10"></div>
 
-        {/* HEADER: OPTION 1 LAYOUT (Navy Background) */}
+        {/* HEADER */}
         <div className="relative z-10 flex justify-between items-center px-4 py-2 border-b border-white/10 bg-[#0f2545]/80 backdrop-blur-sm h-10">
-            
-            {/* LEFT: Time or Status */}
-            <div className="w-1/3 flex justify-start">
-                {getLeftStatus()}
-            </div>
-
-            {/* CENTER: Group / Stage */}
+            <div className="w-1/3 flex justify-start">{getLeftStatus()}</div>
             <div className="w-1/3 flex justify-center">
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/5 shadow-sm">
                     {match.round && <Trophy size={10} className="text-amber-400" />}
@@ -104,27 +209,27 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     </span>
                 </div>
             </div>
-
-            {/* RIGHT: TV Channel */}
-            <div className="w-1/3 flex justify-end">
-                {getTvChannel()}
-            </div>
+            <div className="w-1/3 flex justify-end">{getTvChannel()}</div>
         </div>
 
         {/* Main Content */}
         <div className="relative z-10 p-6 sm:p-8 flex items-center justify-between">
             
-            {/* Home Team */}
-            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => onTeamClick(home.id)}>
-                <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
-                    <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
-                    {groupStandings && (
-                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
-                            #{getRank(home.id) + 1}
-                        </div>
-                    )}
-                </div>
-                <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>
+            {/* Home Team (or TBD) */}
+            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isHomeTBD && onTeamClick(home.id)}>
+                {isHomeTBD ? (
+                    <TbdHeroSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={teams} lang={lang} />
+                ) : (
+                    <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
+                        <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
+                        {groupStandings && (
+                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
+                                #{getRank(home.id) + 1}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {!isHomeTBD && <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>}
             </div>
 
             {/* Scoreboard */}
@@ -146,17 +251,21 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Away Team */}
-            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => onTeamClick(away.id)}>
-                <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
-                    <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
-                    {groupStandings && (
-                        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
-                            #{getRank(away.id) + 1}
-                        </div>
-                    )}
-                </div>
-                <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>
+            {/* Away Team (or TBD) */}
+            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isAwayTBD && onTeamClick(away.id)}>
+                {isAwayTBD ? (
+                    <TbdHeroSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={teams} lang={lang} />
+                ) : (
+                    <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
+                        <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
+                        {groupStandings && (
+                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
+                                #{getRank(away.id) + 1}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {!isAwayTBD && <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>}
             </div>
         </div>
 

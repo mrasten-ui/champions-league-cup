@@ -37,7 +37,6 @@ export type SlotSource =
  * Determines where a specific slot (Home/Away) in a match comes from.
  */
 export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSource => {
-    // 1. Parse ID (e.g., "R32_1" -> round="R32", index=1)
     const parts = matchId.split('_');
     if (parts.length !== 2) return { type: 'UNKNOWN', label: 'TBD' };
     
@@ -51,7 +50,6 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
         if (!sourceCode) return { type: 'UNKNOWN', label: 'TBD' };
         if (sourceCode === '3rd Place') return { type: '3RD_PLACE', label: '3rd Place' };
         
-        // Parse "1A", "2B" etc.
         const rank = parseInt(sourceCode.charAt(0));
         const groupId = sourceCode.substring(1);
         
@@ -64,7 +62,6 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
     }
 
     // --- CASE B: Knockout Rounds (Match Feeders) ---
-    // Calculate Previous Match Index
     const prevIndex = side === 'home' ? (index * 2) - 1 : (index * 2);
     
     let prevRound = '';
@@ -72,9 +69,8 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
     else if (round === 'QF') prevRound = 'R16';
     else if (round === 'SF') prevRound = 'QF';
     else if (round === 'FIN') prevRound = 'SF';
-    else if (round === '3RD') prevRound = 'SF'; // Special case
+    else if (round === '3RD') prevRound = 'SF';
 
-    // Handle 3rd Place Match (Losers of SF)
     if (round === '3RD') {
         const sfMatchId = `SF_${side === 'home' ? 1 : 2}`;
         return { type: 'MATCH_LOSER', matchId: sfMatchId, label: `Loser SF${side === 'home' ? 1 : 2}` };
@@ -84,10 +80,6 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
     return { type: 'MATCH_WINNER', matchId: prevMatchId, label: `Winner ${prevMatchId}` };
 };
 
-/**
- * Gets the potential teams for a feeder match.
- * Returns an array of 2 teams (if match is known) or null.
- */
 export const getPotentialTeams = (
     source: SlotSource, 
     allMatches: Match[], 
@@ -95,10 +87,9 @@ export const getPotentialTeams = (
 ): Team[] | null => {
     if (source.type !== 'MATCH_WINNER' && source.type !== 'MATCH_LOSER') return null;
     
-    const feederMatch = allMatches.find(m => m.id === source.matchId);
+    const feederMatch = allMatches?.find(m => m.id === source.matchId);
     if (!feederMatch) return null;
 
-    // If the feeder match itself has TBD teams, we can't show specific flags yet
     if (feederMatch.homeTeamId === 'TBD' || feederMatch.awayTeamId === 'TBD') return null;
 
     const home = teams[feederMatch.homeTeamId];
@@ -108,7 +99,29 @@ export const getPotentialTeams = (
     return null;
 };
 
-// Simple helper for "1st", "2nd"
+/**
+ * Gets all teams in a specific group for the cluster display
+ */
+export const getGroupTeams = (groupId: string, allMatches: Match[], teams: Record<string, Team>): Team[] => {
+    if (!allMatches || !teams) return [];
+    
+    // Find all matches in this group
+    const groupMatches = allMatches.filter(m => m.groupId === groupId);
+    
+    // Extract unique team IDs
+    const teamIds = new Set<string>();
+    groupMatches.forEach(m => {
+        if (m.homeTeamId !== 'TBD') teamIds.add(m.homeTeamId);
+        if (m.awayTeamId !== 'TBD') teamIds.add(m.awayTeamId);
+    });
+
+    // Map to Team objects and sort by Name or Rank to be consistent
+    return Array.from(teamIds)
+        .map(id => teams[id])
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
+};
+
 const getOrdinal = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;

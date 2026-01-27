@@ -224,8 +224,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
-                    locale={currentLang} // <--- Added locale prop
-                    // Apply Smart Interaction to Hero Flags
+                    locale={currentLang}
+                    allMatches={matches} // <--- PASSING MATCHES HERE
                     onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
@@ -260,6 +260,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     showStatusBadge={true} 
                                     homeTeamPoints={teamPointsMap[match.homeTeamId]}
                                     awayTeamPoints={teamPointsMap[match.awayTeamId]}
+                                    allMatches={matches} // <--- Added Matches Here too just in case
+                                    allTeams={teams}     // <--- Added Teams Here too
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
