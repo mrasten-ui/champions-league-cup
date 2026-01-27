@@ -4,8 +4,9 @@ import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid, CalendarClock } from 'lucide-react';
-import { calculateGroupStandings } from '../services/engine';
+import { Trophy, LayoutGrid, CalendarClock, Info } from 'lucide-react';
+// IMPORT NEW HELPERS:
+import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 
 interface ManagerHubProps {
   matches: Match[];        
@@ -38,6 +39,16 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   const userPredictions = useMemo(() => {
     return allPredictions.filter(p => p.userId === currentUser.email);
   }, [allPredictions, currentUser.email]);
+
+  // --- GLOBAL 3RD PLACE CALCULATION ---
+  // We calculate this once at the top level to know who is qualifying across ALL groups
+  const qualifiedThirdsSet = useMemo(() => {
+      const allStandings = getAllGroupStandings(userMatches, teams);
+      const thirds = getThirdPlaceStandings(allStandings);
+      // Top 8 qualify in the 48-team format (12 groups)
+      const top8 = thirds.slice(0, 8).map(t => t.teamId);
+      return new Set(top8);
+  }, [userMatches, teams]);
 
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
@@ -142,18 +153,18 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
       </div>
 
-      {/* --- A) GROUP STAGE GRID --- */}
+      {/* --- A) GROUP STAGE VIEW --- */}
       {viewMode === 'groups' && (
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
               {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
                   
-                  // 1. Calculate Predicted Standings for this group
+                  // Calculate Predicted Standings
                   const standings = calculateGroupStandings(groupId, userMatches, teams);
 
                   return (
                       <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           
-                          {/* 2. ENHANCED HEADER: Group Name + Live Standings Strip */}
+                          {/* ENHANCED HEADER */}
                           <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
                               <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
@@ -165,24 +176,37 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                   <span className="text-[9px] font-bold text-blue-200 bg-white/5 px-2 py-0.5 rounded border border-white/5">{groupMatches.length} Games</span>
                               </div>
 
-                              {/* 3. Mini Standings Strip */}
-                              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                              {/* CENTERALIZED STANDINGS SCROLL (md:justify-center) */}
+                              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:justify-center">
                                   {standings.map((row, index) => {
                                       const rank = index + 1;
-                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th)
-                                      if (rank <= 2) badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Qualifying
-                                      if (rank === 3) badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400'; // 3rd Place
-
-                                      // FIX: Use substring fallback
                                       const teamName = teams[row.teamId]?.name || row.teamId;
                                       const teamCode = teamName.substring(0,3).toUpperCase();
+                                      
+                                      // --- BADGE LOGIC ---
+                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th or low 3rd)
+                                      let rankIndicator = null;
+
+                                      if (rank <= 2) {
+                                          badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Top 2 Qualify
+                                      } else if (rank === 3) {
+                                          // 3RD PLACE CHECK: Is this team in the top 8 thirds?
+                                          if (qualifiedThirdsSet.has(row.teamId)) {
+                                              badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400 shadow-sm'; // Qualifying 3rd
+                                              rankIndicator = <span className="text-[8px] font-black bg-white/20 px-1 rounded ml-1">Q</span>;
+                                          } else {
+                                              badgeColor = 'bg-slate-600 text-slate-300 border-slate-500 opacity-80'; // Eliminated 3rd
+                                              rankIndicator = <span className="text-[8px] font-bold text-red-300 ml-1">X</span>;
+                                          }
+                                      }
 
                                       return (
-                                          <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
+                                          <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0 transition-colors`}>
                                               <span className="text-[9px] font-black">{rank}.</span>
                                               <img src={teams[row.teamId]?.flag} className="w-4 h-3 object-cover rounded shadow-sm" alt="" />
                                               <span className="text-[9px] font-bold">{teamCode}</span>
                                               <span className="text-[9px] font-black opacity-80 border-l border-black/20 pl-1.5 ml-0.5">{row.pts}p</span>
+                                              {rankIndicator}
                                           </div>
                                       );
                                   })}
@@ -217,12 +241,20 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- B) KNOCKOUT GRID --- */}
+      {/* --- B) KNOCKOUT VIEW --- */}
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              
+              <SecondChancePromo 
+                  hasTaken={currentUser.hasTakenSecondChance}
+                  onUnlock={onUnlockSecondChance}
+                  lang={lang}
+              />
+
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
                   if (roundMatches.length === 0) return null;
                   const gridClass = getKnockoutGridClass(round, roundMatches.length);
+
                   return (
                       <div key={round} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           <div className="bg-[#0f2545] px-4 py-3 border-b border-slate-700 flex justify-center sm:justify-start">
@@ -252,7 +284,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               awayTeam={teams[userMatch.awayTeamId]}
                                               prediction={userPredictions.find(p => p.matchId === userMatch.id)}
                                               onOpenSub={() => setSelectedMatchId(userMatch.id)}
-                                              canSubstitute={canSubMatch(realMatch)} 
+                                              canSubstitute={canSubMatch(realMatch)}
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
                                               variant="knockout"
