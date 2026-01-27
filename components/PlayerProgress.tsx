@@ -31,13 +31,21 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
       return users.filter(u => u.leagues?.includes(activeLeague));
   }, [users, activeLeague]);
 
+  const totalGameMatches = totalMatches.group + totalMatches.knockout;
+
+  // Calculate Stats for Header
+  const readyManagersCount = useMemo(() => {
+      return filteredUsers.filter(u => {
+          const userPreds = allPredictions.filter(p => p.userId === u.email);
+          return userPreds.length >= totalGameMatches;
+      }).length;
+  }, [filteredUsers, allPredictions, totalGameMatches]);
+
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     const aCount = allPredictions.filter(p => p.userId === a.email).length;
     const bCount = allPredictions.filter(p => p.userId === b.email).length;
     return bCount - aCount;
   });
-
-  const totalGameMatches = totalMatches.group + totalMatches.knockout;
 
   return (
     <div className="animate-fade-in pb-20">
@@ -45,7 +53,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
       {/* Main Container Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         
-        {/* 1. Navy Header Strip */}
+        {/* 1. Navy Header Strip (Updated) */}
         <div className="bg-[#0f2545] px-4 py-4 flex items-center justify-between border-b border-slate-700">
             <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/10 rounded-lg text-blue-300">
@@ -53,22 +61,26 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                 </div>
                 <div>
                     <h2 className="text-sm font-black text-white uppercase tracking-widest leading-none">
-                        {lang.managersTab || "Managers"}
+                        {lang.managersTab || "MANAGERS"}
                     </h2>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 opacity-80">
-                        {lang.journeyDesc || "Tournament Entry Status"}
-                    </p>
+                    {/* NEW: "LET'S GO" + Live Counters */}
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wide">LET'S GO!</span>
+                        <span className="text-[10px] font-medium text-slate-400">
+                            <span className="text-white">{readyManagersCount}</span> Ready • <span className="text-slate-300">{filteredUsers.length - readyManagersCount}</span> Pending
+                        </span>
+                    </div>
                 </div>
             </div>
             
-            {/* Quick Stat */}
+            {/* Total Count */}
             <div className="text-right hidden sm:block">
                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</div>
                 <div className="text-xl font-black text-white leading-none">{filteredUsers.length}</div>
             </div>
         </div>
 
-        {/* 2. League Toolbar (Optional) */}
+        {/* 2. League Toolbar */}
         {currentUserLeagues.length > 0 && (
              <div className="relative bg-slate-50 border-b border-slate-100 p-2 z-20">
                  <button 
@@ -106,10 +118,9 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
 
         {/* 3. Managers List */}
         <div className="divide-y divide-slate-50">
-            {/* List Header Row (Optional for clarity) */}
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                 <span>Manager</span>
-                <span>Completion</span>
+                <span>Status</span>
             </div>
 
             {sortedUsers.map(user => {
