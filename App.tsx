@@ -10,8 +10,10 @@ import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
 import { KnockoutTreeView } from './components/KnockoutTreeView';
 import { Leaderboard } from './components/Leaderboard';
-import { MyPredictions } from './components/MyPredictions';
-import { PlayerProgress } from './components/PlayerProgress';
+// REMOVED: Old Manager Components
+// import { MyPredictions } from './components/MyPredictions';
+// import { PlayerProgress } from './components/PlayerProgress';
+import { ManagerHub } from './components/ManagerHub'; // NEW: Manager Hub
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesModal } from './components/RulesModal';
@@ -55,7 +57,7 @@ const App: React.FC = () => {
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
 
-  // NEW: Flash/Highlight States for jumping from Schedule
+  // Flash/Highlight States for jumping from Schedule
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
@@ -73,45 +75,23 @@ const App: React.FC = () => {
   // --- ACTIONS: NAVIGATION JUMPS ---
   
   const handleJumpToTable = (groupId: string, teamId: string) => {
-      // 1. Switch to Table View
       setTournamentSubTab('tables');
-      
-      // 2. Set the team to flash yellow
       setHighlightedTeamId(teamId);
-
-      // 3. Scroll to the group card after a tiny delay to allow render
       setTimeout(() => {
           const element = document.getElementById(`group-card-${groupId}`);
-          if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
-
-      // 4. Remove flash effect after 2 seconds
-      setTimeout(() => {
-          setHighlightedTeamId(null);
-      }, 2000);
+      setTimeout(() => setHighlightedTeamId(null), 2000);
   };
 
   const handleJumpToBracket = (matchId: string) => {
-      // 1. Switch to Bracket View
       setTournamentSubTab('bracket');
-
-      // 2. Set match to flash
       setHighlightedMatchId(matchId);
-
-      // 3. Scroll to match card
       setTimeout(() => {
           const element = document.getElementById(`bracket-match-${matchId}`);
-          if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-          }
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       }, 100);
-
-      // 4. Remove flash
-      setTimeout(() => {
-          setHighlightedMatchId(null);
-      }, 2000);
+      setTimeout(() => setHighlightedMatchId(null), 2000);
   };
 
   // --- CORE LOGIC: PREDICTION VS REALITY ---
@@ -174,7 +154,6 @@ const App: React.FC = () => {
     const match = matches.find(m => m.id === matchId);
     if (!match || (match.isLocked && !user.unlockedMatches?.includes(matchId))) return;
     
-    // Optimistic Update
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -514,9 +493,22 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* ... (Leaderboard, Manager, etc. tabs - Unchanged) ... */}
+        {/* LEADERBOARD */}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
-        {activeTab === 'manager' && (tournamentPhase === 'PRE_LIVE' ? <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={{ group: 72, knockout: 32 }} lang={t} currentUserLeagues={user?.leagues} /> : <MyPredictions matches={matches} teams={teamsData} allPredictions={allPredictions} currentUser={user} lang={t} onGoToGroup={handleGoToGroup} onGoToBracket={() => setActiveTab('knockout')} onUnlockSecondChance={handleUnlockSecondChance} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />)}
+        
+        {/* NEW: MANAGER HUB (Replaces Old Prediction View) */}
+        {activeTab === 'manager' && (
+            <ManagerHub 
+                matches={matches} 
+                teams={teamsData} 
+                allPredictions={allPredictions} 
+                currentUser={user} 
+                lang={t} 
+                onSubstitute={handleSubstitute}
+                onUnlockSecondChance={handleUnlockSecondChance}
+                onUpdate={handleScoreUpdate}
+            />
+        )}
       </main>
 
       {/* ... (Modals - Unchanged) ... */}
