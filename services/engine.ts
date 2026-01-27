@@ -198,32 +198,32 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   });
 };
 
-export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>) => {
-  const results: Record<string, GroupStanding[]> = {};
+export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>): Record<string, GroupStanding[]> => {
+  const groups: Record<string, GroupStanding[]> = {};
   
-  // FIX: Iterate all groups from config to ensure we get A-L (12 groups)
-  GROUP_CONFIG.forEach((g: any) => {
-      results[g.id] = calculateGroupStandings(g.id, matches, teams);
+  // FIX: Iterate ALL groups from config (A-L), do not hardcode ['A'...'F']
+  GROUP_CONFIG.forEach(group => {
+    groups[group.id] = calculateGroupStandings(group.id, matches, teams);
   });
   
-  return results;
+  return groups;
 };
 
-export const getThirdPlaceStandings = (allStandings: Record<string, GroupStanding[]>) => {
+export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupStanding[]>): GroupStanding[] => {
   const thirds: (GroupStanding & { groupId: string })[] = [];
   
-  // Iterate through all groups provided
-  Object.entries(allStandings).forEach(([gid, standings]) => {
-      // Ensure the group has at least 3 teams (it should have 4)
-      if (standings && standings.length > 2) {
-          thirds.push({ ...standings[2], groupId: gid });
-      }
+  Object.entries(allGroupStandings).forEach(([gid, group]) => {
+    if (group.length >= 3) {
+      thirds.push({ ...group[2], groupId: gid });
+    }
   });
-  
+
+  // Sort: Points -> GD -> GF -> Wins
   return thirds.sort((a, b) => {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      if (b.gd !== a.gd) return b.gd - a.gd;
-      return b.gf - a.gf;
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    if (b.gd !== a.gd) return b.gd - a.gd;
+    if (b.gf !== a.gf) return b.gf - a.gf;
+    return b.won - a.won;
   });
 };
 
@@ -232,21 +232,14 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     const getTeam = (gid: string, rank: number) => groupResults[gid]?.[rank - 1]?.teamId || 'TBD';
     
     const thirds = getThirdPlaceStandings(groupResults);
-    
-    // Top 8 qualify for R32
     const qualifiedThirds = thirds.slice(0, 8);
     const usedThirds = new Set<string>();
     
-    // Helper to find valid 3rd place opponent
     const get3rd = (allowedGroups: string[]) => {
-        // Try to find a team from allowed groups that hasn't been used
         let candidate = qualifiedThirds.find(t => allowedGroups.includes(t.groupId) && !usedThirds.has(t.teamId));
-        
-        // Fallback: If no strict match found (rare edge case in sims), take any unused qualified 3rd
         if (!candidate) {
              candidate = qualifiedThirds.find(t => !usedThirds.has(t.teamId));
         }
-        
         if (candidate) {
             usedThirds.add(candidate.teamId);
             return candidate.teamId;
@@ -275,7 +268,7 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
         }
     };
 
-    // R32 Matchups based on 12-group bracket structure (World Cup 2026 approx)
+    // R32 Matchups based on 12-group bracket structure
     setMatchup('R32_1', getTeam('A', 2), getTeam('B', 2));
     setMatchup('R32_2', getTeam('E', 1), get3rd(['A', 'B', 'C', 'D', 'F']));
     setMatchup('R32_3', getTeam('F', 1), getTeam('C', 2));
@@ -293,7 +286,6 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     setMatchup('R32_15', getTeam('K', 1), get3rd(['D', 'E', 'I', 'J', 'L']));
     setMatchup('R32_16', getTeam('D', 2), getTeam('G', 2));
 
-    // Propagate winners
     const rounds: Round[] = ['R32', 'R16', 'QF', 'SF'];
     
     rounds.forEach(round => {
@@ -335,7 +327,6 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
                 }
             }
 
-            // Third Place Playoff Logic
             if (round === 'SF') {
                 const thirdPlaceMatch = nextMatches.find(m => m.round === '3RD');
                 if (thirdPlaceMatch) {
@@ -367,7 +358,6 @@ export const applyPredictionsToBracket = (
     let currentMatches = updateBracket([...initialMatches], teams);
     const predsMap = new Map(userPredictions.map(p => [p.matchId, p]));
 
-    // Iterate multiple times to propagate winners deep into the tree
     for (let i = 0; i < 7; i++) {
         let hasChanges = false;
         currentMatches = currentMatches.map(m => {
@@ -697,7 +687,6 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
   return [];
 };
 
-// --- UPDATED: Connects to 'scouting_overview' table ---
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
     if (!supabase) {
         console.warn("Supabase not initialized");
@@ -707,7 +696,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_overview') // Correct Table Name
+            .from('scouting_overview') 
             .select('*')
             .eq('team_id', safeId)
             .maybeSingle();
@@ -725,7 +714,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
                 scout_notes: reportData.scout_notes || '',
                 recent_form: reportData.recent_form || '',
                 last_5_matches: reportData.last_5_matches || '',
-                lang: 'EN' // Default
+                lang: 'EN' 
             };
         }
         return null;
@@ -734,6 +723,13 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
         return null;
     }
 };
+
+// --- FIX: Add Exported Interface Here ---
+export interface TeamFormData {
+    fifaRank: number;
+    history: MatchHistoryItem[];
+    recentForm: string;
+}
 
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
