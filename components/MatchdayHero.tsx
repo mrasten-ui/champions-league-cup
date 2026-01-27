@@ -62,11 +62,12 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 2. 3RD PLACE (Full Color Logo)
+    // 2. 3RD PLACE (Full Color Logo on Navy)
     if (source.type === '3RD_PLACE') {
         return (
-            <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-                <div className="absolute inset-0 opacity-50 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+            <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                {/* FULL COLOR LOGO */}
+                <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
                 <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                     <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-tight block">
                         {lang.thirdPlace || "3rd Place"}
@@ -99,10 +100,11 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 4. FALLBACK TBD
+    // 4. FALLBACK TBD (Standard on Navy)
     return (
-        <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 opacity-30 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+        <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
+            {/* FULL COLOR LOGO */}
+            <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
             <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                 <span className="text-[10px] font-black text-white uppercase tracking-widest block">TBD</span>
             </div>
@@ -119,6 +121,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   // Checks for TBD
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
+
+  // Helper to find team rank in group
+  const getRank = (teamId: string) => groupStandings?.findIndex(g => g.teamId === teamId) ?? -1;
 
   // --- HELPER LOGIC ---
 

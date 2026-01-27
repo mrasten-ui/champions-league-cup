@@ -109,12 +109,12 @@ const TbdSlot: React.FC<{
         );
     }
 
-    // 3. 3RD PLACE / GENERIC (Full Color Logo)
+    // 3. 3RD PLACE / GENERIC (Full Color Logo on Navy)
     if (source.type === '3RD_PLACE') {
         return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
-                {/* COLOR LOGO: No grayscale, bg-contain to fit, opacity-50 for visibility */}
-                <div className="absolute inset-0 opacity-50 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
+                {/* COLOR LOGO: No opacity, full color on Navy */}
+                <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
                 
                 {/* Text Pill */}
                 <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
@@ -126,11 +126,11 @@ const TbdSlot: React.FC<{
         );
     }
 
-    // 4. FALLBACK TBD (Standard)
+    // 4. FALLBACK TBD (Standard on Navy)
     return (
-        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
-             {/* Use Logo Background here too for consistency */}
-             <div className="absolute inset-0 opacity-30 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
+        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
+             {/* Use Logo Background here too */}
+             <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
              
              {/* Text Pill */}
              <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
@@ -525,6 +525,38 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {showRivals && rivals.length > 0 && (
+                <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <LockIcon size={10} className="text-yellow-400" />
+                            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
+                        </div>
+                        {prediction && (
+                            <span className="text-[10px] font-bold text-white/40">
+                                {lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span>
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
+                        {rivals.map(rival => {
+                            const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
+                            return (
+                                <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" />
+                                        <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
+                                    </div>
+                                    <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">
+                                        {rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
