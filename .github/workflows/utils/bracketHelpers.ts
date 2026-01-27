@@ -3,8 +3,6 @@ import { Match, Team } from '../types';
 // --- CONSTANTS ---
 
 // Hardcoded R32 Source Map (Standard FIFA Structure Pattern)
-// Format: { matchIndex: { home: 'SourceCode', away: 'SourceCode' } }
-// Example: Match 1 = 2nd A vs 2nd B
 const R32_SOURCES: Record<number, { home: string, away: string }> = {
     1:  { home: '2A', away: '2B' },
     2:  { home: '1E', away: '3rd Place' },
@@ -67,8 +65,6 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
 
     // --- CASE B: Knockout Rounds (Match Feeders) ---
     // Calculate Previous Match Index
-    // Home comes from (Index * 2) - 1
-    // Away comes from (Index * 2)
     const prevIndex = side === 'home' ? (index * 2) - 1 : (index * 2);
     
     let prevRound = '';
@@ -80,9 +76,6 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
 
     // Handle 3rd Place Match (Losers of SF)
     if (round === '3RD') {
-        // 3rd Place Match #1 usually takes Loser of SF_1 vs SF_2? 
-        // Actually typically it's just one match. ID is likely "3RD_1".
-        // It takes Loser of SF_1 (Home) and Loser of SF_2 (Away).
         const sfMatchId = `SF_${side === 'home' ? 1 : 2}`;
         return { type: 'MATCH_LOSER', matchId: sfMatchId, label: `Loser SF${side === 'home' ? 1 : 2}` };
     }
@@ -113,24 +106,6 @@ export const getPotentialTeams = (
 
     if (home && away) return [home, away];
     return null;
-};
-
-/**
- * Gets all teams in a specific group for the cluster display
- */
-export const getGroupTeams = (groupId: string, teams: Record<string, Team>): Team[] => {
-    // We filter teams that belong to this group based on the group schedule or config
-    // Since we don't have a direct 'groupId' on the Team object, we scan the schedule?
-    // Optimization: In your app, you likely have a way to know this. 
-    // Fallback: We'll assume the caller passes the right teams or we filter by simple ID check if applicable.
-    // Actually, looking at your data structure, Match has `groupId`. 
-    // We can't easily get teams by group without scanning matches.
-    // For now, let's assume we pass the full team list and filter roughly or rely on the UI to pass it.
-    
-    // Better approach: We will accept a pre-filtered list or just return empty if not easy.
-    // But wait, `seed-teams.js` or `constants` usually has this. 
-    // Let's try to map dynamically if possible, or return empty to trigger fallback text.
-    return []; 
 };
 
 // Simple helper for "1st", "2nd"

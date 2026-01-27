@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon, Tv } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
-import { getSlotSource, getPotentialTeams } from '../utils/bracketHelpers'; // Import the new helper
-
-// --- TYPES & PROPS ---
+import { getSlotSource, getPotentialTeams } from '../utils/bracketHelpers'; // <--- THIS IMPORT NEEDS THE FILE ABOVE
 
 interface MatchCardProps {
   match: Match;
@@ -29,10 +27,8 @@ interface MatchCardProps {
   showStatusBadge?: boolean;
   homeTeamPoints?: number;
   awayTeamPoints?: number;
-  // New Prop to pass all matches for feeder logic
-  allMatches?: Match[];
-  // New Prop to pass all teams for feeder logic
-  allTeams?: Record<string, Team>;
+  allMatches?: Match[]; // Needed for TBD logic
+  allTeams?: Record<string, Team>; // Needed for TBD logic
 }
 
 // --- 1. SUB-COMPONENTS ---
@@ -91,11 +87,11 @@ const TbdSlot: React.FC<{
             <div className="w-16 h-12 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center relative overflow-hidden group/tbd">
                 <div className="flex gap-1 items-center justify-center mb-1">
                     <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
-                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" />
+                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="w-px h-3 bg-slate-300"></div>
                     <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
-                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" />
+                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" alt="" />
                     </div>
                 </div>
                 <div className="flex gap-1 text-[8px] font-black text-slate-600 uppercase leading-none">
@@ -151,7 +147,7 @@ const ScoreStepper: React.FC<{
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
     homeTeamPoints, awayTeamPoints,
-    allMatches, allTeams // NEW PROPS
+    allMatches, allTeams
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -470,7 +466,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             </div>
 
-            {/* EXPANDABLE SECTIONS & FOOTER (Kept same as before) */}
+            {/* 3. EXPANDABLE SECTIONS & FOOTER (Kept same as before) */}
             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
