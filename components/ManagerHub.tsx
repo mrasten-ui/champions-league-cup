@@ -4,10 +4,11 @@ import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid, CheckCircle2 } from 'lucide-react';
+import { Trophy, LayoutGrid } from 'lucide-react';
 
 interface ManagerHubProps {
-  matches: Match[];
+  matches: Match[];        // Official schedule (Real Status/Scores)
+  userMatches: Match[];    // NEW: User's predicted bracket path (Predicted Teams)
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
@@ -19,7 +20,7 @@ interface ManagerHubProps {
 }
 
 export const ManagerHub: React.FC<ManagerHubProps> = ({
-  matches, teams, allPredictions, currentUser, lang, 
+  matches, userMatches, teams, allPredictions, currentUser, lang, 
   onSubstitute, onUnlockSecondChance, onUpdate, phase
 }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
@@ -29,14 +30,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
   const userPredictions = allPredictions.filter(p => p.userId === currentUser.email);
   
-  // --- DATA ORGANIZATION ---
+  // --- DATA ORGANIZATION (Using User's Predicted Bracket) ---
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
       const knockouts: Record<string, Match[]> = {
           'R32': [], 'R16': [], 'QF': [], 'SF': [], 'FIN': [], '3RD': []
       };
 
-      matches.forEach(m => {
+      // Use userMatches to determine WHO is playing (Prediction Path)
+      userMatches.forEach(m => {
           if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
 
           if (m.groupId) {
@@ -53,7 +55,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       }, {} as Record<string, Match[]>);
 
       return { groups: sortedGroups, knockouts };
-  }, [matches]);
+  }, [userMatches]);
 
   // --- HELPERS ---
   const activeMatch = useMemo(() => matches.find(m => m.id === selectedMatchId), [selectedMatchId, matches]);
@@ -85,7 +87,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         lang={lang}
       />
 
-      {/* 3. VIEW TOGGLE BUTTONS (The "Buttons between") */}
+      {/* 3. VIEW TOGGLE BUTTONS */}
       <div className="flex p-1 bg-slate-200 rounded-xl shadow-inner border border-slate-300">
           <button 
             onClick={() => setViewMode('groups')}
@@ -117,22 +119,25 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                       </div>
 
                       <div className="p-3">
-                          {/* 3-Column Grid for PC (lg:grid-cols-3) */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {groupMatches.map(m => (
-                                  <PredictionStamp 
-                                      key={m.id}
-                                      match={m}
-                                      homeTeam={teams[m.homeTeamId]}
-                                      awayTeam={teams[m.awayTeamId]}
-                                      prediction={userPredictions.find(p => p.matchId === m.id)}
-                                      onOpenSub={() => setSelectedMatchId(m.id)}
-                                      canSubstitute={canSubMatch(m)}
-                                      userHasPenalty={currentUser.hasTakenSecondChance}
-                                      lang={lang}
-                                      variant="standard" // Groups use Standard (Scores)
-                                  />
-                              ))}
+                              {groupMatches.map(userMatch => {
+                                  // Use REAL match for status checks, User match for teams
+                                  const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
+                                  return (
+                                      <PredictionStamp 
+                                          key={userMatch.id}
+                                          match={realMatch}
+                                          homeTeam={teams[userMatch.homeTeamId]}
+                                          awayTeam={teams[userMatch.awayTeamId]}
+                                          prediction={userPredictions.find(p => p.matchId === userMatch.id)}
+                                          onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                          canSubstitute={canSubMatch(realMatch)}
+                                          userHasPenalty={currentUser.hasTakenSecondChance}
+                                          lang={lang}
+                                          variant="standard"
+                                      />
+                                  );
+                              })}
                           </div>
                       </div>
                   </div>
@@ -140,7 +145,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- B) KNOCKOUT VIEW (Minimal Flags) --- */}
+      {/* --- B) KNOCKOUT VIEW --- */}
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
@@ -153,20 +158,23 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                           
                           <div className="p-3">
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                  {roundMatches.map(m => (
-                                      <PredictionStamp 
-                                          key={m.id}
-                                          match={m}
-                                          homeTeam={teams[m.homeTeamId]}
-                                          awayTeam={teams[m.awayTeamId]}
-                                          prediction={userPredictions.find(p => p.matchId === m.id)}
-                                          onOpenSub={() => setSelectedMatchId(m.id)}
-                                          canSubstitute={canSubMatch(m)}
-                                          userHasPenalty={currentUser.hasTakenSecondChance}
-                                          lang={lang}
-                                          variant="knockout" // Knockouts use Minimal (Flags only)
-                                      />
-                                  ))}
+                                  {roundMatches.map(userMatch => {
+                                      const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
+                                      return (
+                                          <PredictionStamp 
+                                              key={userMatch.id}
+                                              match={realMatch}
+                                              homeTeam={teams[userMatch.homeTeamId]}
+                                              awayTeam={teams[userMatch.awayTeamId]}
+                                              prediction={userPredictions.find(p => p.matchId === userMatch.id)}
+                                              onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                              canSubstitute={canSubMatch(realMatch)}
+                                              userHasPenalty={currentUser.hasTakenSecondChance}
+                                              lang={lang}
+                                              variant="knockout"
+                                          />
+                                      );
+                                  })}
                               </div>
                           </div>
                       </div>
