@@ -1,60 +1,62 @@
 import React from 'react';
-import { UserProfile, Translation } from '../types';
-import { RefreshCw, ScanEye, TrendingUp, AlertTriangle } from 'lucide-react';
+import { UserProfile, Translation, TournamentPhase } from '../types';
+import { RefreshCw, Trophy, Hash } from 'lucide-react';
+import { AvatarDisplay } from './AvatarDisplay';
 
 interface ResourceHeaderProps {
   user: UserProfile;
   lang: Translation;
-  potentialPoints: number;
-  onSecondChance: () => void;
+  phase: TournamentPhase;
+  rank: number;
+  totalPoints: number;
 }
 
-export const ResourceHeader: React.FC<ResourceHeaderProps> = ({ user, lang, potentialPoints, onSecondChance }) => {
+export const ResourceHeader: React.FC<ResourceHeaderProps> = ({ user, lang, phase, rank, totalPoints }) => {
   return (
-    <div className="space-y-4">
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {/* Substitutions (Primary Action Resource) */}
-            <div className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center relative overflow-hidden ${user.substitutions > 0 ? 'bg-white border-blue-100 shadow-sm' : 'bg-slate-100 border-slate-200 opacity-75'}`}>
-                <div className={`absolute top-2 right-2 text-[10px] font-black uppercase tracking-widest ${user.substitutions > 0 ? 'text-blue-500' : 'text-slate-400'}`}>
-                    {lang.substitutions || "SUBS"}
-                </div>
-                <div className="flex items-baseline gap-1 mt-2">
-                    <span className={`text-4xl font-black ${user.substitutions > 0 ? 'text-blue-600' : 'text-slate-400'}`}>{user.substitutions}</span>
-                    <span className="text-sm font-bold text-slate-400">/ 5</span>
-                </div>
-                <RefreshCw size={16} className={`absolute bottom-3 left-3 ${user.substitutions > 0 ? 'text-blue-200' : 'text-slate-300'}`} />
-            </div>
-
-            {/* Intel/Tokens */}
-            <div className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center relative overflow-hidden ${user.tokens > 0 ? 'bg-white border-purple-100 shadow-sm' : 'bg-slate-100 border-slate-200 opacity-75'}`}>
-                <div className={`absolute top-2 right-2 text-[10px] font-black uppercase tracking-widest ${user.tokens > 0 ? 'text-purple-500' : 'text-slate-400'}`}>
-                    {lang.tokens || "INTEL"}
-                </div>
-                <div className="flex items-baseline gap-1 mt-2">
-                    <span className={`text-4xl font-black ${user.tokens > 0 ? 'text-purple-600' : 'text-slate-400'}`}>{user.tokens}</span>
-                </div>
-                <ScanEye size={16} className={`absolute bottom-3 left-3 ${user.tokens > 0 ? 'text-purple-200' : 'text-slate-300'}`} />
-            </div>
-        </div>
-
-        {/* Potential / Status Bar */}
-        <div className="bg-[#0f2545] rounded-xl p-3 flex items-center justify-between text-white shadow-md">
+    <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col gap-4">
+        {/* Top Row: Identity & Main Stats */}
+        <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-lg"><TrendingUp size={18} className="text-green-400" /></div>
+                <AvatarDisplay avatar={user.avatar} size="md" className="ring-2 ring-slate-100" />
                 <div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Max Potential</div>
-                    <div className="text-sm font-black tracking-wide">{potentialPoints} pts</div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang.manager || "Manager"}</div>
+                    <div className="text-lg font-black text-slate-800 leading-none">{user.name}</div>
                 </div>
             </div>
             
-            {!user.hasTakenSecondChance && (
-                <button onClick={onSecondChance} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors text-[10px] font-black uppercase tracking-widest text-amber-950">
-                    <AlertTriangle size={12} />
-                    2nd Chance
-                </button>
-            )}
+            <div className="flex gap-4 text-right">
+                <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-end gap-1">
+                        <Hash size={10} /> Rank
+                    </div>
+                    <div className="text-xl font-black text-blue-600">#{rank}</div>
+                </div>
+                <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-end gap-1">
+                        <Trophy size={10} /> Pts
+                    </div>
+                    <div className="text-xl font-black text-slate-800">{totalPoints}</div>
+                </div>
+            </div>
         </div>
+
+        {/* Action Resource: Substitutions (Only show if relevant) */}
+        {phase === 'LIVE' && (
+            <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between border border-slate-100">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${user.substitutions > 0 ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-400'}`}>
+                        <RefreshCw size={18} />
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang.substitutions || "Subs Left"}</div>
+                        <div className="text-sm font-bold text-slate-700 leading-tight">
+                            {user.substitutions > 0 ? "Strategic Changes Available" : "Out of Substitutions"}
+                        </div>
+                    </div>
+                </div>
+                <div className="text-2xl font-black text-slate-800">{user.substitutions}<span className="text-sm text-slate-300 ml-0.5">/5</span></div>
+            </div>
+        )}
     </div>
   );
 };
