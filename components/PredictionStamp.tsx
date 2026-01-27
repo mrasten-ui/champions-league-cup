@@ -1,6 +1,6 @@
 import React from 'react';
 import { Match, Team, Prediction, Translation } from '../types';
-import { RefreshCw, Lock, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw, Lock, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { calculatePoints } from '../services/engine';
 
 interface PredictionStampProps {
@@ -23,7 +23,7 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET'].includes(match.status);
   const hasRealScore = match.homeScore !== null && match.awayScore !== null;
 
-  // --- LOGIC ---
+  // Points Calculation
   let points = 0;
   let isCorrectWinner = false;
 
@@ -39,6 +39,25 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       }
   }
 
+  // --- HELPER: HEADER STATUS ---
+  const getStatusContent = () => {
+      if (isFinished) return <span className="text-[9px] font-black text-slate-400">FT</span>;
+      if (isLive) {
+          return (
+              <div className="flex items-center gap-1.5 bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-100">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-[9px] font-black tracking-wider">LIVE {match.minute ? `'${match.minute}` : ''}</span>
+              </div>
+          );
+      }
+      return (
+          <div className="flex items-center gap-1 text-slate-400">
+              <Clock size={10} />
+              <span className="text-[9px] font-bold">{new Date(match.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
+          </div>
+      );
+  };
+
   const getTeamOpacity = (isHome: boolean) => {
       if (!prediction) return 'opacity-100'; 
       if (variant === 'standard') return 'opacity-100'; 
@@ -53,7 +72,7 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       return 'opacity-30 grayscale blur-[0.5px] scale-95'; 
   };
 
-  // --- KNOCKOUT VARIANT (Flags Only, Bigger) ---
+  // --- KNOCKOUT VARIANT ---
   if (variant === 'knockout') {
       const bgClass = isFinal ? 'bg-[#0f2545] border-[#1a3a6c] shadow-lg' : 'bg-white';
       const borderClass = isFinal ? '' : 'border-slate-100';
@@ -63,10 +82,8 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
         <div 
             className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all h-32 w-full hover:shadow-md ${bgClass} ${borderClass}`}
         >
-            {/* Final BG */}
             {isFinal && <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] rounded-xl"></div>}
 
-            {/* Status Icon */}
             {isFinished && (
                 <div className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow-sm border border-slate-100">
                     {isCorrectWinner ? (
@@ -78,14 +95,10 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
             )}
 
             <div className="flex items-center justify-center gap-6 relative z-10 w-full">
-                {/* Home Flag - BIGGER */}
                 <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(true)}`}>
                     <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
                 </div>
-
                 <span className={`text-xs font-black ${textClass}`}>VS</span>
-
-                {/* Away Flag - BIGGER */}
                 <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(false)}`}>
                     <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
                 </div>
@@ -106,17 +119,9 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
   return (
     <div className={`relative flex flex-col items-center justify-between p-3 rounded-xl border-2 transition-all ${standardStatusColor} h-32 w-full hover:shadow-md`}>
       
-      <div className="h-6 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-full border-b border-slate-100/50 pb-1 mb-1">
-        {hasRealScore ? (
-            <div className={`flex gap-1 ${isLive ? 'text-red-500 animate-pulse' : ''}`}>
-               <span>{match.homeScore}</span>
-               <span>-</span>
-               <span>{match.awayScore}</span>
-               {isLive && <span className="text-[8px] ml-1 bg-red-100 text-red-600 px-1 rounded">LIVE</span>}
-            </div>
-        ) : (
-            <span className="opacity-50 text-[9px]">{new Date(match.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
-        )}
+      {/* HEADER: Updated to use cleaner component */}
+      <div className="h-6 flex items-center justify-center w-full border-b border-slate-100/50 pb-1 mb-1">
+          {getStatusContent()}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center w-full gap-2">
@@ -125,9 +130,11 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
               <span className="text-[10px] font-black text-slate-300">vs</span>
               <img src={awayTeam.flag} className="w-8 h-6 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
           </div>
+          
           <div className="text-3xl font-black text-slate-800 tracking-tight leading-none">
               {prediction ? `${prediction.home} - ${prediction.away}` : <span className="text-slate-200 text-xl">-</span>}
           </div>
+          
           {hasRealScore && (
               <div className={`text-[9px] font-black uppercase ${points > 0 ? 'text-green-600 bg-green-100 px-2 rounded-full' : 'text-red-400'}`}>
                   {points > 0 ? `+${points} pts` : 'Miss'}
@@ -142,7 +149,7 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
               </button>
           ) : (
               <div className="text-slate-300 flex items-center gap-1 opacity-50">
-                  {isFinished ? <span className="text-[9px] font-bold">FINAL</span> : <Lock size={12} />}
+                  {isFinished ? null : <Lock size={12} />}
               </div>
           )}
       </div>
