@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Match, Team, Translation, TournamentPhase, Prediction } from '../types';
 import { getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 import { ThirdPlaceTable } from './ThirdPlaceTable';
@@ -24,11 +24,17 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
   matches, teams, lang, phase, hasTakenSecondChance, onSecondChance, 
   userPredictions, onGoToGroup, onGoToKnockout, onTeamClick 
 }) => {
-  const allStandings = getAllGroupStandings(matches, teams);
-  const thirdPlaceStandings = getThirdPlaceStandings(allStandings);
   
-  // Calculate Qualified 3rd Place Teams (Top 4)
-  const qualifiedThirds = new Set(thirdPlaceStandings.slice(0, 4).map(s => s.teamId));
+  // 1. Calculate Global Standings (Standard Tables)
+  const allStandings = useMemo(() => getAllGroupStandings(matches, teams), [matches, teams]);
+  
+  // 2. Identify Qualified 3rd Places (Top 8)
+  const thirdPlaceStandings = useMemo(() => getThirdPlaceStandings(allStandings), [allStandings]);
+  
+  const qualifiedThirdsSet = useMemo(() => {
+      // Top 8 advance in 12-group format
+      return new Set(thirdPlaceStandings.slice(0, 8).map(t => t.teamId));
+  }, [thirdPlaceStandings]);
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">
@@ -89,7 +95,9 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
                             <div className="absolute inset-0 grid grid-cols-4 opacity-50">
                                 {groupTeamIds.map(tid => (
                                     <div key={tid} className="relative h-full border-r border-white/5 last:border-0">
-                                        <img src={teams[tid]?.flag} className="w-full h-full object-cover grayscale brightness-75" alt="" />
+                                        {teams[tid]?.flag && (
+                                            <img src={teams[tid].flag} className="w-full h-full object-cover grayscale brightness-75" alt="" />
+                                        )}
                                         <div className="absolute inset-0 bg-blue-900/40 mix-blend-multiply"></div>
                                     </div>
                                 ))}
@@ -106,13 +114,15 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
                                 <div className={`w-2.5 h-2.5 rounded-full shadow-sm border border-slate-900/20 ${dotColor}`} title="Prediction Status"></div>
                             </div>
                          </div>
+                         
+                         {/* TABLE WITH HIGHLIGHTS */}
                          <StandingsTable 
                             standings={standings} 
                             teams={teams} 
                             lang={lang} 
                             compact={true} 
                             onTeamClick={onTeamClick} 
-                            qualifiedThirds={qualifiedThirds} // PASSING THE PROP HERE
+                            qualifiedThirds={qualifiedThirdsSet} // PASSING THE SET HERE
                          />
                      </div>
                  );
