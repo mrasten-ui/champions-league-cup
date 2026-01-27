@@ -8,7 +8,7 @@ interface StandingsTableProps {
   compact?: boolean;
   onTeamClick?: (teamId: string) => void;
   highlightedTeamId?: string | null;
-  qualifiedThirds?: Set<string>; // NEW PROP: To highlight 3rd place qualifiers
+  qualifiedThirds?: Set<string>;
 }
 
 export const StandingsTable: React.FC<StandingsTableProps> = ({ 
@@ -33,7 +33,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             )}
             <th className="py-2 text-center w-10">{lang.gd || "GD"}</th>
             <th className="py-2 text-center w-10 font-bold text-slate-700">{lang.pts || "Pts"}</th>
-            {!compact && <th className="py-2 w-16 text-center text-[9px] opacity-50 hidden sm:table-cell">{lang.form || "Form"}</th>}
+            {/* Removed Form Header */}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -41,11 +41,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             const team = teams[row.teamId];
             const isHighlighted = highlightedTeamId === row.teamId;
             
-            // Logic: Top 2 qualify OR it's 3rd place and in the lucky set
-            const isQualifying = index < 2 || (index === 2 && qualifiedThirds?.has(row.teamId));
-            
-            // Get last 5 matches
-            const recentForm = row.form ? row.form.slice(-5) : [];
+            // --- QUALIFICATION LOGIC ---
+            const isTopTwo = index < 2;
+            const isQualifiedThird = index === 2 && qualifiedThirds?.has(row.teamId);
+            const isQualified = isTopTwo || isQualifiedThird;
+
+            let rankBg = 'bg-slate-100 text-slate-400';
+            if (isTopTwo) rankBg = 'bg-green-100 text-green-700';
+            if (isQualifiedThird) rankBg = 'bg-amber-100 text-amber-700';
 
             return (
               <tr 
@@ -55,16 +58,15 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                     group transition-all duration-1000 ease-out cursor-pointer
                     ${isHighlighted 
                         ? 'bg-yellow-200 scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)] z-10 relative' 
-                        : isQualifying 
-                            ? 'hover:bg-slate-50 bg-white' // Qualifying: White
-                            : 'bg-red-50/40 hover:bg-red-50' // Non-Qualifying: Light Red
+                        : 'hover:bg-slate-50 bg-white'
                     }
+                    ${isQualified ? 'bg-opacity-100' : 'bg-opacity-50'}
                 `}
               >
-                {/* Rank Circle - Green if Qualifying, Red/Slate if not */}
-                <td className={`pl-3 py-3 font-bold text-[10px] ${isQualifying ? 'text-green-600' : 'text-slate-400'}`}>
-                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${isQualifying ? 'bg-green-100' : 'bg-slate-100'}`}>
+                <td className="pl-3 py-3 font-bold text-[10px]">
+                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${rankBg}`}>
                         {index + 1}
+                        {isQualifiedThird && <span className="ml-0.5 text-[7px] font-black opacity-80">Q</span>}
                     </div>
                 </td>
                 <td className="py-3">
@@ -72,7 +74,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                         {team?.flag && (
                             <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" />
                         )}
-                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'}`}>
+                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'} ${!isQualified && index > 2 ? 'opacity-60' : ''}`}>
                             {lang.teamNames[row.teamId] || team?.name || row.teamId}
                         </span>
                     </div>
@@ -80,45 +82,19 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 <td className="text-center font-medium text-slate-500">{row.played}</td>
                 {!compact && (
                     <>
-                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.won}</th>
-                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.drawn}</th>
-                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.lost}</th>
-                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.gf}</th>
-                        <th className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.ga}</th>
+                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.won}</td>
+                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.drawn}</td>
+                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.lost}</td>
+                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.gf}</td>
+                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.ga}</td>
                     </>
                 )}
                 <td className={`text-center font-bold ${row.gd > 0 ? 'text-green-600' : row.gd < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                     {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
-                <td className={`text-center font-black text-sm ${isQualifying ? 'text-slate-800 bg-slate-50/50' : 'text-red-900 bg-red-100/20'}`}>
-                    {row.pts}
-                </td>
+                <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
                 
-                {/* FORM DISPLAY */}
-                {!compact && (
-                    <td className="text-center hidden sm:table-cell">
-                        <div className="flex items-center justify-center gap-1">
-                            {recentForm.length > 0 ? (
-                                recentForm.map((result, i) => {
-                                    let bgClass = 'bg-slate-200';
-                                    if (result === 'W') bgClass = 'bg-green-500';
-                                    if (result === 'L') bgClass = 'bg-rose-500';
-                                    if (result === 'D') bgClass = 'bg-slate-400';
-                                    
-                                    return (
-                                        <div 
-                                            key={i} 
-                                            title={result}
-                                            className={`w-1.5 h-1.5 rounded-full ${bgClass}`}
-                                        ></div>
-                                    );
-                                })
-                            ) : (
-                                <span className="text-[9px] text-slate-300">-</span>
-                            )}
-                        </div>
-                    </td>
-                )}
+                {/* Removed Form Data Cell */}
               </tr>
             );
           })}
