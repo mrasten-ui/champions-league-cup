@@ -147,66 +147,70 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
     }
   };
 
-  // --- MODAL DATA EFFECTS ---
+  // --- MODAL DATA EFFECTS (ROBUST LOADING) ---
   useEffect(() => {
       if (selectedTeam) {
           setLoadingHistory(true);
+          
           const loadData = async () => {
-              try {
-                  // Run promises independently to prevent one failure from blocking others
-                  const dbHistoryPromise = fetchTeamHistory(selectedTeam.id).catch(() => []);
-                  const dbScoutingPromise = fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode).catch(() => null);
-                  const dbExtendedPromise = fetchTeamExtendedStats(selectedTeam.id).catch(() => null);
+              // 1. Create promises that CATCH their own errors so Promise.all doesn't fail
+              const pHistory = fetchTeamHistory(selectedTeam.id).catch(e => {
+                  console.warn("History fetch failed", e);
+                  return [];
+              });
+              
+              const pScouting = fetchScoutingOverview(selectedTeam.id, currentLang as LanguageCode).catch(e => {
+                  console.warn("Scouting fetch failed", e);
+                  return null;
+              });
+              
+              const pExtended = fetchTeamExtendedStats(selectedTeam.id).catch(e => {
+                  console.warn("Extended stats fetch failed", e);
+                  return null;
+              });
 
-                  const [dbHistory, dbScouting, dbExtended] = await Promise.all([
-                      dbHistoryPromise,
-                      dbScoutingPromise,
-                      dbExtendedPromise
-                  ]);
+              // 2. Wait for all (safely)
+              const [dbHistory, dbScouting, dbExtended] = await Promise.all([pHistory, pScouting, pExtended]);
 
-                  // 1. Extended Stats Logic
-                  if (dbExtended) {
-                      setExtendedStats(dbExtended);
-                      setHistory(dbExtended.history);
-                  } else {
-                      setHistory(dbHistory || []);
-                  }
-
-                  // 2. Scouting Data Logic (DB vs Local Fallback)
-                  if (dbScouting) {
-                      setScoutingData(dbScouting);
-                  } else {
-                      // Fallback to local file if DB empty or failed
-                      const localReport = getScoutingReport(selectedTeam.id, currentLang as LanguageCode);
-                      if (localReport) {
-                          setScoutingData({
-                              id: 0,
-                              team_id: selectedTeam.id,
-                              team_name: selectedTeam.name,
-                              confederation: localReport.confederation || 'FIFA',
-                              fifa_rank: localReport.fifa_rank || selectedTeam.rank || 99,
-                              star_player: localReport.star_player || 'Key Player',
-                              strengths: localReport.strengths || '',
-                              weaknesses: localReport.weaknesses || '',
-                              scout_notes: localReport.scout_notes || '',
-                              recent_form: localReport.recent_form || '',
-                              last_5_matches: localReport.last_5_matches || '',
-                              created_at: new Date().toISOString(),
-                          });
-                      } else {
-                          setScoutingData(null);
-                      }
-                  }
-              } catch (error) {
-                  console.error("Failed to load scouting data", error);
-                  // Ensure we don't leave it in a loading state forever
-                  setScoutingData(null);
-              } finally {
-                  setLoadingHistory(false);
+              // 3. Handle History/Stats
+              if (dbExtended) {
+                  setExtendedStats(dbExtended);
+                  setHistory(dbExtended.history);
+              } else {
+                  setHistory(dbHistory || []);
               }
+
+              // 4. Handle Scouting (Database -> Local Fallback)
+              if (dbScouting) {
+                  setScoutingData(dbScouting);
+              } else {
+                  // Fallback: Try local file
+                  const localReport = getScoutingReport(selectedTeam.id, currentLang as LanguageCode);
+                  if (localReport) {
+                      setScoutingData({
+                          id: 0,
+                          team_id: selectedTeam.id,
+                          team_name: selectedTeam.name,
+                          confederation: localReport.confederation || 'FIFA',
+                          fifa_rank: localReport.fifa_rank || selectedTeam.rank || 99,
+                          star_player: localReport.star_player || 'Key Player',
+                          strengths: localReport.strengths || '',
+                          weaknesses: localReport.weaknesses || '',
+                          scout_notes: localReport.scout_notes || '',
+                          recent_form: localReport.recent_form || '',
+                          last_5_matches: localReport.last_5_matches || '',
+                          created_at: new Date().toISOString(),
+                      });
+                  } else {
+                      setScoutingData(null);
+                  }
+              }
+              
+              setLoadingHistory(false);
           };
           loadData();
       } else {
+          // Reset when modal closes
           setHistory([]);
           setScoutingData(null);
           setExtendedStats(null);
