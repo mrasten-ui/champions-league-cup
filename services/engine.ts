@@ -1,7 +1,6 @@
 import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
 import { GROUP_CONFIG } from '../constants';
 import { supabase } from '../supabase';
-import { getScoutingReport } from '../scoutingData'; 
 
 export const SCORING_RULES = {
   GROUP_EXACT: 5,
@@ -123,8 +122,6 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
   const standingsMap: Record<string, GroupStanding> = {};
   const groupConfig = GROUP_CONFIG.find((g: any) => g.id === groupId);
   
-  // 1. Initialize
-  // KEY FIX: This now pulls the 'form' from the teams object if available (which useAppData fills from DB)
   const initTeam = (tId: string) => ({
       teamId: tId,
       played: 0,
@@ -149,10 +146,8 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       });
   }
 
-  // 2. Sort Matches Chronologically
   const sortedMatches = [...groupMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // 3. Process Live Tournament Matches (Add new W/D/L on top of historical form)
   sortedMatches.forEach(match => {
     if (match.homeScore !== null && match.awayScore !== null) {
       const home = standingsMap[match.homeTeamId];
@@ -205,16 +200,22 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 
 export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>) => {
   const results: Record<string, GroupStanding[]> = {};
+  
+  // FIX: Iterate all groups from config to ensure we get A-L (12 groups)
   GROUP_CONFIG.forEach((g: any) => {
       results[g.id] = calculateGroupStandings(g.id, matches, teams);
   });
+  
   return results;
 };
 
 export const getThirdPlaceStandings = (allStandings: Record<string, GroupStanding[]>) => {
   const thirds: (GroupStanding & { groupId: string })[] = [];
+  
+  // Iterate through all groups provided
   Object.entries(allStandings).forEach(([gid, standings]) => {
-      if (standings[2]) {
+      // Ensure the group has at least 3 teams (it should have 4)
+      if (standings && standings.length > 2) {
           thirds.push({ ...standings[2], groupId: gid });
       }
   });
@@ -231,14 +232,21 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     const getTeam = (gid: string, rank: number) => groupResults[gid]?.[rank - 1]?.teamId || 'TBD';
     
     const thirds = getThirdPlaceStandings(groupResults);
+    
+    // Top 8 qualify for R32
     const qualifiedThirds = thirds.slice(0, 8);
     const usedThirds = new Set<string>();
     
+    // Helper to find valid 3rd place opponent
     const get3rd = (allowedGroups: string[]) => {
+        // Try to find a team from allowed groups that hasn't been used
         let candidate = qualifiedThirds.find(t => allowedGroups.includes(t.groupId) && !usedThirds.has(t.teamId));
+        
+        // Fallback: If no strict match found (rare edge case in sims), take any unused qualified 3rd
         if (!candidate) {
              candidate = qualifiedThirds.find(t => !usedThirds.has(t.teamId));
         }
+        
         if (candidate) {
             usedThirds.add(candidate.teamId);
             return candidate.teamId;
@@ -267,6 +275,7 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
         }
     };
 
+    // R32 Matchups based on 12-group bracket structure (World Cup 2026 approx)
     setMatchup('R32_1', getTeam('A', 2), getTeam('B', 2));
     setMatchup('R32_2', getTeam('E', 1), get3rd(['A', 'B', 'C', 'D', 'F']));
     setMatchup('R32_3', getTeam('F', 1), getTeam('C', 2));
@@ -284,6 +293,7 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     setMatchup('R32_15', getTeam('K', 1), get3rd(['D', 'E', 'I', 'J', 'L']));
     setMatchup('R32_16', getTeam('D', 2), getTeam('G', 2));
 
+    // Propagate winners
     const rounds: Round[] = ['R32', 'R16', 'QF', 'SF'];
     
     rounds.forEach(round => {
@@ -325,6 +335,7 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
                 }
             }
 
+            // Third Place Playoff Logic
             if (round === 'SF') {
                 const thirdPlaceMatch = nextMatches.find(m => m.round === '3RD');
                 if (thirdPlaceMatch) {
@@ -356,6 +367,7 @@ export const applyPredictionsToBracket = (
     let currentMatches = updateBracket([...initialMatches], teams);
     const predsMap = new Map(userPredictions.map(p => [p.matchId, p]));
 
+    // Iterate multiple times to propagate winners deep into the tree
     for (let i = 0; i < 7; i++) {
         let hasChanges = false;
         currentMatches = currentMatches.map(m => {
@@ -722,12 +734,6 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
         return null;
     }
 };
-
-export interface TeamFormData {
-    fifaRank: number;
-    history: MatchHistoryItem[];
-    recentForm: string;
-}
 
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
