@@ -4,12 +4,11 @@ import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid } from 'lucide-react';
-import { calculateGroupStandings } from '../services/engine';
+import { Trophy, LayoutGrid, AlertCircle, CalendarClock } from 'lucide-react';
 
 interface ManagerHubProps {
-  matches: Match[];
-  userMatches: Match[];
+  matches: Match[];        // Official schedule (Real Status/Scores/Locks)
+  userMatches: Match[];    // User's predicted bracket path (Who they think is playing)
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
@@ -21,32 +20,49 @@ interface ManagerHubProps {
 }
 
 export const ManagerHub: React.FC<ManagerHubProps> = ({
-  matches, userMatches, teams, allPredictions, currentUser, lang, 
-  onSubstitute, onUnlockSecondChance, onUpdate, phase
+  matches, 
+  userMatches, 
+  teams, 
+  allPredictions, 
+  currentUser, 
+  lang, 
+  onSubstitute, 
+  onUnlockSecondChance, 
+  onUpdate, 
+  phase
 }) => {
+  // --- STATE ---
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'groups' | 'knockout'>('groups');
 
-  const userPredictions = allPredictions.filter(p => p.userId === currentUser.email);
+  // --- DATA PREPARATION ---
   
-  // --- DATA ORGANIZATION ---
+  // 1. Get current user's predictions
+  const userPredictions = useMemo(() => {
+    return allPredictions.filter(p => p.userId === currentUser.email);
+  }, [allPredictions, currentUser.email]);
+
+  // 2. Organize the User's Bracket (The "Fantasy" Schedule)
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
       const knockouts: Record<string, Match[]> = {
           'R32': [], 'R16': [], 'QF': [], 'SF': [], 'FIN': [], '3RD': []
       };
 
+      // We iterate over userMatches to ensure we show the USER'S path
       userMatches.forEach(m => {
+          // Skip placeholder matches that haven't been predicted/determined in the user's bracket
           if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
 
           if (m.groupId) {
               if (!groups[m.groupId]) groups[m.groupId] = [];
               groups[m.groupId].push(m);
           } else if (m.round) {
-              if (knockouts[m.round]) knockouts[m.round].push(m);
+              knockouts[m.round].push(m);
           }
       });
 
+      // Sort groups A-Z and matches by date
       const sortedGroups = Object.keys(groups).sort().reduce((obj, key) => {
           obj[key] = groups[key].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           return obj;
@@ -55,119 +71,197 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return { groups: sortedGroups, knockouts };
   }, [userMatches]);
 
-  const activeMatch = useMemo(() => matches.find(m => m.id === selectedMatchId), [selectedMatchId, matches]);
+  // --- HELPERS ---
 
-  const canSubMatch = (m: Match) => {
-      if (m.round) return false; // No subs in knockout
-      const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(m.status);
+  // Get the "Real" match data for a given User Match ID
+  // This is critical for knowing if the game is Locked, Live, or Finished
+  const getRealMatch = (userMatchId: string) => {
+      return matches.find(m => m.id === userMatchId);
+  };
+
+  // Determine if a specific match is currently actionable (Substitutable)
+  const canSubMatch = (realMatch: Match | undefined) => {
+      if (!realMatch) return false;
+      
+      // Cannot sub if game is Live or Finished
+      const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isLiveOrDone) return false;
-      return m.isLocked; 
+      
+      // Can sub if it is Locked (pre-match lock) AND we have subs available
+      // Note: If it is Unlocked (e.g. user already spent a sub), they can just edit it via the modal logic
+      return realMatch.isLocked; 
   };
 
-  const getKnockoutGridClass = (round: string, count: number) => {
-      if (round === 'FIN') return 'flex justify-center max-w-sm mx-auto';
-      if (round === 'SF') return 'flex flex-wrap justify-center gap-3 max-w-lg mx-auto';
-      if (round === 'QF' && count <= 4) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3';
-      return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
-  };
+  // Check if we have any knockout games to show
+  const hasKnockouts = useMemo(() => {
+      return Object.values(groupedMatches.knockouts).some(arr => arr.length > 0);
+  }, [groupedMatches]);
 
-  const hasKnockouts = Object.values(groupedMatches.knockouts).some(arr => arr.length > 0);
+  // Prepare the Active Match for the Modal (Merging Real status with Predicted teams)
+  const activeModalMatch = useMemo(() => {
+      if (!selectedMatchId) return null;
+      
+      // We need the User's version (for teams) AND Real version (for status/id)
+      const userMatch = userMatches.find(m => m.id === selectedMatchId);
+      const realMatch = matches.find(m => m.id === selectedMatchId);
+      
+      if (!userMatch || !realMatch) return null;
+
+      // We pass the Real Match ID and Status, but ensure we display the Predicted Teams
+      // (This handles the case where the user is predicting a hypothetical matchup)
+      return {
+          ...realMatch,
+          homeTeamId: userMatch.homeTeamId,
+          awayTeamId: userMatch.awayTeamId
+      };
+  }, [selectedMatchId, userMatches, matches]);
+
+  // --- RENDER ---
 
   return (
     <div className="pb-24 animate-fade-in space-y-8">
       
-      {/* 1. PROFILE HEADER */}
+      {/* 1. MANAGER PROFILE HEADER */}
+      {/* Displays Avatar, Rank, Points, and Subs Count */}
       <ResourceHeader 
         user={currentUser} 
         lang={lang} 
         phase={phase}
-        rank={99} 
-        totalPoints={0}
+        rank={99} // TODO: Pass actual rank from Leaderboard logic in App.tsx
+        totalPoints={0} // TODO: Pass actual points
       />
 
-      {/* 2. VIEW SWITCHER */}
-      <div className="bg-white p-2 rounded-3xl shadow-md border border-slate-200">
-          <div className="flex relative bg-slate-100 rounded-2xl p-1.5 h-16">
-              <button 
-                onClick={() => setViewMode('groups')}
-                className={`flex-1 flex items-center justify-center gap-3 rounded-xl text-sm sm:text-base font-black uppercase tracking-widest transition-all duration-300 ${viewMode === 'groups' ? 'bg-[#0f2545] text-white shadow-lg scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                  <LayoutGrid size={20} />
-                  {lang.groups || "Group Stage"}
-              </button>
-              <button 
-                onClick={() => setViewMode('knockout')}
-                disabled={!hasKnockouts}
-                className={`flex-1 flex items-center justify-center gap-3 rounded-xl text-sm sm:text-base font-black uppercase tracking-widest transition-all duration-300 ${viewMode === 'knockout' ? 'bg-[#0f2545] text-white shadow-lg scale-[1.02]' : 'text-slate-400 hover:text-slate-600'} ${!hasKnockouts ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                  <Trophy size={20} />
-                  {lang.knockouts || "Knockouts"}
-              </button>
-          </div>
+      {/* 2. SEASON STRATEGY (Second Chance) */}
+      {/* Only shown if the user hasn't used it yet */}
+      <SecondChancePromo 
+        hasTaken={currentUser.hasTakenSecondChance}
+        onUnlock={onUnlockSecondChance}
+        lang={lang}
+      />
+
+      {/* 3. VIEW TOGGLE (Groups vs Knockouts) */}
+      <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 flex gap-2">
+          <button 
+            onClick={() => setViewMode('groups')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                viewMode === 'groups' 
+                ? 'bg-[#0f2545] text-white shadow-md transform scale-[1.02]' 
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+            }`}
+          >
+              <LayoutGrid size={16} />
+              {lang.groups || "Group Stage"}
+          </button>
+          
+          <button 
+            onClick={() => setViewMode('knockout')}
+            disabled={!hasKnockouts}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                viewMode === 'knockout' 
+                ? 'bg-[#0f2545] text-white shadow-md transform scale-[1.02]' 
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+            } ${!hasKnockouts ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+              <Trophy size={16} />
+              {lang.knockouts || "Knockouts"}
+          </button>
       </div>
 
-      {/* --- A) GROUP STAGE VIEW --- */}
+      {/* 4. CONTENT GRIDS */}
+      
+      {/* --- A) GROUP STAGE GRID --- */}
       {viewMode === 'groups' && (
-          <div className="space-y-8 animate-in slide-in-from-left-4 fade-in duration-300">
-              {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
-                  
-                  // Calculate Predicted Standings for this group
-                  const standings = calculateGroupStandings(groupId, userMatches, teams);
-
-                  return (
-                      <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                          
-                          {/* ENHANCED HEADER: Group Name + Live Standings Strip */}
-                          <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
-                              <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-white font-black text-xs border border-white/10">
-                                          {groupId}
-                                      </div>
-                                      <span className="text-white text-xs font-black uppercase tracking-widest">Group {groupId}</span>
-                                  </div>
-                                  <span className="text-[9px] font-bold text-blue-200 bg-white/5 px-2 py-0.5 rounded border border-white/5">{groupMatches.length} Games</span>
-                              </div>
-
-                              {/* Mini Standings Strip */}
-                              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-                                  {standings.map((row, index) => {
-                                      const rank = index + 1;
-                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th)
-                                      if (rank <= 2) badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Qualifying
-                                      if (rank === 3) badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400'; // 3rd Place
-
-                                      // FIX: Use substring fallback instead of .code which might not exist
-                                      const teamCode = teams[row.teamId]?.name?.substring(0,3).toUpperCase() || row.teamId.substring(0,3).toUpperCase();
-
-                                      return (
-                                          <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
-                                              <span className="text-[9px] font-black">{rank}.</span>
-                                              <img src={teams[row.teamId]?.flag} className="w-4 h-3 object-cover rounded shadow-sm" alt="" />
-                                              <span className="text-[9px] font-bold">{teamCode}</span>
-                                              <span className="text-[9px] font-black opacity-80 border-l border-black/20 pl-1.5 ml-0.5">{row.pts}p</span>
-                                          </div>
-                                      );
-                                  })}
-                              </div>
+          <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
+              {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => (
+                  <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                      {/* Navy Header Strip */}
+                      <div className="bg-[#0f2545] px-4 py-3 flex items-center justify-between border-b border-slate-700">
+                          <div className="flex items-center gap-2">
+                              <span className="text-white text-sm font-black uppercase tracking-widest">Group {groupId}</span>
                           </div>
+                          <span className="text-[10px] font-bold text-blue-200 bg-white/10 px-2 py-0.5 rounded-full">
+                              {groupMatches.length} Matches
+                          </span>
+                      </div>
 
+                      {/* Stamps Grid */}
+                      <div className="p-4 bg-slate-50/50">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {groupMatches.map(userMatch => {
+                                  const realMatch = getRealMatch(userMatch.id) || userMatch;
+                                  
+                                  // For Groups, the matchup is always Real, so we can show scores safely
+                                  return (
+                                      <PredictionStamp 
+                                          key={userMatch.id}
+                                          match={realMatch} // Contains Real Score & Status
+                                          homeTeam={teams[userMatch.homeTeamId]}
+                                          awayTeam={teams[userMatch.awayTeamId]}
+                                          prediction={userPredictions.find(p => p.matchId === userMatch.id)}
+                                          onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                          canSubstitute={canSubMatch(realMatch)}
+                                          userHasPenalty={currentUser.hasTakenSecondChance}
+                                          lang={lang}
+                                          variant="standard" // Standard = Show Scores
+                                      />
+                                  );
+                              })}
+                          </div>
+                      </div>
+                  </div>
+              ))}
+          </div>
+      )}
+
+      {/* --- B) KNOCKOUT GRID --- */}
+      {viewMode === 'knockout' && hasKnockouts && (
+          <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
+                  if (roundMatches.length === 0) return null;
+                  
+                  return (
+                      <div key={round} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                          {/* Navy Header Strip */}
+                          <div className="bg-[#0f2545] px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+                              <Trophy size={16} className="text-amber-400" />
+                              <span className="text-sm font-black text-white uppercase tracking-widest">{round}</span>
+                          </div>
+                          
+                          {/* Stamps Grid */}
                           <div className="p-4 bg-slate-50/50">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                  {groupMatches.map(userMatch => {
-                                      const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                  {roundMatches.map(userMatch => {
+                                      const realMatch = getRealMatch(userMatch.id);
+                                      
+                                      // CRITICAL LOGIC: 
+                                      // Only show "Real Score" if the match actually happened as predicted.
+                                      // If I predicted Brazil vs Arg, but it's France vs Ger, showing "2-0" is wrong.
+                                      
+                                      const isMatchupCorrect = realMatch && 
+                                          realMatch.homeTeamId === userMatch.homeTeamId && 
+                                          realMatch.awayTeamId === userMatch.awayTeamId;
+
+                                      // If matchup is wrong, create a "Ghost" match object without scores
+                                      // so the stamp doesn't show confusing numbers
+                                      const displayMatch = isMatchupCorrect ? realMatch : { 
+                                          ...userMatch, 
+                                          homeScore: null, 
+                                          awayScore: null,
+                                          status: realMatch?.status || 'UPCOMING' // Keep status for locking logic
+                                      };
+
                                       return (
                                           <PredictionStamp 
                                               key={userMatch.id}
-                                              match={realMatch}
+                                              match={displayMatch as Match}
                                               homeTeam={teams[userMatch.homeTeamId]}
                                               awayTeam={teams[userMatch.awayTeamId]}
                                               prediction={userPredictions.find(p => p.matchId === userMatch.id)}
                                               onOpenSub={() => setSelectedMatchId(userMatch.id)}
-                                              canSubstitute={canSubMatch(realMatch)}
+                                              canSubstitute={canSubMatch(realMatch)} // Lock logic depends on REAL time
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
-                                              variant="standard"
+                                              variant="knockout" // Knockout = Minimal Flags, No Scores
                                           />
                                       );
                                   })}
@@ -179,60 +273,25 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- B) KNOCKOUT VIEW --- */}
-      {viewMode === 'knockout' && hasKnockouts && (
-          <div className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-300">
-              
-              <SecondChancePromo 
-                  hasTaken={currentUser.hasTakenSecondChance}
-                  onUnlock={onUnlockSecondChance}
-                  lang={lang}
-              />
-
-              {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
-                  if (roundMatches.length === 0) return null;
-                  const gridClass = getKnockoutGridClass(round, roundMatches.length);
-
-                  return (
-                      <div key={round} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                          <div className="bg-[#0f2545] px-4 py-3 border-b border-slate-700 flex justify-center sm:justify-start">
-                              <span className="text-white text-sm font-black uppercase tracking-[0.2em]">{round}</span>
-                          </div>
-                          
-                          <div className="p-4 bg-slate-50/30">
-                              <div className={gridClass}>
-                                  {roundMatches.map(userMatch => {
-                                      const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
-                                      return (
-                                          <PredictionStamp 
-                                              key={userMatch.id}
-                                              match={realMatch}
-                                              homeTeam={teams[userMatch.homeTeamId]}
-                                              awayTeam={teams[userMatch.awayTeamId]}
-                                              prediction={userPredictions.find(p => p.matchId === userMatch.id)}
-                                              onOpenSub={() => {}}
-                                              canSubstitute={false}
-                                              userHasPenalty={currentUser.hasTakenSecondChance}
-                                              lang={lang}
-                                              variant="knockout"
-                                              isFinal={round === 'FIN'} 
-                                          />
-                                      );
-                                  })}
-                              </div>
-                          </div>
-                      </div>
-                  );
-              })}
+      {/* --- C) EMPTY STATE --- */}
+      {viewMode === 'knockout' && !hasKnockouts && (
+          <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
+              <CalendarClock size={64} className="text-slate-300 mb-4" />
+              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">
+                  Knockout Stage<br/>Not Yet Predicted
+              </h3>
+              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">
+                  Predict the group stages first to unlock the bracket.
+              </p>
           </div>
       )}
 
-      {/* MODAL */}
-      {selectedMatchId && activeMatch && (
+      {/* 5. SUBSTITUTION MODAL */}
+      {selectedMatchId && activeModalMatch && teams[activeModalMatch.homeTeamId] && teams[activeModalMatch.awayTeamId] && (
           <SubstitutionModal 
-              match={activeMatch}
-              homeTeam={teams[activeMatch.homeTeamId]}
-              awayTeam={teams[activeMatch.awayTeamId]}
+              match={activeModalMatch}
+              homeTeam={teams[activeModalMatch.homeTeamId]}
+              awayTeam={teams[activeModalMatch.awayTeamId]}
               currentUser={currentUser}
               allPredictions={allPredictions}
               lang={lang}

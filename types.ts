@@ -35,7 +35,8 @@ export interface Team {
   def: number;
   overview?: string;
   starPlayer?: string;
-  form?: string[]; // Stores 'W', 'D', 'L' history
+  code?: string; // Added to fix build error (optional, usually matches id)
+  form?: string[]; 
 }
 
 export interface Prediction {
@@ -95,7 +96,6 @@ export interface MatchHistoryItem {
     date: string;
 }
 
-// MATCHES YOUR NEW DB TABLE 'scouting_overview'
 export interface ScoutingData {
     id: number;
     team_id: string;
