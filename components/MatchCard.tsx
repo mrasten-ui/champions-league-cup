@@ -147,30 +147,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             };
             return rounds[match.round] || match.round;
         }
-        if (match.groupId) return `${lang.groups || 'GROUP'} ${match.groupId}`;
+        // FIX: Use singular 'group' key or hardcoded 'GROUP'
+        if (match.groupId) return `${lang.group || 'GROUP'} ${match.groupId}`;
         return match.venue || 'FRIENDLY';
     };
 
-    // --- TV CHANNEL LOGIC (UPDATED) ---
+    // --- TV CHANNEL LOGIC ---
     const getTvChannel = () => {
         if (!match.channels) return null;
         
-        // Detect Region from Locale String
-        let regionKey = 'US'; // Default fallback
+        let regionKey = 'US';
         const loc = locale.toLowerCase();
 
         if (loc.includes('no')) regionKey = 'NO';
         else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
-        else if (loc.startsWith('en')) regionKey = 'EN'; // Default generic English to UK/Intl channels
+        else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
 
-        // Check for specific Scotland override if available in translations
         if ((lang as any).isScotland && match.channels['SCO']) {
             regionKey = 'SCO';
         }
 
         let channel = match.channels[regionKey];
 
-        // Fallback Chain
         if (!channel) {
             channel = match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
         }
@@ -208,7 +206,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
-    // --- RENDER CONTROLS ---
     const renderControlButtons = () => {
         if (canSubstitute) {
             return (
@@ -246,7 +243,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
     const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
 
-    // --- MAIN RENDER ---
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
@@ -255,7 +251,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     <div className="flex items-center gap-1.5">
-                        {match.round && <Trophy size={12} className="text-amber-400" />}
+                        {/* Trophy Icon: Shows for Knockouts AND Groups now */}
+                        {(match.round || match.groupId) && <Trophy size={12} className="text-amber-400" />}
                         <span className="text-xs font-black uppercase tracking-widest shadow-black/50 drop-shadow-sm whitespace-nowrap">
                             {getContextLabel()}
                         </span>
@@ -278,7 +275,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
-                        {/* UPDATED: Increased size to w-6 h-6 and font to text-[10px] */}
                         {homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}
                     </div>
                     <div className="flex flex-col items-center">
@@ -357,7 +353,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">
                             {awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}
                         </div>
-                        {/* UPDATED: Increased size to w-6 h-6 and font to text-[10px] */}
                         {awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}
                     </div>
                     <div className="flex flex-col items-center">
@@ -440,6 +435,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     
+                    {/* LEFT: Stadium (Venue) */}
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0">
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">
