@@ -7,8 +7,8 @@ import { SubstitutionModal } from './SubstitutionModal';
 import { Trophy, LayoutGrid } from 'lucide-react';
 
 interface ManagerHubProps {
-  matches: Match[];        // Official schedule (Real Status/Scores)
-  userMatches: Match[];    // NEW: User's predicted bracket path (Predicted Teams)
+  matches: Match[];
+  userMatches: Match[];
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
@@ -25,19 +25,18 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   
-  // VIEW TOGGLE STATE: Default to 'groups'
   const [viewMode, setViewMode] = useState<'groups' | 'knockout'>('groups');
 
   const userPredictions = allPredictions.filter(p => p.userId === currentUser.email);
   
-  // --- DATA ORGANIZATION (Using User's Predicted Bracket) ---
+  // --- DATA ORGANIZATION ---
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
+      // Ensure specific order for Knockouts
       const knockouts: Record<string, Match[]> = {
-          'R32': [], 'R16': [], 'QF': [], 'SF': [], 'FIN': [], '3RD': []
+          'R32': [], 'R16': [], 'QF': [], 'SF': [], '3RD': [], 'FIN': []
       };
 
-      // Use userMatches to determine WHO is playing (Prediction Path)
       userMatches.forEach(m => {
           if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
 
@@ -45,7 +44,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
               if (!groups[m.groupId]) groups[m.groupId] = [];
               groups[m.groupId].push(m);
           } else if (m.round) {
-              knockouts[m.round].push(m);
+              if (knockouts[m.round]) knockouts[m.round].push(m);
           }
       });
 
@@ -57,7 +56,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return { groups: sortedGroups, knockouts };
   }, [userMatches]);
 
-  // --- HELPERS ---
   const activeMatch = useMemo(() => matches.find(m => m.id === selectedMatchId), [selectedMatchId, matches]);
 
   const canSubMatch = (m: Match) => {
@@ -68,10 +66,20 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
   const hasKnockouts = Object.values(groupedMatches.knockouts).some(arr => arr.length > 0);
 
+  // Helper to get grid classes based on round
+  const getKnockoutGridClass = (round: string, count: number) => {
+      // Centered layouts for small rounds
+      if (round === 'FIN') return 'flex justify-center max-w-sm mx-auto';
+      if (round === 'SF') return 'flex flex-wrap justify-center gap-3 max-w-lg mx-auto';
+      if (round === 'QF' && count <= 4) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3';
+      
+      // Default Grid for R32/R16
+      return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
+  };
+
   return (
     <div className="pb-24 animate-fade-in space-y-6">
       
-      {/* 1. PROFILE HEADER */}
       <ResourceHeader 
         user={currentUser} 
         lang={lang} 
@@ -80,14 +88,12 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         totalPoints={0}
       />
 
-      {/* 2. SECOND CHANCE */}
       <SecondChancePromo 
         hasTaken={currentUser.hasTakenSecondChance}
         onUnlock={onUnlockSecondChance}
         lang={lang}
       />
 
-      {/* 3. VIEW TOGGLE BUTTONS */}
       <div className="flex p-1 bg-slate-200 rounded-xl shadow-inner border border-slate-300">
           <button 
             onClick={() => setViewMode('groups')}
@@ -106,8 +112,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
       </div>
 
-      {/* 4. CONTENT AREA */}
-      
       {/* --- A) GROUP STAGE VIEW --- */}
       {viewMode === 'groups' && (
           <div className="space-y-6 animate-in slide-in-from-left-4 fade-in duration-300">
@@ -121,7 +125,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                       <div className="p-3">
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                               {groupMatches.map(userMatch => {
-                                  // Use REAL match for status checks, User match for teams
                                   const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
                                   return (
                                       <PredictionStamp 
@@ -150,14 +153,17 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
                   if (roundMatches.length === 0) return null;
+                  
+                  const gridClass = getKnockoutGridClass(round, roundMatches.length);
+
                   return (
                       <div key={round} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                          <div className="bg-[#0f2545] px-4 py-2 border-b border-slate-700">
+                          <div className="bg-[#0f2545] px-4 py-2 border-b border-slate-700 text-center sm:text-left">
                               <span className="text-white text-xs font-black uppercase tracking-widest">{round}</span>
                           </div>
                           
                           <div className="p-3">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              <div className={gridClass}>
                                   {roundMatches.map(userMatch => {
                                       const realMatch = matches.find(m => m.id === userMatch.id) || userMatch;
                                       return (
@@ -172,6 +178,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
                                               variant="knockout"
+                                              isFinal={round === 'FIN'} // Trigger special style
                                           />
                                       );
                                   })}
@@ -183,7 +190,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- MODAL --- */}
       {selectedMatchId && activeMatch && (
           <SubstitutionModal 
               match={activeMatch}
