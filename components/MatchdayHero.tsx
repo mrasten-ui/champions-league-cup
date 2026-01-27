@@ -120,9 +120,6 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
 
-  // Helper to find team rank in group
-  const getRank = (teamId: string) => groupStandings?.findIndex(g => g.teamId === teamId) ?? -1;
-
   // --- HELPER LOGIC ---
 
   const getContextLabel = () => {
@@ -229,9 +226,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 ) : (
                     <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
                         <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
-                        {groupStandings && (
-                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
-                                #{getRank(home.id) + 1}
+                        {/* UPDATE: FIFA RANK BADGE */}
+                        {home?.rank && (
+                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
+                                #{home.rank}
                             </div>
                         )}
                     </div>
@@ -265,9 +263,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 ) : (
                     <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
                         <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
-                        {groupStandings && (
-                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]">
-                                #{getRank(away.id) + 1}
+                        {/* UPDATE: FIFA RANK BADGE */}
+                        {away?.rank && (
+                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
+                                #{away.rank}
                             </div>
                         )}
                     </div>
