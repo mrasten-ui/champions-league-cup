@@ -13,7 +13,7 @@ interface PredictionStampProps {
   userHasPenalty: boolean;
   lang: Translation;
   variant?: 'standard' | 'knockout';
-  isFinal?: boolean; // NEW PROP: Special styling for the Final
+  isFinal?: boolean;
 }
 
 export const PredictionStamp: React.FC<PredictionStampProps> = ({
@@ -23,7 +23,7 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET'].includes(match.status);
   const hasRealScore = match.homeScore !== null && match.awayScore !== null;
 
-  // --- LOGIC: POINTS & WINNER ---
+  // --- LOGIC ---
   let points = 0;
   let isCorrectWinner = false;
 
@@ -39,7 +39,6 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       }
   }
 
-  // --- STYLE: PREDICTION HIGHLIGHT ---
   const getTeamOpacity = (isHome: boolean) => {
       if (!prediction) return 'opacity-100'; 
       if (variant === 'standard') return 'opacity-100'; 
@@ -47,77 +46,55 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       const predHome = prediction.home;
       const predAway = prediction.away;
       
-      if (isHome && predHome > predAway) return 'opacity-100 scale-110 grayscale-0 shadow-lg z-10';
-      if (!isHome && predAway > predHome) return 'opacity-100 scale-110 grayscale-0 shadow-lg z-10';
-      if (predHome === predAway) return 'opacity-100'; // Keep both for draws
+      if (isHome && predHome > predAway) return 'opacity-100 scale-110 grayscale-0 shadow-xl z-10';
+      if (!isHome && predAway > predHome) return 'opacity-100 scale-110 grayscale-0 shadow-xl z-10';
+      if (predHome === predAway) return 'opacity-100'; 
 
-      return 'opacity-40 grayscale blur-[0.5px] scale-95'; // The Loser
+      return 'opacity-30 grayscale blur-[0.5px] scale-95'; 
   };
 
-  // --- RENDER: KNOCKOUT VARIANT ---
+  // --- KNOCKOUT VARIANT (Flags Only, Bigger) ---
   if (variant === 'knockout') {
-      // Final Styling vs Normal Styling
       const bgClass = isFinal ? 'bg-[#0f2545] border-[#1a3a6c] shadow-lg' : 'bg-white';
-      const borderClass = isFinal ? '' : (canSubstitute ? 'border-blue-100 hover:border-blue-400' : 'border-slate-100');
+      const borderClass = isFinal ? '' : 'border-slate-100';
       const textClass = isFinal ? 'text-blue-200' : 'text-slate-300';
-      const subBtnClass = isFinal 
-          ? 'bg-amber-500 text-[#0f2545] hover:bg-amber-400 shadow-amber-500/20' 
-          : 'bg-blue-600 text-white hover:bg-blue-500';
 
       return (
         <div 
-            onClick={canSubstitute ? onOpenSub : undefined}
-            className={`relative flex flex-col items-center justify-between p-3 rounded-xl border-2 transition-all h-32 w-full hover:shadow-md ${bgClass} ${borderClass} ${canSubstitute ? 'cursor-pointer' : ''}`}
+            className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all h-32 w-full hover:shadow-md ${bgClass} ${borderClass}`}
         >
-            {/* Final Decorative Background */}
+            {/* Final BG */}
             {isFinal && <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] rounded-xl"></div>}
 
             {/* Status Icon */}
             {isFinished && (
                 <div className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow-sm border border-slate-100">
                     {isCorrectWinner ? (
-                        <CheckCircle2 className="text-green-500 fill-green-100" size={18} />
+                        <CheckCircle2 className="text-green-500 fill-green-100" size={20} />
                     ) : (
-                        <XCircle className="text-slate-300 fill-slate-50" size={18} />
+                        <XCircle className="text-slate-300 fill-slate-50" size={20} />
                     )}
                 </div>
             )}
 
-            {/* Content */}
-            <div className="flex-1 flex items-center justify-center gap-4 relative z-10 w-full">
-                {/* Home Flag */}
-                <div className={`transition-all duration-300 rounded-lg overflow-hidden border ${isFinal ? 'border-white/10' : 'border-slate-100'} ${getTeamOpacity(true)}`}>
-                    <img src={homeTeam.flag} className="w-12 h-9 object-cover" alt={homeTeam.name} />
+            <div className="flex items-center justify-center gap-6 relative z-10 w-full">
+                {/* Home Flag - BIGGER */}
+                <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(true)}`}>
+                    <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
                 </div>
 
-                <span className={`text-[10px] font-black ${textClass}`}>VS</span>
+                <span className={`text-xs font-black ${textClass}`}>VS</span>
 
-                {/* Away Flag */}
-                <div className={`transition-all duration-300 rounded-lg overflow-hidden border ${isFinal ? 'border-white/10' : 'border-slate-100'} ${getTeamOpacity(false)}`}>
-                    <img src={awayTeam.flag} className="w-12 h-9 object-cover" alt={awayTeam.name} />
+                {/* Away Flag - BIGGER */}
+                <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(false)}`}>
+                    <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
                 </div>
-            </div>
-
-            {/* Action Button */}
-            <div className="h-8 w-full flex items-end justify-center mt-1 relative z-10">
-                {canSubstitute ? (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onOpenSub(); }}
-                        className={`w-full text-[9px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm hover:shadow-md ${subBtnClass}`}
-                    >
-                        <RefreshCw size={10} /> {lang.makeSub || "SUB"}
-                    </button>
-                ) : (
-                    <div className={`${isFinal ? 'text-white/30' : 'text-slate-300'} flex items-center gap-1 opacity-50`}>
-                        {isFinished ? <span className="text-[9px] font-bold">FINAL</span> : <Lock size={12} />}
-                    </div>
-                )}
             </div>
         </div>
       );
   }
 
-  // --- RENDER: STANDARD VARIANT (Groups) ---
+  // --- STANDARD VARIANT (Groups) ---
   let standardStatusColor = 'border-slate-200 bg-white hover:border-slate-300';
   if (hasRealScore && prediction) {
       if (points > 0) standardStatusColor = 'border-green-200 bg-green-50/30'; 
