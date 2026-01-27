@@ -1,4 +1,4 @@
-import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
+import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
 import { GROUP_CONFIG } from '../constants';
 import { supabase } from '../supabase';
 
@@ -201,7 +201,7 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>): Record<string, GroupStanding[]> => {
   const groups: Record<string, GroupStanding[]> = {};
   
-  // FIX: Iterate all groups from config to ensure we get A-L (12 groups)
+  // Iterate all groups from config to ensure we get A-L (12 groups)
   GROUP_CONFIG.forEach((g: any) => {
       groups[g.id] = calculateGroupStandings(g.id, matches, teams);
   });
@@ -209,7 +209,7 @@ export const getAllGroupStandings = (matches: Match[], teams: Record<string, Tea
   return groups;
 };
 
-// FIX: Explicitly return intersection type including groupId
+// Explicitly return intersection type including groupId
 export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupStanding[]>): (GroupStanding & { groupId: string })[] => {
   const thirds: (GroupStanding & { groupId: string })[] = [];
   
@@ -731,13 +731,6 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     }
 };
 
-// --- THIS IS THE INTERFACE THAT WAS MISSING ---
-export interface TeamFormData {
-    fifaRank: number;
-    history: MatchHistoryItem[];
-    recentForm: string;
-}
-
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
     
@@ -857,4 +850,63 @@ export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
     await supabase.from('team_form_data').delete().neq('id', 0);
     const { error } = await supabase.from('team_form_data').insert(records);
     if (error) console.error("Stats Seed Error:", error);
+};
+
+export const generateThirdPlaceStressTest = (initialMatches: Match[]): Match[] => {
+    // SCENARIO: 
+    // Groups A-D: 3rd Place gets 4 points (1W, 1D, 1L)
+    // Groups E-H: 3rd Place gets 3 points (1W, 0D, 2L) -> Tie breakers on GD
+    // Groups I-L: 3rd Place gets 1 or 2 points -> Eliminated
+    
+    // Helper to find matches for a group
+    const getMatches = (gid: string) => initialMatches.filter(m => m.groupId === gid).sort((a,b) => a.id.localeCompare(b.id));
+
+    let updated = [...initialMatches];
+    const applyScore = (match: Match, h: number, a: number) => {
+        const idx = updated.findIndex(m => m.id === match.id);
+        if (idx !== -1) updated[idx] = { ...updated[idx], homeScore: h, awayScore: a, status: 'FINISHED', isLocked: true };
+    };
+
+    // Apply patterns to groups based on index 0-11
+    GROUP_CONFIG.forEach((group: any, idx) => {
+        const gm = getMatches(group.id);
+        if (gm.length < 6) return; // Safety check
+
+        // Pattern 1: High Pts (4pts for 3rd)
+        // T1 wins 2, draws 1 (7)
+        // T2 wins 1, draws 2 (5)
+        // T3 wins 1, draws 1 (4) - The target
+        // T4 loses 3 (0)
+        if (idx < 4) {
+            applyScore(gm[0], 2, 0); // T1 bt T2
+            applyScore(gm[1], 1, 0); // T3 bt T4
+            applyScore(gm[2], 2, 2); // T1 dw T3
+            applyScore(gm[3], 0, 1); // T4 lt T2
+            applyScore(gm[4], 0, 2); // T4 lt T1
+            applyScore(gm[5], 1, 1); // T2 dw T3
+        }
+        // Pattern 2: Competitive (3pts for 3rd) - Varying GD
+        // T1 (9), T2 (6), T3 (3), T4 (0)
+        else if (idx < 8) {
+            const margin = idx - 4; // 0, 1, 2, 3 (creates diff GDs)
+            applyScore(gm[0], 3, 0); // T1 bt T2
+            applyScore(gm[1], 1, 0); // T3 bt T4 (Win by 1)
+            applyScore(gm[2], 2, 0); // T1 bt T3
+            applyScore(gm[3], 0, 2); // T4 lt T2
+            applyScore(gm[4], 0, 1 + margin); // T4 lt T1
+            applyScore(gm[5], 2 + margin, 0); // T2 bt T3 (Loss by varying margin)
+        }
+        // Pattern 3: Low Pts (1pt or 2pts for 3rd) -> Eliminated
+        // T1 (7), T2 (7), T3 (1), T4 (1)
+        else {
+            applyScore(gm[0], 1, 1); // T1 dw T2
+            applyScore(gm[1], 0, 0); // T3 dw T4
+            applyScore(gm[2], 3, 0); // T1 bt T3
+            applyScore(gm[3], 0, 3); // T4 lt T2
+            applyScore(gm[4], 0, 4); // T4 lt T1
+            applyScore(gm[5], 4, 0); // T2 bt T3
+        }
+    });
+
+    return updated;
 };

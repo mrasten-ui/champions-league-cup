@@ -1,6 +1,6 @@
 import React from 'react';
 import { GroupStanding, Team, Translation } from '../types';
-import { Info } from 'lucide-react';
+import { Info, AlertCircle } from 'lucide-react';
 
 interface ThirdPlaceTableProps {
   standings: (GroupStanding & { groupId: string })[];
@@ -33,35 +33,42 @@ export const ThirdPlaceTable: React.FC<ThirdPlaceTableProps> = ({ standings, tea
           <tbody>
             {standings.map((row, index) => {
               const team = teams[row.teamId];
-              const teamName = lang.teamNames[team.id] || team.name;
+              const teamName = lang.teamNames[row.teamId] || team.name;
               const isQualified = index < 8; // Top 8 qualify
               const rank = index + 1;
 
               return (
                 <React.Fragment key={row.teamId}>
+                    {/* CUT LINE INDICATOR */}
                     {index === 8 && (
                         <tr>
-                            <td colSpan={5} className="bg-red-50 p-2 text-center text-[10px] font-bold text-red-500 uppercase tracking-widest border-t-2 border-red-200 border-dashed">
-                                {lang.eliminationLine}
+                            <td colSpan={5} className="bg-slate-100 p-2 text-center relative border-y border-slate-200 border-dashed">
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                                    <div className="w-full border-t-2 border-red-500 border-dashed"></div>
+                                </div>
+                                <span className="relative z-10 bg-slate-100 px-3 text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center justify-center gap-1">
+                                    <AlertCircle size={10} /> {lang.eliminationLine}
+                                </span>
                             </td>
                         </tr>
                     )}
-                    <tr className={`border-b border-slate-50 last:border-0 ${isQualified ? 'bg-green-50/20' : 'bg-slate-50/50'}`}>
-                    <td className={`px-3 py-3 text-center font-bold ${isQualified ? 'text-green-600' : 'text-slate-400'}`}>
-                        {rank}
-                    </td>
-                    <td className="px-3 py-3 font-bold text-slate-800 flex items-center gap-2">
-                        <div className="w-5 h-3.5 rounded-sm overflow-hidden border border-slate-200 relative shrink-0 shadow-sm">
-                            {team?.flag ? (
-                                <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
-                            ) : null}
-                        </div>
-                        <span className={`truncate ${isQualified ? 'text-green-900' : 'text-slate-500'}`}>{teamName}</span>
-                        {isQualified && <div className="w-1.5 h-1.5 rounded-full bg-green-500 ml-auto shrink-0 animate-pulse"></div>}
-                    </td>
-                    <td className="px-2 py-3 text-center text-slate-500 font-mono text-xs">{row.groupId}</td>
-                    <td className="px-2 py-3 text-center text-slate-600 text-xs">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
-                    <td className="px-2 py-3 text-right font-black text-slate-900">{row.pts}</td>
+                    
+                    <tr className={`border-b border-slate-50 last:border-0 transition-colors duration-500 ${isQualified ? 'bg-green-50/20' : 'bg-slate-100/50 grayscale opacity-60'}`}>
+                        <td className={`px-3 py-3 text-center font-bold ${isQualified ? 'text-green-600' : 'text-slate-400'}`}>
+                            {rank}
+                        </td>
+                        <td className="px-3 py-3 font-bold text-slate-800 flex items-center gap-2">
+                            <div className="w-5 h-3.5 rounded-sm overflow-hidden border border-slate-200 relative shrink-0 shadow-sm">
+                                {team?.flag ? (
+                                    <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
+                                ) : null}
+                            </div>
+                            <span className={`truncate ${isQualified ? 'text-green-900' : 'text-slate-500 line-through decoration-slate-400/50'}`}>{teamName}</span>
+                            {isQualified && <div className="w-1.5 h-1.5 rounded-full bg-green-500 ml-auto shrink-0 animate-pulse"></div>}
+                        </td>
+                        <td className="px-2 py-3 text-center text-slate-500 font-mono text-xs">{row.groupId}</td>
+                        <td className="px-2 py-3 text-center text-slate-600 text-xs font-medium">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+                        <td className={`px-2 py-3 text-right font-black ${isQualified ? 'text-slate-900' : 'text-slate-400'}`}>{row.pts}</td>
                     </tr>
                 </React.Fragment>
               );

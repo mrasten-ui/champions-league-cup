@@ -8,7 +8,9 @@ import {
   applyPredictionsToBracket, 
   simulateTournamentAtDate,
   getAllGroupStandings,     // Ensure these are imported
-  getThirdPlaceStandings    // Ensure these are imported
+  getThirdPlaceStandings,   // Ensure these are imported
+  generateThirdPlaceStressTest, // NEW IMPORT
+  updateBracket             // NEW IMPORT
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -544,7 +546,33 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
+      <DebugTools 
+        isOpen={isDebugOpen} 
+        onClose={() => setIsDebugOpen(false)} 
+        onSeed={() => {}} 
+        onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} 
+        onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} 
+        onClear={() => { localStorage.clear(); window.location.reload(); }} 
+        onTimeTravel={handleTimeTravel} 
+        
+        // NEW: STRESS TEST HANDLER
+        onStressTest={() => {
+            const stressMatches = generateThirdPlaceStressTest(matches);
+            const fullyUpdated = updateBracket(stressMatches, teamsData); 
+            setMatches(fullyUpdated);
+            setTournamentPhase('LIVE');
+            addToast('success', 'Stress Test Loaded', 'Check the Tables & Bracket!');
+            setActiveTab('tournament');
+            setTournamentSubTab('tables');
+        }}
+
+        isAdminMode={isAdminMode} 
+        onToggleAdmin={() => setIsAdminMode(!isAdminMode)} 
+        lang={t} 
+        users={Object.values(usersDb) as UserProfile[]} 
+        predictions={allPredictions} 
+        matches={matches} 
+    />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
       {isHelpingHandOpen && user && (
