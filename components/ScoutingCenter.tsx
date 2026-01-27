@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Team, Translation, LanguageCode, MatchHistoryItem, ScoutingData } from '../types';
+import { Team, Translation, LanguageCode, MatchHistoryItem, ScoutingData, TeamFormData } from '../types';
 import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown } from 'lucide-react';
 import { fetchTeamTactics, analyzeMatchup, TeamDNA } from '../services/analyst';
-import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
+import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
 
 // --- SUB-COMPONENTS ---

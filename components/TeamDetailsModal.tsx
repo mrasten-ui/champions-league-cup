@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode } from '../types';
-import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats, TeamFormData } from '../services/engine';
+import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
+import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
 import { X, TrendingUp, TrendingDown, Activity, Crown, RefreshCw, AlertCircle, Calendar, Minus } from 'lucide-react';
 

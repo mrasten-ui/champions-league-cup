@@ -112,4 +112,11 @@ export interface ScoutingData {
     lang?: string; 
 }
 
+// Moved from engine.ts to here to fix circular dependency/export issues
+export interface TeamFormData {
+    fifaRank: number;
+    history: MatchHistoryItem[];
+    recentForm: string;
+}
+
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';

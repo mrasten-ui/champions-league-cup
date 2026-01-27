@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Bot, RefreshCw, ShieldAlert, Users, Trophy, Trash2, X, PlayCircle, History, UploadCloud, FileText, Database, Copy, Check, CloudUpload, Eraser, UserX, AlertTriangle, Clock, Calendar, Search, Bug, Sprout, FileSearch } from 'lucide-react';
 import { Translation, UserProfile, Prediction, Match, LanguageCode } from '../types';
@@ -33,6 +32,7 @@ interface DebugToolsProps {
   onSimulateKnockouts: () => void;
   onClear: () => void;
   onTimeTravel: (timestamp: number) => void;
+  onStressTest?: () => void; // <--- FIXED: Added this prop
   isAdminMode: boolean;
   onToggleAdmin: () => void;
   lang: Translation;
@@ -42,7 +42,7 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({ 
-  isOpen, onClose, onSeed, onSimulateGroups, onSimulateKnockouts, onClear, onTimeTravel, isAdminMode, onToggleAdmin, lang, users = [], predictions = [], matches = []
+  isOpen, onClose, onSeed, onSimulateGroups, onSimulateKnockouts, onClear, onTimeTravel, onStressTest, isAdminMode, onToggleAdmin, lang, users = [], predictions = [], matches = []
 }) => {
   const [seedingHistory, setSeedingHistory] = useState(false);
   const [activeTab, setActiveTab] = useState<'setup' | 'import' | 'scouting' | 'sync' | 'time'>('time');
@@ -610,6 +610,30 @@ INSERT INTO team_form_data (team_id, fifa_rank, match_date, opponent, result, sc
                             </div>
                         </div>
                         <button onClick={applyTimeTravel} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg"><Calendar size={14} /> Travel to Date</button>
+                    
+                        {/* NEW: Stress Test Section */}
+                        <div className="bg-amber-900/30 border border-amber-500/30 p-4 rounded-lg mt-4">
+                            <h4 className="text-amber-200 text-xs font-bold mb-3 flex items-center gap-1">
+                                <AlertTriangle size={12} /> Chaos Simulation
+                            </h4>
+                            <p className="text-[10px] text-slate-400 mb-3">
+                                Forces a complex scenario to test the "Best 8 of 12" logic. <br/>
+                                • Groups A-D: 4 pts (Safe)<br/>
+                                • Groups E-H: 3 pts (Goal Diff Battle)<br/>
+                                • Groups I-L: 1 pt (Eliminated)
+                            </p>
+                            <button 
+                                onClick={() => {
+                                    if(window.confirm("Overwrite all scores with Stress Test data?")) {
+                                        onStressTest?.();
+                                        onClose();
+                                    }
+                                }} 
+                                className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg"
+                            >
+                                <Database size={14} /> Run 3rd Place Stress Test
+                            </button>
+                        </div>
                     </div>
                 )}
 
