@@ -8,10 +8,11 @@ interface StandingsTableProps {
   compact?: boolean;
   onTeamClick?: (teamId: string) => void;
   highlightedTeamId?: string | null;
+  qualifiedThirds?: Set<string>; // NEW PROP: To highlight 3rd place qualifiers
 }
 
 export const StandingsTable: React.FC<StandingsTableProps> = ({ 
-  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId 
+  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds 
 }) => {
   return (
     <div className="overflow-x-auto">
@@ -39,7 +40,9 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
           {standings.map((row, index) => {
             const team = teams[row.teamId];
             const isHighlighted = highlightedTeamId === row.teamId;
-            const isQualifying = index < 2; // Top 2 qualify
+            
+            // Logic: Top 2 qualify OR it's 3rd place and in the lucky set
+            const isQualifying = index < 2 || (index === 2 && qualifiedThirds?.has(row.teamId));
             
             // Get last 5 matches
             const recentForm = row.form ? row.form.slice(-5) : [];
@@ -58,8 +61,9 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                     }
                 `}
               >
-                <td className={`pl-3 py-3 font-bold text-[10px] ${isQualifying ? 'text-green-600' : 'text-red-500'}`}>
-                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${isQualifying ? 'bg-green-100' : 'bg-red-100'}`}>
+                {/* Rank Circle - Green if Qualifying, Red/Slate if not */}
+                <td className={`pl-3 py-3 font-bold text-[10px] ${isQualifying ? 'text-green-600' : 'text-slate-400'}`}>
+                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${isQualifying ? 'bg-green-100' : 'bg-slate-100'}`}>
                         {index + 1}
                     </div>
                 </td>
@@ -86,7 +90,6 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 <td className={`text-center font-bold ${row.gd > 0 ? 'text-green-600' : row.gd < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                     {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
-                {/* Points Column - slightly darkened background for visibility */}
                 <td className={`text-center font-black text-sm ${isQualifying ? 'text-slate-800 bg-slate-50/50' : 'text-red-900 bg-red-100/20'}`}>
                     {row.pts}
                 </td>
