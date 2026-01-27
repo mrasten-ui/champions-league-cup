@@ -10,7 +10,7 @@ interface MatchdayHeroProps {
   lang: Translation;
   locale?: string;
   onTeamClick: (id: string) => void;
-  allMatches?: Match[]; // New Prop required for TBD logic
+  allMatches?: Match[];
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -34,23 +34,24 @@ const TbdHeroSlot: React.FC<{
         return getGroupTeams(source.groupId, allMatches, allTeams);
     }, [source, allMatches, allTeams]);
 
-    // 1. GROUP SOURCE (Full Color Stripes - Hero Size)
+    // 1. GROUP SOURCE (2x2 Grid, Full Color)
     if (source.type === 'GROUP_RANK') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-lg backdrop-blur-sm">
-                {/* Full Color Flags */}
                 {groupTeams.length > 0 ? (
-                    <div className="absolute inset-0 flex w-full h-full opacity-90">
-                        {groupTeams.map(team => (
-                            <div key={team.id} className="h-full flex-1 relative border-r border-black/10 last:border-0">
-                                <img src={team.flag} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    // 2x2 GRID
+                    <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2">
+                        {groupTeams.slice(0, 4).map(team => (
+                            <div key={team.id} className="relative w-full h-full">
+                                <img src={team.flag} alt="" className="w-full h-full object-cover" />
                             </div>
                         ))}
                     </div>
                 ) : (
-                    // Fallback Pattern
+                    // Fallback
                     <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 )}
+                
                 {/* Label */}
                 <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                     <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-none block">
@@ -73,22 +74,23 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 3. DUAL FLAGS (Feeder Known)
+    // 3. KNOCKOUT FEEDER (2 Flags = 1:1 Split)
     if (potentialTeams && potentialTeams.length === 2) {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-blue-400/50 bg-blue-900/40 flex flex-col items-center justify-center relative overflow-hidden shadow-lg">
-                <div className="flex gap-0.5 items-center justify-center mb-1 w-full px-1">
-                    <div className="w-6 h-4 sm:w-8 sm:h-6 rounded border border-white/20 shadow-sm overflow-hidden">
-                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" alt="" />
+                <div className="absolute inset-0 w-full h-full grid grid-cols-2">
+                    <div className="relative w-full h-full border-r border-white/20">
+                        <img src={potentialTeams[0].flag} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <div className="text-[10px] font-bold text-white/50 mx-1">/</div>
-                    <div className="w-6 h-4 sm:w-8 sm:h-6 rounded border border-white/20 shadow-sm overflow-hidden">
-                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" alt="" />
+                    <div className="relative w-full h-full">
+                        <img src={potentialTeams[1].flag} alt="" className="w-full h-full object-cover" />
                     </div>
                 </div>
-                <div className="flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/40 px-2 py-0.5 rounded">
+                
+                {/* Label */}
+                <div className="relative z-10 flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
                     <span>{potentialTeams[0].id}</span>
-                    <span className="text-white/50 font-normal">or</span>
+                    <span className="text-white/50 font-normal">/</span>
                     <span>{potentialTeams[1].id}</span>
                 </div>
             </div>

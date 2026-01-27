@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, ScanEye, MapPin, Save, Trophy, AlertTriangle, Lock as LockIcon, Tv } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
-import { getSlotSource, getPotentialTeams } from '../utils/bracketHelpers'; // <--- THIS IMPORT NEEDS THE FILE ABOVE
+import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers'; 
 
 interface MatchCardProps {
   match: Match;
@@ -27,13 +27,12 @@ interface MatchCardProps {
   showStatusBadge?: boolean;
   homeTeamPoints?: number;
   awayTeamPoints?: number;
-  allMatches?: Match[]; // Needed for TBD logic
-  allTeams?: Record<string, Team>; // Needed for TBD logic
+  allMatches?: Match[];
+  allTeams?: Record<string, Team>;
 }
 
 // --- 1. SUB-COMPONENTS ---
 
-// NEW: The Smart TBD Slot Component
 const TbdSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -42,68 +41,87 @@ const TbdSlot: React.FC<{
     lang: Translation;
 }> = ({ matchId, side, allMatches, allTeams, lang }) => {
     
-    // 1. Get Source Info
     const source = useMemo(() => getSlotSource(matchId, side), [matchId, side]);
     
-    // 2. Get Potential Teams (Feeder Logic)
     const potentialTeams = useMemo(() => {
         if (!allMatches || !allTeams) return null;
         return getPotentialTeams(source, allMatches, allTeams);
     }, [source, allMatches, allTeams]);
 
-    // --- VISUAL VARIANT 1: GROUP SOURCE (R32) ---
+    const groupTeams = useMemo(() => {
+        if (source.type !== 'GROUP_RANK' || !allMatches || !allTeams) return [];
+        return getGroupTeams(source.groupId, allMatches, allTeams);
+    }, [source, allMatches, allTeams]);
+
+    // --- RENDER LOGIC ---
+
+    // 1. GROUP PLACEHOLDER (4 Flags = 2x2 Grid)
     if (source.type === 'GROUP_RANK') {
         return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden group/tbd">
-                {/* Background "Cluster" Effect */}
-                <div className="absolute inset-0 opacity-10 flex flex-wrap gap-0.5 p-0.5 pointer-events-none grayscale">
-                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
-                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
-                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
-                    <div className="w-1/2 h-1/2 bg-slate-400 rounded-full"></div>
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center relative overflow-hidden group/tbd">
+                {groupTeams.length > 0 ? (
+                    // 2x2 GRID LAYOUT
+                    <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2">
+                        {groupTeams.slice(0, 4).map(team => (
+                            <div key={team.id} className="relative w-full h-full">
+                                <img src={team.flag} alt="" className="w-full h-full object-cover" />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    // Fallback Pattern
+                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-repeat"></div>
+                )}
+                
+                {/* Label Overlay */}
+                <div className="relative z-10 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100">
+                    <span className="text-[8px] font-black text-slate-800 uppercase text-center leading-none block">
+                        {source.label}
+                    </span>
                 </div>
-                <span className="relative z-10 text-[9px] font-black text-slate-500 uppercase text-center leading-tight">
-                    {source.label}
-                </span>
             </div>
         );
     }
 
-    // --- VISUAL VARIANT 2: 3RD PLACE (Generic Logo) ---
+    // 2. KNOCKOUT FEEDER (2 Flags = 1:1 Split)
+    if (potentialTeams && potentialTeams.length === 2) {
+        return (
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-blue-200 bg-white flex flex-col items-center justify-center relative overflow-hidden group/tbd">
+                {/* 1:1 SIDE BY SIDE GRID */}
+                <div className="absolute inset-0 w-full h-full grid grid-cols-2">
+                    <div className="relative w-full h-full border-r border-white/20">
+                        <img src={potentialTeams[0].flag} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="relative w-full h-full">
+                        <img src={potentialTeams[1].flag} alt="" className="w-full h-full object-cover" />
+                    </div>
+                </div>
+
+                {/* Label Overlay */}
+                <div className="relative z-10 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
+                    <div className="flex gap-1 text-[7px] font-black text-slate-800 uppercase leading-none">
+                        <span>{potentialTeams[0].id}</span>
+                        <span className="text-slate-400 font-normal">/</span>
+                        <span>{potentialTeams[1].id}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // 3. 3RD PLACE / GENERIC
     if (source.type === '3RD_PLACE') {
         return (
             <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
-                <span className="relative z-10 text-[9px] font-black text-slate-400 uppercase text-center leading-tight">
+                <div className="absolute inset-0 opacity-20 bg-[url('/logo.png')] bg-center bg-cover grayscale"></div>
+                <span className="relative z-10 text-[9px] font-black text-slate-500 uppercase text-center leading-tight">
                     {lang.thirdPlace || "3rd Place"}
                 </span>
             </div>
         );
     }
 
-    // --- VISUAL VARIANT 3: DUAL FLAGS (Feeder Known) ---
-    if (potentialTeams && potentialTeams.length === 2) {
-        return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center relative overflow-hidden group/tbd">
-                <div className="flex gap-1 items-center justify-center mb-1">
-                    <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
-                        <img src={potentialTeams[0].flag} className="w-full h-full object-cover" alt="" />
-                    </div>
-                    <div className="w-px h-3 bg-slate-300"></div>
-                    <div className="w-5 h-4 rounded border border-white shadow-sm overflow-hidden opacity-80">
-                        <img src={potentialTeams[1].flag} className="w-full h-full object-cover" alt="" />
-                    </div>
-                </div>
-                <div className="flex gap-1 text-[8px] font-black text-slate-600 uppercase leading-none">
-                    <span>{potentialTeams[0].id}</span>
-                    <span className="text-slate-400 font-normal">or</span>
-                    <span>{potentialTeams[1].id}</span>
-                </div>
-            </div>
-        );
-    }
-
-    // --- VISUAL VARIANT 4: FALLBACK TBD (Standard) ---
+    // 4. FALLBACK
     return (
         <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center relative">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TBD</span>
@@ -496,6 +514,38 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {showRivals && rivals.length > 0 && (
+                <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <LockIcon size={10} className="text-yellow-400" />
+                            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
+                        </div>
+                        {prediction && (
+                            <span className="text-[10px] font-bold text-white/40">
+                                {lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span>
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
+                        {rivals.map(rival => {
+                            const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
+                            return (
+                                <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" />
+                                        <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
+                                    </div>
+                                    <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">
+                                        {rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
