@@ -10,10 +10,8 @@ import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
 import { KnockoutTreeView } from './components/KnockoutTreeView';
 import { Leaderboard } from './components/Leaderboard';
-// REMOVED: Old Manager Components
-// import { MyPredictions } from './components/MyPredictions';
-// import { PlayerProgress } from './components/PlayerProgress';
-import { ManagerHub } from './components/ManagerHub'; // NEW: Manager Hub
+// NEW IMPORT: The Consolidated Manager Dashboard
+import { ManagerHub } from './components/ManagerHub'; 
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesModal } from './components/RulesModal';
@@ -79,9 +77,13 @@ const App: React.FC = () => {
       setHighlightedTeamId(teamId);
       setTimeout(() => {
           const element = document.getElementById(`group-card-${groupId}`);
-          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
       }, 100);
-      setTimeout(() => setHighlightedTeamId(null), 2000);
+      setTimeout(() => {
+          setHighlightedTeamId(null);
+      }, 2000);
   };
 
   const handleJumpToBracket = (matchId: string) => {
@@ -89,9 +91,13 @@ const App: React.FC = () => {
       setHighlightedMatchId(matchId);
       setTimeout(() => {
           const element = document.getElementById(`bracket-match-${matchId}`);
-          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }
       }, 100);
-      setTimeout(() => setHighlightedMatchId(null), 2000);
+      setTimeout(() => {
+          setHighlightedMatchId(null);
+      }, 2000);
   };
 
   // --- CORE LOGIC: PREDICTION VS REALITY ---
@@ -371,7 +377,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* NEW: TOURNAMENT HUB (Live Reality - Official Data) */}
+        {/* TOURNAMENT HUB (Live Reality - Official Data) */}
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 {/* Hub Navigation */}
@@ -465,7 +471,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* KNOCKOUT TAB (PREDICTION GAME) - Uses Interactive Step-by-Step Bracket */}
+        {/* KNOCKOUT TAB (PREDICTION GAME) */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
@@ -507,6 +513,7 @@ const App: React.FC = () => {
                 onSubstitute={handleSubstitute}
                 onUnlockSecondChance={handleUnlockSecondChance}
                 onUpdate={handleScoreUpdate}
+                phase={tournamentPhase} // <--- Pass the Phase
             />
         )}
       </main>
