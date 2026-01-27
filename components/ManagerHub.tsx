@@ -137,11 +137,14 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                       if (rank <= 2) badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Qualifying
                                       if (rank === 3) badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400'; // 3rd Place
 
+                                      // FIX: Use substring fallback instead of .code which might not exist
+                                      const teamCode = teams[row.teamId]?.name?.substring(0,3).toUpperCase() || row.teamId.substring(0,3).toUpperCase();
+
                                       return (
                                           <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
                                               <span className="text-[9px] font-black">{rank}.</span>
                                               <img src={teams[row.teamId]?.flag} className="w-4 h-3 object-cover rounded shadow-sm" alt="" />
-                                              <span className="text-[9px] font-bold">{teams[row.teamId]?.code || row.teamId.substring(0,3).toUpperCase()}</span>
+                                              <span className="text-[9px] font-bold">{teamCode}</span>
                                               <span className="text-[9px] font-black opacity-80 border-l border-black/20 pl-1.5 ml-0.5">{row.pts}p</span>
                                           </div>
                                       );
