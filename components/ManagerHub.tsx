@@ -4,8 +4,7 @@ import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid, CalendarClock, Info } from 'lucide-react';
-// IMPORT NEW HELPERS:
+import { Trophy, LayoutGrid, CalendarClock } from 'lucide-react';
 import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 
 interface ManagerHubProps {
@@ -41,7 +40,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [allPredictions, currentUser.email]);
 
   // --- GLOBAL 3RD PLACE CALCULATION ---
-  // We calculate this once at the top level to know who is qualifying across ALL groups
   const qualifiedThirdsSet = useMemo(() => {
       const allStandings = getAllGroupStandings(userMatches, teams);
       const thirds = getThirdPlaceStandings(allStandings);
@@ -81,6 +79,10 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
   const canSubMatch = (realMatch: Match | undefined) => {
       if (!realMatch) return false;
+      // 1. KNOCKOUTS: NEVER Allow individual subs (Must use Second Chance)
+      if (realMatch.round) return false;
+
+      // 2. GROUPS: Allow if locked but not live/finished
       const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isLiveOrDone) return false;
       return realMatch.isLocked; 
@@ -153,18 +155,18 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
       </div>
 
-      {/* --- A) GROUP STAGE VIEW --- */}
+      {/* --- A) GROUP STAGE GRID --- */}
       {viewMode === 'groups' && (
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
               {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
                   
-                  // Calculate Predicted Standings
+                  // Calculate Predicted Standings for this group
                   const standings = calculateGroupStandings(groupId, userMatches, teams);
 
                   return (
                       <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           
-                          {/* ENHANCED HEADER */}
+                          {/* ENHANCED HEADER: Group Name + Live Standings Strip */}
                           <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
                               <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
@@ -176,15 +178,11 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                   <span className="text-[9px] font-bold text-blue-200 bg-white/5 px-2 py-0.5 rounded border border-white/5">{groupMatches.length} Games</span>
                               </div>
 
-                              {/* CENTERALIZED STANDINGS SCROLL (md:justify-center) */}
+                              {/* Mini Standings Strip - CENTERED */}
                               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:justify-center">
                                   {standings.map((row, index) => {
                                       const rank = index + 1;
-                                      const teamName = teams[row.teamId]?.name || row.teamId;
-                                      const teamCode = teamName.substring(0,3).toUpperCase();
-                                      
-                                      // --- BADGE LOGIC ---
-                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th or low 3rd)
+                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th)
                                       let rankIndicator = null;
 
                                       if (rank <= 2) {
@@ -200,8 +198,12 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                           }
                                       }
 
+                                      // FIX: Use substring fallback
+                                      const teamName = teams[row.teamId]?.name || row.teamId;
+                                      const teamCode = teamName.substring(0,3).toUpperCase();
+
                                       return (
-                                          <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0 transition-colors`}>
+                                          <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
                                               <span className="text-[9px] font-black">{rank}.</span>
                                               <img src={teams[row.teamId]?.flag} className="w-4 h-3 object-cover rounded shadow-sm" alt="" />
                                               <span className="text-[9px] font-bold">{teamCode}</span>
@@ -241,20 +243,12 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- B) KNOCKOUT VIEW --- */}
+      {/* --- B) KNOCKOUT GRID --- */}
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-              
-              <SecondChancePromo 
-                  hasTaken={currentUser.hasTakenSecondChance}
-                  onUnlock={onUnlockSecondChance}
-                  lang={lang}
-              />
-
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
                   if (roundMatches.length === 0) return null;
                   const gridClass = getKnockoutGridClass(round, roundMatches.length);
-
                   return (
                       <div key={round} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           <div className="bg-[#0f2545] px-4 py-3 border-b border-slate-700 flex justify-center sm:justify-start">
@@ -284,7 +278,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               awayTeam={teams[userMatch.awayTeamId]}
                                               prediction={userPredictions.find(p => p.matchId === userMatch.id)}
                                               onOpenSub={() => setSelectedMatchId(userMatch.id)}
-                                              canSubstitute={canSubMatch(realMatch)}
+                                              canSubstitute={canSubMatch(realMatch)} 
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
                                               variant="knockout"

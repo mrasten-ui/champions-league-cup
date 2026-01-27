@@ -2,7 +2,14 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
-import { calculateGroupStandings, simulateFullTournament, applyPredictionsToBracket, simulateTournamentAtDate } from './services/engine';
+import { 
+  calculateGroupStandings, 
+  simulateFullTournament, 
+  applyPredictionsToBracket, 
+  simulateTournamentAtDate,
+  getAllGroupStandings,     // Ensure these are imported
+  getThirdPlaceStandings    // Ensure these are imported
+} from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
 import { MagicWand } from './components/MagicWand';
@@ -10,9 +17,6 @@ import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
 import { KnockoutTreeView } from './components/KnockoutTreeView';
 import { Leaderboard } from './components/Leaderboard';
-// REMOVED: MyPredictions (Replaced by ManagerHub)
-// IMPORTED: PlayerProgress (Restored for Pre-Live)
-import { PlayerProgress } from './components/PlayerProgress';
 import { ManagerHub } from './components/ManagerHub'; 
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
@@ -38,19 +42,15 @@ const App: React.FC = () => {
     allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
   } = useAppData();
 
-  // Navigation State
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
   
-  // App Settings & UI State
   const [language, setLanguage] = useState<LanguageCode>('EN');
   const [tournamentPhase, setTournamentPhase] = useState<TournamentPhase>('PRE_LIVE');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  
-  // Modal States
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -61,7 +61,6 @@ const App: React.FC = () => {
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
 
-  // Flash/Highlight States for navigation jumps
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
@@ -76,26 +75,15 @@ const App: React.FC = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // Calculated stats for PlayerProgress
-  const totalMatchesCount = useMemo(() => ({
-      group: matches.filter(m => m.groupId).length,
-      knockout: matches.filter(m => m.round).length
-  }), [matches]);
-
   // --- ACTIONS: NAVIGATION JUMPS ---
-  
   const handleJumpToTable = (groupId: string, teamId: string) => {
       setTournamentSubTab('tables');
       setHighlightedTeamId(teamId);
       setTimeout(() => {
           const element = document.getElementById(`group-card-${groupId}`);
-          if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
-      setTimeout(() => {
-          setHighlightedTeamId(null);
-      }, 2000);
+      setTimeout(() => setHighlightedTeamId(null), 2000);
   };
 
   const handleJumpToBracket = (matchId: string) => {
@@ -103,23 +91,17 @@ const App: React.FC = () => {
       setHighlightedMatchId(matchId);
       setTimeout(() => {
           const element = document.getElementById(`bracket-match-${matchId}`);
-          if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-          }
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       }, 100);
-      setTimeout(() => {
-          setHighlightedMatchId(null);
-      }, 2000);
+      setTimeout(() => setHighlightedMatchId(null), 2000);
   };
 
   // --- CORE LOGIC: PREDICTION VS REALITY ---
   
-  // 1. User Matches: Includes their specific predictions. Used for "Knockout" tab (Prediction Game) & "Manager" Hub.
+  // 1. User Matches (Predictions)
   const userMatches = useMemo(() => {
       if (!user) return matches;
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
-      
-      // If Second Chance is taken, we ignore group predictions for the bracket calculation
       if (user.hasTakenSecondChance) {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
@@ -127,7 +109,7 @@ const App: React.FC = () => {
       return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
   }, [matches, teamsData, allPredictions, user]);
 
-  // 2. Live Results: Maps actual scores to prediction format for the read-only "Tournament" tree.
+  // 2. Live Results (Official)
   const liveResultsAsPredictions = useMemo(() => {
       return matches
         .filter(m => m.homeScore !== null && m.awayScore !== null)
@@ -138,6 +120,23 @@ const App: React.FC = () => {
             userId: 'LIVE_SYSTEM' 
         }));
   }, [matches]);
+
+  // --- GLOBAL 3RD PLACE CALCULATIONS ---
+  // 1. For Official Table View (Live Stats)
+  const officialQualifiedThirds = useMemo(() => {
+      const all = getAllGroupStandings(matches, teamsData);
+      const thirds = getThirdPlaceStandings(all);
+      // Top 8 qualify
+      return new Set(thirds.slice(0, 8).map(t => t.teamId));
+  }, [matches, teamsData]);
+
+  // 2. For Prediction View (User's Fantasy Table)
+  const predictedQualifiedThirds = useMemo(() => {
+      const all = getAllGroupStandings(userMatches, teamsData);
+      const thirds = getThirdPlaceStandings(all);
+      // Top 8 qualify
+      return new Set(thirds.slice(0, 8).map(t => t.teamId));
+  }, [userMatches, teamsData]);
 
   // --- ACTIONS ---
   const handleLogout = async () => {
@@ -154,8 +153,7 @@ const App: React.FC = () => {
         try {
             const res = await fetch(newAvatar);
             const blob = await res.blob();
-            const cleanEmail = user.email.replace(/[^a-z0-9]/gi, '_');
-            const fileName = `avatar_${cleanEmail}_${Date.now()}.png`;
+            const fileName = `avatar_${user.email.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.png`;
             const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { contentType: 'image/png', upsert: true });
             if (!uploadError) {
                 const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
@@ -172,20 +170,15 @@ const App: React.FC = () => {
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
-    
-    // Safety check: Don't allow editing locked matches unless unlocked via substitution
     if (!match || (match.isLocked && !user.unlockedMatches?.includes(matchId))) return;
     
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
-    
-    // Optimistic UI Update
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
         if (idx > -1) { const copy = [...prev]; copy[idx] = newPred; return copy; }
         return [...prev, newPred];
     });
 
-    // DB Update
     const { error } = await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
     if (error) { addToast('error', 'Save Failed', 'Could not save prediction.'); }
   };
@@ -216,7 +209,6 @@ const App: React.FC = () => {
           setUser({ ...user, hasTakenSecondChance: true });
           await supabase.from('profiles').update({ has_taken_second_chance: true } as any).eq('email', user.email);
           addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
-          // Auto-switch to bracket view to let them predict
           setActiveTab('knockout');
       }
   };
@@ -283,7 +275,6 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeGroup]);
 
-  // Knockout Navigation Logic
   const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const handlePrevRound = () => {
     const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
@@ -299,11 +290,8 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // Active Tab Logic
   const navTabs = useMemo(() => tournamentPhase === 'PRE_LIVE' ? ['groups', 'knockout', 'scouting', 'manager'] : ['leaderboard', 'tournament', 'manager', 'analysis'], [tournamentPhase]);
-  
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
-  
   const standings = useMemo(() => calculateGroupStandings(activeGroup, userMatches, teamsData), [activeGroup, userMatches, teamsData]);
   const groupMatchesList = userMatches.filter(m => m.groupId === activeGroup);
   
@@ -318,11 +306,9 @@ const App: React.FC = () => {
     if (!user || !supabase) return; 
     try {
         const query = supabase.from('predictions').delete().eq('user_id', user.email);
-
         if (activeTab === 'groups') {
            setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
            await query; 
-
         } else if (activeTab === 'knockout') {
            const knockoutIds = matches.filter(m => m.round).map(m => m.id);
            if (knockoutIds.length > 0) {
@@ -334,10 +320,7 @@ const App: React.FC = () => {
             await query;
         }
         addToast('info', 'Cleared', 'Predictions have been reset.');
-    } catch (err) { 
-        console.error(err);
-        addToast('error', 'Error', 'Failed to clear predictions.'); 
-    }
+    } catch (err) { console.error(err); addToast('error', 'Error', 'Failed to clear predictions.'); }
   }, [user, activeTab, matches]);
 
   const showMagicWand = (
@@ -397,7 +380,7 @@ const App: React.FC = () => {
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
-        {/* NEW: TOURNAMENT HUB (Live Reality - Official Data) */}
+        {/* TOURNAMENT HUB (Live Reality - Official Data) */}
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 {/* Hub Navigation */}
@@ -421,8 +404,8 @@ const App: React.FC = () => {
                         lang={t} 
                         currentLang={language} 
                         onTeamClick={(id) => setViewingTeamId(id)} 
-                        onJumpToTable={handleJumpToTable} 
-                        onJumpToBracket={handleJumpToBracket} 
+                        onJumpToTable={handleJumpToTable} // Pass the jump handler
+                        onJumpToBracket={handleJumpToBracket} // Pass the jump handler
                     />
                 )}
 
@@ -443,7 +426,8 @@ const App: React.FC = () => {
                                             lang={t} 
                                             compact={true} 
                                             onTeamClick={(id) => setViewingTeamId(id)}
-                                            highlightedTeamId={highlightedTeamId} 
+                                            highlightedTeamId={highlightedTeamId} // Pass flash prop
+                                            qualifiedThirds={officialQualifiedThirds} // NEW: Pass Official Qualified 3rd Set
                                         />
                                     </div>
                                 </div>
@@ -461,7 +445,7 @@ const App: React.FC = () => {
                         userPredictions={liveResultsAsPredictions} 
                         onUpdate={() => {}} // Read-only
                         lang={t}
-                        highlightedMatchId={highlightedMatchId} 
+                        highlightedMatchId={highlightedMatchId} // Pass flash prop
                     />
                 )}
             </div>
@@ -474,7 +458,16 @@ const App: React.FC = () => {
                    <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handleUnlockSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (
                    <>
-                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6"><StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} /></div>
+                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                          {/* Uses PREDICTED matches and PREDICTED qualified thirds */}
+                          <StandingsTable 
+                              standings={standings} 
+                              teams={teamsData} 
+                              lang={t} 
+                              onTeamClick={(id) => setViewingTeamId(id)} 
+                              qualifiedThirds={predictedQualifiedThirds} // NEW: Pass Predicted Qualified 3rd Set
+                          />
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
                               <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} showStatusBadge={false} />
@@ -491,7 +484,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* KNOCKOUT TAB (PREDICTION GAME) */}
+        {/* KNOCKOUT TAB (PREDICTION GAME) - Uses Interactive Step-by-Step Bracket */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
@@ -522,38 +515,24 @@ const App: React.FC = () => {
         {/* LEADERBOARD */}
         {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
         
-        {/* MANAGER TAB: Shows different content based on Phase */}
+        {/* NEW: MANAGER HUB (Replaces Old Prediction View) */}
         {activeTab === 'manager' && (
-            <>
-                {tournamentPhase === 'PRE_LIVE' ? (
-                    // PRE-LIVE: Shows Community Progress
-                    <PlayerProgress 
-                        users={Object.values(usersDb)} 
-                        allPredictions={allPredictions} 
-                        totalMatches={totalMatchesCount} 
-                        lang={t} 
-                        currentUserLeagues={user.leagues} 
-                    />
-                ) : (
-                    // LIVE: Shows Personal Command Center (Subs, Points, History)
-                    <ManagerHub 
-                        matches={matches} 
-                        userMatches={userMatches}
-                        teams={teamsData} 
-                        allPredictions={allPredictions} 
-                        currentUser={user} 
-                        lang={t} 
-                        onSubstitute={handleSubstitute}
-                        onUnlockSecondChance={handleUnlockSecondChance}
-                        onUpdate={handleScoreUpdate}
-                        phase={tournamentPhase} // Pass the Phase
-                    />
-                )}
-            </>
+            <ManagerHub 
+                matches={matches}      // Official matches (Real Status/Scores for Carousel/Locks)
+                userMatches={userMatches} // User's predicted bracket path (for the Grid)
+                teams={teamsData} 
+                allPredictions={allPredictions} 
+                currentUser={user} 
+                lang={t} 
+                onSubstitute={handleSubstitute}
+                onUnlockSecondChance={handleUnlockSecondChance}
+                onUpdate={handleScoreUpdate}
+                phase={tournamentPhase} // Pass the Phase
+            />
         )}
       </main>
 
-      {/* ... (Modals) ... */}
+      {/* ... (Modals - Unchanged) ... */}
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
