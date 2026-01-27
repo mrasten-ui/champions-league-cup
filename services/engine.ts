@@ -201,17 +201,19 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>): Record<string, GroupStanding[]> => {
   const groups: Record<string, GroupStanding[]> = {};
   
-  // FIX: Iterate ALL groups from config (A-L), do not hardcode ['A'...'F']
-  GROUP_CONFIG.forEach(group => {
-    groups[group.id] = calculateGroupStandings(group.id, matches, teams);
+  // FIX: Iterate all groups from config to ensure we get A-L (12 groups)
+  GROUP_CONFIG.forEach((g: any) => {
+      groups[g.id] = calculateGroupStandings(g.id, matches, teams);
   });
   
   return groups;
 };
 
-export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupStanding[]>): GroupStanding[] => {
+// FIX: Explicitly return intersection type including groupId
+export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupStanding[]>): (GroupStanding & { groupId: string })[] => {
   const thirds: (GroupStanding & { groupId: string })[] = [];
   
+  // Use Object.entries to capture the groupId key
   Object.entries(allGroupStandings).forEach(([gid, group]) => {
     if (group.length >= 3) {
       thirds.push({ ...group[2], groupId: gid });
@@ -232,14 +234,19 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     const getTeam = (gid: string, rank: number) => groupResults[gid]?.[rank - 1]?.teamId || 'TBD';
     
     const thirds = getThirdPlaceStandings(groupResults);
+    
+    // Top 8 qualify for R32
     const qualifiedThirds = thirds.slice(0, 8);
     const usedThirds = new Set<string>();
     
+    // Helper to find valid 3rd place opponent
     const get3rd = (allowedGroups: string[]) => {
         let candidate = qualifiedThirds.find(t => allowedGroups.includes(t.groupId) && !usedThirds.has(t.teamId));
+        
         if (!candidate) {
              candidate = qualifiedThirds.find(t => !usedThirds.has(t.teamId));
         }
+        
         if (candidate) {
             usedThirds.add(candidate.teamId);
             return candidate.teamId;
@@ -724,7 +731,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     }
 };
 
-// --- FIX: Add Exported Interface Here ---
+// --- THIS IS THE INTERFACE THAT WAS MISSING ---
 export interface TeamFormData {
     fifaRank: number;
     history: MatchHistoryItem[];
