@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Match, Team, Translation, TournamentPhase, Prediction } from '../types';
 import { getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 import { ThirdPlaceTable } from './ThirdPlaceTable';
@@ -16,7 +16,6 @@ interface GroupStageSummaryProps {
   onGoToGroup?: (groupId: string) => void;
   onGoToKnockout?: () => void;
   onTeamClick?: (teamId: string) => void;
-  // FIX: Added missing props for Spy/Peek Picks feature
   onSpy?: (matchId: string) => void;
   revealedRivals?: string[];
 }
@@ -24,11 +23,16 @@ interface GroupStageSummaryProps {
 export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({ 
   matches, teams, lang, phase, hasTakenSecondChance, onSecondChance, 
   userPredictions, onGoToGroup, onGoToKnockout, onTeamClick 
-  // onSpy and revealedRivals are destructured implicitly but not used in this specific view yet
-  // Adding them to the interface prevents the build error.
 }) => {
-  const allStandings = getAllGroupStandings(matches, teams);
-  const thirdPlaceStandings = getThirdPlaceStandings(allStandings);
+  
+  // 1. Calculate Global Standings
+  const allStandings = useMemo(() => getAllGroupStandings(matches, teams), [matches, teams]);
+  
+  // 2. Identify Qualified 3rd Places (Top 8)
+  const thirdPlaceStandings = useMemo(() => getThirdPlaceStandings(allStandings), [allStandings]);
+  const qualifiedThirdsSet = useMemo(() => {
+      return new Set(thirdPlaceStandings.slice(0, 8).map(t => t.teamId));
+  }, [thirdPlaceStandings]);
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">
@@ -106,7 +110,15 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
                                 <div className={`w-2.5 h-2.5 rounded-full shadow-sm border border-slate-900/20 ${dotColor}`} title="Prediction Status"></div>
                             </div>
                          </div>
-                         <StandingsTable standings={standings} teams={teams} lang={lang} compact={true} onTeamClick={onTeamClick} />
+                         {/* Pass qualifiedThirds to highlight correct 3rd place */}
+                         <StandingsTable 
+                            standings={standings} 
+                            teams={teams} 
+                            lang={lang} 
+                            compact={true} 
+                            onTeamClick={onTeamClick} 
+                            qualifiedThirds={qualifiedThirdsSet} 
+                         />
                      </div>
                  );
              })}
