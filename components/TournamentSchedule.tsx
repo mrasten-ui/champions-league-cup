@@ -225,7 +225,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     groupStandings={heroStandings} 
                     lang={lang}
                     locale={currentLang}
-                    allMatches={matches} // <--- PASSING MATCHES HERE
+                    allMatches={matches}
                     onTeamClick={createClickHandler(heroMatch)}
                 />
             )}
@@ -260,12 +260,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     showStatusBadge={true} 
                                     homeTeamPoints={teamPointsMap[match.homeTeamId]}
                                     awayTeamPoints={teamPointsMap[match.awayTeamId]}
-                                    allMatches={matches} // <--- Added Matches Here too just in case
-                                    allTeams={teams}     // <--- Added Teams Here too
+                                    allMatches={matches}
+                                    allTeams={teams}
+                                    variant="official" // <--- THIS IS THE KEY FIX
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
-                                        <AlertTriangle size={12} />
+                                            <AlertTriangle size={12} />
                                     </div>
                                 )}
                             </div>
