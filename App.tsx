@@ -9,7 +9,7 @@ import {
   simulateTournamentAtDate,
   getAllGroupStandings, 
   getThirdPlaceStandings,
-  updateBracket // Preserved imports
+  updateBracket
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -34,7 +34,7 @@ import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
-import { PlayerProgress } from './components/PlayerProgress'; // RESTORED IMPORT
+import { PlayerProgress } from './components/PlayerProgress'; 
 
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 
@@ -77,7 +77,7 @@ const App: React.FC = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // RESTORED: Calculated stats for PlayerProgress
+  // Calculated stats for PlayerProgress
   const totalMatchesCount = useMemo(() => ({
       group: matches.filter(m => m.groupId).length,
       knockout: matches.filter(m => m.round).length
@@ -283,13 +283,11 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // FIX: RESTORED NAV LOGIC from your snippet
+  // FIX: Restore 'leaderboard' ("The Competition") to PRE_LIVE so both tabs are visible
   const navTabs = useMemo(() => {
-      // IN PRE-LIVE: 'manager' tab shows Community Progress. 'leaderboard' is removed.
       if (tournamentPhase === 'PRE_LIVE') {
-          return ['groups', 'knockout', 'scouting', 'manager'];
+          return ['groups', 'knockout', 'scouting', 'manager', 'leaderboard'];
       }
-      // IN LIVE: 'manager' tab shows Manager Hub. 'leaderboard' is shown.
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
@@ -438,14 +436,11 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* LEADERBOARD (LIVE ONLY) */}
-        {activeTab === 'leaderboard' && <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />}
-        
-        {/* MANAGER TAB: Shows different content based on Phase */}
-        {activeTab === 'manager' && (
+        {/* LEADERBOARD (NOW 'THE COMPETITION') - Shows PlayerProgress in PRE-LIVE */}
+        {activeTab === 'leaderboard' && (
             <>
                 {tournamentPhase === 'PRE_LIVE' ? (
-                    // PRE-LIVE: Shows Community Progress
+                    // PRE-LIVE: Community Progress
                     <PlayerProgress 
                         users={Object.values(usersDb)} 
                         allPredictions={allPredictions} 
@@ -454,21 +449,35 @@ const App: React.FC = () => {
                         currentUserLeagues={user.leagues} 
                     />
                 ) : (
-                    // LIVE: Shows Personal Command Center (Subs, Points, History)
-                    <ManagerHub 
-                        matches={matches}      
-                        userMatches={userMatches} 
-                        teams={teamsData} 
+                    // LIVE: The Real Leaderboard
+                    <Leaderboard 
+                        users={Object.values(usersDb)} 
+                        matches={matches} 
                         allPredictions={allPredictions} 
-                        currentUser={user} 
                         lang={t} 
-                        onSubstitute={handleSubstitute}
-                        onUnlockSecondChance={handleUnlockSecondChance}
-                        onUpdate={handleScoreUpdate}
-                        phase={tournamentPhase} 
+                        currentUserEmail={user?.email} 
+                        currentUserLeagues={user?.leagues} 
+                        teams={teamsData} 
+                        onTeamClick={(id) => setViewingTeamId(id)} 
                     />
                 )}
             </>
+        )}
+        
+        {/* MANAGER TAB (PERSONAL DASHBOARD) - ALWAYS ManagerHub */}
+        {activeTab === 'manager' && (
+            <ManagerHub 
+                matches={matches}      
+                userMatches={userMatches} 
+                teams={teamsData} 
+                allPredictions={allPredictions} 
+                currentUser={user} 
+                lang={t} 
+                onSubstitute={handleSubstitute}
+                onUnlockSecondChance={handleUnlockSecondChance}
+                onUpdate={handleScoreUpdate}
+                phase={tournamentPhase} 
+            />
         )}
       </main>
 
@@ -492,11 +501,8 @@ const App: React.FC = () => {
         onClear={() => { localStorage.clear(); window.location.reload(); }} 
         onTimeTravel={handleTimeTravel} 
         
-        // STRESS TEST HANDLER RESTORED
         onStressTest={() => {
-            // Placeholder since generateThirdPlaceStressTest wasn't in imports in this snippet
-            // But I preserved your imports at the top
-            // Assuming generateThirdPlaceStressTest is imported
+            // Placeholder: Replace with actual function call if available or ensure updated engine.ts is used
             addToast('info', 'Stress Test', 'Functionality placeholder');
         }}
 
