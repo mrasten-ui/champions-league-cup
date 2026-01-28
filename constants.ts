@@ -63,7 +63,12 @@ const TEAM_NAMES_NO: Record<string, string> = {
 
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
-    groups: "Groups", knockout: "Knockout", leaderboard: "Leaderboard", myPredictions: "My Picks",
+    groups: "Groups", knockout: "Knockout", myPredictions: "My Picks",
+    
+    // UPDATED: "The Competition" is now linked to 'leaderboard' key
+    leaderboard: "The Competition", 
+    managersTab: "Managers", // Fallback/Unused
+
     match: "Match", standings: "Table", points: "PTS", goalDiff: "GD", goalsFor: "GF",
     magicWand: "Magic Wand", revealRival: "Peek Picks", qualified: "Qualified", draw: "Draw",
     welcome: "Welcome back", loginMode: "Log In", signupMode: "Sign Up", emailLabel: "E-mail Address",
@@ -73,9 +78,6 @@ const EN_TRANSLATION: Translation = {
     secondChanceTab: "2nd Chance", secondChanceTitle: "Second Chance Mode", secondChanceDesc: "Your group picks didn't match the real results? Unlock the real teams for the knockout stage.", secondChanceBtn: "Unlock Real Knockout (-50% Pts)", secondChanceUnlockWarn: "Warning: Activating Second Chance will reduce all future points by 50%. This cannot be undone.",
     refreshTeams: "Refresh R32 Teams", refreshTeamsDesc: "Update the knockout tree with the latest qualified teams.",
     deadline: "Deadline:", deadlinePassed: "Deadline Passed", lockedState: "Locked", secondChanceActive: "Second Chance Active", pointsReduced: "Points reduced by 50%",
-    
-    // UPDATED: "The Competition"
-    managersTab: "The Competition", 
     progressGroups: "Group Stage", progressKnockout: "Knockout", managerReady: "Ready for Kickoff", managerIncomplete: "In Preparation",
     profile: "Manager Profile", logout: "Log Out", rulesBtn: "Game Rules", rulesTitle: "Tournament Rules",
     tabHowToPlay: "How to Play", tabScoring: "Points System",
@@ -136,7 +138,12 @@ const EN_TRANSLATION: Translation = {
 const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
-    groups: "The Groups", knockout: "The Knockoots", leaderboard: "Big Table", myPredictions: "Ma Guesses",
+    groups: "The Groups", knockout: "The Knockoots", myPredictions: "Ma Guesses",
+    
+    // UPDATED
+    leaderboard: "The Opposition",
+    managersTab: "The Lads",
+
     match: "Fixture", standings: "The League", points: "Pts", goalDiff: "GD", goalsFor: "GF",
     magicWand: "Magic Stick", revealRival: "Spy on Pal", qualified: "Through", draw: "Draw",
     welcome: "Awryt, pal", loginMode: "Log In", signupMode: "Sign Up", emailLabel: "Yer Email",
@@ -146,9 +153,6 @@ const SCO_TRANSLATION: Translation = {
     secondChanceTab: "2nd Go", secondChanceTitle: "Redemption Arc", secondChanceDesc: "Made a mess o' the groups? Fix yer tree noo.", secondChanceBtn: "Gie's a Second Go (-50%)", secondChanceUnlockWarn: "Watch it: This costs ye half yer points. Nae turnin' back.",
     refreshTeams: "Update Teams", refreshTeamsDesc: "Get the real teams in there.",
     deadline: "Time's up:", deadlinePassed: "Too Late Pal", lockedState: "Locked In", secondChanceActive: "2nd Go Live", pointsReduced: "Half Points Noo",
-    
-    // UPDATED: "The Opposition"
-    managersTab: "The Opposition", 
     progressGroups: "Groups", progressKnockout: "Knockoots", managerReady: "Sorted", managerIncomplete: "Slackin'",
     profile: "Ma Profile", logout: "Cheerio", rulesBtn: "The Rules", rulesTitle: "Hoo tae Play", tabHowToPlay: "The Basics", tabScoring: "Points",
     rule1Title: "1. Groups", rule1Desc: "Pick scores. Don't be a numpty.", rule2Title: "2. Knockoots", rule2Desc: "Pick the winners all the way tae the cup.",
@@ -195,7 +199,12 @@ const SCO_TRANSLATION: Translation = {
 const US_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Male Coach", genderWoman: "Female Coach", genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...", credits: "Tokens",
-    groups: "Group Play", knockout: "The Playoffs", leaderboard: "Power Rankings", myPredictions: "My Picks",
+    groups: "Group Play", knockout: "The Playoffs", myPredictions: "My Picks",
+    
+    // UPDATED
+    leaderboard: "The Field",
+    managersTab: "Roster",
+
     match: "Game", standings: "Standings", points: "Pts", goalDiff: "Diff", goalsFor: "GF",
     magicWand: "Auto-Pick", revealRival: "Peek Picks", qualified: "Clinched", draw: "Tie Game",
     welcome: "What's up, Coach", loginMode: "Log In", signupMode: "Register", emailLabel: "Email",
@@ -205,9 +214,6 @@ const US_TRANSLATION: Translation = {
     secondChanceTab: "Reset", secondChanceTitle: "Bracket Reset", secondChanceDesc: "Busted bracket? Buy back in for the playoffs.", secondChanceBtn: "Buy Back In (-50% Pts)", secondChanceUnlockWarn: "Warning: This costs 50% of future points. High risk!",
     refreshTeams: "Update Bracket", refreshTeamsDesc: "Load the real qualified teams.",
     deadline: "Kickoff in:", deadlinePassed: "Deadline Passed", lockedState: "Locked", secondChanceActive: "Reset Active", pointsReduced: "50% Point Reduction",
-    
-    // UPDATED: "The Field"
-    managersTab: "The Field", 
     progressGroups: "Regular Season", progressKnockout: "Post Season", managerReady: "Locked In", managerIncomplete: "Pending",
     profile: "Coach Profile", logout: "Sign Out", rulesBtn: "Rulebook", rulesTitle: "Official Rules", tabHowToPlay: "Basics", tabScoring: "Scoring",
     rule1Title: "1. Group Play", rule1Desc: "Predict the score of every game. Standings update live.", rule2Title: "2. The Playoffs", rule2Desc: "Pick the winner of every matchup all the way to the Championship.",
@@ -254,7 +260,12 @@ const US_TRANSLATION: Translation = {
 const NO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
-    groups: "Gruppene", knockout: "Sluttspill", leaderboard: "Resultatliste", myPredictions: "Mine Tips",
+    groups: "Gruppene", knockout: "Sluttspill", myPredictions: "Mine Tips",
+    
+    // UPDATED
+    leaderboard: "Konkurrentene",
+    managersTab: "Managere",
+
     match: "Kamp", standings: "Tabell", points: "P", goalDiff: "MF", goalsFor: "M+",
     magicWand: "Tryllestav", revealRival: "Se Tips", qualified: "Kvalifisert", draw: "Uavgjort",
     welcome: "Velkommen tilbake", loginMode: "Logg Inn", signupMode: "Ny Konto", emailLabel: "E-postadresse",
@@ -264,9 +275,6 @@ const NO_TRANSLATION: Translation = {
     secondChanceTab: "Ny Sjanse", secondChanceTitle: "Ny Sjanse Modus", secondChanceDesc: "Stemte ikke gruppetipsene dine? Lås opp de ekte lagene for sluttspillet.", secondChanceBtn: "Lås opp ekte oppsett (-50% poeng)", secondChanceUnlockWarn: "Advarsel: Aktivering av Ny Sjanse halverer alle fremtidige poeng. Dette kan ikke angres.",
     refreshTeams: "Oppdater Lag", refreshTeamsDesc: "Oppdater sluttspillet med de nyeste kvalifiserte lagene.",
     deadline: "Frist:", deadlinePassed: "Frist Ute", lockedState: "Låst", secondChanceActive: "Ny Sjanse Aktiv", pointsReduced: "Poeng redusert med 50%",
-    
-    // UPDATED: "Konkurrentene"
-    managersTab: "Konkurrentene", 
     progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
     profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
     rule1Title: "1. Tipp Gruppene", rule1Desc: "Fyll inn resultat for alle gruppekamper. Tabellen oppdateres automatisk.", rule2Title: "2. Sluttspillet", rule2Desc: "Dine grupperesultater skaper sluttspillet. Tipp vinnere helt til finalen!",

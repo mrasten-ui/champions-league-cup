@@ -283,10 +283,12 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // FIX: Restore 'leaderboard' ("The Competition") to PRE_LIVE so both tabs are visible
+  // FIX: REMOVED 'manager' (My Hub) from PRE_LIVE. RETAINED 'leaderboard' (The Competition).
   const navTabs = useMemo(() => {
       if (tournamentPhase === 'PRE_LIVE') {
-          return ['groups', 'knockout', 'scouting', 'manager', 'leaderboard'];
+          // In Pre-Live: 'leaderboard' is "The Competition" (PlayerProgress)
+          // 'manager' (My Hub) is HIDDEN
+          return ['groups', 'knockout', 'scouting', 'leaderboard'];
       }
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
@@ -436,10 +438,11 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* LEADERBOARD (THE COMPETITION) */}
+        {/* LEADERBOARD (THE COMPETITION) - Shows PlayerProgress in PRE-LIVE */}
         {activeTab === 'leaderboard' && (
             <>
                 {tournamentPhase === 'PRE_LIVE' ? (
+                    // PRE-LIVE: Community Progress
                     <PlayerProgress 
                         users={Object.values(usersDb)} 
                         allPredictions={allPredictions} 
@@ -448,6 +451,7 @@ const App: React.FC = () => {
                         currentUserLeagues={user.leagues} 
                     />
                 ) : (
+                    // LIVE: The Real Leaderboard
                     <Leaderboard 
                         users={Object.values(usersDb)} 
                         matches={matches} 
@@ -462,7 +466,7 @@ const App: React.FC = () => {
             </>
         )}
         
-        {/* MANAGER TAB (PERSONAL DASHBOARD) */}
+        {/* MANAGER TAB (PERSONAL DASHBOARD) - LIVE ONLY */}
         {activeTab === 'manager' && (
             <ManagerHub 
                 matches={matches}      
@@ -500,21 +504,8 @@ const App: React.FC = () => {
         onTimeTravel={handleTimeTravel} 
         
         onStressTest={() => {
-            // Check if function exists before calling, or import it directly if available in engine.ts
-            // Assuming the function is imported above
-            try {
-                // If using the new engine.ts with this function:
-                // const stressMatches = generateThirdPlaceStressTest(matches);
-                // const fullyUpdated = updateBracket(stressMatches, teamsData); 
-                // setMatches(fullyUpdated);
-                // setTournamentPhase('LIVE');
-                // addToast('success', 'Stress Test Loaded', 'Check the Tables & Bracket!');
-                // setActiveTab('tournament');
-                // setTournamentSubTab('tables');
-                addToast('info', 'Stress Test', 'Functionality pending engine update.');
-            } catch (e) {
-                console.error(e);
-            }
+            // Placeholder for engine update if needed
+            addToast('info', 'Stress Test', 'Functionality placeholder');
         }}
 
         isAdminMode={isAdminMode} 
