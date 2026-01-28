@@ -156,7 +156,7 @@ const App: React.FC = () => {
             const blob = await res.blob();
             const fileName = `avatar_${user.email.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.png`;
             const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { upsert: true });
-            if (!error) {
+            if (!uploadError) {
                 const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
                 finalUrl = data.publicUrl;
             }
@@ -436,11 +436,10 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* LEADERBOARD (NOW 'THE COMPETITION') - Shows PlayerProgress in PRE-LIVE */}
+        {/* LEADERBOARD (THE COMPETITION) */}
         {activeTab === 'leaderboard' && (
             <>
                 {tournamentPhase === 'PRE_LIVE' ? (
-                    // PRE-LIVE: Community Progress
                     <PlayerProgress 
                         users={Object.values(usersDb)} 
                         allPredictions={allPredictions} 
@@ -449,7 +448,6 @@ const App: React.FC = () => {
                         currentUserLeagues={user.leagues} 
                     />
                 ) : (
-                    // LIVE: The Real Leaderboard
                     <Leaderboard 
                         users={Object.values(usersDb)} 
                         matches={matches} 
@@ -464,7 +462,7 @@ const App: React.FC = () => {
             </>
         )}
         
-        {/* MANAGER TAB (PERSONAL DASHBOARD) - ALWAYS ManagerHub */}
+        {/* MANAGER TAB (PERSONAL DASHBOARD) */}
         {activeTab === 'manager' && (
             <ManagerHub 
                 matches={matches}      
@@ -502,8 +500,21 @@ const App: React.FC = () => {
         onTimeTravel={handleTimeTravel} 
         
         onStressTest={() => {
-            // Placeholder: Replace with actual function call if available or ensure updated engine.ts is used
-            addToast('info', 'Stress Test', 'Functionality placeholder');
+            // Check if function exists before calling, or import it directly if available in engine.ts
+            // Assuming the function is imported above
+            try {
+                // If using the new engine.ts with this function:
+                // const stressMatches = generateThirdPlaceStressTest(matches);
+                // const fullyUpdated = updateBracket(stressMatches, teamsData); 
+                // setMatches(fullyUpdated);
+                // setTournamentPhase('LIVE');
+                // addToast('success', 'Stress Test Loaded', 'Check the Tables & Bracket!');
+                // setActiveTab('tournament');
+                // setTournamentSubTab('tables');
+                addToast('info', 'Stress Test', 'Functionality pending engine update.');
+            } catch (e) {
+                console.error(e);
+            }
         }}
 
         isAdminMode={isAdminMode} 
