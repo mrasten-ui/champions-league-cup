@@ -52,7 +52,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       }
   };
 
-  // 1. CRITICAL FIX: Auto-assign on load once avatars are available
+  // 1. Auto-assign on load once avatars are available
   useEffect(() => {
       // Only if we don't have a current avatar (e.g. fresh signup)
       // AND we haven't picked one yet
@@ -75,42 +75,23 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      setError("Missing API Key.");
-      setLoading(false);
-      return;
-    }
+    // NOTE: We no longer check for VITE_OPENAI_API_KEY here.
+    // Security is handled by the backend function.
 
     try {
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: `A professional 3D stylized avatar of a ${gender} football manager. 
-                   KEY REQUIREMENTS: Subject looking DIRECTLY at the camera (front-facing). 
-                   COMPOSITION: Centered head-and-shoulders portrait with solid vibrant background extending to all edges. 
-                   Ensure the subject is perfectly centered so it fits in a circle crop without cutting off edges.
-                   DETAILS: ${prompt}. 
-                   STYLE: High-fidelity Pixar/Disney style, studio lighting, cute but professional.`,
-          n: 1,
-          size: "1024x1024",
-          response_format: "b64_json", 
-          quality: "standard"
-        })
+      // --- SECURE BACKEND CALL ---
+      const { data, error } = await supabase.functions.invoke('generate-avatar', {
+        body: { prompt, gender }
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message || "OpenAI Error");
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
+      // Extract Base64 from the backend response
       const rawBase64 = data.data[0].b64_json;
       const base64Uri = `data:image/png;base64,${rawBase64}`;
       
-      // Attempt upload
+      // Attempt upload to storage
       try {
           const blob = await base64ToBlob(rawBase64);
           const fileName = `ai_avatar_${Date.now()}.png`;
@@ -129,7 +110,8 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
           onGenerate(urlData.publicUrl);
 
       } catch (uploadErr) {
-          // Fallback: Use Base64 (App.tsx handles saving this later)
+          // Fallback: Use Base64 directly if upload fails
+          console.warn("Upload failed, using Base64 fallback", uploadErr);
           setActiveAvatar(base64Uri);
           onGenerate(base64Uri);
       }
