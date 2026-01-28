@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- DATABASE TYPES ---
-// (Keeping your existing types exactly as they were)
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -183,20 +182,17 @@ export interface Database {
 // --- CLIENT CONFIGURATION ---
 const env = (import.meta as any).env;
 
-// 1. Load strictly from Environment Variables
-const supabaseUrl = env.VITE_SUPABASE_URL;
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
+// FALLBACK KEYS: Use these if Vercel environment variables are missing
+const FALLBACK_URL = "https://xxlfbpykiyncoifpzzvx.supabase.co";
+const FALLBACK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE";
 
-// 2. Validate configuration (Fail fast if missing)
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("⚠️ Supabase Credentials Missing! Check your .env file.");
-  console.error("Required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY");
-}
+// 1. Try Environment Variables first, then use Fallback
+const supabaseUrl = env.VITE_SUPABASE_URL || FALLBACK_URL;
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || FALLBACK_KEY;
 
+// 2. Initialize Client
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// 3. Initialize Client
-// We cast to 'any' for the export to prevent strict TypeScript errors if the client fails to init
 export const supabase = isSupabaseConfigured 
   ? createClient<Database>(supabaseUrl, supabaseAnonKey)
   : null as any;
