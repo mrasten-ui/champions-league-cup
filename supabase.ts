@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- DATABASE TYPES ---
+// (Paste your existing Database interface here - keep it exactly as it is)
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -182,15 +183,19 @@ export interface Database {
 // --- CLIENT CONFIGURATION ---
 const env = (import.meta as any).env;
 
-// FALLBACK KEYS: Use these if Vercel environment variables are missing
+// --- HARDCODED FALLBACKS (The Safety Net) ---
+// REPLACE THESE STRINGS WITH THE VALUES FROM YOUR SUPABASE DASHBOARD IF THEY ARE DIFFERENT
 const FALLBACK_URL = "https://xxlfbpykiyncoifpzzvx.supabase.co";
 const FALLBACK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE";
 
-// 1. Try Environment Variables first, then use Fallback
+// 1. Logic: Try Vercel Env Vars first. If missing, use Fallback.
 const supabaseUrl = env.VITE_SUPABASE_URL || FALLBACK_URL;
 const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || FALLBACK_KEY;
 
-// 2. Initialize Client
+// 2. Debugging (Check your browser console to see which one it used)
+console.log("Supabase Init:", supabaseUrl === FALLBACK_URL ? "Using Fallback (Hardcoded)" : "Using Vercel Env Vars");
+
+// 3. Initialize Client
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured 
