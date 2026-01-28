@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- DATABASE TYPES ---
+// (Keeping your existing types exactly as they were)
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -181,13 +182,21 @@ export interface Database {
 
 // --- CLIENT CONFIGURATION ---
 const env = (import.meta as any).env;
-const supabaseUrl = env?.VITE_SUPABASE_URL || 'https://xxlfbpykiyncoifpzzvx.supabase.co'; 
-const supabaseAnonKey = env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE';
 
-const isValidKey = supabaseAnonKey && supabaseAnonKey.startsWith('ey');
-export const isSupabaseConfigured = supabaseUrl !== '' && isValidKey;
+// 1. Load strictly from Environment Variables
+const supabaseUrl = env.VITE_SUPABASE_URL;
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
-// Cast to 'any' for the export to stop strict type checking in other files
+// 2. Validate configuration (Fail fast if missing)
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("⚠️ Supabase Credentials Missing! Check your .env file.");
+  console.error("Required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY");
+}
+
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+// 3. Initialize Client
+// We cast to 'any' for the export to prevent strict TypeScript errors if the client fails to init
 export const supabase = isSupabaseConfigured 
   ? createClient<Database>(supabaseUrl, supabaseAnonKey)
   : null as any;
