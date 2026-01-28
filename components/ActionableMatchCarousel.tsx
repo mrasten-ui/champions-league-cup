@@ -17,7 +17,7 @@ export const ActionableMatchCarousel: React.FC<ActionableCarouselProps> = ({
   matches, teams, predictions, user, lang, onSubstitute, onUpdate
 }) => {
   
-  // Filter: Live Matches OR Upcoming (Next 48h)
+  //  Filter: Live Matches OR Upcoming (Next 48h)
   const actionableMatches = useMemo(() => {
       const now = new Date();
       const fortyEightHours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
