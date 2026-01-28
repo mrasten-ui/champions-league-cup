@@ -73,7 +73,10 @@ const EN_TRANSLATION: Translation = {
     secondChanceTab: "2nd Chance", secondChanceTitle: "Second Chance Mode", secondChanceDesc: "Your group picks didn't match the real results? Unlock the real teams for the knockout stage.", secondChanceBtn: "Unlock Real Knockout (-50% Pts)", secondChanceUnlockWarn: "Warning: Activating Second Chance will reduce all future points by 50%. This cannot be undone.",
     refreshTeams: "Refresh R32 Teams", refreshTeamsDesc: "Update the knockout tree with the latest qualified teams.",
     deadline: "Deadline:", deadlinePassed: "Deadline Passed", lockedState: "Locked", secondChanceActive: "Second Chance Active", pointsReduced: "Points reduced by 50%",
-    managersTab: "Managers", progressGroups: "Group Stage", progressKnockout: "Knockout", managerReady: "Ready for Kickoff", managerIncomplete: "In Preparation",
+    
+    // UPDATED: "The Competition"
+    managersTab: "The Competition", 
+    progressGroups: "Group Stage", progressKnockout: "Knockout", managerReady: "Ready for Kickoff", managerIncomplete: "In Preparation",
     profile: "Manager Profile", logout: "Log Out", rulesBtn: "Game Rules", rulesTitle: "Tournament Rules",
     tabHowToPlay: "How to Play", tabScoring: "Points System",
     rule1Title: "1. Predict Groups", rule1Desc: "Fill in scores for all group matches. The table updates automatically.",
@@ -143,7 +146,10 @@ const SCO_TRANSLATION: Translation = {
     secondChanceTab: "2nd Go", secondChanceTitle: "Redemption Arc", secondChanceDesc: "Made a mess o' the groups? Fix yer tree noo.", secondChanceBtn: "Gie's a Second Go (-50%)", secondChanceUnlockWarn: "Watch it: This costs ye half yer points. Nae turnin' back.",
     refreshTeams: "Update Teams", refreshTeamsDesc: "Get the real teams in there.",
     deadline: "Time's up:", deadlinePassed: "Too Late Pal", lockedState: "Locked In", secondChanceActive: "2nd Go Live", pointsReduced: "Half Points Noo",
-    managersTab: "The Lads", progressGroups: "Groups", progressKnockout: "Knockoots", managerReady: "Sorted", managerIncomplete: "Slackin'",
+    
+    // UPDATED: "The Opposition"
+    managersTab: "The Opposition", 
+    progressGroups: "Groups", progressKnockout: "Knockoots", managerReady: "Sorted", managerIncomplete: "Slackin'",
     profile: "Ma Profile", logout: "Cheerio", rulesBtn: "The Rules", rulesTitle: "Hoo tae Play", tabHowToPlay: "The Basics", tabScoring: "Points",
     rule1Title: "1. Groups", rule1Desc: "Pick scores. Don't be a numpty.", rule2Title: "2. Knockoots", rule2Desc: "Pick the winners all the way tae the cup.",
     rule3Title: "3. Live", rule3Desc: "Watch the scores come in live.", rule4Title: "4. Magic Stick", rule4Desc: "Canne be bothered? Let the computer pick.",
@@ -199,7 +205,10 @@ const US_TRANSLATION: Translation = {
     secondChanceTab: "Reset", secondChanceTitle: "Bracket Reset", secondChanceDesc: "Busted bracket? Buy back in for the playoffs.", secondChanceBtn: "Buy Back In (-50% Pts)", secondChanceUnlockWarn: "Warning: This costs 50% of future points. High risk!",
     refreshTeams: "Update Bracket", refreshTeamsDesc: "Load the real qualified teams.",
     deadline: "Kickoff in:", deadlinePassed: "Deadline Passed", lockedState: "Locked", secondChanceActive: "Reset Active", pointsReduced: "50% Point Reduction",
-    managersTab: "Roster", progressGroups: "Regular Season", progressKnockout: "Post Season", managerReady: "Locked In", managerIncomplete: "Pending",
+    
+    // UPDATED: "The Field"
+    managersTab: "The Field", 
+    progressGroups: "Regular Season", progressKnockout: "Post Season", managerReady: "Locked In", managerIncomplete: "Pending",
     profile: "Coach Profile", logout: "Sign Out", rulesBtn: "Rulebook", rulesTitle: "Official Rules", tabHowToPlay: "Basics", tabScoring: "Scoring",
     rule1Title: "1. Group Play", rule1Desc: "Predict the score of every game. Standings update live.", rule2Title: "2. The Playoffs", rule2Desc: "Pick the winner of every matchup all the way to the Championship.",
     rule3Title: "3. Live Action", rule3Desc: "Track games live and see how you stack up against the competition.", rule4Title: "4. Auto-Pick", rule4Desc: "Use the wand to auto-fill your bracket based on favorites.",
@@ -255,7 +264,10 @@ const NO_TRANSLATION: Translation = {
     secondChanceTab: "Ny Sjanse", secondChanceTitle: "Ny Sjanse Modus", secondChanceDesc: "Stemte ikke gruppetipsene dine? Lås opp de ekte lagene for sluttspillet.", secondChanceBtn: "Lås opp ekte oppsett (-50% poeng)", secondChanceUnlockWarn: "Advarsel: Aktivering av Ny Sjanse halverer alle fremtidige poeng. Dette kan ikke angres.",
     refreshTeams: "Oppdater Lag", refreshTeamsDesc: "Oppdater sluttspillet med de nyeste kvalifiserte lagene.",
     deadline: "Frist:", deadlinePassed: "Frist Ute", lockedState: "Låst", secondChanceActive: "Ny Sjanse Aktiv", pointsReduced: "Poeng redusert med 50%",
-    managersTab: "Managere", progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
+    
+    // UPDATED: "Konkurrentene"
+    managersTab: "Konkurrentene", 
+    progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
     profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
     rule1Title: "1. Tipp Gruppene", rule1Desc: "Fyll inn resultat for alle gruppekamper. Tabellen oppdateres automatisk.", rule2Title: "2. Sluttspillet", rule2Desc: "Dine grupperesultater skaper sluttspillet. Tipp vinnere helt til finalen!",
     rule3Title: "3. Live Modus", rule3Desc: "Følg kamper live og se poengene dine mot rivaler i sanntid.", rule4Title: "4. Hjelpende Hånd", rule4Desc: "Bruk Tryllestaven for å automatisk generere tips basert på dine favorittlag.",
