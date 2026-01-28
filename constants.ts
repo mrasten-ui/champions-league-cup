@@ -59,15 +59,16 @@ const TEAM_NAMES_NO: Record<string, string> = {
   TBD: "TBD"
 };
 
-// --- TRANSLATIONS (DEFINED IN ORDER) ---
+// --- TRANSLATIONS ---
 
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
     groups: "Groups", knockout: "Knockout", myPredictions: "My Picks",
     
-    // UPDATED: "The Competition" is now linked to 'leaderboard' key
-    leaderboard: "The Competition", 
-    managersTab: "Managers", // Fallback/Unused
+    // --- KEY UPDATES ---
+    competition: "The Competition", // PRE-LIVE Tab Name
+    leaderboard: "Leaderboard",     // LIVE Tab Name
+    managersTab: "Managers",        // Fallback
 
     match: "Match", standings: "Table", points: "PTS", goalDiff: "GD", goalsFor: "GF",
     magicWand: "Magic Wand", revealRival: "Peek Picks", qualified: "Qualified", draw: "Draw",
@@ -140,8 +141,9 @@ const SCO_TRANSLATION: Translation = {
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
     groups: "The Groups", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
-    // UPDATED
-    leaderboard: "The Opposition",
+    // --- KEY UPDATES ---
+    competition: "The Opposition",
+    leaderboard: "Big Table",
     managersTab: "The Lads",
 
     match: "Fixture", standings: "The League", points: "Pts", goalDiff: "GD", goalsFor: "GF",
@@ -201,8 +203,9 @@ const US_TRANSLATION: Translation = {
     genderMan: "Male Coach", genderWoman: "Female Coach", genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...", credits: "Tokens",
     groups: "Group Play", knockout: "The Playoffs", myPredictions: "My Picks",
     
-    // UPDATED
-    leaderboard: "The Field",
+    // --- KEY UPDATES ---
+    competition: "The Field",
+    leaderboard: "Power Rankings",
     managersTab: "Roster",
 
     match: "Game", standings: "Standings", points: "Pts", goalDiff: "Diff", goalsFor: "GF",
@@ -262,8 +265,9 @@ const NO_TRANSLATION: Translation = {
     genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
     groups: "Gruppene", knockout: "Sluttspill", myPredictions: "Mine Tips",
     
-    // UPDATED
-    leaderboard: "Konkurrentene",
+    // --- KEY UPDATES ---
+    competition: "Konkurrentene",
+    leaderboard: "Resultatliste",
     managersTab: "Managere",
 
     match: "Kamp", standings: "Tabell", points: "P", goalDiff: "MF", goalsFor: "M+",
