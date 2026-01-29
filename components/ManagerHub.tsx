@@ -77,14 +77,21 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return matches.find(m => m.id === userMatchId);
   };
 
+  // --- LOGIC: WHEN CAN A SUB BE USED? ---
   const canSubMatch = (realMatch: Match | undefined) => {
       if (!realMatch) return false;
-      // 1. KNOCKOUTS: NEVER Allow individual subs (Must use Second Chance)
+      
+      // 1. KNOCKOUTS: RESTRICTED
+      // As per your request: Knockout games do NOT have a sub function.
       if (realMatch.round) return false;
 
-      // 2. GROUPS: Allow if locked but not live/finished
+      // 2. STATUS CHECK: Must be "Before Kickoff"
+      // If the match is Live or Finished, you cannot sub.
       const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isLiveOrDone) return false;
+
+      // 3. LOCK CHECK: Must be locked
+      // If it's not locked, you don't need a sub (you can just edit it).
       return realMatch.isLocked; 
   };
 
