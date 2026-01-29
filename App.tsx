@@ -407,7 +407,29 @@ const App: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map(match => (
-                              <MatchCard key={match.id} match={match} homeTeam={teamsData[match.homeTeamId]} awayTeam={teamsData[match.awayTeamId]} onUpdate={handleScoreUpdate} lang={t} locale={currentLocale} userTokens={user?.tokens || 0} rivals={rivalsList} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} currentUser={user} allPredictions={allPredictions} phase={tournamentPhase} isAdminMode={isAdminMode} onSubstitute={() => handleSubstitute(match.id)} substitutionsLeft={user?.substitutions || 0} isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} onTeamClick={(id) => setViewingTeamId(id)} showStatusBadge={false} />
+                              <MatchCard 
+                                key={match.id} 
+                                match={match} 
+                                homeTeam={teamsData[match.homeTeamId]} 
+                                awayTeam={teamsData[match.awayTeamId]} 
+                                onUpdate={handleScoreUpdate} 
+                                lang={t} 
+                                locale={currentLocale} 
+                                userTokens={user?.tokens || 0} 
+                                rivals={rivalsList} 
+                                onSpy={handleSpy} 
+                                revealedRivals={user?.spiedMatches || []} 
+                                currentUser={user} 
+                                allPredictions={allPredictions} 
+                                phase={tournamentPhase} 
+                                isAdminMode={isAdminMode} 
+                                onSubstitute={() => handleSubstitute(match.id)} 
+                                substitutionsLeft={user?.substitutions || 0} 
+                                isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} 
+                                onTeamClick={(id) => setViewingTeamId(id)} 
+                                showStatusBadge={false} 
+                                context="groups" 
+                              />
                           ))}
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">

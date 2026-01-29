@@ -91,6 +91,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             onTeamClick={onTeamClick}
                             // DISABLE BADGE FOR PREDICTION BRACKET
                             showStatusBadge={false}
+                            context="knockout"
                         />
                     </div>
                 );

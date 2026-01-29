@@ -29,10 +29,12 @@ interface MatchCardProps {
   awayTeamPoints?: number;
   allMatches?: Match[];
   allTeams?: Record<string, Team>;
-  variant?: 'prediction' | 'official'; // <--- NEW PROP
+  variant?: 'prediction' | 'official';
+  context?: 'groups' | 'knockout'; // <--- NEW PROP (Optional)
 }
 
-// --- 1. SUB-COMPONENTS ---
+// --- 1. SUB-COMPONENTS (TbdSlot, ScoreStepper) REMAIN UNCHANGED ---
+// (Keeping them collapsed for brevity)
 
 const TbdSlot: React.FC<{ 
     matchId: string;
@@ -123,7 +125,7 @@ const ScoreStepper: React.FC<{
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction' // Default to prediction
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context // <--- Destructure context
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -256,15 +258,22 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
-             {/* HEADER WITH VARIANT LOGIC */}
+             {/* HEADER WITH CONTEXT-AWARE LOGIC */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     {variant === 'prediction' ? (
-                        <div className="h-6 opacity-80 flex items-center justify-center">
-                             {/* PREDICTION MODE: Show Logo */}
-                             <img src="/logo-white.png" alt="Rasten Cup" className="h-full object-contain max-w-[80px]" />
-                        </div>
+                        // CONTEXT CHECK: Only replace Logo if we are in Groups or Knockout
+                        (context === 'groups' || context === 'knockout') ? (
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                                {new Date(match.date).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}
+                             </span>
+                        ) : (
+                             // DEFAULT BEHAVIOR (For Manager Carousel / Tree View) - Keep as it was!
+                             <div className="h-6 opacity-80 flex items-center justify-center">
+                                <img src="/logo-white.png" alt="Rasten Cup" className="h-full object-contain max-w-[80px]" />
+                             </div>
+                        )
                     ) : (
                         <div className="flex items-center gap-1.5">
                             {/* OFFICIAL MODE: Show Text (Group A, Round of 16, etc) */}
