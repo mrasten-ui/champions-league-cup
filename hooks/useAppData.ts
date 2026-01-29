@@ -100,7 +100,7 @@ export const useAppData = () => {
           const [rankMap, tacticsMap, scoutingData] = await Promise.all([
               fetchAllTeamRanks(),
               fetchAllTeamTactics(),
-              supabase.from('scouting_overview').select('team_id, recent_form')
+              supabase.from('scouting_reports').select('team_id, recent_form') // <--- UPDATED FROM scouting_overview
           ]);
 
           setTeamsData(prev => {

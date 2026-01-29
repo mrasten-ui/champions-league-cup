@@ -703,7 +703,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_overview') 
+            .from('scouting_reports') // <--- UPDATED FROM scouting_overview
             .select('*')
             .eq('team_id', safeId)
             .maybeSingle();
