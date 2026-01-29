@@ -81,17 +81,24 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   const canSubMatch = (realMatch: Match | undefined) => {
       if (!realMatch) return false;
       
-      // 1. KNOCKOUTS: RESTRICTED
-      // As per your request: Knockout games do NOT have a sub function.
+      // 1. KNOCKOUTS: DISABLED
       if (realMatch.round) return false;
 
-      // 2. STATUS CHECK: Must be "Before Kickoff"
-      // If the match is Live or Finished, you cannot sub.
+      // 2. TIME CHECK: Must be STRICTLY BEFORE Kickoff
+      // This enforces the "do it at kickoff" rule. 
+      // If Date.now() is past the match date, no subs allowed.
+      const matchTime = new Date(realMatch.date).getTime();
+      const now = Date.now();
+      
+      if (now >= matchTime) return false;
+
+      // 3. STATUS CHECK: Must be UPCOMING (Backup check)
       const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isLiveOrDone) return false;
 
-      // 3. LOCK CHECK: Must be locked
-      // If it's not locked, you don't need a sub (you can just edit it).
+      // 4. LOCK CHECK: Must be locked
+      // The button only appears if the match is locked. 
+      // (If it's unlocked and before kickoff, the user can just edit the score directly).
       return realMatch.isLocked; 
   };
 
