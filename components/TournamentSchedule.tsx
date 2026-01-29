@@ -80,7 +80,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // 4. "MATCH OF THE DAY" SELECTION LOGIC (Updated)
+  // 4. "MATCH OF THE DAY" SELECTION LOGIC (Updated1)
   const heroMatch = useMemo(() => {
     if (searchTerm) return null;
 
