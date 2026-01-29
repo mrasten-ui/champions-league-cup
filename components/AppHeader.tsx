@@ -120,6 +120,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      else if (tab === 'analysis') label = t.analysisTab as string;
                      else if (tab === 'scouting') label = t.scoutingTab as string;
                      else if (tab === 'tournament') label = t.tabTournament as string; 
+                     // UPDATED LOGIC FOR LEADERBOARD TAB LABEL
+                     else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
                      else label = (typeof val === 'string' ? val : tab) as string;
                      
                      return (
