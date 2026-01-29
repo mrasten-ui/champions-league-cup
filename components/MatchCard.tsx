@@ -30,11 +30,11 @@ interface MatchCardProps {
   allMatches?: Match[];
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
-  context?: 'groups' | 'knockout'; // <--- NEW PROP (Optional)
+  // FIX: Added 'carousel' to the allowed types to resolve the red line error
+  context?: 'groups' | 'knockout' | 'carousel'; 
 }
 
 // --- 1. SUB-COMPONENTS (TbdSlot, ScoreStepper) REMAIN UNCHANGED ---
-// (Keeping them collapsed for brevity)
 
 const TbdSlot: React.FC<{ 
     matchId: string;
@@ -125,7 +125,7 @@ const ScoreStepper: React.FC<{
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context // <--- Destructure context
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context 
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
