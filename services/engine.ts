@@ -694,6 +694,7 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
   return [];
 };
 
+// UPDATED: Now queries 'scouting_reports' instead of 'scouting_overview'
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
     if (!supabase) {
         console.warn("Supabase not initialized");
@@ -703,10 +704,15 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_reports') // <--- UPDATED FROM scouting_overview
+            .from('scouting_reports') // <--- FIXED TABLE NAME
             .select('*')
             .eq('team_id', safeId)
             .maybeSingle();
+
+        if (reportError) {
+            console.warn("Supabase Scouting Error:", reportError);
+            return null;
+        }
 
         if (reportData) {
             return {
