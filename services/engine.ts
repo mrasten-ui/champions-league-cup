@@ -132,7 +132,8 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       ga: 0,
       gd: 0,
       pts: 0,
-      form: teams[tId]?.form ? [...teams[tId].form!] : [] 
+      // FIX: Added safer default for form array spreading
+      form: teams[tId]?.form ? [...(teams[tId].form || [])] : [] 
   });
 
   if (groupConfig) {
