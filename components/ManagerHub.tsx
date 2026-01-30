@@ -20,7 +20,6 @@ interface ManagerHubProps {
   phase: TournamentPhase;
 }
 
-// Ensure this line starts with 'export const'
 export const ManagerHub: React.FC<ManagerHubProps> = ({
   matches, 
   userMatches, 
@@ -86,6 +85,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       if (realMatch.round) return false;
 
       // 2. TIME CHECK: Must be STRICTLY BEFORE Kickoff
+      // If Date.now() is past the match date, no subs allowed.
       const matchTime = new Date(realMatch.date).getTime();
       const now = Date.now();
       
@@ -96,6 +96,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       if (isLiveOrDone) return false;
 
       // 4. LOCK CHECK: Must be locked
+      // The button only appears if the match is locked.
       return realMatch.isLocked; 
   };
 
@@ -171,11 +172,13 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
               {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
                   
+                  // Calculate Predicted Standings for this group
                   const standings = calculateGroupStandings(groupId, userMatches, teams);
 
                   return (
                       <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           
+                          {/* ENHANCED HEADER: Group Name + Live Standings Strip */}
                           <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
                               <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
@@ -187,6 +190,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                   <span className="text-[9px] font-bold text-blue-200 bg-white/5 px-2 py-0.5 rounded border border-white/5">{groupMatches.length} Games</span>
                               </div>
 
+                              {/* Mini Standings Strip - CENTERED */}
                               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:justify-center">
                                   {standings.map((row, index) => {
                                       const rank = index + 1;
@@ -196,6 +200,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                       if (rank <= 2) {
                                           badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Top 2 Qualify
                                       } else if (rank === 3) {
+                                          // 3RD PLACE CHECK: Is this team in the top 8 thirds?
                                           if (qualifiedThirdsSet.has(row.teamId)) {
                                               badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400 shadow-sm'; // Qualifying 3rd
                                               rankIndicator = <span className="text-[8px] font-black bg-white/20 px-1 rounded ml-1">Q</span>;
@@ -205,6 +210,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                           }
                                       }
 
+                                      // FIX: Use substring fallback
                                       const teamName = teams[row.teamId]?.name || row.teamId;
                                       const teamCode = teamName.substring(0,3).toUpperCase();
 
@@ -221,6 +227,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               </div>
                           </div>
 
+                          {/* Stamps Grid */}
                           <div className="p-4 bg-slate-50/50">
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                   {groupMatches.map(userMatch => {
