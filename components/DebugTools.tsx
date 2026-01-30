@@ -13,7 +13,6 @@ interface DebugToolsProps {
   onStressTest: () => void;
   isAdminMode: boolean;
   onToggleAdmin: () => void;
-  // New Prop for Force Lock
   onForceLock?: (locked: boolean) => void; 
   lang: Translation;
   users: UserProfile[];
@@ -28,6 +27,10 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
 
   const [dateInput, setDateInput] = useState('2026-06-11T14:00');
   const [isForceLocked, setIsForceLocked] = useState(false);
+
+  // Range: 3 days before kickoff (June 11) to 2 days after final (July 19)
+  const MIN_DATE = "2026-06-08T00:00";
+  const MAX_DATE = "2026-07-21T23:59";
 
   const handleTimeTravelClick = () => {
       const ts = new Date(dateInput).getTime();
@@ -45,7 +48,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
-        {/* HEADER RENAMED */}
+        {/* HEADER */}
         <div className="bg-[#0f2545] p-4 flex justify-between items-center text-white border-b border-white/10">
             <div className="flex items-center gap-3">
                 <div className="bg-red-500 p-2 rounded-lg"><ShieldAlert size={20} className="text-white" /></div>
@@ -68,6 +71,8 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                     <input 
                         type="datetime-local" 
                         value={dateInput} 
+                        min={MIN_DATE}
+                        max={MAX_DATE}
                         onChange={(e) => setDateInput(e.target.value)}
                         className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-mono font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
                     />
@@ -75,9 +80,12 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                         Time Travel
                     </button>
                 </div>
+                <p className="text-[10px] text-slate-400 text-center italic">
+                    Range: Jun 8 - Jul 21, 2026
+                </p>
             </div>
 
-            {/* 2. NEW LOCK OVERRIDE SWITCH */}
+            {/* 2. LOCK OVERRIDE SWITCH */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Lock size={14} /> Match State Overrides
