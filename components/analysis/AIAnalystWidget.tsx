@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio } from 'lucide-react';
+import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
+import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
     currentUser: UserProfile;
@@ -14,7 +15,6 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
-// LOCAL TRANSLATIONS
 const TEXT: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
@@ -26,7 +26,7 @@ const TEXT: Record<string, any> = {
         home: "Home",
         away: "Away",
         draw: "Draw",
-        conflict: "Conflict",
+        conflict: "Conflict found",
         picked: "picked",
         promptLang: "ENGLISH"
     },
@@ -36,27 +36,27 @@ const TEXT: Record<string, any> = {
         roastButton: "Play Roast",
         coachButton: "Back to Stats",
         loading: "Going live...",
-        error: "Technical difficulties...",
+        error: "Server timeout...",
         home: "Home",
         away: "Away",
         draw: "Tie",
-        conflict: "Clash",
-        picked: "took",
-        promptLang: "AMERICAN ENGLISH"
+        conflict: "Matchup conflict",
+        picked: "picked",
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster')"
     },
     sco: {
         coachTitle: "The Gaffer",
         roastTitle: "The Pundit's Box",
         roastButton: "Hear the Roast",
         coachButton: "Back tae Gaffer",
-        loading: "Mic check...",
-        error: "Mic's broken...",
+        loading: "Checkin' the tactics...",
+        error: "The machine's gubbed...",
         home: "Hame",
         away: "Awa",
         draw: "Draw",
         conflict: "Battle",
         picked: "backed",
-        promptLang: "SCOTTISH ENGLISH"
+        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter')"
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -81,17 +81,22 @@ const resolveLanguage = (code: string): string => {
     return 'en';
 };
 
-// Interface for the Script format
 interface ScriptLine {
     speaker: 'Host' | 'Pundit';
     text: string;
+    audioUrl?: string;
 }
 
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, currentLang, teams }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptLine[] | null>(null);
+    
+    // Playback State
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     const hasFetched = useRef(false);
@@ -99,24 +104,64 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = TEXT[langKey];
 
-    // Podcast Player Logic
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (mode === 'roast' && isPlaying && script && currentLineIndex < script.length) {
-            // Calculate reading time based on word count (approx 200ms per word)
-            const words = script[currentLineIndex].text.split(' ').length;
-            const duration = Math.max(2000, words * 300); // Minimum 2s display
+    // --- AUDIO GENERATION (Using Gemini 2.5 Backend) ---
+    const generateAudioForScript = async (lines: ScriptLine[]) => {
+        setIsAudioLoading(true);
+        const processedLines = [...lines];
 
-            interval = setTimeout(() => {
+        for (let i = 0; i < processedLines.length; i++) {
+            const line = processedLines[i];
+            try {
+                // Pass 'Host' or 'Pundit' to backend. 
+                // The Backend will map 'Pundit' to the "Deep Scottish Accent" style prompt.
+                const { data, error } = await supabase.functions.invoke('generate-audio', {
+                    body: { 
+                        input: line.text, 
+                        speaker_type: line.speaker // "Host" or "Pundit"
+                    }
+                });
+
+                if (error) throw error;
+
+                const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                processedLines[i].audioUrl = audioUrl;
+
+            } catch (err) {
+                console.error("Audio Gen Failed for line", i, err);
+            }
+        }
+        
+        setScript(processedLines);
+        setIsAudioLoading(false);
+        setIsPlaying(true);
+    };
+
+    // --- PLAYBACK CONTROL ---
+    useEffect(() => {
+        if (mode === 'roast' && isPlaying && script && script[currentLineIndex]?.audioUrl) {
+            if (!audioRef.current) audioRef.current = new Audio();
+
+            const audio = audioRef.current;
+            audio.src = script[currentLineIndex].audioUrl!;
+            audio.play().catch(e => console.error("Playback error", e));
+
+            const handleEnded = () => {
                 if (currentLineIndex < script.length - 1) {
                     setCurrentLineIndex(prev => prev + 1);
                 } else {
-                    setIsPlaying(false); // End of script
+                    setIsPlaying(false);
                 }
-            }, duration);
+            };
+
+            audio.addEventListener('ended', handleEnded);
+            return () => {
+                audio.removeEventListener('ended', handleEnded);
+                audio.pause();
+            };
         }
-        return () => clearTimeout(interval);
     }, [isPlaying, currentLineIndex, script, mode]);
+
 
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
@@ -173,31 +218,25 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     contents: [{ role: 'user', parts: [{ text: prompt }] }]
                 });
                 const responseData: any = response; 
-                setAnalysis(typeof responseData.text === 'function' ? responseData.text() : responseData.text);
+                const text = typeof responseData.text === 'function' ? responseData.text() : responseData.text;
+                setAnalysis(text);
+                setLoading(false);
+
             } else {
-                // ROAST MODE: GENERATE JSON SCRIPT
                 const prompt = `
-                    Context: Football Pundit Show discussing the user ${currentUser.name} (Rank #${myRank}).
-                    Rival: ${rivalAbove ? rivalAbove.user.name : "the top of the table"}.
-                    Key Match: ${keyMatch}.
-                    Data: ${conflictText}.
+                    Context: Football Pundit Show regarding ${currentUser.name} (Rank #${myRank}).
+                    Rival: ${rivalAbove ? rivalAbove.user.name : "Top 1"}.
+                    Match: ${keyMatch}. Data: ${conflictText}.
                     
-                    Task: Generate a dialogue script between a HOST and a PUNDIT.
-                    Format: JSON Array of objects with keys "speaker" (Host/Pundit) and "text".
-                    Language: ${t.promptLang}. 
-                    Style: TV Sports Debate.
-                    Length: 4 exchanges (approx 45 seconds spoken).
+                    Task: Script 4 short lines of dialogue between HOST and PUNDIT.
+                    Language: ${t.promptLang}.
                     
                     Characters:
-                    - HOST: Professional, sets up the question.
-                    - PUNDIT: opinionated, slightly mean/funny, roasting the user's rank/choices.
+                    - HOST: Sets up the context.
+                    - PUNDIT: Loud, opinionated, uses heavy slang/dialect appropriate for ${t.promptLang}.
                     
-                    Example output format:
-                    [
-                        {"speaker": "Host", "text": "Welcome back. Let's talk about ${currentUser.name}..."},
-                        {"speaker": "Pundit", "text": "Honestly, at rank #${myRank}, it's embarrassing..."}
-                    ]
-                    RETURN ONLY JSON. NO MARKDOWN.
+                    Format: JSON Array: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
+                    RETURN ONLY JSON.
                 `;
                 
                 const response = await ai.models.generateContent({
@@ -211,18 +250,19 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 try {
                     const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
                     const parsedScript = JSON.parse(cleanJson);
-                    setScript(parsedScript);
-                    setIsPlaying(true); // Auto-play
+                    setScript(parsedScript); 
+                    setLoading(false);
+                    generateAudioForScript(parsedScript);
                 } catch (err) {
-                    console.error("JSON Parse Error", err);
-                    setScript([{ speaker: "Host", text: "We are having technical difficulties receiving the pundit's feed." }]);
+                    console.error("JSON Error", err);
+                    setScript([{ speaker: "Host", text: "Technical difficulties in the studio." }]);
+                    setLoading(false);
                 }
             }
 
         } catch (e) {
             console.error(e);
             setAnalysis(t.error);
-        } finally {
             setLoading(false);
         }
     };
@@ -237,12 +277,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     return (
         <div className={`relative overflow-hidden rounded-2xl p-5 mb-4 shadow-lg transition-all duration-500 ${mode === 'roast' ? 'bg-gradient-to-br from-orange-900 to-red-900 border border-orange-700' : 'bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700'}`}>
             
-            {/* Background Decor */}
             <div className="absolute top-0 right-0 p-4 opacity-10">
                 {mode === 'roast' ? <Radio size={120} /> : <BrainCircuit size={120} />}
             </div>
 
-            {/* Header */}
             <div className="flex justify-between items-start relative z-10 mb-3">
                 <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg ${mode === 'roast' ? 'bg-orange-500/20 text-orange-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
@@ -254,16 +292,17 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 </div>
                 {mode === 'roast' && script && (
                     <div className="flex items-center gap-2">
-                        {isPlaying ? (
-                            <button onClick={() => setIsPlaying(false)} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
+                        {isAudioLoading ? (
+                            <RefreshCw size={14} className="animate-spin text-orange-200" />
+                        ) : isPlaying ? (
+                            <button onClick={() => { setIsPlaying(false); audioRef.current?.pause(); }} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
-                            <button onClick={() => setIsPlaying(true)} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
+                            <button onClick={() => { setIsPlaying(true); audioRef.current?.play(); }} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
                         )}
                     </div>
                 )}
             </div>
 
-            {/* Content Area */}
             <div className="relative z-10 min-h-[100px] flex flex-col justify-center">
                 {loading ? (
                     <div className="space-y-3 animate-pulse">
@@ -276,32 +315,32 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         {analysis}
                     </p>
                 ) : (
-                    // ROAST / SCRIPT UI
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {script && script.map((line, idx) => {
-                            // Only show current and previous lines (chat history style)
                             if (idx > currentLineIndex) return null;
                             const isCurrent = idx === currentLineIndex;
                             const isHost = line.speaker === 'Host';
                             
                             return (
                                 <div key={idx} className={`flex gap-3 ${isHost ? 'flex-row' : 'flex-row-reverse'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isHost ? 'bg-blue-500/20 text-blue-200' : 'bg-orange-500/20 text-orange-200'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-white/10 ${isHost ? 'bg-blue-500/20 text-blue-200' : 'bg-orange-500/20 text-orange-200'}`}>
                                         {isHost ? 'H' : 'P'}
                                     </div>
-                                    <div className={`rounded-2xl p-3 text-xs max-w-[85%] ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
-                                        <div className="font-black text-[9px] uppercase opacity-50 mb-1">{line.speaker}</div>
-                                        <p className={isCurrent && isPlaying ? "animate-pulse" : ""}>{line.text}</p>
+                                    <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
+                                        <div className="font-black text-[9px] uppercase opacity-50 mb-1 flex justify-between">
+                                            {line.speaker}
+                                            {isCurrent && isPlaying && <Volume2 size={10} className="animate-pulse text-green-400" />}
+                                        </div>
+                                        <p className={isCurrent && isPlaying ? "opacity-100" : "opacity-80"}>{line.text}</p>
                                     </div>
                                 </div>
                             );
                         })}
-                        {isPlaying && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2">... pundit is speaking</div>}
+                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Generating audio...</div>}
                     </div>
                 )}
             </div>
 
-            {/* Footer Actions */}
             <div className="relative z-10 mt-6 flex justify-end border-t border-white/5 pt-3">
                 {mode === 'coach' ? (
                     <button 
