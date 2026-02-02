@@ -351,6 +351,17 @@ const SimulatedLeaderboardWidget: React.FC<{
 
 // --- MAIN DASHBOARD ---
 
+interface AnalysisDashboardProps {
+  currentUser: UserProfile;
+  rivals: UserProfile[];
+  matches: Match[];
+  allPredictions: Prediction[];
+  teams: Record<string, Team>;
+  lang: Translation;
+  currentLang: LanguageCode;
+  onTeamClick?: (id: string) => void;
+}
+
 export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   currentUser,
   rivals,
