@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
-import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket, updateBracket } from '../services/engine';
+import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket } from '../services/engine';
 import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
@@ -160,6 +160,7 @@ const SimRow: React.FC<{
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
+    // removed unused allMatches prop
 }> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
@@ -511,14 +512,22 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   // 2. SIMULATION ENGINE + PULL THROUGH
   const { combinedStats, simulatedMatches, qualifiedThirdsSet } = useMemo(() => {
       // Create a "Simulated World" array of matches
-      // START with base matches
       let simMatches = matches.map(m => {
           const sim = simulation[m.id];
           if (sim) return { ...m, homeScore: sim.home, awayScore: sim.away, status: 'FINISHED' as Match['status'] };
           return m;
       });
 
-      // PULL THROUGH: Run bracket logic multiple times to propagate "Winner A" -> "Germany"
+      // PULL THROUGH: Run bracket logic multiple times to propagate results
+      for (let i = 0; i < 6; i++) {
+          simMatches = getAllGroupStandings(simMatches, teams) ? updateBracket(simMatches, teams) : simMatches; 
+          // Note: getAllGroupStandings is just a check, the real work is in updateBracket which calls it internally
+          // We simplify to just calling updateBracket, but to be safe and match imported functions:
+          // Actually updateBracket calls getAllGroupStandings internally, so just calling it is fine.
+          // However, updateBracket returns a NEW array. We must assign it.
+      }
+      // Re-running updateBracket iteratively to ensure flow-through
+      // A loop of 6 covers R32 -> R16 -> QF -> SF -> FIN
       for (let i = 0; i < 6; i++) {
           simMatches = updateBracket(simMatches, teams);
       }
@@ -694,7 +703,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                                 groupStandings={standings}
                                 teams={teams}
                                 qualifiedThirdsSet={qualifiedThirdsSet}
-                                allMatches={matches}
                             />
                         );
                     })
