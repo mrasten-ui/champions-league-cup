@@ -49,22 +49,22 @@ const WinnerButton: React.FC<{
 }> = ({ team, label, isSelected, onClick }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all w-full h-full min-h-[80px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
+        // Fixed height to prevent layout shift
+        className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl border-2 transition-all w-full h-[90px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
     >
         <div className="relative">
-            {/* SAFE IMAGE RENDERING: Only render img if team AND flag exist */}
-            {team && team.flag ? (
-                <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
+            {team ? (
+                <img src={team.flag} alt={team.name} className="w-10 h-7 object-cover rounded shadow-sm" />
             ) : (
-                // Placeholder Box for TBD or missing flags
-                <div className="w-12 h-8 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
+                // TBD State - clearly shows the label (e.g. "1A")
+                <div className="w-10 h-7 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{label}</span>
                 </div>
             )}
-            {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={12} strokeWidth={4} /></div>}
+            {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={10} strokeWidth={4} /></div>}
         </div>
-        <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team?.name || "TBD"}
+        <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 line-clamp-2 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
+            {team ? team.name : "TBD"}
         </span>
     </button>
 );
@@ -79,11 +79,11 @@ const PredictionPill: React.FC<{
 }> = ({ user, label, status, isMe, onSelect, align }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    let baseClass = 'bg-slate-50 text-slate-400 border-slate-100';
-    if (status === 'exact') baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
-    if (status === 'correct') baseClass = 'bg-blue-50 text-blue-700 border-blue-200';
+    let baseClass = 'bg-slate-50 text-slate-400 border-slate-100 opacity-80';
+    if (status === 'exact') baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200 opacity-100';
+    if (status === 'correct') baseClass = 'bg-blue-50 text-blue-700 border-blue-200 opacity-100';
     
-    if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black';
+    if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black opacity-100';
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -224,7 +224,7 @@ const SimRow: React.FC<{
                             h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
-                        // TBD: Show user's HOME slot team
+                        // TBD: Show user's HOME slot team if simulated
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
                             h.push({ u, label: userHomeTeam.code, status: picksWin ? 'exact' : 'neutral' });
@@ -238,6 +238,7 @@ const SimRow: React.FC<{
                             a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
+                        // TBD
                         if (userAwayTeam) {
                             const picksWin = userWinnerId === userAwayTeam.id;
                             a.push({ u, label: userAwayTeam.code, status: picksWin ? 'exact' : 'neutral' });
@@ -274,10 +275,10 @@ const SimRow: React.FC<{
 
             {/* MATCH CONTENT */}
             <div className="p-3 grid grid-cols-3 gap-2">
-                {/* LEFT: HOME */}
-                <div className="flex flex-col gap-2">
+                {/* LEFT: HOME - Fixed Layout */}
+                <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
-                        <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
+                        <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
                             {home ? (
                                 <>
                                     <img src={home.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
@@ -309,16 +310,16 @@ const SimRow: React.FC<{
                     </div>
                 </div>
 
-                {/* CENTER: SCORE / VS */}
-                <div className="flex flex-col gap-2 items-center">
+                {/* CENTER: SCORE / VS - Fixed Layout */}
+                <div className="flex flex-col gap-2 items-center justify-start h-full">
                     {!isKnockout ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 h-[90px]">
                             <ScoreStepper value={hVal} onChange={(v) => onUpdate(v, aVal)} isLocked={false} isSimulated={isSimulated} />
                             <span className="text-slate-300 font-bold">-</span>
                             <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} isSimulated={isSimulated} />
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center h-full pb-8 pt-4">
+                        <div className="flex items-center justify-center h-[90px] w-full">
                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-inner">VS</div>
                         </div>
                     )}
@@ -344,10 +345,10 @@ const SimRow: React.FC<{
                     )}
                 </div>
 
-                {/* RIGHT: AWAY */}
-                <div className="flex flex-col gap-2">
+                {/* RIGHT: AWAY - Fixed Layout */}
+                <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
-                        <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
+                        <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
                             {away ? (
                                 <>
                                     <img src={away.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
