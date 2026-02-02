@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
 import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -57,6 +57,65 @@ const WinnerButton: React.FC<{
     </button>
 );
 
+// --- NEW: COMPACT PREDICTION PILL ---
+const PredictionPill: React.FC<{
+    user: UserProfile;
+    pred: Prediction;
+    simHome: number;
+    simAway: number;
+    isMe: boolean;
+    onSelect: () => void;
+    align: 'left' | 'center' | 'right';
+}> = ({ user, pred, simHome, simAway, isMe, onSelect, align }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Color Logic (Traffic Light)
+    const getStatusColor = () => {
+        const predWinner = pred.home > pred.away ? 'H' : pred.home < pred.away ? 'A' : 'D';
+        const simWinner = simHome > simAway ? 'H' : simHome < simAway ? 'A' : 'D';
+        
+        const isExact = pred.home === simHome && pred.away === simAway;
+        const isCorrectResult = predWinner === simWinner;
+
+        if (isExact) return 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200'; // Exact
+        if (isCorrectResult) return 'bg-blue-50 text-blue-700 border-blue-200'; // Correct Result
+        return 'bg-slate-50 text-slate-400 border-slate-100'; // Wrong
+    };
+
+    let baseClass = getStatusColor();
+    if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black';
+
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelect(); // Updates simulation
+        setIsExpanded(!isExpanded); // Toggles name view
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            className={`
+                flex items-center gap-1.5 px-1.5 py-1 rounded-lg border text-[9px] font-bold transition-all shadow-sm
+                ${baseClass} ${align === 'right' ? 'flex-row-reverse' : 'flex-row'}
+                ${isExpanded ? 'z-10 scale-105' : 'hover:scale-105'}
+            `}
+            title={`${user.name}: ${pred.home}-${pred.away}`}
+        >
+            <AvatarDisplay avatar={user.avatar} size="xs" className="w-4 h-4 rounded-full bg-white shadow-sm" />
+            
+            {isExpanded && (
+                <span className="truncate max-w-[60px] animate-in fade-in zoom-in duration-200">
+                    {user.name.split(' ')[0]}
+                </span>
+            )}
+            
+            <span className={`font-black ${isExpanded ? 'text-[10px]' : ''}`}>
+                {pred.home}-{pred.away}
+            </span>
+        </button>
+    );
+};
+
 const SimRow: React.FC<{
     match: Match;
     home: Team;
@@ -91,27 +150,6 @@ const SimRow: React.FC<{
         return { homePreds: h, drawPreds: d, awayPreds: a };
     }, [currentUser, rivals, allPredictions, match.id]);
 
-    const renderStackPill = (item: { u: UserProfile, p: Prediction }, side: 'left' | 'center' | 'right') => {
-        const { u, p } = item;
-        const isMe = u.email === currentUser.email;
-        let bg = 'bg-slate-50 border-slate-100 text-slate-600';
-        if (isMe) bg = 'bg-purple-50 border-purple-200 text-purple-700 ring-1 ring-purple-300';
-        let justify = side === 'left' ? 'justify-start' : side === 'right' ? 'justify-end' : 'justify-center';
-
-        return (
-            <button
-                key={u.email}
-                onClick={(e) => { e.stopPropagation(); onUpdate(p.home, p.away); }}
-                className={`flex items-center gap-1.5 w-full ${justify} px-1.5 py-1 rounded border text-[9px] font-bold transition-all hover:bg-white hover:shadow-sm ${bg}`}
-            >
-                {side === 'right' && <span className="font-black opacity-80">{p.home}-{p.away}</span>}
-                <AvatarDisplay avatar={u.avatar} size="xs" className="w-3 h-3" />
-                <span className="truncate max-w-[50px]">{u.name.split(' ')[0]}</span>
-                {side !== 'right' && <span className="font-black opacity-80">{p.home}-{p.away}</span>}
-            </button>
-        );
-    };
-
     return (
         <div className={`bg-white rounded-2xl border shadow-sm p-3 transition-all duration-300 flex flex-col gap-3 ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
             <div className="flex justify-between items-center border-b border-slate-50 pb-2">
@@ -124,15 +162,32 @@ const SimRow: React.FC<{
             </div>
 
             <div className="grid grid-cols-3 gap-2">
+                {/* LEFT: HOME PREDICTIONS */}
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
                         <img src={home?.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
                         <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight">{home?.name}</span>
                     </div>
                     {isKnockout && <WinnerButton team={home} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} />}
-                    <div className="flex flex-col gap-1 mt-1">{homePreds.map(item => renderStackPill(item, 'left'))}</div>
+                    
+                    {/* Compact Pills Stack */}
+                    <div className="flex flex-wrap content-start gap-1.5 mt-1">
+                        {homePreds.map(item => (
+                            <PredictionPill 
+                                key={item.u.email} 
+                                user={item.u} 
+                                pred={item.p} 
+                                simHome={hVal} 
+                                simAway={aVal} 
+                                isMe={item.u.email === currentUser.email}
+                                onSelect={() => onUpdate(item.p.home, item.p.away)}
+                                align="left"
+                            />
+                        ))}
+                    </div>
                 </div>
 
+                {/* CENTER: SCORE / DRAW */}
                 <div className="flex flex-col gap-2 items-center">
                     {isKnockout ? (
                         <div className="flex items-center justify-center h-full pb-8"><span className="text-xs font-black text-slate-300">VS</span></div>
@@ -143,21 +198,49 @@ const SimRow: React.FC<{
                             <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} isSimulated={isSimulated} />
                         </div>
                     )}
+                    
                     {!isKnockout && (
-                        <div className="flex flex-col gap-1 w-full mt-1">
+                        <div className="flex flex-wrap justify-center gap-1.5 w-full mt-1">
                             {drawPreds.length > 0 && <div className="h-px bg-slate-100 w-full my-0.5"></div>}
-                            {drawPreds.map(item => renderStackPill(item, 'center'))}
+                            {drawPreds.map(item => (
+                                <PredictionPill 
+                                    key={item.u.email} 
+                                    user={item.u} 
+                                    pred={item.p} 
+                                    simHome={hVal} 
+                                    simAway={aVal} 
+                                    isMe={item.u.email === currentUser.email}
+                                    onSelect={() => onUpdate(item.p.home, item.p.away)}
+                                    align="center"
+                                />
+                            ))}
                         </div>
                     )}
                 </div>
 
+                {/* RIGHT: AWAY PREDICTIONS */}
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
                         <img src={away?.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
                         <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight">{away?.name}</span>
                     </div>
                     {isKnockout && <WinnerButton team={away} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} />}
-                    <div className="flex flex-col gap-1 mt-1">{awayPreds.map(item => renderStackPill(item, 'right'))}</div>
+                    
+                    {/* Compact Pills Stack (Right Aligned) */}
+                    <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
+                        {awayPreds.map(item => (
+                            <PredictionPill 
+                                key={item.u.email} 
+                                user={item.u} 
+                                pred={item.p} 
+                                simHome={hVal} 
+                                simAway={aVal} 
+                                isMe={item.u.email === currentUser.email}
+                                onSelect={() => onUpdate(item.p.home, item.p.away)}
+                                align="right"
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
