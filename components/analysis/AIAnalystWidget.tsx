@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation } from '../../types'; 
+import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, Flame, RefreshCw, BrainCircuit } from 'lucide-react';
@@ -10,6 +10,7 @@ interface AIAnalystProps {
     nextMatches: Match[];
     allPredictions: Prediction[];
     lang: Translation;
+    currentLang: LanguageCode;
     teams: Record<string, Team>;
 }
 
@@ -25,6 +26,8 @@ const TEXT: Record<string, any> = {
         home: "Home",
         away: "Away",
         draw: "Draw",
+        conflict: "Conflict found",
+        picked: "picked",
         promptLang: "ENGLISH"
     },
     'en-US': {
@@ -37,6 +40,8 @@ const TEXT: Record<string, any> = {
         home: "Home",
         away: "Away",
         draw: "Tie",
+        conflict: "Matchup conflict",
+        picked: "picked",
         promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Standings', 'Roster')"
     },
     sco: {
@@ -49,6 +54,8 @@ const TEXT: Record<string, any> = {
         home: "Hame",
         away: "Awa",
         draw: "Draw",
+        conflict: "Heads gone",
+        picked: "went fur",
         promptLang: "SCOTTISH/SCOTS DIALECT (Use terms like 'Gaffer', 'Lad', 'Aye', 'Nae bother')"
     },
     no: {
@@ -61,18 +68,28 @@ const TEXT: Record<string, any> = {
         home: "Hjemme",
         away: "Borte",
         draw: "Uavgjort",
+        conflict: "Konflikt funnet",
+        picked: "valgte",
         promptLang: "NORWEGIAN"
     }
 };
 
-export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, teams }) => {
+const resolveLanguage = (code: LanguageCode): string => {
+    if (code === 'NO') return 'no';
+    if (code === 'SCO') return 'sco';
+    if (code === 'US') return 'en-US';
+    return 'en';
+};
+
+export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, currentLang, teams }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     const hasFetched = useRef(false);
 
-    // Select Language Dictionary (Fallback to 'en')
-    const t = TEXT[lang.langCode] || TEXT['en'];
+    // Force correct dictionary based on currentLang prop
+    const langKey = resolveLanguage(currentLang);
+    const t = TEXT[langKey];
 
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
@@ -107,8 +124,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                             const homeName = teams[match.homeTeamId]?.name || "Home";
                             const awayName = teams[match.awayTeamId]?.name || "Away";
                             keyMatch = `${homeName} vs ${awayName}`;
-                            // Base text for AI context
-                            conflictText = `Conflict: User picked ${myRes}, Rival picked ${rivalRes} for ${keyMatch}`;
+                            // Pass translated context to the AI
+                            conflictText = `${t.conflict}: User ${t.picked} ${myRes}, Rival ${t.picked} ${rivalRes} for ${keyMatch}`;
                             break;
                         }
                     }
@@ -152,8 +169,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
-            // SAFE ACCESS: Cast as any to avoid TS conflict if types are outdated
-            // We expect response to have a .text() method or .text property depending on version
+            // Safe text check
             const responseData: any = response; 
             const text = typeof responseData.text === 'function' ? responseData.text() : responseData.text;
             

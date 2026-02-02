@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation, GroupStanding } from '../../types'; 
+import { UserProfile, Match, Prediction, Team, Translation, GroupStanding, LanguageCode } from '../../types'; 
 import { getSlotSource } from '../../utils/bracketHelpers';
 import { AvatarDisplay } from '../AvatarDisplay';
 import { ChevronUp, ChevronDown, Check, Trophy, Calculator } from 'lucide-react';
@@ -10,6 +10,13 @@ const TEXT: Record<string, any> = {
     'en-US': { predicted: "Picked", tbd: "TBD" },
     sco: { predicted: "Tippit", tbd: "TBD" },
     no: { predicted: "Tippet", tbd: "TBD" }
+};
+
+const resolveLanguage = (code: LanguageCode): string => {
+    if (code === 'NO') return 'no';
+    if (code === 'SCO') return 'sco';
+    if (code === 'US') return 'en-US';
+    return 'en';
 };
 
 // --- SUB-COMPONENTS ---
@@ -168,21 +175,22 @@ export const SimRow: React.FC<{
     allPredictions: Prediction[];
     userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>;
     lang: Translation;
+    currentLang: LanguageCode;
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
-}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
-    // 1. DEFINE VARIABLES AT THE TOP
+}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, currentLang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     const isSimulated = !!sim;
     const isKnockout = !match.groupId;
     
-    // DEFINITION OF ISLIVE - This must be here
+    // Explicitly define isLive
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     
-    // Select Translations (Fallback to EN)
-    const t = TEXT[lang.langCode] || TEXT['en'];
+    // Select Translations (Robust)
+    const langKey = resolveLanguage(currentLang);
+    const t = TEXT[langKey];
 
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);

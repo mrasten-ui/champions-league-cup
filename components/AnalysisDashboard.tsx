@@ -10,6 +10,14 @@ import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
 import { SimRow } from './analysis/SimRow';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 
+// HELPER: Map App Language Code to Dictionary Key
+const getLocKey = (code: LanguageCode): string => {
+    if (code === 'NO') return 'no';
+    if (code === 'SCO') return 'sco';
+    if (code === 'US') return 'en-US';
+    return 'en'; // Default 'EN'
+};
+
 // LOCAL TRANSLATIONS
 const TEXT: Record<string, any> = {
     en: {
@@ -55,7 +63,7 @@ const SimulatedLeaderboardWidget: React.FC<{
     simulatedUsers: { user: UserProfile, score: number, diff: number, rank: number }[];
     currentUser: UserProfile;
     lang: Translation;
-    t: any;
+    t: any; // Local translations
 }> = ({ simulatedUsers, currentUser, lang, t }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -162,8 +170,9 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   const todayStr = new Date().toDateString();
   const [filterDate, setFilterDate] = useState<string>(todayStr);
 
-  // Translation Selection (Fallback to EN)
-  const t = TEXT[lang.langCode] || TEXT['en'];
+  // Translation Selection
+  const locKey = getLocKey(currentLang);
+  const t = TEXT[locKey];
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
@@ -210,12 +219,23 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
         
         {/* HEADER: AI Analyst Widget */}
         <div className="p-4 pb-2 bg-gradient-to-r from-indigo-600 to-blue-700">
+            <div className="flex items-center gap-3 mb-4 text-white">
+                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                    <TrendingUp size={20} className="text-white" />
+                </div>
+                <div>
+                    <h2 className="text-lg font-black uppercase tracking-tight leading-none">{t.analysisTitle}</h2>
+                    <p className="text-[10px] text-blue-100 font-medium opacity-80">{t.aiSubtitle}</p>
+                </div>
+            </div>
+
             <AIAnalystWidget 
                 currentUser={currentUser}
                 combinedStats={combinedStats}
                 nextMatches={displayMatches.slice(0, 3)}
                 allPredictions={allPredictions}
                 lang={lang}
+                currentLang={currentLang}
                 teams={teams}
             />
         </div>
@@ -254,6 +274,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                                 allPredictions={allPredictions}
                                 userBracketData={userBracketData}
                                 lang={lang}
+                                currentLang={currentLang}
                                 groupStandings={standings}
                                 teams={teams}
                                 qualifiedThirdsSet={qualifiedThirdsSet}
