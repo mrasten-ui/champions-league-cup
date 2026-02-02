@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation } from '../../types'; // Note the ../.. path
+import { UserProfile, Match, Prediction, Team, Translation } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, Flame, RefreshCw, BrainCircuit } from 'lucide-react';
@@ -32,7 +32,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myRank = myStat?.rank || 99;
             const rivalAbove = combinedStats.find(s => s.rank === myRank - 1);
             
-            // Find a "Conflict Match" (where I predict X and Rival predicts Y)
+            // Find a "Conflict Match"
             let conflictText = "predictions align closely with your rivals";
             let keyMatch = null;
 
@@ -95,8 +95,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
-            setAnalysis(response.response.text());
+            // FIX: Removed .response accessor.
+            setAnalysis(response.text());
         } catch (e) {
+            console.error("AI Error:", e);
             setAnalysis("The tactical computer is overheating... try again later.");
         } finally {
             setLoading(false);

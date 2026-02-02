@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation, GroupStanding } from '../../types'; // Note ../..
+import { UserProfile, Match, Prediction, Team, Translation, GroupStanding } from '../../types'; 
 import { getSlotSource } from '../../utils/bracketHelpers';
 import { AvatarDisplay } from '../AvatarDisplay';
-import { ChevronUp, ChevronDown, Check, Trophy } from 'lucide-react';
+// FIX: Added 'Calculator' to imports
+import { ChevronUp, ChevronDown, Check, Trophy, Calculator } from 'lucide-react';
 
 // --- SUB-COMPONENTS (Internal to this file) ---
 
@@ -170,8 +171,8 @@ export const SimRow: React.FC<{
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     
     const isSimulated = !!sim;
-    const isKnockout = !match.groupId;
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isKnockout = !match.groupId;
     
     // TBD Sources
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
@@ -211,7 +212,7 @@ export const SimRow: React.FC<{
                     else d.push({ u, label, status });
                 }
             } else {
-                // KNOCKOUT
+                // KNOCKOUT: Visual Confirmation Logic
                 const userBracket = userBracketData.get(u.email);
                 const userMatchState = userBracket ? userBracket[match.id] : null;
 
@@ -220,24 +221,29 @@ export const SimRow: React.FC<{
                     const userAwayTeam = teams[userMatchState.away];
                     const userWinnerId = userMatchState.winner;
 
+                    // CHECK HOME SLOT
                     if (home) {
+                        // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
                             h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
+                        // TBD: Show user's HOME slot team if simulated
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
                             h.push({ u, label: userHomeTeam.code, status: picksWin ? 'exact' : 'neutral' });
                         }
                     }
 
+                    // CHECK AWAY SLOT
                     if (away) {
                         if (userMatchState.home === away.id || userMatchState.away === away.id) {
                             const picksWin = userWinnerId === away.id;
                             a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
+                        // TBD
                         if (userAwayTeam) {
                             const picksWin = userWinnerId === userAwayTeam.id;
                             a.push({ u, label: userAwayTeam.code, status: picksWin ? 'exact' : 'neutral' });
