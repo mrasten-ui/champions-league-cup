@@ -104,7 +104,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = TEXT[langKey];
 
-    // --- AUDIO GENERATION (Using Gemini 2.5 Backend) ---
+    // --- AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
         const processedLines = [...lines];
@@ -112,12 +112,12 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
             try {
-                // Pass 'Host' or 'Pundit' to backend. 
-                // The Backend will map 'Pundit' to the "Deep Scottish Accent" style prompt.
+                // Fetch audio from our new backend function
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
-                        speaker_type: line.speaker // "Host" or "Pundit"
+                        speaker_type: line.speaker,
+                        lang: langKey 
                     }
                 });
 
@@ -217,12 +217,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     model: 'gemini-2.0-flash',
                     contents: [{ role: 'user', parts: [{ text: prompt }] }]
                 });
+                
                 const responseData: any = response; 
                 const text = typeof responseData.text === 'function' ? responseData.text() : responseData.text;
                 setAnalysis(text);
                 setLoading(false);
 
             } else {
+                // GENERATE SCRIPT JSON
                 const prompt = `
                     Context: Football Pundit Show regarding ${currentUser.name} (Rank #${myRank}).
                     Rival: ${rivalAbove ? rivalAbove.user.name : "Top 1"}.
@@ -232,7 +234,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Language: ${t.promptLang}.
                     
                     Characters:
-                    - HOST: Sets up the context.
+                    - HOST: Sets up the question calmly.
                     - PUNDIT: Loud, opinionated, uses heavy slang/dialect appropriate for ${t.promptLang}.
                     
                     Format: JSON Array: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
@@ -293,7 +295,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 {mode === 'roast' && script && (
                     <div className="flex items-center gap-2">
                         {isAudioLoading ? (
-                            <RefreshCw size={14} className="animate-spin text-orange-200" />
+                            <div className="flex items-center gap-2 text-[10px] text-orange-200">
+                                <RefreshCw size={12} className="animate-spin" /> {t.loading}
+                            </div>
                         ) : isPlaying ? (
                             <button onClick={() => { setIsPlaying(false); audioRef.current?.pause(); }} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
@@ -336,7 +340,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                 </div>
                             );
                         })}
-                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Generating audio...</div>}
                     </div>
                 )}
             </div>
