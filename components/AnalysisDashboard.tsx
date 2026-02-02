@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
-import { calculatePoints } from '../services/engine';
+import React, { useState, useMemo } from 'react';
+import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
+import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
-import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, ArrowRight, Activity, Clock, Calendar, AlertTriangle, Flame, Target, MessageSquareQuote, ChevronRight, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, AlertTriangle, Flame, Target, MessageSquareQuote, ChevronRight, Users, Calendar } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../constants';
 
@@ -57,7 +57,6 @@ const WinnerButton: React.FC<{
     </button>
 );
 
-// --- NEW: COMPACT PREDICTION PILL ---
 const PredictionPill: React.FC<{
     user: UserProfile;
     pred: Prediction;
@@ -69,7 +68,6 @@ const PredictionPill: React.FC<{
 }> = ({ user, pred, simHome, simAway, isMe, onSelect, align }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Color Logic (Traffic Light)
     const getStatusColor = () => {
         const predWinner = pred.home > pred.away ? 'H' : pred.home < pred.away ? 'A' : 'D';
         const simWinner = simHome > simAway ? 'H' : simHome < simAway ? 'A' : 'D';
@@ -77,9 +75,9 @@ const PredictionPill: React.FC<{
         const isExact = pred.home === simHome && pred.away === simAway;
         const isCorrectResult = predWinner === simWinner;
 
-        if (isExact) return 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200'; // Exact
-        if (isCorrectResult) return 'bg-blue-50 text-blue-700 border-blue-200'; // Correct Result
-        return 'bg-slate-50 text-slate-400 border-slate-100'; // Wrong
+        if (isExact) return 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
+        if (isCorrectResult) return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-slate-50 text-slate-400 border-slate-100';
     };
 
     let baseClass = getStatusColor();
@@ -87,8 +85,8 @@ const PredictionPill: React.FC<{
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onSelect(); // Updates simulation
-        setIsExpanded(!isExpanded); // Toggles name view
+        onSelect();
+        setIsExpanded(!isExpanded);
     };
 
     return (
@@ -102,17 +100,50 @@ const PredictionPill: React.FC<{
             title={`${user.name}: ${pred.home}-${pred.away}`}
         >
             <AvatarDisplay avatar={user.avatar} size="xs" className="w-4 h-4 rounded-full bg-white shadow-sm" />
-            
-            {isExpanded && (
-                <span className="truncate max-w-[60px] animate-in fade-in zoom-in duration-200">
-                    {user.name.split(' ')[0]}
-                </span>
-            )}
-            
-            <span className={`font-black ${isExpanded ? 'text-[10px]' : ''}`}>
-                {pred.home}-{pred.away}
-            </span>
+            {isExpanded && <span className="truncate max-w-[60px] animate-in fade-in zoom-in duration-200">{user.name.split(' ')[0]}</span>}
+            <span className={`font-black ${isExpanded ? 'text-[10px]' : ''}`}>{pred.home}-{pred.away}</span>
         </button>
+    );
+};
+
+const StandingsStrip: React.FC<{
+    standings: GroupStanding[];
+    teams: Record<string, Team>;
+    qualifiedThirdsSet: Set<string>;
+}> = ({ standings, teams, qualifiedThirdsSet }) => {
+    return (
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 w-full">
+            {standings.map((row, index) => {
+                const rank = index + 1;
+                let badgeColor = 'bg-slate-800/50 text-slate-300 border-slate-600/50'; 
+                let rankIndicator = null;
+
+                if (rank <= 2) {
+                    badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm';
+                } else if (rank === 3) {
+                    if (qualifiedThirdsSet.has(row.teamId)) {
+                        badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400 shadow-sm';
+                        rankIndicator = <span className="text-[8px] font-black bg-white/20 px-1 rounded ml-1">Q</span>;
+                    } else {
+                        badgeColor = 'bg-slate-600 text-slate-300 border-slate-500 opacity-80';
+                        rankIndicator = <span className="text-[8px] font-bold text-red-300 ml-1">X</span>;
+                    }
+                }
+
+                const teamName = teams[row.teamId]?.name || row.teamId;
+                const teamCode = teamName.substring(0,3).toUpperCase();
+
+                return (
+                    <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
+                        <span className="text-[9px] font-black">{rank}.</span>
+                        <img src={teams[row.teamId]?.flag} className="w-4 h-3 object-cover rounded shadow-sm" alt="" />
+                        <span className="text-[9px] font-bold">{teamCode}</span>
+                        <span className="text-[9px] font-black opacity-80 border-l border-white/20 pl-1.5 ml-0.5">{row.pts}p</span>
+                        {rankIndicator}
+                    </div>
+                );
+            })}
+        </div>
     );
 };
 
@@ -126,7 +157,10 @@ const SimRow: React.FC<{
     rivals: UserProfile[];
     allPredictions: Prediction[];
     lang: Translation;
-}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, lang }) => {
+    groupStandings?: GroupStanding[];
+    teams: Record<string, Team>;
+    qualifiedThirdsSet: Set<string>;
+}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     
@@ -151,43 +185,46 @@ const SimRow: React.FC<{
     }, [currentUser, rivals, allPredictions, match.id]);
 
     return (
-        <div className={`bg-white rounded-2xl border shadow-sm p-3 transition-all duration-300 flex flex-col gap-3 ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
-            <div className="flex justify-between items-center border-b border-slate-50 pb-2">
-                <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    {isLive ? <span className="text-red-500 animate-pulse">● LIVE</span> : <span>{new Date(match.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>}
-                    <span className="text-slate-200">|</span>
-                    <span>{match.groupId ? `Group ${match.groupId}` : match.round}</span>
+        <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 flex flex-col ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
+            
+            {/* PURPLE HEADER WITH TABLE */}
+            <div className="bg-[#2e1065] p-3 border-b border-purple-900/50 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2 text-[9px] font-black text-purple-200 uppercase tracking-widest">
+                        {isLive ? <span className="text-red-400 animate-pulse">● LIVE</span> : <span>{new Date(match.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>}
+                        <span className="text-purple-700">|</span>
+                        <span>{match.groupId ? `Group ${match.groupId}` : match.round}</span>
+                    </div>
+                    {isSimulated && (
+                        <div className="flex items-center gap-1 text-[8px] font-black text-[#2e1065] bg-purple-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            <Calculator size={8} /> Sim
+                        </div>
+                    )}
                 </div>
-                {isSimulated && <div className="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1"><Calculator size={8} /> Sim</div>}
+                
+                {/* Embed Standings Strip if Group Match */}
+                {groupStandings && (
+                    <StandingsStrip standings={groupStandings} teams={teams} qualifiedThirdsSet={qualifiedThirdsSet} />
+                )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-                {/* LEFT: HOME PREDICTIONS */}
+            {/* MATCH CONTENT */}
+            <div className="p-3 grid grid-cols-3 gap-2">
+                {/* LEFT: HOME */}
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
                         <img src={home?.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
                         <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight">{home?.name}</span>
                     </div>
                     {isKnockout && <WinnerButton team={home} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} />}
-                    
-                    {/* Compact Pills Stack */}
                     <div className="flex flex-wrap content-start gap-1.5 mt-1">
                         {homePreds.map(item => (
-                            <PredictionPill 
-                                key={item.u.email} 
-                                user={item.u} 
-                                pred={item.p} 
-                                simHome={hVal} 
-                                simAway={aVal} 
-                                isMe={item.u.email === currentUser.email}
-                                onSelect={() => onUpdate(item.p.home, item.p.away)}
-                                align="left"
-                            />
+                            <PredictionPill key={item.u.email} user={item.u} pred={item.p} simHome={hVal} simAway={aVal} isMe={item.u.email === currentUser.email} onSelect={() => onUpdate(item.p.home, item.p.away)} align="left" />
                         ))}
                     </div>
                 </div>
 
-                {/* CENTER: SCORE / DRAW */}
+                {/* CENTER: SCORE */}
                 <div className="flex flex-col gap-2 items-center">
                     {isKnockout ? (
                         <div className="flex items-center justify-center h-full pb-8"><span className="text-xs font-black text-slate-300">VS</span></div>
@@ -198,47 +235,26 @@ const SimRow: React.FC<{
                             <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} isSimulated={isSimulated} />
                         </div>
                     )}
-                    
                     {!isKnockout && (
                         <div className="flex flex-wrap justify-center gap-1.5 w-full mt-1">
                             {drawPreds.length > 0 && <div className="h-px bg-slate-100 w-full my-0.5"></div>}
                             {drawPreds.map(item => (
-                                <PredictionPill 
-                                    key={item.u.email} 
-                                    user={item.u} 
-                                    pred={item.p} 
-                                    simHome={hVal} 
-                                    simAway={aVal} 
-                                    isMe={item.u.email === currentUser.email}
-                                    onSelect={() => onUpdate(item.p.home, item.p.away)}
-                                    align="center"
-                                />
+                                <PredictionPill key={item.u.email} user={item.u} pred={item.p} simHome={hVal} simAway={aVal} isMe={item.u.email === currentUser.email} onSelect={() => onUpdate(item.p.home, item.p.away)} align="center" />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* RIGHT: AWAY PREDICTIONS */}
+                {/* RIGHT: AWAY */}
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
                         <img src={away?.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
                         <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight">{away?.name}</span>
                     </div>
                     {isKnockout && <WinnerButton team={away} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} />}
-                    
-                    {/* Compact Pills Stack (Right Aligned) */}
                     <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
                         {awayPreds.map(item => (
-                            <PredictionPill 
-                                key={item.u.email} 
-                                user={item.u} 
-                                pred={item.p} 
-                                simHome={hVal} 
-                                simAway={aVal} 
-                                isMe={item.u.email === currentUser.email}
-                                onSelect={() => onUpdate(item.p.home, item.p.away)}
-                                align="right"
-                            />
+                            <PredictionPill key={item.u.email} user={item.u} pred={item.p} simHome={hVal} simAway={aVal} isMe={item.u.email === currentUser.email} onSelect={() => onUpdate(item.p.home, item.p.away)} align="right" />
                         ))}
                     </div>
                 </div>
@@ -247,7 +263,7 @@ const SimRow: React.FC<{
     );
 };
 
-// --- SIMULATED STANDINGS WIDGET (Multi-Column) ---
+// --- SIMULATED STANDINGS WIDGET ---
 
 const SimulatedLeaderboardWidget: React.FC<{
     simulatedUsers: { user: UserProfile, score: number, diff: number, rank: number }[];
@@ -256,7 +272,6 @@ const SimulatedLeaderboardWidget: React.FC<{
 }> = ({ simulatedUsers, currentUser, lang }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Split users into chunks of 10
     const chunkedUsers = useMemo(() => {
         const chunks = [];
         for (let i = 0; i < simulatedUsers.length; i += 10) {
@@ -269,11 +284,7 @@ const SimulatedLeaderboardWidget: React.FC<{
 
     return (
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-lg">
-            {/* Header / Toggle Bar */}
-            <div 
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-            >
+            <div onClick={() => setIsExpanded(!isExpanded)} className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex flex-col">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lang.simulatedRank || "Simulated Rank"}</span>
                     <div className="flex items-center gap-2">
@@ -288,14 +299,11 @@ const SimulatedLeaderboardWidget: React.FC<{
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">
-                        {isExpanded ? "Hide Table" : "Full Table"}
-                    </span>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">{isExpanded ? "Hide Table" : "Full Table"}</span>
                     {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                 </div>
             </div>
 
-            {/* Expanded Table (Multi-Column Horizontal Scroll) */}
             {isExpanded && (
                 <div className="border-t border-slate-100 animate-in slide-in-from-top-2 bg-slate-50/50">
                     <div className="flex overflow-x-auto snap-x snap-mandatory p-4 gap-4 no-scrollbar">
@@ -310,9 +318,7 @@ const SimulatedLeaderboardWidget: React.FC<{
                                             const isMe = row.user.email === currentUser.email;
                                             return (
                                                 <tr key={row.user.email} className={isMe ? 'bg-blue-50' : ''}>
-                                                    <td className="px-3 py-2 text-center font-black text-slate-400 w-8">
-                                                        {row.rank}
-                                                    </td>
+                                                    <td className="px-3 py-2 text-center font-black text-slate-400 w-8">{row.rank}</td>
                                                     <td className="px-2 py-2 font-bold text-slate-700 flex items-center gap-2">
                                                         <AvatarDisplay avatar={row.user.avatar} size="xs" className="w-5 h-5" />
                                                         <span className={`truncate max-w-[120px] ${isMe ? 'text-blue-700' : ''}`}>{row.user.name}</span>
@@ -321,9 +327,7 @@ const SimulatedLeaderboardWidget: React.FC<{
                                                     <td className="px-3 py-2 text-right font-black text-slate-900">
                                                         {row.score}
                                                         {row.diff !== 0 && (
-                                                            <span className={`ml-1 text-[8px] ${row.diff > 0 ? 'text-green-500' : 'text-red-400'}`}>
-                                                                {row.diff > 0 ? '▲' : '▼'}
-                                                            </span>
+                                                            <span className={`ml-1 text-[8px] ${row.diff > 0 ? 'text-green-500' : 'text-red-400'}`}>{row.diff > 0 ? '▲' : '▼'}</span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -334,14 +338,9 @@ const SimulatedLeaderboardWidget: React.FC<{
                             </div>
                         ))}
                     </div>
-                    {/* Horizontal Scroll Hint */}
                     {chunkedUsers.length > 1 && (
                         <div className="flex justify-center pb-2">
-                            <div className="flex gap-1">
-                                {chunkedUsers.map((_, i) => (
-                                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                                ))}
-                            </div>
+                            <div className="flex gap-1">{chunkedUsers.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>)}</div>
                         </div>
                     )}
                 </div>
@@ -351,17 +350,6 @@ const SimulatedLeaderboardWidget: React.FC<{
 };
 
 // --- MAIN DASHBOARD ---
-
-interface AnalysisDashboardProps {
-  currentUser: UserProfile;
-  rivals: UserProfile[];
-  matches: Match[];
-  allPredictions: Prediction[];
-  teams: Record<string, Team>;
-  lang: Translation;
-  currentLang: LanguageCode;
-  onTeamClick?: (id: string) => void;
-}
 
 export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   currentUser,
@@ -374,47 +362,43 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   onTeamClick
 }) => {
   const [simulation, setSimulation] = useState<Record<string, { home: number, away: number }>>({});
-  
-  // Date Logic
   const todayStr = new Date().toDateString();
   const [filterDate, setFilterDate] = useState<string>(todayStr);
-
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeAnalysisType, setActiveAnalysisType] = useState<string | null>(null);
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // 1. Calculate Standings
-  const stats = useMemo(() => {
+  // 1. SIMULATION ENGINE (Matches + Standings)
+  const { combinedStats, simulatedMatches, qualifiedThirdsSet } = useMemo(() => {
+      // Create a "Simulated World" array of matches
+      const simMatches = matches.map(m => {
+          const sim = simulation[m.id];
+          if (sim) return { ...m, homeScore: sim.home, awayScore: sim.away, status: 'FINISHED' };
+          return m;
+      });
+
+      // Calculate Global Points
       const livePoints: Record<string, number> = {};
       const simPoints: Record<string, number> = {};
-      
       allUsers.forEach(u => { livePoints[u.email] = 0; simPoints[u.email] = 0; });
 
-      matches.forEach(m => {
-          const sim = simulation[m.id];
-          const hasRealScore = m.homeScore !== null && m.awayScore !== null;
-          
-          let effHome = hasRealScore ? m.homeScore : null;
-          let effAway = hasRealScore ? m.awayScore : null;
-          
-          if (sim) { effHome = sim.home; effAway = sim.away; }
+      simMatches.forEach(m => {
+          const hasRealScore = matches.find(rm => rm.id === m.id)?.homeScore !== null;
+          const hasSimScore = m.homeScore !== null && m.homeScore !== undefined;
 
           allUsers.forEach(u => {
               const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
               if (pred) {
-                  if (hasRealScore) {
-                      livePoints[u.email] += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, u.hasTakenSecondChance, m.round);
-                  }
-                  if (effHome !== null && effAway !== null) {
-                      simPoints[u.email] += calculatePoints(pred.home, pred.away, effHome, effAway, u.hasTakenSecondChance, m.round);
-                  }
+                  // Live: only count purely real results
+                  if (hasRealScore) livePoints[u.email] += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, u.hasTakenSecondChance, m.round);
+                  // Sim: count real or simulated
+                  if (hasSimScore) simPoints[u.email] += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, u.hasTakenSecondChance, m.round);
               }
           });
       });
 
-      // Generate Sorted List for Table
       const sortUsers = (pointsMap: Record<string, number>) => 
           [...allUsers].sort((a,b) => pointsMap[b.email] - pointsMap[a.email]);
 
@@ -428,18 +412,23 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
               user: u,
               score: simPoints[u.email],
               rank: simRank,
-              diff: liveRank - simRank // + means improvement
+              diff: liveRank - simRank 
           };
       });
 
-      return combinedStats;
-  }, [matches, simulation, allPredictions, allUsers]);
+      // Calculate 3rd place qualifiers for the badges in the embedded table
+      const allGroupStandings = getAllGroupStandings(simMatches, teams);
+      const thirds = getThirdPlaceStandings(allGroupStandings);
+      const qualifiedThirdsSet = new Set(thirds.slice(0, 8).map(t => t.teamId));
 
-  // 2. Date Filtering (Next 48h or All)
+      return { combinedStats, simulatedMatches: simMatches, qualifiedThirdsSet };
+  }, [matches, simulation, allPredictions, allUsers, teams]);
+
+  // 2. Date Filtering
   const uniqueDates = useMemo(() => {
       const dates = new Set<string>();
       const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 3); // "Go back only 3 days"
+      cutoff.setDate(cutoff.getDate() - 3); 
 
       matches.forEach(m => {
           if (m.date && m.date !== 'TBD') {
@@ -452,16 +441,12 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const displayMatches = useMemo(() => {
       let filtered = matches.filter(m => m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD');
-      
-      // Filter by Selected Date (from Ribbon)
       if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
       } else {
-          // If 'ALL', show upcoming
           const now = Date.now();
           filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
       }
-
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, filterDate]);
 
@@ -480,11 +465,11 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
           const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
           const ai = new GoogleGenAI({ apiKey });
           
-          const myStat = stats.find(s => s.user.email === currentUser.email);
+          const myStat = combinedStats.find(s => s.user.email === currentUser.email);
           const rank = myStat?.rank || 99;
 
           const promptMap = {
-              opportunity: `Tell this football fan (Rank #${rank}) best case scenario for upcoming games. Optimistic. Max 30 words.`,
+              opportunity: `Tell this football fan (Rank #${rank}) best case scenario. Optimistic. Max 30 words.`,
               pitfall: `Warn this fan (Rank #${rank}) about a dangerous match. Pessimistic. Max 30 words.`,
               realistic: `Give realistic projection for user at Rank #${rank}. Max 30 words.`,
               roast: `Roast this user for being Rank #${rank}. Be mean/funny. Max 30 words.`
@@ -519,88 +504,60 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                 </div>
             </div>
             
-            {/* AI BUTTONS */}
             <div className="grid grid-cols-4 gap-2 mt-4">
-                <button onClick={() => handleAnalysis('opportunity')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
-                    <TrendingUp size={14} className="text-green-300" />
-                    <span className="text-[8px] font-bold uppercase">Best Case</span>
-                </button>
-                <button onClick={() => handleAnalysis('pitfall')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
-                    <AlertTriangle size={14} className="text-red-300" />
-                    <span className="text-[8px] font-bold uppercase">Worst Case</span>
-                </button>
-                <button onClick={() => handleAnalysis('realistic')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
-                    <Target size={14} className="text-blue-300" />
-                    <span className="text-[8px] font-bold uppercase">Realistic</span>
-                </button>
-                <button onClick={() => handleAnalysis('roast')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
-                    <Flame size={14} className="text-orange-300" />
-                    <span className="text-[8px] font-bold uppercase">Roast Me</span>
-                </button>
+                <button onClick={() => handleAnalysis('opportunity')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all"><TrendingUp size={14} className="text-green-300" /><span className="text-[8px] font-bold uppercase">Best Case</span></button>
+                <button onClick={() => handleAnalysis('pitfall')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all"><AlertTriangle size={14} className="text-red-300" /><span className="text-[8px] font-bold uppercase">Worst Case</span></button>
+                <button onClick={() => handleAnalysis('realistic')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all"><Target size={14} className="text-blue-300" /><span className="text-[8px] font-bold uppercase">Realistic</span></button>
+                <button onClick={() => handleAnalysis('roast')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all"><Flame size={14} className="text-orange-300" /><span className="text-[8px] font-bold uppercase">Roast Me</span></button>
             </div>
 
-            {/* AI RESULT */}
             {(isAnalyzing || analysisResult) && (
                 <div className="mt-3 bg-white/10 border border-white/10 rounded-xl p-3 backdrop-blur-sm animate-in fade-in slide-in-from-top-1">
                     <div className="flex gap-2 items-start">
                         {isAnalyzing ? <RefreshCw size={14} className="animate-spin mt-0.5" /> : <MessageSquareQuote size={14} className="mt-0.5" />}
-                        <p className="text-xs font-medium leading-relaxed italic opacity-90">
-                            {isAnalyzing ? "Analysing scenarios..." : `"${analysisResult}"`}
-                        </p>
+                        <p className="text-xs font-medium leading-relaxed italic opacity-90">{isAnalyzing ? "Analysing scenarios..." : `"${analysisResult}"`}</p>
                     </div>
                 </div>
             )}
         </div>
 
-        {/* DATE RIBBON */}
-        <DateRibbon 
-            dates={uniqueDates} 
-            selectedDate={filterDate} 
-            onDateSelect={setFilterDate} 
-            lang={lang} 
-        />
+        <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} />
 
-        {/* STICKY SIMULATED TABLE */}
-        <SimulatedLeaderboardWidget 
-            simulatedUsers={stats} 
-            currentUser={currentUser} 
-            lang={lang} 
-        />
+        <SimulatedLeaderboardWidget simulatedUsers={combinedStats} currentUser={currentUser} lang={lang} />
 
-        {/* SCENARIO STACK */}
         <div className="flex-1 p-4 space-y-4 pb-20">
             {Object.keys(simulation).length > 0 && (
                 <div className="flex justify-end mb-2">
-                    <button 
-                        onClick={() => setSimulation({})}
-                        className="flex items-center gap-1 text-[10px] font-bold text-purple-500 uppercase tracking-widest hover:text-purple-600 bg-purple-50 px-2 py-1 rounded-lg"
-                    >
-                        <RefreshCw size={12} /> Reset Simulation
-                    </button>
+                    <button onClick={() => setSimulation({})} className="flex items-center gap-1 text-[10px] font-bold text-purple-500 uppercase tracking-widest hover:text-purple-600 bg-purple-50 px-2 py-1 rounded-lg"><RefreshCw size={12} /> Reset Simulation</button>
                 </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {displayMatches.length > 0 ? (
-                    displayMatches.map(match => (
-                        <SimRow 
-                            key={match.id}
-                            match={match}
-                            home={teams[match.homeTeamId]}
-                            away={teams[match.awayTeamId]}
-                            sim={simulation[match.id]}
-                            onUpdate={(h, a) => updateSim(match.id, h, a)}
-                            currentUser={currentUser}
-                            rivals={rivals}
-                            allPredictions={allPredictions}
-                            lang={lang}
-                        />
-                    ))
+                    displayMatches.map(match => {
+                        // Calculate Live Standings for this specific group/match context
+                        const standings = match.groupId ? calculateGroupStandings(match.groupId, simulatedMatches, teams) : undefined;
+                        
+                        return (
+                            <SimRow 
+                                key={match.id}
+                                match={match}
+                                home={teams[match.homeTeamId]}
+                                away={teams[match.awayTeamId]}
+                                sim={simulation[match.id]}
+                                onUpdate={(h, a) => updateSim(match.id, h, a)}
+                                currentUser={currentUser}
+                                rivals={rivals}
+                                allPredictions={allPredictions}
+                                lang={lang}
+                                groupStandings={standings}
+                                teams={teams}
+                                qualifiedThirdsSet={qualifiedThirdsSet}
+                            />
+                        );
+                    })
                 ) : (
-                    <div className="col-span-full text-center py-12 opacity-50">
-                        <Calendar size={48} className="mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm font-bold text-slate-400">No matches on this date.</p>
-                    </div>
+                    <div className="col-span-full text-center py-12 opacity-50"><Calendar size={48} className="mx-auto mb-2 text-slate-300" /><p className="text-sm font-bold text-slate-400">No matches on this date.</p></div>
                 )}
             </div>
         </div>
