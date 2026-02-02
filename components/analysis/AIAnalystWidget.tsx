@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation } from '../../types'; 
+import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, Flame, RefreshCw, BrainCircuit } from 'lucide-react';
 
 interface AIAnalystProps {
     currentUser: UserProfile;
-    combinedStats: { user: UserProfile, score: number, rank: number }[];
+    // Updated to include 'diff' to match AnalysisDashboard data
+    combinedStats: { user: UserProfile, score: number, rank: number, diff: number }[];
     nextMatches: Match[];
     allPredictions: Prediction[];
     lang: Translation;
+    currentLang: LanguageCode; // Added this required prop
     teams: Record<string, Team>;
 }
 
@@ -80,14 +82,14 @@ const resolveLanguage = (code: string): string => {
     return 'en';
 };
 
-export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, teams }) => {
+export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, currentLang, teams }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     const hasFetched = useRef(false);
 
-    // Force correct dictionary based on lang.langCode
-    const langKey = resolveLanguage(lang.langCode || 'EN');
+    // Force correct dictionary based on currentLang
+    const langKey = resolveLanguage(currentLang || 'EN');
     const t = TEXT[langKey];
 
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
