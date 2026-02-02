@@ -1,13 +1,12 @@
-
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
 import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
-import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, Target, ChevronLeft, ChevronRight, Activity, Clock, RefreshCw, Calendar, Check, Sparkles, AlertTriangle, Flame, MessageSquareQuote, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Minus, Trophy, ArrowRight, Activity, Clock, Calendar, AlertTriangle, Flame, Target, MessageSquareQuote, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../constants';
 
-// --- SUB-COMPONENTS  ---
+// --- SUB-COMPONENTS ---
 
 const ScoreStepper: React.FC<{ 
     value: number; 
@@ -39,55 +38,7 @@ const ScoreStepper: React.FC<{
   );
 };
 
-const WinnerButton: React.FC<{
-    team: Team;
-    isWinner: boolean;
-    onClick: () => void;
-    lang: Translation;
-    onTeamClick?: (id: string) => void;
-}> = ({ team, isWinner, onClick, lang, onTeamClick }) => {
-    return (
-        <div className={`relative flex flex-col items-center justify-center w-24 h-28 ${isWinner ? 'transform scale-105 z-10' : ''}`}>
-            <button
-                onClick={onClick}
-                className={`w-full h-full flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${
-                    isWinner 
-                        ? 'bg-green-50 border-green-500 shadow-md' 
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-            >
-                {isWinner && (
-                    <div className="mb-1 text-green-600 bg-green-100 rounded-full p-0.5">
-                        <Check size={12} strokeWidth={4} />
-                    </div>
-                )}
-                
-                {/* Visual Flag Display (Clickable for Intel) */}
-                <div 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (onTeamClick) onTeamClick(team.id);
-                        else onClick();
-                    }}
-                    className={`w-10 h-7 rounded overflow-hidden shadow-sm border border-slate-100 mb-2 relative ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                >
-                    <img src={team?.flag} alt={team?.name} className="w-full h-full object-cover" />
-                    {team?.rank && (
-                        <div className="absolute -bottom-1 -right-1 bg-[#0f2545] text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-white">
-                            {team.rank}
-                        </div>
-                    )}
-                </div>
-                
-                <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-tight ${isWinner ? 'text-green-800' : 'text-slate-600'}`}>
-                    {team?.name || 'TBD'}
-                </span>
-            </button>
-        </div>
-    );
-};
-
-const SimulationCard: React.FC<{
+const SimRow: React.FC<{
     match: Match;
     home: Team;
     away: Team;
@@ -97,176 +48,171 @@ const SimulationCard: React.FC<{
     rivals: UserProfile[];
     allPredictions: Prediction[];
     lang: Translation;
-    onTeamClick?: (id: string) => void;
-}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, lang, onTeamClick }) => {
-    // State Logic
-    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
-    const isFinished = ['FINISHED', 'FT'].includes(match.status);
-    const isLocked = isLive || isFinished;
-    const isModified = !!sim;
-
-    // Determine Mode: Score (Groups/R32) vs Winner (Knockout R16+)
-    const isScoreMode = !match.round || match.round === 'R32';
-
-    // Values
+}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, lang }) => {
+    // Current Values (Real or Simulated)
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
+    
+    // Derived States
+    const isSimulated = !!sim;
+    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isFinished = ['FINISHED', 'FT'].includes(match.status);
+    
+    // Quick Actions
+    const setHomeWin = () => onUpdate(Math.max(hVal, aVal + 1), aVal);
+    const setDraw = () => onUpdate(Math.max(hVal, 1), Math.max(hVal, 1)); 
+    const setAwayWin = () => onUpdate(hVal, Math.max(aVal, hVal + 1));
 
-    // Winner Logic for Buttons
-    const homeWin = hVal > aVal;
-    const awayWin = aVal > hVal;
+    // --- RIVAL SORTING LOGIC ---
+    const { homePreds, drawPreds, awayPreds } = useMemo(() => {
+        const h: { u: UserProfile, p: Prediction }[] = [];
+        const d: { u: UserProfile, p: Prediction }[] = [];
+        const a: { u: UserProfile, p: Prediction }[] = [];
 
-    const handleFlagClick = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        if (onTeamClick) onTeamClick(id);
+        // Combine Rivals AND Current User for the view
+        [currentUser, ...rivals].forEach(u => {
+            const p = allPredictions.find(pred => pred.userId === u.email && pred.matchId === match.id);
+            if (p) {
+                if (p.home > p.away) h.push({ u, p });
+                else if (p.away > p.home) a.push({ u, p });
+                else d.push({ u, p });
+            }
+        });
+        return { homePreds: h, drawPreds: d, awayPreds: a };
+    }, [currentUser, rivals, allPredictions, match.id]);
+
+    // Helper to render a prediction pill
+    const renderPill = (item: { u: UserProfile, p: Prediction }) => {
+        const { u, p } = item;
+        const isMe = u.email === currentUser.email;
+        
+        // Traffic Light Logic (Green = Exact, Blue = Correct Winner, Red = Wrong)
+        let statusColor = 'bg-red-50 text-red-700 border-red-100 opacity-80'; 
+        
+        const predHomeWin = p.home > p.away;
+        const predAwayWin = p.away > p.home;
+        const predDraw = p.home === p.away;
+
+        const simHomeWin = hVal > aVal;
+        const simAwayWin = aVal > hVal;
+        const simDraw = hVal === aVal;
+
+        const isExact = p.home === hVal && p.away === aVal;
+        const isCorrectResult = (predHomeWin && simHomeWin) || (predAwayWin && simAwayWin) || (predDraw && simDraw);
+
+        if (isExact) statusColor = 'bg-green-100 text-green-800 border-green-300 shadow-sm';
+        else if (isCorrectResult) statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+
+        if (isMe) statusColor += ' ring-1 ring-offset-1 ring-slate-400';
+
+        return (
+            <button
+                key={u.email}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdate(p.home, p.away); // CLICK TO SIMULATE THIS SCORE
+                }}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-[9px] font-bold transition-all hover:scale-105 active:scale-95 ${statusColor}`}
+                title={`Set simulation to ${p.home}-${p.away}`}
+            >
+                <AvatarDisplay avatar={u.avatar} size="xs" className="w-3.5 h-3.5" />
+                <span className="truncate max-w-[50px]">{u.name}</span>
+                <span className="font-black ml-0.5">{p.home}-{p.away}</span>
+            </button>
+        );
     };
 
     return (
-        <div className={`bg-white rounded-2xl border shadow-sm relative flex flex-col h-full snap-center shrink-0 w-[85vw] md:w-[22rem] transition-all ${isModified ? 'border-blue-400 ring-2 ring-blue-50' : 'border-slate-200'}`}>
-            {/* Header */}
-            <div className="px-3 py-2 border-b border-slate-50 flex items-center justify-between bg-slate-50/30 rounded-t-2xl">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className={`bg-white rounded-xl border shadow-sm p-3 transition-all duration-300 ${isSimulated ? 'border-blue-400 ring-1 ring-blue-50' : 'border-slate-200'}`}>
+            
+            {/* 1. Header: Time & Context */}
+            <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isLive ? (
-                        <span className="text-red-500 flex items-center gap-1 animate-pulse"><Activity size={10} /> {lang.live}</span>
-                    ) : isFinished ? (
-                        <span className="flex items-center gap-1"><Clock size={10} /> {lang.ft}</span>
+                        <span className="text-red-500 animate-pulse">● LIVE</span>
                     ) : (
-                        <span>{new Date(match.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <span>{new Date(match.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     )}
-                    {match.groupId ? <span>• Grp {match.groupId}</span> : <span>• {match.round}</span>}
+                    <span className="text-slate-300">•</span>
+                    <span>{match.groupId ? `Group ${match.groupId}` : match.round}</span>
                 </div>
-                {isModified && (
-                    <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">
-                        Simulated
-                    </div>
-                )}
             </div>
 
-            {/* Body */}
-            <div className="p-4 flex items-center justify-between gap-2 flex-1">
-                {isScoreMode ? (
-                    <>
-                        {/* Home */}
-                        <div className="flex-1 flex flex-col items-center gap-2">
-                            <div 
-                                onClick={(e) => handleFlagClick(e, home?.id)}
-                                className={`relative w-16 h-12 rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-white ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                            >
-                                <img src={home?.flag} alt={home?.name} className="w-full h-full object-cover" />
-                            </div>
-                            <span className="text-xs font-black text-slate-700 uppercase text-center leading-tight truncate w-full">{home?.name || match.homeTeamId}</span>
-                        </div>
+            {/* 2. Teams & Score Controls */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+                {/* Home */}
+                <div className="flex-1 flex items-center gap-2 overflow-hidden">
+                    <img src={home?.flag} alt="" className="w-6 h-4 rounded shadow-sm object-cover shrink-0" />
+                    <span className="text-xs font-black text-slate-800 truncate">{home?.name}</span>
+                </div>
 
-                        {/* Steppers */}
-                        <div className="flex items-center gap-2 mx-2">
-                            {isLocked ? (
-                                <div className="px-4 py-2 bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-3">
-                                    <span className="text-2xl font-black text-slate-700">{match.homeScore}</span>
-                                    <span className="text-slate-400 font-bold">:</span>
-                                    <span className="text-2xl font-black text-slate-700">{match.awayScore}</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <ScoreStepper value={hVal} onChange={(v) => onUpdate(v, aVal)} isLocked={isLocked} />
-                                    <span className="text-slate-300 font-bold">-</span>
-                                    <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={isLocked} />
-                                </>
-                            )}
-                        </div>
+                {/* Score Input */}
+                <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-1 border border-slate-200 shrink-0">
+                    <button onClick={() => onUpdate(Math.max(0, hVal - 1), aVal)} className="w-6 h-8 flex items-center justify-center hover:bg-white rounded text-slate-400 hover:text-slate-600 font-bold">-</button>
+                    <div className={`w-8 h-8 flex items-center justify-center font-black text-lg leading-none ${isSimulated ? 'text-blue-600' : 'text-slate-800'}`}>{hVal}</div>
+                    <button onClick={() => onUpdate(hVal + 1, aVal)} className="w-6 h-8 flex items-center justify-center hover:bg-white rounded text-slate-400 hover:text-blue-600 font-bold">+</button>
+                    
+                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                    
+                    <button onClick={() => onUpdate(hVal, Math.max(0, aVal - 1))} className="w-6 h-8 flex items-center justify-center hover:bg-white rounded text-slate-400 hover:text-slate-600 font-bold">-</button>
+                    <div className={`w-8 h-8 flex items-center justify-center font-black text-lg leading-none ${isSimulated ? 'text-blue-600' : 'text-slate-800'}`}>{aVal}</div>
+                    <button onClick={() => onUpdate(hVal, aVal + 1)} className="w-6 h-8 flex items-center justify-center hover:bg-white rounded text-slate-400 hover:text-blue-600 font-bold">+</button>
+                </div>
 
-                        {/* Away */}
-                        <div className="flex-1 flex flex-col items-center gap-2">
-                            <div 
-                                onClick={(e) => handleFlagClick(e, away?.id)}
-                                className={`relative w-16 h-12 rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-white ${onTeamClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                            >
-                                <img src={away?.flag} alt={away?.name} className="w-full h-full object-cover" />
-                            </div>
-                            <span className="text-xs font-black text-slate-700 uppercase text-center leading-tight truncate w-full">{away?.name || match.awayTeamId}</span>
-                        </div>
-                    </>
-                ) : (
-                    /* Knockout Winner Buttons */
-                    <div className="w-full flex flex-col items-center gap-3">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.whoAdvances}</div>
-                        <div className="flex items-center justify-center gap-6 w-full">
-                            <WinnerButton team={home} isWinner={homeWin} onClick={() => onUpdate(1, 0)} lang={lang} onTeamClick={onTeamClick} />
-                            <div className="text-slate-300 font-black text-xs">VS</div>
-                            <WinnerButton team={away} isWinner={awayWin} onClick={() => onUpdate(0, 1)} lang={lang} onTeamClick={onTeamClick} />
-                        </div>
-                    </div>
-                )}
+                {/* Away */}
+                <div className="flex-1 flex items-center gap-2 justify-end overflow-hidden">
+                    <span className="text-xs font-black text-slate-800 truncate text-right">{away?.name}</span>
+                    <img src={away?.flag} alt="" className="w-6 h-4 rounded shadow-sm object-cover shrink-0" />
+                </div>
             </div>
 
-            {/* Traffic Light Rival Pills - Dense Grid Layout */}
-            <div className="px-3 pb-3 pt-2 border-t border-slate-50 bg-slate-50/30 rounded-b-2xl">
-                <div className="flex items-center justify-between mb-1.5 opacity-60">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lang.rivalWatch}</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider hidden sm:block">Scroll for more →</span>
+            {/* 3. Quick Sim Buttons */}
+            {!isFinished && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <button onClick={setHomeWin} className="py-1.5 rounded-lg border border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors uppercase tracking-wider">
+                        {home?.code || 'HOME'}
+                    </button>
+                    <button onClick={setDraw} className="py-1.5 rounded-lg border border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors uppercase tracking-wider">
+                        Draw
+                    </button>
+                    <button onClick={setAwayWin} className="py-1.5 rounded-lg border border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors uppercase tracking-wider">
+                        {away?.code || 'AWAY'}
+                    </button>
                 </div>
+            )}
+
+            {/* 4. RIVAL BATTLEFIELD (Left/Center/Right Layout) */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-100/50">
+                {/* Home Predictions (Left) */}
+                {homePreds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-start">
+                        {homePreds.map(renderPill)}
+                    </div>
+                )}
                 
-                {/* 2-Row Grid Container */}
-                <div className="grid grid-rows-2 grid-flow-col gap-x-2 gap-y-2 overflow-x-auto no-scrollbar h-[4.5rem] items-start pb-1">
-                    {[currentUser, ...rivals].map(u => {
-                        const isMe = u.email === currentUser.email;
-                        if (isMe) return null; 
+                {/* Draw Predictions (Center) */}
+                {drawPreds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-center">
+                        {drawPreds.map(renderPill)}
+                    </div>
+                )}
 
-                        const pred = allPredictions.find(p => p.userId === u.email && p.matchId === match.id);
-                        if (!pred) return null;
+                {/* Away Predictions (Right) */}
+                {awayPreds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                        {awayPreds.map(renderPill)}
+                    </div>
+                )}
 
-                        // Traffic Light Logic
-                        // Green: Exact Match (Score or Winner depending on mode)
-                        // Blue: Correct Result (Winner match) but diff score
-                        // Red: Wrong Result
-                        let statusColor = 'bg-red-50 text-red-700 border-red-100'; // Default Red
-                        
-                        const predHomeWin = pred.home > pred.away;
-                        const predAwayWin = pred.away > pred.home;
-                        const predDraw = pred.home === pred.away;
-
-                        const simHomeWin = hVal > aVal;
-                        const simAwayWin = aVal > hVal;
-                        const simDraw = hVal === aVal;
-
-                        const isExact = pred.home === hVal && pred.away === aVal;
-                        const isCorrectResult = (predHomeWin && simHomeWin) || (predAwayWin && simAwayWin) || (predDraw && simDraw);
-
-                        if (isExact) {
-                            statusColor = 'bg-green-50 text-green-700 border-green-200';
-                        } else if (isCorrectResult) {
-                            statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                        }
-
-                        // Display Value
-                        let displayValue = `${pred.home}-${pred.away}`;
-                        if (!isScoreMode) {
-                            // Winner Code
-                            if (predHomeWin) displayValue = home?.id || 'HOME';
-                            else if (predAwayWin) displayValue = away?.id || 'AWAY';
-                            else displayValue = 'PEN';
-                        }
-
-                        return (
-                            <div
-                                key={u.email}
-                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border shrink-0 w-28 justify-between ${statusColor}`}
-                                title={`${u.name}: ${displayValue}`}
-                            >
-                                <div className="flex items-center gap-1.5 overflow-hidden">
-                                    <AvatarDisplay avatar={u.avatar} size="xs" className="w-4 h-4 text-[8px] shrink-0" />
-                                    <span className="text-[9px] font-bold truncate max-w-[60px]">{u.name}</span>
-                                </div>
-                                <span className="text-[9px] font-black shrink-0">{displayValue}</span>
-                            </div>
-                        );
-                    })}
-                </div>
+                {homePreds.length === 0 && drawPreds.length === 0 && awayPreds.length === 0 && (
+                    <div className="text-center text-[9px] text-slate-300 italic py-1">No predictions visible</div>
+                )}
             </div>
         </div>
     );
 };
 
-// --- MAIN DASHBOARD COMPONENT ---
+// --- MAIN DASHBOARD ---
 
 interface AnalysisDashboardProps {
   currentUser: UserProfile;
@@ -289,124 +235,97 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   currentLang,
   onTeamClick
 }) => {
-  // State
   const [simulation, setSimulation] = useState<Record<string, { home: number, away: number }>>({});
-  const [dateFilter, setDateFilter] = useState<'48h' | 'all'>('48h');
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Analysis State
+  const [showAllMatches, setShowAllMatches] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeAnalysisType, setActiveAnalysisType] = useState<string | null>(null);
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // --- ENGINE: CALCULATE LIVE STANDINGS ---
-  const { simulatedData } = useMemo(() => {
-      // Base calculation on Real Matches + Simulation Overrides
-      const simulatedData: Record<string, number> = {};
-      allUsers.forEach(u => simulatedData[u.email] = 0);
+  // 1. Calculate Live / Simulated Standings
+  const stats = useMemo(() => {
+      const livePoints: Record<string, number> = {};
+      const simPoints: Record<string, number> = {};
+      
+      allUsers.forEach(u => {
+          livePoints[u.email] = 0;
+          simPoints[u.email] = 0;
+      });
 
       matches.forEach(m => {
           const sim = simulation[m.id];
+          const hasRealScore = m.homeScore !== null && m.awayScore !== null;
           
-          // Determine "Effective" Score for Simulation
-          // If sim exists, use it. Else if real score exists, use it. Else ignore (0-0 or upcoming).
-          let hScore = m.homeScore;
-          let aScore = m.awayScore;
-          let isPlayed = ['FINISHED', 'FT', 'AET', 'PEN', 'LIVE', '1H', '2H', 'HT'].includes(m.status);
-
+          let effHome = hasRealScore ? m.homeScore : null;
+          let effAway = hasRealScore ? m.awayScore : null;
+          
           if (sim) {
-              hScore = sim.home;
-              aScore = sim.away;
-              isPlayed = true; // Treat simulated matches as played
+              effHome = sim.home;
+              effAway = sim.away;
           }
 
-          if (isPlayed && hScore !== null && aScore !== null) {
-              allUsers.forEach(u => {
-                  const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
-                  if (pred) {
-                      simulatedData[u.email] += calculatePoints(pred.home, pred.away, hScore, aScore, u.hasTakenSecondChance, m.round);
+          allUsers.forEach(u => {
+              const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+              if (pred) {
+                  if (hasRealScore) {
+                      livePoints[u.email] += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, u.hasTakenSecondChance, m.round);
                   }
-              });
-          }
-      });
-      return { simulatedData };
-  }, [matches, allPredictions, allUsers, simulation]);
-
-  // --- STATS FOR CURRENT USER ---
-  const myStats = useMemo(() => {
-      // LIVE REAL RANK (for diff comparison)
-      // We need a separate calc for "Real" points to show the diff arrow
-      const realPoints: Record<string, number> = {};
-      allUsers.forEach(u => realPoints[u.email] = 0);
-      matches.forEach(m => {
-          const isRealFinished = ['FINISHED', 'FT', 'AET', 'PEN', 'LIVE', '1H', '2H', 'HT'].includes(m.status);
-          if (isRealFinished && m.homeScore !== null && m.awayScore !== null) {
-              allUsers.forEach(u => {
-                  const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
-                  if (pred) realPoints[u.email] += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, u.hasTakenSecondChance, m.round);
-              });
-          }
-      });
-      const sortedReal = [...allUsers].sort((a, b) => realPoints[b.email] - realPoints[a.email]);
-      const myRealRank = sortedReal.findIndex(u => u.email === currentUser.email) + 1;
-
-      // SIMULATED RANK
-      const sortedSim = [...allUsers].sort((a, b) => simulatedData[b.email] - simulatedData[a.email]);
-      const mySimRank = sortedSim.findIndex(u => u.email === currentUser.email) + 1;
-      
-      const mySimPts = simulatedData[currentUser.email];
-      const rankDiff = myRealRank - mySimRank; // Positive means we improved (lower rank number)
-
-      return { mySimRank, mySimPts, rankDiff };
-  }, [allUsers, simulatedData, matches, allPredictions, currentUser.email]);
-
-  // --- FILTER LOGIC (48 HRS) ---
-  const relevantMatches = useMemo(() => {
-      let filtered = matches.filter(m => m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD');
-      
-      if (dateFilter === '48h') {
-          const now = new Date();
-          // Reset time to ensure full day coverage
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-          const yesterday = today - (86400000);
-          const tomorrow = today + (86400000 * 2); // End of tomorrow
-
-          filtered = filtered.filter(m => {
-              const mDate = new Date(m.date).getTime();
-              // Keep if within window OR if it is LIVE (always show live)
-              const isLive = ['LIVE', '1H', '2H', 'HT'].includes(m.status);
-              return isLive || (mDate >= yesterday && mDate < tomorrow);
+                  if (effHome !== null && effAway !== null) {
+                      simPoints[u.email] += calculatePoints(pred.home, pred.away, effHome, effAway, u.hasTakenSecondChance, m.round);
+                  }
+              }
           });
-      }
+      });
 
-      return filtered.sort((a, b) => {
-          // Sort Order: LIVE -> UPCOMING -> FINISHED
-          const statusOrder: Record<string, number> = { 'LIVE': 0, '1H': 0, '2H': 0, 'UPCOMING': 1, 'FINISHED': 2 };
-          const sA = statusOrder[a.status] ?? 1;
-          const sB = statusOrder[b.status] ?? 1;
-          if (sA !== sB) return sA - sB;
+      const sortUsers = (pointsMap: Record<string, number>) => 
+          [...allUsers].sort((a,b) => pointsMap[b.email] - pointsMap[a.email]);
+
+      const liveRanked = sortUsers(livePoints);
+      const simRanked = sortUsers(simPoints);
+
+      const myLiveRank = liveRanked.findIndex(u => u.email === currentUser.email) + 1;
+      const mySimRank = simRanked.findIndex(u => u.email === currentUser.email) + 1;
+      const rankDiff = myLiveRank - mySimRank; 
+
+      return { 
+          liveRank: myLiveRank, 
+          simRank: mySimRank, 
+          simPts: simPoints[currentUser.email],
+          rankDiff 
+      };
+  }, [matches, simulation, allPredictions, allUsers, currentUser]);
+
+  // 2. Filter Matches
+  const displayMatches = useMemo(() => {
+      let filtered = matches.filter(m => m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD');
+      const now = Date.now();
+      
+      filtered.sort((a, b) => {
+          const isLiveA = ['LIVE', '1H', '2H', 'HT'].includes(a.status);
+          const isLiveB = ['LIVE', '1H', '2H', 'HT'].includes(b.status);
+          if (isLiveA && !isLiveB) return -1;
+          if (!isLiveA && isLiveB) return 1;
           return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
-  }, [matches, dateFilter]);
 
-  const scroll = (direction: 'left' | 'right') => {
-      if (scrollContainerRef.current) {
-          const container = scrollContainerRef.current;
-          const scrollAmount = container.clientWidth * 0.8;
-          container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+      if (!showAllMatches) {
+          filtered = filtered.filter(m => {
+              const mTime = new Date(m.date).getTime();
+              const isFuture = mTime > (now - 3 * 60 * 60 * 1000); 
+              const isLive = ['LIVE', '1H', '2H', 'HT'].includes(m.status);
+              return isFuture || isLive;
+          });
+          return filtered.slice(0, 10);
       }
-  };
+      return filtered;
+  }, [matches, showAllMatches]);
 
-  // --- HANDLERS ---
   const updateSim = (matchId: string, h: number, a: number) => {
       setSimulation(prev => ({ ...prev, [matchId]: { home: h, away: a } }));
   };
 
-  const resetSimulation = () => setSimulation({});
-
-  // AI ANALYSIS HANDLER
+  // AI HANDLER
   const handleAnalysis = async (type: 'opportunity' | 'pitfall' | 'realistic' | 'roast') => {
       if (isAnalyzing) return;
       setIsAnalyzing(true);
@@ -414,200 +333,151 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       setAnalysisResult(null);
 
       try {
-          // Use key from constants (safer for client demo)
           const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
           const ai = new GoogleGenAI({ apiKey });
           
           const promptMap = {
-              opportunity: `You are a football analyst. Tell this user (Rank #${myStats.mySimRank}, ${myStats.mySimPts} pts) their best path to victory or a key swing match they predicted well. Be optimistic. Max 30 words.`,
-              pitfall: `You are a pessimist football pundit. Warn this user (Rank #${myStats.mySimRank}) about a dangerous match or overconfidence. Be pessimistic. Max 30 words.`,
-              realistic: `You are a neutral AI. Give a realistic projection for this user (Rank #${myStats.mySimRank}). Be analytical. Max 30 words.`,
-              roast: `You are a savage comedian. Roast this user for being Rank #${myStats.mySimRank} with ${myStats.mySimPts} points. Be mean but funny. Max 30 words.`
+              opportunity: `Tell this football fan (Rank #${stats.simRank}) best case scenario for upcoming games. Optimistic. Max 30 words.`,
+              pitfall: `Warn this fan (Rank #${stats.simRank}) about a dangerous match. Pessimistic. Max 30 words.`,
+              realistic: `Give realistic projection for user at Rank #${stats.simRank}. Max 30 words.`,
+              roast: `Roast this user for being Rank #${stats.simRank}. Be mean/funny. Max 30 words.`
           };
 
           const response = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
+              model: 'gemini-2.0-flash',
               contents: promptMap[type]
           });
           
-          setAnalysisResult(response.text || "AI speechles...");
+          setAnalysisResult(response.text || "AI speechless...");
       } catch (e) {
           console.error(e);
-          setAnalysisResult("The pundit is taking a coffee break (Error).");
+          setAnalysisResult("AI taking a nap (Error).");
       } finally {
           setIsAnalyzing(false);
       }
   };
 
   return (
-    <div className="flex flex-col min-h-[85vh] relative bg-slate-50 pb-32">
+    <div className="flex flex-col min-h-screen bg-slate-50">
         
-        {/* HEADER & CONTROLS */}
-        <div className="bg-white px-4 py-4 border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div className="bg-[#0f2545] p-2 rounded-lg text-white">
-                        <Calculator size={20} />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none">{lang.simulationTitle}</h2>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Control Center</p>
-                    </div>
+        {/* HEADER */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-700 text-white p-4 pb-6">
+            <div className="flex items-center gap-3 mb-2">
+                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                    <TrendingUp size={20} className="text-white" />
                 </div>
-                {Object.keys(simulation).length > 0 && (
-                    <button onClick={resetSimulation} className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-full transition-colors" title={lang.resetSim}>
-                        <RefreshCw size={18} />
-                    </button>
-                )}
-            </div>
-
-            {/* DATE FILTER TOGGLE */}
-            <div className="flex justify-center">
-                <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200">
-                    <button 
-                        onClick={() => setDateFilter('48h')}
-                        className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${dateFilter === '48h' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        {lang.filterNext48}
-                    </button>
-                    <button 
-                        onClick={() => setDateFilter('all')}
-                        className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${dateFilter === 'all' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        {lang.filterAll}
-                    </button>
+                <div>
+                    <h2 className="text-lg font-black uppercase tracking-tight leading-none">{lang.analysisTitle || "Path to Victory"}</h2>
+                    <p className="text-[10px] text-blue-100 font-medium opacity-80">AI Insights & Simulation</p>
                 </div>
             </div>
-        </div>
-
-        {/* AI ANALYSIS SECTION & CAROUSEL */}
-        <div className="flex-1 flex flex-col justify-start py-6 overflow-x-hidden relative">
             
-            {/* Analysis Buttons */}
-            <div className="px-6 mb-6">
-                <div className="grid grid-cols-4 gap-2">
-                    <button onClick={() => handleAnalysis('opportunity')} className="flex flex-col items-center gap-1.5 bg-green-50 hover:bg-green-100 border border-green-200 p-3 rounded-xl transition-all active:scale-95 group">
-                        <div className="bg-green-500 text-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><TrendingUp size={16} /></div>
-                        <span className="text-[9px] font-black text-green-800 uppercase tracking-wide">{lang.analysisOpportunity}</span>
-                    </button>
-                    <button onClick={() => handleAnalysis('pitfall')} className="flex flex-col items-center gap-1.5 bg-red-50 hover:bg-red-100 border border-red-200 p-3 rounded-xl transition-all active:scale-95 group">
-                        <div className="bg-red-500 text-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><AlertTriangle size={16} /></div>
-                        <span className="text-[9px] font-black text-red-800 uppercase tracking-wide">{lang.analysisPitfall}</span>
-                    </button>
-                    <button onClick={() => handleAnalysis('realistic')} className="flex flex-col items-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 p-3 rounded-xl transition-all active:scale-95 group">
-                        <div className="bg-blue-500 text-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Target size={16} /></div>
-                        <span className="text-[9px] font-black text-blue-800 uppercase tracking-wide">{lang.analysisRealistic}</span>
-                    </button>
-                    <button onClick={() => handleAnalysis('roast')} className="flex flex-col items-center gap-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 p-3 rounded-xl transition-all active:scale-95 group">
-                        <div className="bg-orange-500 text-white p-2 rounded-full shadow-sm group-hover:scale-110 transition-transform"><Flame size={16} fill="currentColor" /></div>
-                        <span className="text-[9px] font-black text-orange-800 uppercase tracking-wide">{lang.analysisRoast}</span>
-                    </button>
+            {/* AI BUTTONS */}
+            <div className="grid grid-cols-4 gap-2 mt-4">
+                <button onClick={() => handleAnalysis('opportunity')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
+                    <TrendingUp size={14} className="text-green-300" />
+                    <span className="text-[8px] font-bold uppercase">Best Case</span>
+                </button>
+                <button onClick={() => handleAnalysis('pitfall')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
+                    <AlertTriangle size={14} className="text-red-300" />
+                    <span className="text-[8px] font-bold uppercase">Worst Case</span>
+                </button>
+                <button onClick={() => handleAnalysis('realistic')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
+                    <Target size={14} className="text-blue-300" />
+                    <span className="text-[8px] font-bold uppercase">Realistic</span>
+                </button>
+                <button onClick={() => handleAnalysis('roast')} className="flex flex-col items-center gap-1 p-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 transition-all">
+                    <Flame size={14} className="text-orange-300" />
+                    <span className="text-[8px] font-bold uppercase">Roast Me</span>
+                </button>
+            </div>
+
+            {/* AI RESULT */}
+            {(isAnalyzing || analysisResult) && (
+                <div className="mt-3 bg-white/10 border border-white/10 rounded-xl p-3 backdrop-blur-sm animate-in fade-in slide-in-from-top-1">
+                    <div className="flex gap-2 items-start">
+                        {isAnalyzing ? <RefreshCw size={14} className="animate-spin mt-0.5" /> : <MessageSquareQuote size={14} className="mt-0.5" />}
+                        <p className="text-xs font-medium leading-relaxed italic opacity-90">
+                            {isAnalyzing ? "Analysing scenarios..." : `"${analysisResult}"`}
+                        </p>
+                    </div>
                 </div>
-
-                {/* Analysis Result Card */}
-                {(isAnalyzing || analysisResult) && (
-                    <div className="mt-4 bg-white rounded-2xl shadow-lg border border-slate-100 p-4 relative animate-in slide-in-from-top-2 fade-in">
-                        {analysisResult && <button onClick={() => setAnalysisResult(null)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"><X size={16} /></button>}
-                        <div className="flex gap-3">
-                            <div className={`p-2.5 rounded-full shrink-0 h-fit ${isAnalyzing ? 'bg-slate-100 animate-pulse' : 'bg-[#0f2545] text-white'}`}>
-                                {isAnalyzing ? <RefreshCw size={20} className="animate-spin text-slate-400" /> : <MessageSquareQuote size={20} />}
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                    {isAnalyzing ? "Analysing..." : activeAnalysisType === 'roast' ? lang.punditSays : lang.aiInsight}
-                                </h4>
-                                {isAnalyzing ? (
-                                    <div className="h-4 bg-slate-100 rounded w-3/4 animate-pulse"></div>
-                                ) : (
-                                    <p className="text-sm font-medium text-slate-800 leading-relaxed italic">
-                                        "{analysisResult}"
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Desktop Navigation Arrows - Updated Design */}
-            <button 
-                onClick={() => scroll('left')}
-                className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-16 h-16 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full items-center justify-center text-slate-600 hover:text-slate-800 transition-all active:scale-95 border border-white/20"
-            >
-                <ChevronLeft size={40} strokeWidth={1.5} />
-            </button>
-            <button 
-                onClick={() => scroll('right')}
-                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-16 h-16 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full items-center justify-center text-slate-600 hover:text-slate-800 transition-all active:scale-95 border border-white/20"
-            >
-                <ChevronRight size={40} strokeWidth={1.5} />
-            </button>
-
-            <div 
-                ref={scrollContainerRef}
-                className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-6 no-scrollbar pb-8 pt-2 items-stretch min-h-[300px]"
-                style={{ scrollPaddingLeft: '1.5rem', scrollPaddingRight: '1.5rem' }}
-            >
-                {relevantMatches.length > 0 ? (
-                    relevantMatches.map(match => (
-                        <SimulationCard 
-                            key={match.id}
-                            match={match}
-                            home={teams[match.homeTeamId]}
-                            away={teams[match.awayTeamId]}
-                            sim={simulation[match.id]}
-                            onUpdate={(h, a) => updateSim(match.id, h, a)}
-                            currentUser={currentUser}
-                            rivals={rivals}
-                            allPredictions={allPredictions}
-                            lang={lang}
-                            onTeamClick={onTeamClick}
-                        />
-                    ))
-                ) : (
-                    <div className="w-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-                        <Calendar size={48} className="mb-2" />
-                        <span className="text-sm font-bold uppercase tracking-widest">No matches in 48h</span>
-                    </div>
-                )}
-            </div>
+            )}
         </div>
 
-        {/* STICKY SIMULATION FOOTER */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0f2545] border-t border-white/10 text-white p-4 pb-8 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <AvatarDisplay avatar={currentUser.avatar} size="md" className="ring-2 ring-white/20" />
-                        {/* Live Rank Badge */}
-                        <div className="absolute -top-2 -right-2 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-[#0f2545] w-6 h-6 shadow-md">
-                            #{myStats.mySimRank}
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-blue-300 uppercase tracking-widest opacity-80">{lang.simulatedRank}</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xl font-black tracking-tight">{myStats.mySimPts} pts</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Diff Indicator */}
-                <div className="flex items-center">
-                    {myStats.rankDiff !== 0 ? (
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${myStats.rankDiff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}>
-                            {myStats.rankDiff > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                            <span className="font-black text-sm">
-                                {myStats.rankDiff > 0 ? `+${myStats.rankDiff}` : myStats.rankDiff}
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="px-3 py-1.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                            No Change
+        {/* STICKY IMPACT BAR */}
+        <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm px-4 py-3 flex items-center justify-between">
+            <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Simulated Rank</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-2xl font-black text-slate-800">#{stats.simRank}</span>
+                    {stats.rankDiff !== 0 && (
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black ${stats.rankDiff > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {stats.rankDiff > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {stats.rankDiff > 0 ? `+${stats.rankDiff}` : stats.rankDiff}
                         </div>
                     )}
                 </div>
             </div>
+            
+            {Object.keys(simulation).length > 0 ? (
+                <button 
+                    onClick={() => setSimulation({})}
+                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors"
+                >
+                    <RefreshCw size={14} /> Reset
+                </button>
+            ) : (
+                <div className="flex items-center gap-2 opacity-40">
+                    <Calculator size={16} className="text-slate-400" />
+                    <span className="text-xs font-bold text-slate-400">Simulator Active</span>
+                </div>
+            )}
+        </div>
+
+        {/* SCENARIO STACK */}
+        <div className="flex-1 p-4 space-y-4 pb-20">
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                    {showAllMatches ? "All Matches" : "Upcoming Scenarios"}
+                </h3>
+                <button 
+                    onClick={() => setShowAllMatches(!showAllMatches)}
+                    className="text-[10px] font-bold text-blue-600 flex items-center gap-1"
+                >
+                    {showAllMatches ? "Show Upcoming" : "Show All"} <Filter size={10} />
+                </button>
+            </div>
+
+            {displayMatches.length > 0 ? (
+                displayMatches.map(match => (
+                    <SimRow 
+                        key={match.id}
+                        match={match}
+                        home={teams[match.homeTeamId]}
+                        away={teams[match.awayTeamId]}
+                        sim={simulation[match.id]}
+                        onUpdate={(h, a) => updateSim(match.id, h, a)}
+                        currentUser={currentUser}
+                        rivals={rivals}
+                        allPredictions={allPredictions}
+                        lang={lang}
+                    />
+                ))
+            ) : (
+                <div className="text-center py-10 opacity-50">
+                    <p>No upcoming matches found.</p>
+                </div>
+            )}
+            
+            {!showAllMatches && matches.length > 10 && (
+                <button 
+                    onClick={() => setShowAllMatches(true)}
+                    className="w-full py-3 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                >
+                    Load More Matches
+                </button>
+            )}
         </div>
     </div>
   );
