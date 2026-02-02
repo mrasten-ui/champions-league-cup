@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
-// FIX: Added 'updateBracket' to the imports below
 import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket, updateBracket } from '../services/engine';
 import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -71,15 +70,16 @@ const WinnerButton: React.FC<{
 const PredictionPill: React.FC<{
     user: UserProfile;
     label: string;
-    isCorrect: boolean; 
+    status: 'exact' | 'correct' | 'wrong' | 'neutral'; 
     isMe: boolean;
     onSelect?: () => void;
     align: 'left' | 'center' | 'right';
-}> = ({ user, label, isCorrect, isMe, onSelect, align }) => {
+}> = ({ user, label, status, isMe, onSelect, align }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     let baseClass = 'bg-slate-50 text-slate-400 border-slate-100';
-    if (isCorrect) baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
+    if (status === 'exact') baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
+    if (status === 'correct') baseClass = 'bg-blue-50 text-blue-700 border-blue-200';
     
     if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black';
 
@@ -169,17 +169,20 @@ const SimRow: React.FC<{
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isKnockout = !match.groupId;
     
-    // TBD Sources
+    // TBD Sources - Fixed safety check
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
-    const homeLabel = home ? home.name : (homeSource.label || 'TBD');
-    const awayLabel = away ? away.name : (awaySource.label || 'TBD');
+    
+    // Logic: If home (Team Object) exists, use its name. Otherwise use the source label (e.g. "1A")
+    // Safe access with ?. in case getSlotSource returns null
+    const homeLabel = home ? home.name : (homeSource?.code || homeSource?.label || 'TBD');
+    const awayLabel = away ? away.name : (awaySource?.code || awaySource?.label || 'TBD');
 
-    // --- RIVAL SORTING ---
+    // --- RIVAL SORTING: "Visual Confirmation" Logic ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
-        const h: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
-        const d: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
-        const a: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
+        const h: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
+        const d: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
+        const a: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
 
         [currentUser, ...rivals].forEach(u => {
             if (match.groupId) {
@@ -188,9 +191,19 @@ const SimRow: React.FC<{
                 if (p) {
                     const label = `${p.home}-${p.away}`;
                     const isExact = (p.home === hVal && p.away === aVal);
-                    if (p.home > p.away) h.push({ u, label, isCorrect: isExact });
-                    else if (p.away > p.home) a.push({ u, label, isCorrect: isExact });
-                    else d.push({ u, label, isCorrect: isExact });
+                    
+                    // Determine Outcome (Home Win, Draw, Away Win)
+                    const predOutcome = p.home > p.away ? 'H' : p.home < p.away ? 'A' : 'D';
+                    const simOutcome = hVal > aVal ? 'H' : hVal < aVal ? 'A' : 'D';
+                    const isCorrectOutcome = predOutcome === simOutcome;
+
+                    let status: 'exact' | 'correct' | 'wrong' | 'neutral' = 'wrong';
+                    if (isExact) status = 'exact';
+                    else if (isCorrectOutcome) status = 'correct';
+
+                    if (p.home > p.away) h.push({ u, label, status });
+                    else if (p.away > p.home) a.push({ u, label, status });
+                    else d.push({ u, label, status });
                 }
             } else {
                 // KNOCKOUT: Visual Confirmation Logic
@@ -204,14 +217,16 @@ const SimRow: React.FC<{
 
                     // CHECK HOME SLOT
                     if (home) {
+                        // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
-                            h.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                            h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
+                        // TBD: Show user's HOME slot team
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
-                            h.push({ u, label: userHomeTeam.code, isCorrect: picksWin });
+                            h.push({ u, label: userHomeTeam.code, status: picksWin ? 'exact' : 'neutral' });
                         }
                     }
 
@@ -219,12 +234,12 @@ const SimRow: React.FC<{
                     if (away) {
                         if (userMatchState.home === away.id || userMatchState.away === away.id) {
                             const picksWin = userWinnerId === away.id;
-                            a.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                            a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
                         if (userAwayTeam) {
                             const picksWin = userWinnerId === userAwayTeam.id;
-                            a.push({ u, label: userAwayTeam.code, isCorrect: picksWin });
+                            a.push({ u, label: userAwayTeam.code, status: picksWin ? 'exact' : 'neutral' });
                         }
                     }
                 }
@@ -281,7 +296,7 @@ const SimRow: React.FC<{
                                 key={item.u.email} 
                                 user={item.u} 
                                 label={item.label}
-                                isCorrect={item.isCorrect}
+                                status={item.status}
                                 isMe={item.u.email === currentUser.email} 
                                 onSelect={match.groupId ? () => { 
                                     const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
@@ -315,7 +330,7 @@ const SimRow: React.FC<{
                                     key={item.u.email} 
                                     user={item.u} 
                                     label={item.label}
-                                    isCorrect={item.isCorrect}
+                                    status={item.status}
                                     isMe={item.u.email === currentUser.email}
                                     onSelect={() => {
                                         const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
@@ -351,7 +366,7 @@ const SimRow: React.FC<{
                                 key={item.u.email} 
                                 user={item.u} 
                                 label={item.label}
-                                isCorrect={item.isCorrect}
+                                status={item.status}
                                 isMe={item.u.email === currentUser.email} 
                                 onSelect={match.groupId ? () => { 
                                     const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
