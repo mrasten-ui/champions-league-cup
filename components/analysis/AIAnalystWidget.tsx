@@ -15,6 +15,7 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
+// LOCAL TRANSLATIONS
 const TEXT: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
@@ -117,7 +118,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     body: { 
                         input: line.text, 
                         speaker_type: line.speaker,
-                        lang: langKey 
+                        lang: langKey // Pass language to backend for voice selection
                     }
                 });
 
@@ -134,13 +135,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         
         setScript(processedLines);
         setIsAudioLoading(false);
-        setIsPlaying(true);
+        setIsPlaying(true); // Auto-play once audio is ready
     };
 
     // --- PLAYBACK CONTROL ---
     useEffect(() => {
         if (mode === 'roast' && isPlaying && script && script[currentLineIndex]?.audioUrl) {
-            if (!audioRef.current) audioRef.current = new Audio();
+            if (!audioRef.current) {
+                audioRef.current = new Audio();
+            }
 
             const audio = audioRef.current;
             audio.src = script[currentLineIndex].audioUrl!;
@@ -254,6 +257,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     const parsedScript = JSON.parse(cleanJson);
                     setScript(parsedScript); 
                     setLoading(false);
+                    // TRIGGER AUDIO GENERATION HERE
                     generateAudioForScript(parsedScript);
                 } catch (err) {
                     console.error("JSON Error", err);
@@ -340,6 +344,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                 </div>
                             );
                         })}
+                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Generating audio...</div>}
                     </div>
                 )}
             </div>
