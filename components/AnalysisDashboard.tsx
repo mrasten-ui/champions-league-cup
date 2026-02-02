@@ -52,17 +52,19 @@ const WinnerButton: React.FC<{
         className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all w-full h-full min-h-[80px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
     >
         <div className="relative">
-            {team ? (
+            {/* SAFE IMAGE RENDERING: Only render img if team AND flag exist */}
+            {team && team.flag ? (
                 <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
             ) : (
-                <div className="w-12 h-8 bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-slate-300">
+                // Placeholder Box for TBD or missing flags
+                <div className="w-12 h-8 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
                     <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
                 </div>
             )}
             {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={12} strokeWidth={4} /></div>}
         </div>
         <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team?.name || (team ? '' : 'Select')}
+            {team?.name || "TBD"}
         </span>
     </button>
 );
@@ -219,7 +221,7 @@ const SimRow: React.FC<{
                         // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
-                            h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'neutral' });
+                            h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
                         // TBD: Show user's HOME slot team
@@ -233,7 +235,7 @@ const SimRow: React.FC<{
                     if (away) {
                         if (userMatchState.home === away.id || userMatchState.away === away.id) {
                             const picksWin = userWinnerId === away.id;
-                            a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'neutral' });
+                            a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
                         if (userAwayTeam) {
