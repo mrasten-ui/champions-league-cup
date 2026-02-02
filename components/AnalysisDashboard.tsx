@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
-import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket } from '../services/engine';
+// FIX: Added 'updateBracket' to the imports below
+import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket, updateBracket } from '../services/engine';
 import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
@@ -160,7 +161,6 @@ const SimRow: React.FC<{
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
-    // removed unused allMatches prop
 }> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
@@ -175,7 +175,7 @@ const SimRow: React.FC<{
     const homeLabel = home ? home.name : (homeSource.label || 'TBD');
     const awayLabel = away ? away.name : (awaySource.label || 'TBD');
 
-    // --- RIVAL SORTING: "Visual Confirmation" Logic ---
+    // --- RIVAL SORTING ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
         const h: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
         const d: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
@@ -204,13 +204,11 @@ const SimRow: React.FC<{
 
                     // CHECK HOME SLOT
                     if (home) {
-                        // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
                             h.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
                         }
                     } else {
-                        // TBD: Show user's HOME slot team
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
                             h.push({ u, label: userHomeTeam.code, isCorrect: picksWin });
@@ -519,15 +517,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       });
 
       // PULL THROUGH: Run bracket logic multiple times to propagate results
-      for (let i = 0; i < 6; i++) {
-          simMatches = getAllGroupStandings(simMatches, teams) ? updateBracket(simMatches, teams) : simMatches; 
-          // Note: getAllGroupStandings is just a check, the real work is in updateBracket which calls it internally
-          // We simplify to just calling updateBracket, but to be safe and match imported functions:
-          // Actually updateBracket calls getAllGroupStandings internally, so just calling it is fine.
-          // However, updateBracket returns a NEW array. We must assign it.
-      }
-      // Re-running updateBracket iteratively to ensure flow-through
-      // A loop of 6 covers R32 -> R16 -> QF -> SF -> FIN
       for (let i = 0; i < 6; i++) {
           simMatches = updateBracket(simMatches, teams);
       }
