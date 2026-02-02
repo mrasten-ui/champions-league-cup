@@ -95,7 +95,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    const [playbackMethod, setPlaybackMethod] = useState<'mp3' | 'tts' | 'text'>('mp3');
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -140,7 +139,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         
         setScript(processedLines);
         setIsAudioLoading(false);
-        setPlaybackMethod(hasSuccess ? 'mp3' : 'tts'); // Fallback if all fail
         setIsPlaying(true);
     };
 
@@ -161,7 +159,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
         };
 
-        // METHOD 1: PRE-GENERATED MP3 (Google/OpenAI)
+        // METHOD 1: PRE-GENERATED MP3 (Google)
         if (currentLine.audioUrl) {
             if (!audioRef.current) audioRef.current = new Audio();
             const audio = audioRef.current;
@@ -187,7 +185,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const utterance = new SpeechSynthesisUtterance(currentLine.text);
             
             // Try to set voice based on lang
-            // Note: Mobile browsers have limited voices
             utterance.lang = langKey === 'no' ? 'nb-NO' : 'en-GB'; 
             
             // Tweak pitch for characters
@@ -226,7 +223,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setAnalysis(null);
         setCurrentLineIndex(0);
         setIsPlaying(false);
-        setPlaybackMethod('mp3');
         
         try {
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
@@ -295,7 +291,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     - PUNDIT: Loud, opinionated, uses heavy slang/dialect appropriate for ${t.promptLang}.
                     
                     Format: JSON Array: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
-                    RETURN ONLY JSON.
+                    RETURN ONLY JSON. NO MARKDOWN.
                 `;
                 
                 const response = await ai.models.generateContent({
