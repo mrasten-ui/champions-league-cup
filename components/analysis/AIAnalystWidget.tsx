@@ -13,11 +13,66 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
+// LOCAL TRANSLATIONS
+const TEXT: Record<string, any> = {
+    en: {
+        coachTitle: "Coach's Report",
+        roastTitle: "Reality Check",
+        roastButton: "Roast My Picks",
+        coachButton: "Reset to Coach",
+        loading: "Analyzing rival strategies...",
+        error: "The tactical computer is overheating... try again later.",
+        home: "Home",
+        away: "Away",
+        draw: "Draw",
+        promptLang: "ENGLISH"
+    },
+    'en-US': {
+        coachTitle: "Coach's Intel",
+        roastTitle: "Hot Take",
+        roastButton: "Roast My Bracket",
+        coachButton: "Back to Coach",
+        loading: "Crunching the stats...",
+        error: "Server timeout on the play... try again.",
+        home: "Home",
+        away: "Away",
+        draw: "Tie",
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Standings', 'Roster')"
+    },
+    sco: {
+        coachTitle: "The Gaffer's Report",
+        roastTitle: "Get a Grip",
+        roastButton: "Roast Ma Picks",
+        coachButton: "Back tae the Gaffer",
+        loading: "Checkin' the tactics...",
+        error: "The machine's gubbed... gie it a minute.",
+        home: "Hame",
+        away: "Awa",
+        draw: "Draw",
+        promptLang: "SCOTTISH/SCOTS DIALECT (Use terms like 'Gaffer', 'Lad', 'Aye', 'Nae bother')"
+    },
+    no: {
+        coachTitle: "Trenerens Rapport",
+        roastTitle: "Realitetssjekk",
+        roastButton: "Grill Mine Valg",
+        coachButton: "Tilbake til Trener",
+        loading: "Analyserer rivalenes strategier...",
+        error: "Den taktiske datamaskinen er overopphetet... prøv igjen senere.",
+        home: "Hjemme",
+        away: "Borte",
+        draw: "Uavgjort",
+        promptLang: "NORWEGIAN"
+    }
+};
+
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, teams }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     const hasFetched = useRef(false);
+
+    // Select Language Dictionary (Fallback to 'en')
+    const t = TEXT[lang.langCode] || TEXT['en'];
 
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
@@ -40,19 +95,20 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 const myPreds = allPredictions.filter(p => p.userId === currentUser.email);
                 const rivalPreds = allPredictions.filter(p => p.userId === rivalAbove.user.email);
 
-                for (const match of nextMatches.slice(0, 3)) { // Look at next 3 games
+                for (const match of nextMatches.slice(0, 3)) { 
                     const mp = myPreds.find(p => p.matchId === match.id);
                     const rp = rivalPreds.find(p => p.matchId === match.id);
                     
                     if (mp && rp) {
-                        const myRes = mp.home > mp.away ? 'Home Win' : mp.home < mp.away ? 'Away Win' : 'Draw';
-                        const rivalRes = rp.home > rp.away ? 'Home Win' : rp.home < rp.away ? 'Away Win' : 'Draw';
+                        const myRes = mp.home > mp.away ? t.home : mp.home < mp.away ? t.away : t.draw;
+                        const rivalRes = rp.home > rp.away ? t.home : rp.home < rp.away ? t.away : t.draw;
                         
                         if (myRes !== rivalRes) {
                             const homeName = teams[match.homeTeamId]?.name || "Home";
                             const awayName = teams[match.awayTeamId]?.name || "Away";
                             keyMatch = `${homeName} vs ${awayName}`;
-                            conflictText = `Conflict found: You picked ${myRes}, ${rivalAbove.user.name.split(' ')[0]} picked ${rivalRes} for ${keyMatch}`;
+                            // Base text for AI context
+                            conflictText = `Conflict: User picked ${myRes}, Rival picked ${rivalRes} for ${keyMatch}`;
                             break;
                         }
                     }
@@ -60,13 +116,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
             // 2. CONSTRUCT PROMPT
+            const languageInstruction = `WRITE THE RESPONSE IN ${t.promptLang}.`;
+            
             const baseContext = `
-                Context: Football Prediction Game Analysis.
+                Context: Football/Soccer Prediction Game Analysis.
                 User: ${currentUser.name}, Rank: #${myRank}.
-                Rival Above: ${rivalAbove ? `${rivalAbove.user.name} (#${rivalAbove.rank})` : "None (You are 1st!)"}.
+                Rival Above: ${rivalAbove ? `${rivalAbove.user.name} (#${rivalAbove.rank})` : "None (1st Place)"}.
                 Key Insight Data: ${conflictText}.
-                Match Context: Next 3 games are crucial.
-                Language: ${lang.langCode === 'no' ? 'Norwegian' : 'English'}.
+                ${languageInstruction}
             `;
 
             let prompt = "";
@@ -76,7 +133,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 Structure:
                 1. Acknowledge current rank.
                 2. Mention the rival above and the specific match disagreement (${keyMatch || 'upcoming games'}) as the key to overtaking them.
-                3. End with a specific outcome needed (e.g. "If Brazil wins 3-1...") and a reminder to use the SUB chip if unsure.
+                3. End with a specific outcome needed (e.g. "If Brazil wins...") and a reminder to use the SUB chip if unsure.
                 Tone: Professional, Encouraging, Sharp.
                 `;
             } else {
@@ -95,17 +152,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
-            // FIX: Removed parentheses. response.text is a getter property in this version.
-            setAnalysis(response.text || "AI analysis unavailable.");
+            setAnalysis(response.text || t.error);
         } catch (e) {
             console.error(e);
-            setAnalysis("The tactical computer is overheating... try again later.");
+            setAnalysis(t.error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Auto-trigger on mount
     useEffect(() => {
         if (!hasFetched.current && combinedStats.length > 0) {
             generateInsight('coach');
@@ -128,7 +183,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         {mode === 'roast' ? <Flame size={18} /> : <Sparkles size={18} />}
                     </div>
                     <span className={`text-xs font-black uppercase tracking-widest ${mode === 'roast' ? 'text-orange-200' : 'text-indigo-200'}`}>
-                        {mode === 'roast' ? 'Reality Check' : 'Coach\'s Report'}
+                        {mode === 'roast' ? t.roastTitle : t.coachTitle}
                     </span>
                 </div>
             </div>
@@ -155,14 +210,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         onClick={() => generateInsight('roast')}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-[10px] font-bold text-red-300 hover:text-red-200 uppercase tracking-wide group"
                     >
-                        <Flame size={12} className="group-hover:scale-110 transition-transform" /> Roast My Picks
+                        <Flame size={12} className="group-hover:scale-110 transition-transform" /> {t.roastButton}
                     </button>
                 ) : (
                     <button 
                         onClick={() => generateInsight('coach')}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-[10px] font-bold text-indigo-300 hover:text-indigo-200 uppercase tracking-wide"
                     >
-                        <RefreshCw size={12} /> Reset to Coach
+                        <RefreshCw size={12} /> {t.coachButton}
                     </button>
                 )}
             </div>

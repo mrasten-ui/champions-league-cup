@@ -2,10 +2,17 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, GroupStanding } from '../../types'; 
 import { getSlotSource } from '../../utils/bracketHelpers';
 import { AvatarDisplay } from '../AvatarDisplay';
-// FIX: Added 'Calculator' to imports
 import { ChevronUp, ChevronDown, Check, Trophy, Calculator } from 'lucide-react';
 
-// --- SUB-COMPONENTS (Internal to this file) ---
+// LOCAL TRANSLATIONS
+const TEXT: Record<string, any> = {
+    en: { predicted: "Predicted", tbd: "TBD" },
+    'en-US': { predicted: "Picked", tbd: "TBD" },
+    sco: { predicted: "Tippit", tbd: "TBD" },
+    no: { predicted: "Tippet", tbd: "TBD" }
+};
+
+// --- SUB-COMPONENTS ---
 
 const ScoreStepper: React.FC<{ 
     value: number; 
@@ -44,7 +51,8 @@ const WinnerButton: React.FC<{
     slotCode?: string;
     isSelected: boolean;
     onClick: () => void;
-}> = ({ team, label, slotCode, isSelected, onClick }) => (
+    tbdText: string;
+}> = ({ team, label, slotCode, isSelected, onClick, tbdText }) => (
     <button 
         onClick={onClick}
         className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl border-2 transition-all w-full h-[90px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
@@ -53,7 +61,6 @@ const WinnerButton: React.FC<{
             {team && team.flag ? (
                 <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
             ) : (
-                // TBD / LOGO STATE
                 <div className="w-12 h-8 flex items-center justify-center">
                     <div className="bg-gradient-to-br from-[#2e1065] to-purple-700 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ring-2 ring-purple-100/50">
                         <Trophy size={14} className="text-yellow-400" />
@@ -62,10 +69,8 @@ const WinnerButton: React.FC<{
             )}
             {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={10} strokeWidth={4} /></div>}
         </div>
-        
-        {/* Name or Slot Label */}
         <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 line-clamp-2 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team ? team.name : (slotCode || label || "TBD")}
+            {team ? team.name : (slotCode || label || tbdText)}
         </span>
     </button>
 );
@@ -77,13 +82,13 @@ const PredictionPill: React.FC<{
     isMe: boolean;
     onSelect?: () => void;
     align: 'left' | 'center' | 'right';
-}> = ({ user, label, status, isMe, onSelect, align }) => {
+    tooltipText: string;
+}> = ({ user, label, status, isMe, onSelect, align, tooltipText }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     let baseClass = 'bg-slate-50 text-slate-400 border-slate-100 opacity-80';
     if (status === 'exact') baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200 opacity-100';
     if (status === 'correct') baseClass = 'bg-blue-50 text-blue-700 border-blue-200 opacity-100';
-    
     if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black opacity-100';
 
     const handleClick = (e: React.MouseEvent) => {
@@ -100,7 +105,7 @@ const PredictionPill: React.FC<{
                 ${baseClass} ${align === 'right' ? 'flex-row-reverse' : 'flex-row'}
                 ${isExpanded ? 'z-10 scale-105' : 'hover:scale-105'}
             `}
-            title={`Predicted: ${label}`}
+            title={`${tooltipText}: ${label}`}
         >
             <AvatarDisplay avatar={user.avatar} size="xs" className="w-4 h-4 rounded-full bg-white shadow-sm" />
             {isExpanded && <span className="truncate max-w-[60px] animate-in fade-in zoom-in duration-200">{user.name.split(' ')[0]}</span>}
@@ -162,31 +167,28 @@ export const SimRow: React.FC<{
     rivals: UserProfile[];
     allPredictions: Prediction[];
     userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>;
-    lang: Translation;
+    lang: Translation; 
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
 }> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
-    
     const isSimulated = !!sim;
-    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isKnockout = !match.groupId;
     
-    // TBD Sources
+    // Select Translations (Fallback to EN)
+    const t = TEXT[lang.langCode] || TEXT['en'];
+
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
     
-    // Slot Codes
-    const homeSlotCode = homeSource?.label || 'TBD';
-    const awaySlotCode = awaySource?.label || 'TBD';
+    const homeSlotCode = homeSource?.label || t.tbd;
+    const awaySlotCode = awaySource?.label || t.tbd;
 
-    // Label logic
     const homeLabel = home ? home.name : homeSlotCode;
     const awayLabel = away ? away.name : awaySlotCode;
 
-    // --- RIVAL SORTING: "Visual Confirmation" Logic ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
         const h: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
         const d: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
@@ -194,7 +196,6 @@ export const SimRow: React.FC<{
 
         [currentUser, ...rivals].forEach(u => {
             if (match.groupId) {
-                // GROUP STAGE
                 const p = allPredictions.find(pred => pred.userId === u.email && pred.matchId === match.id);
                 if (p) {
                     const label = `${p.home}-${p.away}`;
@@ -212,7 +213,6 @@ export const SimRow: React.FC<{
                     else d.push({ u, label, status });
                 }
             } else {
-                // KNOCKOUT: Visual Confirmation Logic
                 const userBracket = userBracketData.get(u.email);
                 const userMatchState = userBracket ? userBracket[match.id] : null;
 
@@ -221,29 +221,24 @@ export const SimRow: React.FC<{
                     const userAwayTeam = teams[userMatchState.away];
                     const userWinnerId = userMatchState.winner;
 
-                    // CHECK HOME SLOT
                     if (home) {
-                        // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
                             h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
-                        // TBD: Show user's HOME slot team if simulated
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
                             h.push({ u, label: userHomeTeam.code, status: picksWin ? 'exact' : 'neutral' });
                         }
                     }
 
-                    // CHECK AWAY SLOT
                     if (away) {
                         if (userMatchState.home === away.id || userMatchState.away === away.id) {
                             const picksWin = userWinnerId === away.id;
                             a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
-                        // TBD
                         if (userAwayTeam) {
                             const picksWin = userWinnerId === userAwayTeam.id;
                             a.push({ u, label: userAwayTeam.code, status: picksWin ? 'exact' : 'neutral' });
@@ -257,8 +252,6 @@ export const SimRow: React.FC<{
 
     return (
         <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 flex flex-col ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
-            
-            {/* PURPLE HEADER */}
             <div className="bg-[#2e1065] p-3 border-b border-purple-900/50 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-[9px] font-black text-purple-200 uppercase tracking-widest">
@@ -272,15 +265,12 @@ export const SimRow: React.FC<{
                         </div>
                     )}
                 </div>
-                
                 {groupStandings && (
                     <StandingsStrip standings={groupStandings} teams={teams} qualifiedThirdsSet={qualifiedThirdsSet} />
                 )}
             </div>
 
-            {/* MATCH CONTENT */}
             <div className="p-3 grid grid-cols-3 gap-2">
-                {/* LEFT: HOME */}
                 <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
@@ -294,34 +284,15 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton 
-                            team={home} 
-                            label={homeLabel} 
-                            slotCode={!home ? homeSlotCode : undefined}
-                            isSelected={hVal > aVal} 
-                            onClick={() => onUpdate(1, 0)} 
-                        />
+                        <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
                     )}
-
                     <div className="flex flex-wrap content-start gap-1.5 mt-1">
                         {homePreds.map(item => (
-                            <PredictionPill 
-                                key={item.u.email} 
-                                user={item.u} 
-                                label={item.label}
-                                status={item.status}
-                                isMe={item.u.email === currentUser.email} 
-                                onSelect={match.groupId ? () => { 
-                                    const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
-                                    if(p) onUpdate(p.home, p.away);
-                                } : () => onUpdate(1, 0)} 
-                                align="left" 
-                            />
+                            <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={match.groupId ? () => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); } : () => onUpdate(1, 0)} align="left" />
                         ))}
                     </div>
                 </div>
 
-                {/* CENTER: SCORE / VS */}
                 <div className="flex flex-col gap-2 items-center justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex items-center gap-1.5 h-[90px]">
@@ -334,29 +305,16 @@ export const SimRow: React.FC<{
                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-inner">VS</div>
                         </div>
                     )}
-                    
                     {!isKnockout && (
                         <div className="flex flex-wrap justify-center gap-1.5 w-full mt-1">
                             {drawPreds.length > 0 && <div className="h-px bg-slate-100 w-full my-0.5"></div>}
                             {drawPreds.map(item => (
-                                <PredictionPill 
-                                    key={item.u.email} 
-                                    user={item.u} 
-                                    label={item.label}
-                                    status={item.status}
-                                    isMe={item.u.email === currentUser.email}
-                                    onSelect={() => {
-                                        const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
-                                        if(p) onUpdate(p.home, p.away);
-                                    }}
-                                    align="center" 
-                                />
+                                <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={() => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); }} align="center" />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* RIGHT: AWAY */}
                 <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
@@ -370,29 +328,11 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton 
-                            team={away} 
-                            label={awayLabel} 
-                            slotCode={!away ? awaySlotCode : undefined}
-                            isSelected={aVal > hVal} 
-                            onClick={() => onUpdate(0, 1)} 
-                        />
+                        <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
                     )}
-
                     <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
                         {awayPreds.map(item => (
-                            <PredictionPill 
-                                key={item.u.email} 
-                                user={item.u} 
-                                label={item.label}
-                                status={item.status}
-                                isMe={item.u.email === currentUser.email} 
-                                onSelect={match.groupId ? () => { 
-                                    const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
-                                    if(p) onUpdate(p.home, p.away);
-                                } : () => onUpdate(0, 1)} 
-                                align="right" 
-                            />
+                            <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={match.groupId ? () => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); } : () => onUpdate(0, 1)} align="right" />
                         ))}
                     </div>
                 </div>

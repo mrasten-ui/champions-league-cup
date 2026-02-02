@@ -7,15 +7,56 @@ import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw }
 
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
-import { SimRow, StandingsStrip } from './analysis/SimRow';
+import { SimRow } from './analysis/SimRow';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 
-// --- SUB-COMPONENT: SIMULATED LEADERBOARD (Kept here as it's UI specific to this page) ---
+// LOCAL TRANSLATIONS
+const TEXT: Record<string, any> = {
+    en: {
+        analysisTitle: "Path to Victory",
+        aiSubtitle: "AI Insights & Simulation",
+        resetSim: "Reset Simulation",
+        simRank: "Simulated Rank",
+        hideTable: "Hide Table",
+        fullTable: "Full Table",
+        noMatches: "No matches on this date."
+    },
+    'en-US': {
+        analysisTitle: "Road to Victory",
+        aiSubtitle: "AI Intel & Sim",
+        resetSim: "Reset Simulation",
+        simRank: "Projected Rank",
+        hideTable: "Hide Standings",
+        fullTable: "Full Standings",
+        noMatches: "No matchups on this date."
+    },
+    sco: {
+        analysisTitle: "Road tae Glory",
+        aiSubtitle: "The Gaffer's Intel",
+        resetSim: "Reset the Sim",
+        simRank: "Simulated Rank",
+        hideTable: "Hide Table",
+        fullTable: "Full Table",
+        noMatches: "Nae matches on this date."
+    },
+    no: {
+        analysisTitle: "Veien til Seier",
+        aiSubtitle: "AI Innsikt & Simulering",
+        resetSim: "Nullstill Simulering",
+        simRank: "Simulert Rangering",
+        hideTable: "Skjul Tabell",
+        fullTable: "Full Tabell",
+        noMatches: "Ingen kamper på denne datoen."
+    }
+};
+
+// --- SUB-COMPONENT: SIMULATED LEADERBOARD ---
 const SimulatedLeaderboardWidget: React.FC<{
     simulatedUsers: { user: UserProfile, score: number, diff: number, rank: number }[];
     currentUser: UserProfile;
     lang: Translation;
-}> = ({ simulatedUsers, currentUser, lang }) => {
+    t: any;
+}> = ({ simulatedUsers, currentUser, lang, t }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const chunkedUsers = useMemo(() => {
@@ -32,7 +73,7 @@ const SimulatedLeaderboardWidget: React.FC<{
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-lg">
             <div onClick={() => setIsExpanded(!isExpanded)} className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lang.simulatedRank || "Simulated Rank"}</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.simRank}</span>
                     <div className="flex items-center gap-2">
                         <span className="text-2xl font-black text-slate-800">#{myRow?.rank || '-'}</span>
                         {myRow && myRow.diff !== 0 && (
@@ -45,7 +86,7 @@ const SimulatedLeaderboardWidget: React.FC<{
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">{isExpanded ? "Hide Table" : "Full Table"}</span>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">{isExpanded ? t.hideTable : t.fullTable}</span>
                     {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                 </div>
             </div>
@@ -121,6 +162,9 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   const todayStr = new Date().toDateString();
   const [filterDate, setFilterDate] = useState<string>(todayStr);
 
+  // Translation Selection (Fallback to EN)
+  const t = TEXT[lang.langCode] || TEXT['en'];
+
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
   // USE THE NEW HOOK
@@ -178,12 +222,17 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
         <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} />
 
-        <SimulatedLeaderboardWidget simulatedUsers={combinedStats} currentUser={currentUser} lang={lang} />
+        <SimulatedLeaderboardWidget 
+            simulatedUsers={combinedStats} 
+            currentUser={currentUser} 
+            lang={lang}
+            t={t} // Pass translation keys
+        />
 
         <div className="flex-1 p-4 space-y-4 pb-20">
             {Object.keys(simulation).length > 0 && (
                 <div className="flex justify-end mb-2">
-                    <button onClick={resetSim} className="flex items-center gap-1 text-[10px] font-bold text-purple-500 uppercase tracking-widest hover:text-purple-600 bg-purple-50 px-2 py-1 rounded-lg"><RefreshCw size={12} /> Reset Simulation</button>
+                    <button onClick={resetSim} className="flex items-center gap-1 text-[10px] font-bold text-purple-500 uppercase tracking-widest hover:text-purple-600 bg-purple-50 px-2 py-1 rounded-lg"><RefreshCw size={12} /> {t.resetSim}</button>
                 </div>
             )}
 
@@ -212,7 +261,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                         );
                     })
                 ) : (
-                    <div className="col-span-full text-center py-12 opacity-50"><Calendar size={48} className="mx-auto mb-2 text-slate-300" /><p className="text-sm font-bold text-slate-400">No matches on this date.</p></div>
+                    <div className="col-span-full text-center py-12 opacity-50"><Calendar size={48} className="mx-auto mb-2 text-slate-300" /><p className="text-sm font-bold text-slate-400">{t.noMatches}</p></div>
                 )}
             </div>
         </div>
