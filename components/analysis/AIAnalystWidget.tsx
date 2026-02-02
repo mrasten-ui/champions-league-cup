@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
+import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -15,7 +15,6 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
-// LOCAL TRANSLATIONS
 const TEXT: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
@@ -85,7 +84,7 @@ const resolveLanguage = (code: string): string => {
 interface ScriptLine {
     speaker: 'Host' | 'Pundit';
     text: string;
-    audioUrl?: string;
+    audioUrl?: string | null;
 }
 
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, currentLang, teams }) => {
@@ -96,6 +95,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const [playbackMethod, setPlaybackMethod] = useState<'mp3' | 'tts' | 'text'>('mp3');
+    
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const [loading, setLoading] = useState(true);
@@ -109,60 +110,112 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
         const processedLines = [...lines];
+        let hasSuccess = false;
 
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
             try {
-                // Fetch audio from our new backend function
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
                         speaker_type: line.speaker,
-                        lang: langKey // Pass language to backend for voice selection
+                        lang: langKey 
                     }
                 });
 
                 if (error) throw error;
 
                 const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+                if (audioBlob.size < 100) throw new Error("Audio file too small (likely error text)");
+
                 const audioUrl = URL.createObjectURL(audioBlob);
                 processedLines[i].audioUrl = audioUrl;
+                hasSuccess = true;
 
             } catch (err) {
-                console.error("Audio Gen Failed for line", i, err);
+                console.warn("Audio Gen Failed for line", i, err);
+                processedLines[i].audioUrl = null; // Mark as failed
             }
         }
         
         setScript(processedLines);
         setIsAudioLoading(false);
-        setIsPlaying(true); // Auto-play once audio is ready
+        setPlaybackMethod(hasSuccess ? 'mp3' : 'tts'); // Fallback if all fail
+        setIsPlaying(true);
     };
 
-    // --- PLAYBACK CONTROL ---
+    // --- ROBUST PLAYBACK CONTROL ---
     useEffect(() => {
-        if (mode === 'roast' && isPlaying && script && script[currentLineIndex]?.audioUrl) {
-            if (!audioRef.current) {
-                audioRef.current = new Audio();
+        if (mode !== 'roast' || !isPlaying || !script) return;
+
+        const currentLine = script[currentLineIndex];
+        if (!currentLine) return; // End of script
+
+        let timer: NodeJS.Timeout;
+
+        const advance = () => {
+            if (currentLineIndex < script.length - 1) {
+                setCurrentLineIndex(prev => prev + 1);
+            } else {
+                setIsPlaying(false);
+            }
+        };
+
+        // METHOD 1: PRE-GENERATED MP3 (Google/OpenAI)
+        if (currentLine.audioUrl) {
+            if (!audioRef.current) audioRef.current = new Audio();
+            const audio = audioRef.current;
+            
+            audio.src = currentLine.audioUrl;
+            audio.onended = advance;
+            audio.onerror = () => {
+                // If MP3 fails mid-stream, fallback to timer for this line
+                console.warn("MP3 playback error, skipping to next.");
+                setTimeout(advance, 2000); 
+            };
+            
+            audio.play().catch(e => {
+                console.warn("Autoplay blocked", e);
+                setTimeout(advance, 3000); // Fallback if browser blocks sound
+            });
+        } 
+        // METHOD 2: BROWSER SPEECH SYNTHESIS (Fallback)
+        else if ('speechSynthesis' in window) {
+            // Cancel previous
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(currentLine.text);
+            
+            // Try to set voice based on lang
+            // Note: Mobile browsers have limited voices
+            utterance.lang = langKey === 'no' ? 'nb-NO' : 'en-GB'; 
+            
+            // Tweak pitch for characters
+            if (currentLine.speaker === 'Pundit') {
+                utterance.pitch = 0.8; // Lower
+                utterance.rate = 1.1;  // Faster
+            } else {
+                utterance.pitch = 1.1; // Higher/Polite
             }
 
-            const audio = audioRef.current;
-            audio.src = script[currentLineIndex].audioUrl!;
-            audio.play().catch(e => console.error("Playback error", e));
-
-            const handleEnded = () => {
-                if (currentLineIndex < script.length - 1) {
-                    setCurrentLineIndex(prev => prev + 1);
-                } else {
-                    setIsPlaying(false);
-                }
-            };
-
-            audio.addEventListener('ended', handleEnded);
-            return () => {
-                audio.removeEventListener('ended', handleEnded);
-                audio.pause();
-            };
+            utterance.onend = advance;
+            utterance.onerror = () => setTimeout(advance, 3000); // Fail safety
+            
+            window.speechSynthesis.speak(utterance);
+        } 
+        // METHOD 3: SILENT TIMER (Reading Mode)
+        else {
+            const words = currentLine.text.split(' ').length;
+            const duration = Math.max(2000, words * 300);
+            timer = setTimeout(advance, duration);
         }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+            if (audioRef.current) audioRef.current.pause();
+            window.speechSynthesis.cancel();
+        };
+
     }, [isPlaying, currentLineIndex, script, mode]);
 
 
@@ -173,6 +226,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setAnalysis(null);
         setCurrentLineIndex(0);
         setIsPlaying(false);
+        setPlaybackMethod('mp3');
         
         try {
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
@@ -257,7 +311,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     const parsedScript = JSON.parse(cleanJson);
                     setScript(parsedScript); 
                     setLoading(false);
-                    // TRIGGER AUDIO GENERATION HERE
+                    // TRIGGER AUDIO
                     generateAudioForScript(parsedScript);
                 } catch (err) {
                     console.error("JSON Error", err);
@@ -303,9 +357,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                 <RefreshCw size={12} className="animate-spin" /> {t.loading}
                             </div>
                         ) : isPlaying ? (
-                            <button onClick={() => { setIsPlaying(false); audioRef.current?.pause(); }} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
+                            <button onClick={() => { setIsPlaying(false); audioRef.current?.pause(); window.speechSynthesis.cancel(); }} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
-                            <button onClick={() => { setIsPlaying(true); audioRef.current?.play(); }} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
+                            <button onClick={() => { setIsPlaying(true); }} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
                         )}
                     </div>
                 )}
@@ -344,7 +398,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                 </div>
                             );
                         })}
-                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Generating audio...</div>}
+                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Connecting audio feed...</div>}
                     </div>
                 )}
             </div>
