@@ -28,7 +28,8 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Conflict found",
         picked: "picked",
-        promptLang: "ENGLISH"
+        // UPDATED: Jamie Carragher / Scouse Persona
+        promptLang: "ENGLISH (The Pundit must speak in a strong LIVERPOOL/SCOUSE dialect, like Jamie Carragher. High energy, passionate. Use terms like 'Lad', 'Kidda', 'Sound', 'Boss', 'Soft', 'Gaffer', 'Absolutely shocker')"
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -42,7 +43,7 @@ const TEXT: Record<string, any> = {
         draw: "Tie",
         conflict: "Matchup conflict",
         picked: "picked",
-        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster')"
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster', 'Clinch', 'MVP')"
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -56,7 +57,7 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Battle",
         picked: "backed",
-        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter')"
+        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter', 'Pure dead brilliant')"
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -70,7 +71,7 @@ const TEXT: Record<string, any> = {
         draw: "Uavgjort",
         conflict: "Konflikt",
         picked: "valgte",
-        promptLang: "NORWEGIAN"
+        promptLang: "NORWEGIAN (Use a sharp, knowledgeable football tone)"
     }
 };
 
@@ -114,6 +115,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
             try {
+                // Pass language to backend for voice selection
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
@@ -125,7 +127,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (error) throw error;
 
                 const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-                if (audioBlob.size < 100) throw new Error("Audio file too small (likely error text)");
+                // Basic check for valid audio file size
+                if (audioBlob.size < 100) throw new Error("Audio file too small");
 
                 const audioUrl = URL.createObjectURL(audioBlob);
                 processedLines[i].audioUrl = audioUrl;
@@ -142,7 +145,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setIsPlaying(true);
     };
 
-    // --- ROBUST PLAYBACK CONTROL ---
+    // --- PLAYBACK CONTROL ---
     useEffect(() => {
         if (mode !== 'roast' || !isPlaying || !script) return;
 
@@ -167,27 +170,23 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             audio.src = currentLine.audioUrl;
             audio.onended = advance;
             audio.onerror = () => {
-                // If MP3 fails mid-stream, fallback to timer for this line
                 console.warn("MP3 playback error, skipping to next.");
                 setTimeout(advance, 2000); 
             };
             
             audio.play().catch(e => {
                 console.warn("Autoplay blocked", e);
-                setTimeout(advance, 3000); // Fallback if browser blocks sound
+                setTimeout(advance, 3000); 
             });
         } 
         // METHOD 2: BROWSER SPEECH SYNTHESIS (Fallback)
         else if ('speechSynthesis' in window) {
-            // Cancel previous
             window.speechSynthesis.cancel();
-
             const utterance = new SpeechSynthesisUtterance(currentLine.text);
             
-            // Try to set voice based on lang
+            // Voice matching logic for fallback
             utterance.lang = langKey === 'no' ? 'nb-NO' : 'en-GB'; 
             
-            // Tweak pitch for characters
             if (currentLine.speaker === 'Pundit') {
                 utterance.pitch = 0.8; // Lower
                 utterance.rate = 1.1;  // Faster
@@ -196,11 +195,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
             utterance.onend = advance;
-            utterance.onerror = () => setTimeout(advance, 3000); // Fail safety
+            utterance.onerror = () => setTimeout(advance, 3000);
             
             window.speechSynthesis.speak(utterance);
         } 
-        // METHOD 3: SILENT TIMER (Reading Mode)
+        // METHOD 3: SILENT TIMER
         else {
             const words = currentLine.text.split(' ').length;
             const duration = Math.max(2000, words * 300);
@@ -307,7 +306,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     const parsedScript = JSON.parse(cleanJson);
                     setScript(parsedScript); 
                     setLoading(false);
-                    // TRIGGER AUDIO
                     generateAudioForScript(parsedScript);
                 } catch (err) {
                     console.error("JSON Error", err);
