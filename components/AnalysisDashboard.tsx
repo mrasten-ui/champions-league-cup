@@ -44,27 +44,31 @@ const ScoreStepper: React.FC<{
 const WinnerButton: React.FC<{
     team: Team | undefined;
     label: string;
+    slotCode?: string;
     isSelected: boolean;
     onClick: () => void;
-}> = ({ team, label, isSelected, onClick }) => (
+}> = ({ team, label, slotCode, isSelected, onClick }) => (
     <button 
         onClick={onClick}
-        // Fixed height to prevent layout shift
         className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl border-2 transition-all w-full h-[90px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
     >
         <div className="relative">
-            {team ? (
-                <img src={team.flag} alt={team.name} className="w-10 h-7 object-cover rounded shadow-sm" />
+            {team && team.flag ? (
+                <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
             ) : (
-                // TBD State - clearly shows the label (e.g. "1A")
-                <div className="w-10 h-7 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{label}</span>
+                // TBD STATE: Rasten Cup Logo (Trophy)
+                <div className="w-12 h-8 flex items-center justify-center">
+                    <div className="bg-gradient-to-br from-[#2e1065] to-purple-700 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ring-2 ring-purple-100/50">
+                        <Trophy size={14} className="text-yellow-400" />
+                    </div>
                 </div>
             )}
             {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={10} strokeWidth={4} /></div>}
         </div>
+        
+        {/* Name or Slot Label (e.g. "1A" or "Winner 37") */}
         <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 line-clamp-2 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team ? team.name : "TBD"}
+            {team ? team.name : (slotCode || label || "TBD")}
         </span>
     </button>
 );
@@ -175,9 +179,13 @@ const SimRow: React.FC<{
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
     
-    // Logic: If home (Team Object) exists, use its name. Otherwise use the source label (e.g. "1A")
-    const homeLabel = home ? home.name : (homeSource?.label || 'TBD');
-    const awayLabel = away ? away.name : (awaySource?.label || 'TBD');
+    // Slot Codes
+    const homeSlotCode = homeSource?.label || 'TBD';
+    const awaySlotCode = awaySource?.label || 'TBD';
+
+    // Label logic
+    const homeLabel = home ? home.name : homeSlotCode;
+    const awayLabel = away ? away.name : awaySlotCode;
 
     // --- RIVAL SORTING: "Visual Confirmation" Logic ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
@@ -224,7 +232,7 @@ const SimRow: React.FC<{
                             h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
-                        // TBD: Show user's HOME slot team if simulated
+                        // TBD: Show user's HOME slot team
                         if (userHomeTeam) {
                             const picksWin = userWinnerId === userHomeTeam.id;
                             h.push({ u, label: userHomeTeam.code, status: picksWin ? 'exact' : 'neutral' });
@@ -238,7 +246,6 @@ const SimRow: React.FC<{
                             a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
                         }
                     } else {
-                        // TBD
                         if (userAwayTeam) {
                             const picksWin = userWinnerId === userAwayTeam.id;
                             a.push({ u, label: userAwayTeam.code, status: picksWin ? 'exact' : 'neutral' });
@@ -275,7 +282,7 @@ const SimRow: React.FC<{
 
             {/* MATCH CONTENT */}
             <div className="p-3 grid grid-cols-3 gap-2">
-                {/* LEFT: HOME - Fixed Layout */}
+                {/* LEFT: HOME */}
                 <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
@@ -289,7 +296,13 @@ const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton team={home} label={homeLabel} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} />
+                        <WinnerButton 
+                            team={home} 
+                            label={homeLabel} 
+                            slotCode={!home ? homeSlotCode : undefined}
+                            isSelected={hVal > aVal} 
+                            onClick={() => onUpdate(1, 0)} 
+                        />
                     )}
 
                     <div className="flex flex-wrap content-start gap-1.5 mt-1">
@@ -310,7 +323,7 @@ const SimRow: React.FC<{
                     </div>
                 </div>
 
-                {/* CENTER: SCORE / VS - Fixed Layout */}
+                {/* CENTER: SCORE / VS */}
                 <div className="flex flex-col gap-2 items-center justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex items-center gap-1.5 h-[90px]">
@@ -345,7 +358,7 @@ const SimRow: React.FC<{
                     )}
                 </div>
 
-                {/* RIGHT: AWAY - Fixed Layout */}
+                {/* RIGHT: AWAY */}
                 <div className="flex flex-col gap-2 justify-start h-full">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center justify-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-[90px]">
@@ -359,7 +372,13 @@ const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton team={away} label={awayLabel} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} />
+                        <WinnerButton 
+                            team={away} 
+                            label={awayLabel} 
+                            slotCode={!away ? awaySlotCode : undefined}
+                            isSelected={aVal > hVal} 
+                            onClick={() => onUpdate(0, 1)} 
+                        />
                     )}
 
                     <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
