@@ -167,15 +167,19 @@ export const SimRow: React.FC<{
     rivals: UserProfile[];
     allPredictions: Prediction[];
     userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>;
-    lang: Translation; 
+    lang: Translation;
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
 }> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
+    // 1. DEFINE VARIABLES AT THE TOP
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     const isSimulated = !!sim;
     const isKnockout = !match.groupId;
+    
+    // DEFINITION OF ISLIVE - This must be here
+    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     
     // Select Translations (Fallback to EN)
     const t = TEXT[lang.langCode] || TEXT['en'];

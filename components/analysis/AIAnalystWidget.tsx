@@ -152,7 +152,12 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
-            setAnalysis(response.text || t.error);
+            // SAFE ACCESS: Cast as any to avoid TS conflict if types are outdated
+            // We expect response to have a .text() method or .text property depending on version
+            const responseData: any = response; 
+            const text = typeof responseData.text === 'function' ? responseData.text() : responseData.text;
+            
+            setAnalysis(text || t.error);
         } catch (e) {
             console.error(e);
             setAnalysis(t.error);
