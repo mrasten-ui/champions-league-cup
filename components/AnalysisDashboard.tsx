@@ -56,13 +56,13 @@ const WinnerButton: React.FC<{
                 <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
             ) : (
                 <div className="w-12 h-8 bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-slate-300">
-                    <HelpCircle size={16} />
+                    <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
                 </div>
             )}
             {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={12} strokeWidth={4} /></div>}
         </div>
         <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team?.name || label}
+            {team?.name || (team ? '' : 'Select')}
         </span>
     </button>
 );
@@ -169,14 +169,13 @@ const SimRow: React.FC<{
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isKnockout = !match.groupId;
     
-    // TBD Sources - Fixed safety check
+    // TBD Sources
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
     
     // Logic: If home (Team Object) exists, use its name. Otherwise use the source label (e.g. "1A")
-    // Safe access with ?. in case getSlotSource returns null
-    const homeLabel = home ? home.name : (homeSource?.code || homeSource?.label || 'TBD');
-    const awayLabel = away ? away.name : (awaySource?.code || awaySource?.label || 'TBD');
+    const homeLabel = home ? home.name : (homeSource?.label || 'TBD');
+    const awayLabel = away ? away.name : (awaySource?.label || 'TBD');
 
     // --- RIVAL SORTING: "Visual Confirmation" Logic ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
@@ -220,7 +219,7 @@ const SimRow: React.FC<{
                         // Flag Visible: Check if user has this team ANYWHERE in this match
                         if (userMatchState.home === home.id || userMatchState.away === home.id) {
                             const picksWin = userWinnerId === home.id;
-                            h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
+                            h.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'neutral' });
                         }
                     } else {
                         // TBD: Show user's HOME slot team
@@ -234,7 +233,7 @@ const SimRow: React.FC<{
                     if (away) {
                         if (userMatchState.home === away.id || userMatchState.away === away.id) {
                             const picksWin = userWinnerId === away.id;
-                            a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'wrong' });
+                            a.push({ u, label: picksWin ? 'WIN' : '-', status: picksWin ? 'exact' : 'neutral' });
                         }
                     } else {
                         if (userAwayTeam) {
