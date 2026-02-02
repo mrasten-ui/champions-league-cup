@@ -132,7 +132,6 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       ga: 0,
       gd: 0,
       pts: 0,
-      // FIX: Added safer default for form array spreading
       form: teams[tId]?.form ? [...(teams[tId].form || [])] : [] 
   });
 
@@ -202,7 +201,6 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 export const getAllGroupStandings = (matches: Match[], teams: Record<string, Team>): Record<string, GroupStanding[]> => {
   const groups: Record<string, GroupStanding[]> = {};
   
-  // Iterate all groups from config to ensure we get A-L (12 groups)
   GROUP_CONFIG.forEach((g: any) => {
       groups[g.id] = calculateGroupStandings(g.id, matches, teams);
   });
@@ -210,18 +208,15 @@ export const getAllGroupStandings = (matches: Match[], teams: Record<string, Tea
   return groups;
 };
 
-// Explicitly return intersection type including groupId
 export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupStanding[]>): (GroupStanding & { groupId: string })[] => {
   const thirds: (GroupStanding & { groupId: string })[] = [];
   
-  // Use Object.entries to capture the groupId key
   Object.entries(allGroupStandings).forEach(([gid, group]) => {
     if (group.length >= 3) {
       thirds.push({ ...group[2], groupId: gid });
     }
   });
 
-  // Sort: Points -> GD -> GF -> Wins
   return thirds.sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     if (b.gd !== a.gd) return b.gd - a.gd;
@@ -236,11 +231,9 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     
     const thirds = getThirdPlaceStandings(groupResults);
     
-    // Top 8 qualify for R32
     const qualifiedThirds = thirds.slice(0, 8);
     const usedThirds = new Set<string>();
     
-    // Helper to find valid 3rd place opponent
     const get3rd = (allowedGroups: string[]) => {
         let candidate = qualifiedThirds.find(t => allowedGroups.includes(t.groupId) && !usedThirds.has(t.teamId));
         
@@ -276,7 +269,6 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
         }
     };
 
-    // R32 Matchups based on 12-group bracket structure
     setMatchup('R32_1', getTeam('A', 2), getTeam('B', 2));
     setMatchup('R32_2', getTeam('E', 1), get3rd(['A', 'B', 'C', 'D', 'F']));
     setMatchup('R32_3', getTeam('F', 1), getTeam('C', 2));
@@ -695,7 +687,7 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
   return [];
 };
 
-// UPDATED: Now queries 'scouting_reports' instead of 'scouting_overview'
+// UPDATED: Now queries 'scouting_reports' with the LANGUAGE filter
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
     if (!supabase) {
         console.warn("Supabase not initialized");
@@ -705,9 +697,10 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     try {
         const safeId = teamId.trim();
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_reports') // <--- FIXED TABLE NAME
+            .from('scouting_reports') // Correct Table
             .select('*')
             .eq('team_id', safeId)
+            .eq('lang', lang) // <--- CRITICAL FIX: Filter by language
             .maybeSingle();
 
         if (reportError) {
@@ -717,18 +710,18 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 
         if (reportData) {
             return {
-                id: reportData.id || 0,
+                id: 0,
                 team_id: reportData.team_id,
-                team_name: reportData.team_name || safeId,
-                confederation: reportData.confederation || 'FIFA',
-                fifa_rank: reportData.fifa_rank || 0,
+                team_name: safeId,
+                confederation: 'FIFA',
+                fifa_rank: 0,
                 star_player: reportData.star_player,
                 strengths: reportData.strengths,
                 weaknesses: reportData.weaknesses,
-                scout_notes: reportData.scout_notes || '',
-                recent_form: reportData.recent_form || '',
-                last_5_matches: reportData.last_5_matches || '',
-                lang: 'EN' 
+                scout_notes: '',
+                recent_form: '',
+                last_5_matches: '',
+                lang: lang // Passes back the correct language
             };
         }
         return null;
