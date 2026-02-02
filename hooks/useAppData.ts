@@ -14,14 +14,12 @@ export const useAppData = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Start with constants, but we will overwrite this immediately
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
   
   const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
   const [allPredictions, setAllPredictions] = useState<Prediction[]>(MOCK_PREDICTIONS);
   const [usersDb, setUsersDb] = useState<Record<string, UserProfile>>({});
   
-  // Avatar Presets
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
@@ -57,7 +55,7 @@ export const useAppData = () => {
             .order('id', { ascending: true });
 
           if (dbMatches && dbMatches.length > 0) {
-            const mappedMatches: Match[] = dbMatches.map((m: any) => ({
+            let mappedMatches: Match[] = dbMatches.map((m: any) => ({
               id: m.id,
               date: m.date,
               venue: m.venue,
@@ -73,6 +71,33 @@ export const useAppData = () => {
               minute: m.minute,
               nextMatchId: m.next_match_id 
             }));
+
+            // --- 1. GLOBAL TOURNAMENT LOCK CHECK ---
+            // "Lock everything 15 min before the FIRST game"
+            
+            // a) Find the earliest match in the tournament (filtering out TBD dates)
+            const sortedByDate = [...mappedMatches]
+                .filter(m => m.date && m.date !== 'TBD')
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            
+            const firstMatch = sortedByDate[0];
+
+            if (firstMatch) {
+                const firstKickoff = new Date(firstMatch.date).getTime();
+                const lockMargin = 15 * 60 * 1000; // 15 minutes in milliseconds
+                const globalLockTime = firstKickoff - lockMargin;
+                const now = Date.now();
+
+                // b) If we are past the deadline, force Lock on everything
+                if (now >= globalLockTime) {
+                    mappedMatches = mappedMatches.map(m => ({
+                        ...m,
+                        isLocked: true // Overrides DB value
+                    }));
+                }
+            }
+            // ---------------------------------------
+
             setMatches(mappedMatches);
           }
 
@@ -95,23 +120,20 @@ export const useAppData = () => {
               setUsersDb(pMap);
           }
 
-          // D. Fetch Team Data (Stats + Ranks + FORM)
-          // We fetch Rankings, Tactics, AND Scouting Data (for Form)
+          // D. Fetch Team Data
           const [rankMap, tacticsMap, scoutingData] = await Promise.all([
               fetchAllTeamRanks(),
               fetchAllTeamTactics(),
-              supabase.from('scouting_reports').select('team_id, recent_form') // <--- UPDATED FROM scouting_overview
+              supabase.from('scouting_reports').select('team_id, recent_form')
           ]);
 
           setTeamsData(prev => {
               const next = { ...prev };
               
-              // Helper to map form string "W-L-D" to array ['W','L','D']
               const formMap: Record<string, string[]> = {};
               if (scoutingData.data) {
                   scoutingData.data.forEach((row: any) => {
                       if (row.recent_form) {
-                          // Clean up string and split
                           formMap[row.team_id] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c);
                       }
                   });
@@ -119,11 +141,9 @@ export const useAppData = () => {
 
               Object.keys(next).forEach(tid => {
                   if (next[tid]) {
-                      // 1. Update Rank
                       if (rankMap[tid]) {
                           next[tid].rank = rankMap[tid];
                       }
-                      // 2. Update Stats from Tactics
                       if (tacticsMap[tid]) {
                           const t = tacticsMap[tid];
                           next[tid].att = t.att;
@@ -131,7 +151,6 @@ export const useAppData = () => {
                           next[tid].def = t.def;
                           next[tid].rating = Math.round((t.att + t.mid + t.def) / 3);
                       }
-                      // 3. Update Historical Form (Critical for Table)
                       if (formMap[tid]) {
                           next[tid].form = formMap[tid];
                       }
