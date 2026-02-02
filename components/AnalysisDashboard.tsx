@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
 import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket } from '../services/engine';
-import { getSlotSource, getGroupTeams } from '../utils/bracketHelpers';
+import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
 import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, AlertTriangle, Flame, Target, MessageSquareQuote, Calendar } from 'lucide-react';
@@ -70,16 +70,15 @@ const WinnerButton: React.FC<{
 const PredictionPill: React.FC<{
     user: UserProfile;
     label: string;
-    isCorrect: boolean; // For visual coloring
+    isCorrect: boolean; 
     isMe: boolean;
     onSelect?: () => void;
     align: 'left' | 'center' | 'right';
 }> = ({ user, label, isCorrect, isMe, onSelect, align }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Color Logic 
     let baseClass = 'bg-slate-50 text-slate-400 border-slate-100';
-    if (isCorrect) baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
+    if (isCorrect) baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200'; // Highlight if they picked this team to WIN
     
     if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black';
 
@@ -155,65 +154,66 @@ const SimRow: React.FC<{
     currentUser: UserProfile;
     rivals: UserProfile[];
     allPredictions: Prediction[];
-    userBracketWinners: Map<string, Record<string, string>>; // New prop: Pre-calculated winners per user
+    userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>; // NEW: Full bracket state
     lang: Translation;
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
-    allMatches: Match[]; // Needed for TBD logic
-}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketWinners, lang, groupStandings, teams, qualifiedThirdsSet, allMatches }) => {
+    allMatches: Match[]; 
+}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet, allMatches }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     
     const isSimulated = !!sim;
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
-    const isKnockout = !!match.round && match.round !== 'R32' && match.round !== undefined;
-
-    // --- TBD Logic ---
+    
+    // TBD Sources
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
     const homeLabel = home ? home.name : homeSource.label;
     const awayLabel = away ? away.name : awaySource.label;
 
-    // --- RIVAL SORTING (Advanced Logic) ---
+    // --- RIVAL SORTING (Correct "Who is Here?" Logic) ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
-        const h: { u: UserProfile, label: string }[] = [];
-        const d: { u: UserProfile, label: string }[] = [];
-        const a: { u: UserProfile, label: string }[] = [];
+        const h: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
+        const d: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
+        const a: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
 
         [currentUser, ...rivals].forEach(u => {
             if (match.groupId) {
-                // GROUP STAGE: Standard Score Logic
+                // GROUP STAGE: Score Prediction
                 const p = allPredictions.find(pred => pred.userId === u.email && pred.matchId === match.id);
                 if (p) {
                     const label = `${p.home}-${p.away}`;
-                    if (p.home > p.away) h.push({ u, label });
-                    else if (p.away > p.home) a.push({ u, label });
-                    else d.push({ u, label });
+                    const isExact = (p.home === hVal && p.away === aVal);
+                    if (p.home > p.away) h.push({ u, label, isCorrect: isExact });
+                    else if (p.away > p.home) a.push({ u, label, isCorrect: isExact });
+                    else d.push({ u, label, isCorrect: isExact });
                 }
             } else {
-                // KNOCKOUT: Team Tracker Logic
-                // Does this user have the REAL Home team winning in their bracket for this match ID?
-                const winners = userBracketWinners.get(u.email);
-                const userWinnerId = winners ? winners[match.id] : null;
+                // KNOCKOUT: Participation Logic
+                const userBracket = userBracketData.get(u.email);
+                const userMatchState = userBracket ? userBracket[match.id] : null;
 
-                if (userWinnerId) {
-                    // Check if the user's winner matches the REAL teams present
-                    if (home && userWinnerId === home.id) {
-                        h.push({ u, label: 'WIN' });
-                    } else if (away && userWinnerId === away.id) {
-                        a.push({ u, label: 'WIN' });
+                if (userMatchState) {
+                    // Check Home Slot
+                    if (home && (userMatchState.home === home.id || userMatchState.away === home.id)) {
+                        // User predicted this team to be in this match.
+                        // Did they predict them to WIN this match?
+                        const picksWin = userMatchState.winner === home.id;
+                        h.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
                     }
-                    // Note: If user predicted "Argentina" but match is "Brazil vs Chile", 
-                    // user appears NOWHERE for this match card. This is correct behavior.
+                    
+                    // Check Away Slot
+                    if (away && (userMatchState.home === away.id || userMatchState.away === away.id)) {
+                        const picksWin = userMatchState.winner === away.id;
+                        a.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                    }
                 }
             }
         });
         return { homePreds: h, drawPreds: d, awayPreds: a };
-    }, [currentUser, rivals, allPredictions, match.id, userBracketWinners, home, away]);
-
-    // Derived Simulation Status for coloring pills
-    const simWinnerId = hVal > aVal ? home?.id : (aVal > hVal ? away?.id : 'DRAW');
+    }, [currentUser, rivals, allPredictions, match.id, userBracketData, home, away, hVal, aVal]);
 
     return (
         <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 flex flex-col ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
@@ -255,14 +255,8 @@ const SimRow: React.FC<{
                         )}
                     </div>
                     
-                    {/* Winner Button: Only for Knockouts, allows forcing the path */}
                     {!match.groupId && (
-                        <WinnerButton 
-                            team={home} 
-                            label={homeLabel} 
-                            isSelected={hVal > aVal} 
-                            onClick={() => onUpdate(1, 0)} 
-                        />
+                        <WinnerButton team={home} label={homeLabel} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} />
                     )}
 
                     <div className="flex flex-wrap content-start gap-1.5 mt-1">
@@ -271,13 +265,12 @@ const SimRow: React.FC<{
                                 key={item.u.email} 
                                 user={item.u} 
                                 label={item.label}
-                                isCorrect={match.groupId ? false : (simWinnerId === home?.id)} // For knockouts, green if they picked this team and sim has them winning
+                                isCorrect={item.isCorrect}
                                 isMe={item.u.email === currentUser.email} 
                                 onSelect={match.groupId ? () => { 
-                                    // Group: Set Score
                                     const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
                                     if(p) onUpdate(p.home, p.away);
-                                } : () => onUpdate(1, 0)} // Knockout: Set Winner
+                                } : () => onUpdate(1, 0)} 
                                 align="left" 
                             />
                         ))}
@@ -306,7 +299,7 @@ const SimRow: React.FC<{
                                     key={item.u.email} 
                                     user={item.u} 
                                     label={item.label}
-                                    isCorrect={false}
+                                    isCorrect={item.isCorrect}
                                     isMe={item.u.email === currentUser.email}
                                     onSelect={() => {
                                         const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
@@ -335,12 +328,7 @@ const SimRow: React.FC<{
                     </div>
 
                     {!match.groupId && (
-                        <WinnerButton 
-                            team={away} 
-                            label={awayLabel} 
-                            isSelected={aVal > hVal} 
-                            onClick={() => onUpdate(0, 1)} 
-                        />
+                        <WinnerButton team={away} label={awayLabel} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} />
                     )}
 
                     <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
@@ -349,7 +337,7 @@ const SimRow: React.FC<{
                                 key={item.u.email} 
                                 user={item.u} 
                                 label={item.label}
-                                isCorrect={match.groupId ? false : (simWinnerId === away?.id)}
+                                isCorrect={item.isCorrect}
                                 isMe={item.u.email === currentUser.email} 
                                 onSelect={match.groupId ? () => { 
                                     const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id);
@@ -483,24 +471,30 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // 1. CALCULATE USER BRACKET PATHS (Heavy Calculation, Memoized)
-  const userBracketWinners = useMemo(() => {
-      const map = new Map<string, Record<string, string>>();
+  // 1. CALCULATE USER BRACKET PATHS (Memoized)
+  // Stores WHO was in the match, not just who won it.
+  const userBracketData = useMemo(() => {
+      const map = new Map<string, Record<string, { home: string, away: string, winner: string }>>();
       allUsers.forEach(u => {
           const userPreds = allPredictions.filter(p => p.userId === u.email);
           const userMatches = applyPredictionsToBracket(matches, teams, userPreds);
-          const winners: Record<string, string> = {};
+          const matchData: Record<string, { home: string, away: string, winner: string }> = {};
+          
           userMatches.forEach(m => {
               if (m.homeScore !== null && m.awayScore !== null) {
-                  winners[m.id] = m.homeScore > m.awayScore ? m.homeTeamId : m.awayTeamId;
+                  matchData[m.id] = {
+                      home: m.homeTeamId,
+                      away: m.awayTeamId,
+                      winner: m.homeScore > m.awayScore ? m.homeTeamId : m.awayTeamId
+                  };
               }
           });
-          map.set(u.email, winners);
+          map.set(u.email, matchData);
       });
       return map;
   }, [allUsers, matches, teams, allPredictions]);
 
-  // 2. SIMULATION ENGINE (Matches + Standings)
+  // 2. SIMULATION ENGINE
   const { combinedStats, simulatedMatches, qualifiedThirdsSet } = useMemo(() => {
       const simMatches = matches.map(m => {
           const sim = simulation[m.id];
@@ -549,14 +543,13 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       return { combinedStats, simulatedMatches: simMatches, qualifiedThirdsSet };
   }, [matches, simulation, allPredictions, allUsers, teams]);
 
-  // 3. Date Filtering (Include Knockouts)
+  // 3. Date Filtering
   const uniqueDates = useMemo(() => {
       const dates = new Set<string>();
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 3); 
 
       matches.forEach(m => {
-          // Allow if valid date AND (in group stage OR is knockout)
           if (m.date && m.date !== 'TBD') {
               const d = new Date(m.date);
               if (d >= cutoff) dates.add(d.toDateString());
@@ -566,7 +559,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   }, [matches]);
 
   const displayMatches = useMemo(() => {
-      // Allow matches even if TBD for now, so we see slots
       let filtered = matches.filter(m => m.date && m.date !== 'TBD');
       
       if (filterDate !== 'ALL') {
@@ -676,7 +668,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                                 currentUser={currentUser}
                                 rivals={rivals}
                                 allPredictions={allPredictions}
-                                userBracketWinners={userBracketWinners} // Pass user brackets
+                                userBracketData={userBracketData}
                                 lang={lang}
                                 groupStandings={standings}
                                 teams={teams}
