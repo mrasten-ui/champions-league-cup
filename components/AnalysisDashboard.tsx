@@ -4,7 +4,7 @@ import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAl
 import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
-import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, AlertTriangle, Flame, Target, MessageSquareQuote, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, AlertTriangle, Flame, Target, MessageSquareQuote, Calendar, HelpCircle, ChevronRight } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../constants';
 
@@ -49,20 +49,20 @@ const WinnerButton: React.FC<{
 }> = ({ team, label, isSelected, onClick }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all w-full ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md' : 'bg-white border-slate-200 hover:border-purple-300'}`}
+        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all w-full h-full min-h-[80px] ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md ring-1 ring-purple-200' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}
     >
-        <div className="relative w-full flex justify-center">
+        <div className="relative">
             {team ? (
-                <img src={team.flag} alt={team.name} className="w-10 h-7 object-cover rounded shadow-sm" />
+                <img src={team.flag} alt={team.name} className="w-12 h-8 object-cover rounded shadow-sm" />
             ) : (
-                <div className="w-10 h-7 bg-slate-100 rounded border border-slate-200 flex items-center justify-center">
-                    <span className="text-[8px] font-bold text-slate-400">TBD</span>
+                <div className="w-12 h-8 bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-slate-300">
+                    <HelpCircle size={16} />
                 </div>
             )}
-            {isSelected && <div className="absolute -right-1 -top-2 bg-purple-500 text-white p-0.5 rounded-full"><Check size={10} strokeWidth={4} /></div>}
+            {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white"><Check size={12} strokeWidth={4} /></div>}
         </div>
-        <span className={`text-[9px] font-black uppercase tracking-tight text-center leading-none ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
-            {team?.code || label}
+        <span className={`text-[10px] font-black uppercase tracking-tight text-center leading-none max-w-full truncate px-1 ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>
+            {team?.name || label}
         </span>
     </button>
 );
@@ -78,7 +78,7 @@ const PredictionPill: React.FC<{
     const [isExpanded, setIsExpanded] = useState(false);
 
     let baseClass = 'bg-slate-50 text-slate-400 border-slate-100';
-    if (isCorrect) baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200'; // Highlight if they picked this team to WIN
+    if (isCorrect) baseClass = 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200';
     
     if (isMe) baseClass += ' ring-2 ring-purple-400 ring-offset-1 font-black';
 
@@ -96,6 +96,7 @@ const PredictionPill: React.FC<{
                 ${baseClass} ${align === 'right' ? 'flex-row-reverse' : 'flex-row'}
                 ${isExpanded ? 'z-10 scale-105' : 'hover:scale-105'}
             `}
+            title={`Predicted: ${label}`}
         >
             <AvatarDisplay avatar={user.avatar} size="xs" className="w-4 h-4 rounded-full bg-white shadow-sm" />
             {isExpanded && <span className="truncate max-w-[60px] animate-in fade-in zoom-in duration-200">{user.name.split(' ')[0]}</span>}
@@ -154,26 +155,27 @@ const SimRow: React.FC<{
     currentUser: UserProfile;
     rivals: UserProfile[];
     allPredictions: Prediction[];
-    userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>; // NEW: Full bracket state
+    userBracketData: Map<string, Record<string, { home: string, away: string, winner: string }>>;
     lang: Translation;
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
     allMatches: Match[]; 
-}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet, allMatches }) => {
+}> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
     
     const isSimulated = !!sim;
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isKnockout = !match.groupId;
     
     // TBD Sources
     const homeSource = useMemo(() => getSlotSource(match.id, 'home'), [match.id]);
     const awaySource = useMemo(() => getSlotSource(match.id, 'away'), [match.id]);
-    const homeLabel = home ? home.name : homeSource.label;
-    const awayLabel = away ? away.name : awaySource.label;
+    const homeLabel = home ? home.name : (homeSource.label || 'TBD');
+    const awayLabel = away ? away.name : (awaySource.label || 'TBD');
 
-    // --- RIVAL SORTING (Correct "Who is Here?" Logic) ---
+    // --- RIVAL SORTING: "Visual Confirmation" Logic ---
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
         const h: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
         const d: { u: UserProfile, label: string, isCorrect: boolean }[] = [];
@@ -181,7 +183,7 @@ const SimRow: React.FC<{
 
         [currentUser, ...rivals].forEach(u => {
             if (match.groupId) {
-                // GROUP STAGE: Score Prediction
+                // GROUP STAGE
                 const p = allPredictions.find(pred => pred.userId === u.email && pred.matchId === match.id);
                 if (p) {
                     const label = `${p.home}-${p.away}`;
@@ -191,34 +193,52 @@ const SimRow: React.FC<{
                     else d.push({ u, label, isCorrect: isExact });
                 }
             } else {
-                // KNOCKOUT: Participation Logic
+                // KNOCKOUT: Visual Confirmation Logic
                 const userBracket = userBracketData.get(u.email);
                 const userMatchState = userBracket ? userBracket[match.id] : null;
 
                 if (userMatchState) {
-                    // Check Home Slot
-                    if (home && (userMatchState.home === home.id || userMatchState.away === home.id)) {
-                        // User predicted this team to be in this match.
-                        // Did they predict them to WIN this match?
-                        const picksWin = userMatchState.winner === home.id;
-                        h.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                    const userHomeTeam = teams[userMatchState.home];
+                    const userAwayTeam = teams[userMatchState.away];
+                    const userWinnerId = userMatchState.winner;
+
+                    // CHECK HOME SLOT
+                    if (home) {
+                        // Flag Visible: Check if user has this team ANYWHERE in this match
+                        if (userMatchState.home === home.id || userMatchState.away === home.id) {
+                            const picksWin = userWinnerId === home.id;
+                            h.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                        }
+                    } else {
+                        // TBD: Show user's HOME slot team
+                        if (userHomeTeam) {
+                            const picksWin = userWinnerId === userHomeTeam.id;
+                            h.push({ u, label: userHomeTeam.code, isCorrect: picksWin });
+                        }
                     }
-                    
-                    // Check Away Slot
-                    if (away && (userMatchState.home === away.id || userMatchState.away === away.id)) {
-                        const picksWin = userMatchState.winner === away.id;
-                        a.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+
+                    // CHECK AWAY SLOT
+                    if (away) {
+                        if (userMatchState.home === away.id || userMatchState.away === away.id) {
+                            const picksWin = userWinnerId === away.id;
+                            a.push({ u, label: picksWin ? 'WIN' : '-', isCorrect: picksWin });
+                        }
+                    } else {
+                        if (userAwayTeam) {
+                            const picksWin = userWinnerId === userAwayTeam.id;
+                            a.push({ u, label: userAwayTeam.code, isCorrect: picksWin });
+                        }
                     }
                 }
             }
         });
         return { homePreds: h, drawPreds: d, awayPreds: a };
-    }, [currentUser, rivals, allPredictions, match.id, userBracketData, home, away, hVal, aVal]);
+    }, [currentUser, rivals, allPredictions, match.id, userBracketData, home, away, hVal, aVal, teams]);
 
     return (
         <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 flex flex-col ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
             
-            {/* PURPLE HEADER */}
+            {/* HEADER */}
             <div className="bg-[#2e1065] p-3 border-b border-purple-900/50 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-[9px] font-black text-purple-200 uppercase tracking-widest">
@@ -238,24 +258,22 @@ const SimRow: React.FC<{
                 )}
             </div>
 
-            {/* MATCH CONTENT */}
+            {/* CONTENT */}
             <div className="p-3 grid grid-cols-3 gap-2">
-                {/* LEFT: HOME */}
+                {/* LEFT */}
                 <div className="flex flex-col gap-2">
-                    <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
-                        {home ? (
-                            <>
-                                <img src={home.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
-                                <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight line-clamp-2">{home.name}</span>
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-center opacity-50">
+                    {!isKnockout ? (
+                        <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
+                            {home ? (
+                                <>
+                                    <img src={home.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
+                                    <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight line-clamp-2">{home.name}</span>
+                                </>
+                            ) : (
                                 <span className="text-[8px] font-bold uppercase">{homeLabel}</span>
-                            </div>
-                        )}
-                    </div>
-                    
-                    {!match.groupId && (
+                            )}
+                        </div>
+                    ) : (
                         <WinnerButton team={home} label={homeLabel} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} />
                     )}
 
@@ -277,9 +295,9 @@ const SimRow: React.FC<{
                     </div>
                 </div>
 
-                {/* CENTER: SCORE / VS */}
+                {/* CENTER */}
                 <div className="flex flex-col gap-2 items-center">
-                    {!match.groupId ? (
+                    {isKnockout ? (
                         <div className="flex items-center justify-center h-full pb-8 pt-4">
                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-inner">VS</div>
                         </div>
@@ -291,7 +309,7 @@ const SimRow: React.FC<{
                         </div>
                     )}
                     
-                    {match.groupId && (
+                    {!isKnockout && (
                         <div className="flex flex-wrap justify-center gap-1.5 w-full mt-1">
                             {drawPreds.length > 0 && <div className="h-px bg-slate-100 w-full my-0.5"></div>}
                             {drawPreds.map(item => (
@@ -312,22 +330,20 @@ const SimRow: React.FC<{
                     )}
                 </div>
 
-                {/* RIGHT: AWAY */}
+                {/* RIGHT */}
                 <div className="flex flex-col gap-2">
-                    <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
-                        {away ? (
-                            <>
-                                <img src={away.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
-                                <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight line-clamp-2">{away.name}</span>
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-center opacity-50">
+                    {!isKnockout ? (
+                        <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
+                            {away ? (
+                                <>
+                                    <img src={away.flag} alt="" className="w-10 h-7 rounded shadow-sm object-cover" />
+                                    <span className="text-[10px] font-black text-slate-800 uppercase text-center leading-tight line-clamp-2">{away.name}</span>
+                                </>
+                            ) : (
                                 <span className="text-[8px] font-bold uppercase">{awayLabel}</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {!match.groupId && (
+                            )}
+                        </div>
+                    ) : (
                         <WinnerButton team={away} label={awayLabel} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} />
                     )}
 
@@ -471,8 +487,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // 1. CALCULATE USER BRACKET PATHS (Memoized)
-  // Stores WHO was in the match, not just who won it.
+  // 1. CALCULATE BRACKET (MEMOIZED)
   const userBracketData = useMemo(() => {
       const map = new Map<string, Record<string, { home: string, away: string, winner: string }>>();
       allUsers.forEach(u => {
@@ -543,7 +558,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       return { combinedStats, simulatedMatches: simMatches, qualifiedThirdsSet };
   }, [matches, simulation, allPredictions, allUsers, teams]);
 
-  // 3. Date Filtering
+  // 3. DATE FILTERING (Include TBD matches)
   const uniqueDates = useMemo(() => {
       const dates = new Set<string>();
       const cutoff = new Date();
