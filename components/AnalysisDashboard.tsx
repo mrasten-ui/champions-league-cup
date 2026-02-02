@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode, GroupStanding } from '../types';
-import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket } from '../services/engine';
+import { calculatePoints, calculateGroupStandings, getThirdPlaceStandings, getAllGroupStandings, applyPredictionsToBracket, updateBracket } from '../services/engine';
 import { getSlotSource } from '../utils/bracketHelpers';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
@@ -160,7 +160,6 @@ const SimRow: React.FC<{
     groupStandings?: GroupStanding[];
     teams: Record<string, Team>;
     qualifiedThirdsSet: Set<string>;
-    allMatches: Match[]; 
 }> = ({ match, home, away, sim, onUpdate, currentUser, rivals, allPredictions, userBracketData, lang, groupStandings, teams, qualifiedThirdsSet }) => {
     const hVal = sim ? sim.home : (match.homeScore ?? 0);
     const aVal = sim ? sim.away : (match.awayScore ?? 0);
@@ -238,7 +237,7 @@ const SimRow: React.FC<{
     return (
         <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 flex flex-col ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
             
-            {/* HEADER */}
+            {/* PURPLE HEADER */}
             <div className="bg-[#2e1065] p-3 border-b border-purple-900/50 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-[9px] font-black text-purple-200 uppercase tracking-widest">
@@ -258,9 +257,9 @@ const SimRow: React.FC<{
                 )}
             </div>
 
-            {/* CONTENT */}
+            {/* MATCH CONTENT */}
             <div className="p-3 grid grid-cols-3 gap-2">
-                {/* LEFT */}
+                {/* LEFT: HOME */}
                 <div className="flex flex-col gap-2">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
@@ -295,17 +294,17 @@ const SimRow: React.FC<{
                     </div>
                 </div>
 
-                {/* CENTER */}
+                {/* CENTER: SCORE / VS */}
                 <div className="flex flex-col gap-2 items-center">
-                    {isKnockout ? (
-                        <div className="flex items-center justify-center h-full pb-8 pt-4">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-inner">VS</div>
-                        </div>
-                    ) : (
+                    {!isKnockout ? (
                         <div className="flex items-center gap-1.5">
                             <ScoreStepper value={hVal} onChange={(v) => onUpdate(v, aVal)} isLocked={false} isSimulated={isSimulated} />
                             <span className="text-slate-300 font-bold">-</span>
                             <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} isSimulated={isSimulated} />
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full pb-8 pt-4">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-inner">VS</div>
                         </div>
                     )}
                     
@@ -330,7 +329,7 @@ const SimRow: React.FC<{
                     )}
                 </div>
 
-                {/* RIGHT */}
+                {/* RIGHT: AWAY */}
                 <div className="flex flex-col gap-2">
                     {!isKnockout ? (
                         <div className="flex flex-col items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100 h-full justify-center">
@@ -509,13 +508,20 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       return map;
   }, [allUsers, matches, teams, allPredictions]);
 
-  // 2. SIMULATION ENGINE
+  // 2. SIMULATION ENGINE + PULL THROUGH
   const { combinedStats, simulatedMatches, qualifiedThirdsSet } = useMemo(() => {
-      const simMatches = matches.map(m => {
+      // Create a "Simulated World" array of matches
+      // START with base matches
+      let simMatches = matches.map(m => {
           const sim = simulation[m.id];
           if (sim) return { ...m, homeScore: sim.home, awayScore: sim.away, status: 'FINISHED' as Match['status'] };
           return m;
       });
+
+      // PULL THROUGH: Run bracket logic multiple times to propagate "Winner A" -> "Germany"
+      for (let i = 0; i < 6; i++) {
+          simMatches = updateBracket(simMatches, teams);
+      }
 
       const livePoints: Record<string, number> = {};
       const simPoints: Record<string, number> = {};
@@ -564,17 +570,17 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 3); 
 
-      matches.forEach(m => {
+      simulatedMatches.forEach(m => {
           if (m.date && m.date !== 'TBD') {
               const d = new Date(m.date);
               if (d >= cutoff) dates.add(d.toDateString());
           }
       });
       return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-  }, [matches]);
+  }, [simulatedMatches]);
 
   const displayMatches = useMemo(() => {
-      let filtered = matches.filter(m => m.date && m.date !== 'TBD');
+      let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
       
       if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
@@ -583,7 +589,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
           filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
       }
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [matches, filterDate]);
+  }, [simulatedMatches, filterDate]);
 
   const updateSim = (matchId: string, h: number, a: number) => {
       setSimulation(prev => ({ ...prev, [matchId]: { home: h, away: a } }));
