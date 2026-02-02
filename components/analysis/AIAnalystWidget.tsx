@@ -95,10 +95,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
-            // FIX: Removed .response accessor.
-            setAnalysis(response.text());
+            // FIX: Removed parentheses. response.text is a getter property in this version.
+            setAnalysis(response.text || "AI analysis unavailable.");
         } catch (e) {
-            console.error("AI Error:", e);
+            console.error(e);
             setAnalysis("The tactical computer is overheating... try again later.");
         } finally {
             setLoading(false);
