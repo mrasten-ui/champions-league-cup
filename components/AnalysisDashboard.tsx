@@ -386,7 +386,8 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       // Create a "Simulated World" array of matches
       const simMatches = matches.map(m => {
           const sim = simulation[m.id];
-          if (sim) return { ...m, homeScore: sim.home, awayScore: sim.away, status: 'FINISHED' };
+          // FIX: Explicitly cast 'FINISHED' to the specific MatchStatus type required by the Match interface
+          if (sim) return { ...m, homeScore: sim.home, awayScore: sim.away, status: 'FINISHED' as Match['status'] };
           return m;
       });
 
