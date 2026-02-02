@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
+import { UserProfile, Match, Prediction, Team, Translation } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, Flame, RefreshCw, BrainCircuit } from 'lucide-react';
@@ -10,7 +10,6 @@ interface AIAnalystProps {
     nextMatches: Match[];
     allPredictions: Prediction[];
     lang: Translation;
-    currentLang: LanguageCode;
     teams: Record<string, Team>;
 }
 
@@ -42,7 +41,7 @@ const TEXT: Record<string, any> = {
         draw: "Tie",
         conflict: "Matchup conflict",
         picked: "picked",
-        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Standings', 'Roster')"
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Standings', 'Roster', 'Clinch')"
     },
     sco: {
         coachTitle: "The Gaffer's Report",
@@ -56,7 +55,7 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Heads gone",
         picked: "went fur",
-        promptLang: "SCOTTISH/SCOTS DIALECT (Use terms like 'Gaffer', 'Lad', 'Aye', 'Nae bother')"
+        promptLang: "SCOTTISH/SCOTS DIALECT (Use terms like 'Gaffer', 'Lad', 'Aye', 'Table', but keep it tactically sharp)"
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -74,21 +73,21 @@ const TEXT: Record<string, any> = {
     }
 };
 
-const resolveLanguage = (code: LanguageCode): string => {
-    if (code === 'NO') return 'no';
+const resolveLanguage = (code: string): string => {
+    if (code === 'NO' || code === 'nb' || code === 'nn' || code === 'no-NO') return 'no';
     if (code === 'SCO') return 'sco';
-    if (code === 'US') return 'en-US';
+    if (code === 'US' || code === 'en-US') return 'en-US';
     return 'en';
 };
 
-export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, currentLang, teams }) => {
+export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combinedStats, nextMatches, allPredictions, lang, teams }) => {
     const [analysis, setAnalysis] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     const hasFetched = useRef(false);
 
-    // Force correct dictionary based on currentLang prop
-    const langKey = resolveLanguage(currentLang);
+    // Force correct dictionary based on lang.langCode
+    const langKey = resolveLanguage(lang.langCode || 'EN');
     const t = TEXT[langKey];
 
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
@@ -105,7 +104,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const rivalAbove = combinedStats.find(s => s.rank === myRank - 1);
             
             // Find a "Conflict Match"
-            let conflictText = "predictions align closely with your rivals";
+            let conflictText = "Predictions align closely with your rivals for the next 3 games.";
             let keyMatch = null;
 
             if (rivalAbove) {
@@ -125,42 +124,49 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                             const awayName = teams[match.awayTeamId]?.name || "Away";
                             keyMatch = `${homeName} vs ${awayName}`;
                             // Pass translated context to the AI
-                            conflictText = `${t.conflict}: User ${t.picked} ${myRes}, Rival ${t.picked} ${rivalRes} for ${keyMatch}`;
+                            conflictText = `${t.conflict}: You ${t.picked} ${myRes}, ${rivalAbove.user.name} ${t.picked} ${rivalRes} for ${keyMatch}`;
                             break;
                         }
                     }
                 }
             }
 
-            // 2. CONSTRUCT PROMPT
-            const languageInstruction = `WRITE THE RESPONSE IN ${t.promptLang}.`;
+            // 2. CONSTRUCT PROMPT (UPDATED FOR DEPTH)
+            const languageInstruction = `WRITE THE RESPONSE IN ${t.promptLang}. Ensure the content is STRATEGICALLY USEFUL first, with the personality/dialect second.`;
             
             const baseContext = `
                 Context: Football/Soccer Prediction Game Analysis.
                 User: ${currentUser.name}, Rank: #${myRank}.
-                Rival Above: ${rivalAbove ? `${rivalAbove.user.name} (#${rivalAbove.rank})` : "None (1st Place)"}.
-                Key Insight Data: ${conflictText}.
+                Rival Directly Above: ${rivalAbove ? `${rivalAbove.user.name} (#${rivalAbove.rank})` : "None (Currently 1st Place)"}.
+                Key Strategic Data: ${conflictText}.
+                Match Context: The next 3 games are crucial.
                 ${languageInstruction}
             `;
 
             let prompt = "";
             if (targetMode === 'coach') {
                 prompt = `${baseContext}
-                Act as a strategic football analyst/coach. Write a 30-second read (max 40 words) summary.
-                Structure:
-                1. Acknowledge current rank.
-                2. Mention the rival above and the specific match disagreement (${keyMatch || 'upcoming games'}) as the key to overtaking them.
-                3. End with a specific outcome needed (e.g. "If Brazil wins...") and a reminder to use the SUB chip if unsure.
-                Tone: Professional, Encouraging, Sharp.
+                Act as a highly intelligent strategic football analyst/coach. Write a detailed, useful analysis (approx 80-100 words).
+                
+                Required Structure:
+                1. **Situation & Form**: Briefly analyze their current rank (#${myRank}). Are they chasing the pack or leading it? Mention their recent form/momentum.
+                2. **The Tactical Battle**: Focus deeply on the rival above (${rivalAbove?.user.name}). Analyze the specific difference in prediction (${conflictText}). Explain *why* the user's choice might be the smarter risk (or the safer bet).
+                3. **Scenario Planning**: Paint a concrete picture. "If [Team A] wins by 2 goals, you don't just catch [Rival], you put pressure on the top 3."
+                4. **Closing Advice**: Give a sharp recommendation. Should they hold firm? Or use a SUB chip because the lineup looks shaky?
+                
+                Tone: Insightful, Tactical, Encouraging but Real.
                 `;
             } else {
                 prompt = `${baseContext}
-                Act as a mean, funny internet troll roasting the user.
-                Structure:
-                1. Mock their rank #${myRank}.
-                2. If they have a rival, tell them why ${rivalAbove?.user.name} is better.
-                3. Mock their specific prediction for ${keyMatch || 'the next game'}.
-                Tone: Savage, Funny, Short (Max 40 words).
+                Act as a savage, knowledgeable football pundit/troll. Write a stinging, detailed critique (approx 80-100 words).
+                
+                Required Structure:
+                1. **The Reality Check**: Mock their current rank (#${myRank}). If high, call it "luck that's running out". If low, ask if they're even watching the games.
+                2. **The Comparison**: Explain why ${rivalAbove?.user.name} clearly knows ball better than the user.
+                3. **The Bad Bet**: Roast the specific prediction in ${keyMatch || 'the next game'}. Use data to explain why that pick is delusional.
+                4. **The Doom**: Predict exactly how they will fall further behind if they don't wake up.
+                
+                Tone: Funny, Mean, but rooted in actual football knowledge.
                 `;
             }
 
@@ -198,7 +204,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             </div>
 
             {/* Header */}
-            <div className="flex justify-between items-start relative z-10 mb-2">
+            <div className="flex justify-between items-start relative z-10 mb-3">
                 <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg ${mode === 'roast' ? 'bg-orange-500/20 text-orange-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
                         {mode === 'roast' ? <Flame size={18} /> : <Sparkles size={18} />}
@@ -210,15 +216,16 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             </div>
 
             {/* Content */}
-            <div className="relative z-10 min-h-[60px]">
+            <div className="relative z-10 min-h-[80px]">
                 {loading ? (
-                    <div className="space-y-2 animate-pulse">
+                    <div className="space-y-3 animate-pulse">
                         <div className="h-2 bg-white/10 rounded w-3/4"></div>
+                        <div className="h-2 bg-white/10 rounded w-full"></div>
                         <div className="h-2 bg-white/10 rounded w-full"></div>
                         <div className="h-2 bg-white/10 rounded w-5/6"></div>
                     </div>
                 ) : (
-                    <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md">
+                    <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">
                         {analysis}
                     </p>
                 )}
