@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
 import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { DateRibbon } from './DateRibbon';
-import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Minus, Trophy, ArrowRight, Activity, Clock, Calendar, AlertTriangle, Flame, Target, MessageSquareQuote, X, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calculator, ChevronUp, ChevronDown, RefreshCw, Filter, Check, Trophy, ArrowRight, Activity, Clock, Calendar, AlertTriangle, Flame, Target, MessageSquareQuote, ChevronRight, Users } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../constants';
 
@@ -13,25 +13,26 @@ const ScoreStepper: React.FC<{
     value: number; 
     onChange: (val: number) => void; 
     isLocked: boolean;
-}> = ({ value, onChange, isLocked }) => {
+    isSimulated: boolean;
+}> = ({ value, onChange, isLocked, isSimulated }) => {
   return (
-    <div className={`flex flex-col items-center justify-between w-12 h-20 bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm group ${isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:border-blue-300 hover:shadow-md'}`}>
+    <div className={`flex flex-col items-center justify-between w-12 h-20 bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm group ${isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:border-purple-300 hover:shadow-md'}`}>
       <button 
         disabled={isLocked}
         onClick={(e) => { e.stopPropagation(); onChange(value + 1); }}
-        className="w-full flex-1 flex items-center justify-center text-slate-400 group-hover:text-blue-600 hover:bg-white rounded-t-xl transition-colors active:bg-blue-50 focus:outline-none"
+        className={`w-full flex-1 flex items-center justify-center rounded-t-xl transition-colors active:bg-purple-50 focus:outline-none ${isSimulated ? 'text-purple-400 group-hover:text-purple-600' : 'text-slate-400 group-hover:text-blue-600'}`}
       >
         <ChevronUp size={18} strokeWidth={3} />
       </button>
       
-      <div className="h-8 flex items-center justify-center text-xl font-black text-slate-800 leading-none select-none z-10 bg-white w-full border-y border-slate-100">
+      <div className={`h-8 flex items-center justify-center text-xl font-black leading-none select-none z-10 bg-white w-full border-y border-slate-100 ${isSimulated ? 'text-purple-600' : 'text-slate-800'}`}>
         {value}
       </div>
       
       <button 
         disabled={isLocked}
         onClick={(e) => { e.stopPropagation(); onChange(Math.max(0, value - 1)); }}
-        className="w-full flex-1 flex items-center justify-center text-slate-400 group-hover:text-blue-600 hover:bg-white rounded-b-xl transition-colors active:bg-blue-50 focus:outline-none"
+        className={`w-full flex-1 flex items-center justify-center rounded-b-xl transition-colors active:bg-purple-50 focus:outline-none ${isSimulated ? 'text-purple-400 group-hover:text-purple-600' : 'text-slate-400 group-hover:text-blue-600'}`}
       >
         <ChevronDown size={18} strokeWidth={3} />
       </button>
@@ -46,13 +47,13 @@ const WinnerButton: React.FC<{
 }> = ({ team, isSelected, onClick }) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all w-full ${isSelected ? 'bg-green-50 border-green-500 shadow-md' : 'bg-white border-slate-200 hover:border-blue-300'}`}
+        className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all w-full ${isSelected ? 'bg-purple-50 border-purple-500 shadow-md' : 'bg-white border-slate-200 hover:border-purple-300'}`}
     >
         <div className="relative">
             <img src={team?.flag} alt={team?.name} className="w-10 h-7 object-cover rounded shadow-sm" />
-            {isSelected && <div className="absolute -right-2 -top-2 bg-green-500 text-white p-0.5 rounded-full"><Check size={10} strokeWidth={4} /></div>}
+            {isSelected && <div className="absolute -right-2 -top-2 bg-purple-500 text-white p-0.5 rounded-full"><Check size={10} strokeWidth={4} /></div>}
         </div>
-        <span className={`text-[10px] font-black uppercase tracking-tight ${isSelected ? 'text-green-800' : 'text-slate-500'}`}>{team?.code || 'WIN'}</span>
+        <span className={`text-[10px] font-black uppercase tracking-tight ${isSelected ? 'text-purple-800' : 'text-slate-500'}`}>{team?.code || 'WIN'}</span>
     </button>
 );
 
@@ -94,7 +95,7 @@ const SimRow: React.FC<{
         const { u, p } = item;
         const isMe = u.email === currentUser.email;
         let bg = 'bg-slate-50 border-slate-100 text-slate-600';
-        if (isMe) bg = 'bg-blue-50 border-blue-200 text-blue-700 ring-1 ring-blue-300';
+        if (isMe) bg = 'bg-purple-50 border-purple-200 text-purple-700 ring-1 ring-purple-300';
         let justify = side === 'left' ? 'justify-start' : side === 'right' ? 'justify-end' : 'justify-center';
 
         return (
@@ -112,14 +113,14 @@ const SimRow: React.FC<{
     };
 
     return (
-        <div className={`bg-white rounded-2xl border shadow-sm p-3 transition-all duration-300 flex flex-col gap-3 ${isSimulated ? 'border-blue-400 ring-1 ring-blue-50' : 'border-slate-200'}`}>
+        <div className={`bg-white rounded-2xl border shadow-sm p-3 transition-all duration-300 flex flex-col gap-3 ${isSimulated ? 'border-purple-400 ring-2 ring-purple-50' : 'border-slate-200'}`}>
             <div className="flex justify-between items-center border-b border-slate-50 pb-2">
                 <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     {isLive ? <span className="text-red-500 animate-pulse">● LIVE</span> : <span>{new Date(match.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>}
                     <span className="text-slate-200">|</span>
                     <span>{match.groupId ? `Group ${match.groupId}` : match.round}</span>
                 </div>
-                {isSimulated && <div className="text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded uppercase tracking-wider">Simulated</div>}
+                {isSimulated && <div className="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1"><Calculator size={8} /> Sim</div>}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -137,9 +138,9 @@ const SimRow: React.FC<{
                         <div className="flex items-center justify-center h-full pb-8"><span className="text-xs font-black text-slate-300">VS</span></div>
                     ) : (
                         <div className="flex items-center gap-1.5">
-                            <ScoreStepper value={hVal} onChange={(v) => onUpdate(v, aVal)} isLocked={false} />
+                            <ScoreStepper value={hVal} onChange={(v) => onUpdate(v, aVal)} isLocked={false} isSimulated={isSimulated} />
                             <span className="text-slate-300 font-bold">-</span>
-                            <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} />
+                            <ScoreStepper value={aVal} onChange={(v) => onUpdate(hVal, v)} isLocked={false} isSimulated={isSimulated} />
                         </div>
                     )}
                     {!isKnockout && (
@@ -163,7 +164,7 @@ const SimRow: React.FC<{
     );
 };
 
-// --- SIMULATED STANDINGS WIDGET ---
+// --- SIMULATED STANDINGS WIDGET (Multi-Column) ---
 
 const SimulatedLeaderboardWidget: React.FC<{
     simulatedUsers: { user: UserProfile, score: number, diff: number, rank: number }[];
@@ -172,19 +173,14 @@ const SimulatedLeaderboardWidget: React.FC<{
 }> = ({ simulatedUsers, currentUser, lang }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Get "Condensed" View: Top 3 + User + Neighbors
-    const displayRows = useMemo(() => {
-        if (!isExpanded) {
-            // Collapsed: Just the user
-            return simulatedUsers.filter(u => u.user.email === currentUser.email);
+    // Split users into chunks of 10
+    const chunkedUsers = useMemo(() => {
+        const chunks = [];
+        for (let i = 0; i < simulatedUsers.length; i += 10) {
+            chunks.push(simulatedUsers.slice(i, i + 10));
         }
-        
-        // Expanded: Top 3 + Neighbors
-        const myIndex = simulatedUsers.findIndex(u => u.user.email === currentUser.email);
-        const indicesToShow = new Set([0, 1, 2, myIndex - 1, myIndex, myIndex + 1]);
-        
-        return simulatedUsers.filter((_, idx) => indicesToShow.has(idx));
-    }, [simulatedUsers, currentUser, isExpanded]);
+        return chunks;
+    }, [simulatedUsers]);
 
     const myRow = simulatedUsers.find(u => u.user.email === currentUser.email);
 
@@ -210,55 +206,61 @@ const SimulatedLeaderboardWidget: React.FC<{
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">
-                        {isExpanded ? "Hide Table" : "Show Table"}
+                        {isExpanded ? "Hide Table" : "Full Table"}
                     </span>
                     {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                 </div>
             </div>
 
-            {/* Expanded Table */}
+            {/* Expanded Table (Multi-Column Horizontal Scroll) */}
             {isExpanded && (
-                <div className="border-t border-slate-100 animate-in slide-in-from-top-2">
-                    <div className="max-h-60 overflow-y-auto no-scrollbar">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                <tr>
-                                    <th className="px-4 py-2 w-10 text-center">#</th>
-                                    <th className="px-2 py-2">Manager</th>
-                                    <th className="px-4 py-2 text-right">Pts</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 text-sm">
-                                {displayRows.map((row, idx) => {
-                                    const isMe = row.user.email === currentUser.email;
-                                    const isGap = idx > 0 && simulatedUsers.indexOf(row) !== simulatedUsers.indexOf(displayRows[idx - 1]) + 1;
-                                    
-                                    return (
-                                        <React.Fragment key={row.user.email}>
-                                            {isGap && (
-                                                <tr><td colSpan={3} className="text-center py-1 text-slate-300 text-[10px]">•••</td></tr>
-                                            )}
-                                            <tr className={isMe ? 'bg-blue-50' : 'bg-white'}>
-                                                <td className="px-4 py-2 text-center font-black text-slate-500">
-                                                    {row.rank}
-                                                    {row.diff !== 0 && (
-                                                        <span className={`block text-[8px] ${row.diff > 0 ? 'text-green-500' : 'text-red-400'}`}>
-                                                            {row.diff > 0 ? '▲' : '▼'} {Math.abs(row.diff)}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-2 py-2 font-bold text-slate-700 flex items-center gap-2">
-                                                    <AvatarDisplay avatar={row.user.avatar} size="xs" />
-                                                    <span className={isMe ? 'text-blue-700' : ''}>{row.user.name}</span>
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-black text-slate-900">{row.score}</td>
-                                            </tr>
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                <div className="border-t border-slate-100 animate-in slide-in-from-top-2 bg-slate-50/50">
+                    <div className="flex overflow-x-auto snap-x snap-mandatory p-4 gap-4 no-scrollbar">
+                        {chunkedUsers.map((chunk, chunkIdx) => (
+                            <div key={chunkIdx} className="min-w-[280px] w-[85vw] max-w-[320px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden snap-center flex-shrink-0">
+                                <div className="bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                                    Rank {chunkIdx * 10 + 1}-{Math.min((chunkIdx + 1) * 10, simulatedUsers.length)}
+                                </div>
+                                <table className="w-full text-left">
+                                    <tbody className="divide-y divide-slate-50 text-xs">
+                                        {chunk.map((row) => {
+                                            const isMe = row.user.email === currentUser.email;
+                                            return (
+                                                <tr key={row.user.email} className={isMe ? 'bg-blue-50' : ''}>
+                                                    <td className="px-3 py-2 text-center font-black text-slate-400 w-8">
+                                                        {row.rank}
+                                                    </td>
+                                                    <td className="px-2 py-2 font-bold text-slate-700 flex items-center gap-2">
+                                                        <AvatarDisplay avatar={row.user.avatar} size="xs" className="w-5 h-5" />
+                                                        <span className={`truncate max-w-[120px] ${isMe ? 'text-blue-700' : ''}`}>{row.user.name}</span>
+                                                        {isMe && <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right font-black text-slate-900">
+                                                        {row.score}
+                                                        {row.diff !== 0 && (
+                                                            <span className={`ml-1 text-[8px] ${row.diff > 0 ? 'text-green-500' : 'text-red-400'}`}>
+                                                                {row.diff > 0 ? '▲' : '▼'}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
                     </div>
+                    {/* Horizontal Scroll Hint */}
+                    {chunkedUsers.length > 1 && (
+                        <div className="flex justify-center pb-2">
+                            <div className="flex gap-1">
+                                {chunkedUsers.map((_, i) => (
+                                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -372,9 +374,9 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
       } else {
-          // If 'ALL', maybe show just upcoming? For now, show all valid
+          // If 'ALL', show upcoming
           const now = Date.now();
-          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); // Hide very old
+          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
       }
 
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -488,7 +490,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                 <div className="flex justify-end mb-2">
                     <button 
                         onClick={() => setSimulation({})}
-                        className="flex items-center gap-1 text-[10px] font-bold text-red-500 uppercase tracking-widest hover:text-red-600"
+                        className="flex items-center gap-1 text-[10px] font-bold text-purple-500 uppercase tracking-widest hover:text-purple-600 bg-purple-50 px-2 py-1 rounded-lg"
                     >
                         <RefreshCw size={12} /> Reset Simulation
                     </button>
