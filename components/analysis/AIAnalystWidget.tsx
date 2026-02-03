@@ -147,7 +147,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setScript(processedLines);
         setIsAudioLoading(false);
         
-        // Auto-play attempt (might be blocked by browser, handled in useEffect)
+        // Auto-play attempt
         setIsPlaying(true);
     };
 

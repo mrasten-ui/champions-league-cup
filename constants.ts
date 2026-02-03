@@ -2,13 +2,7 @@ import { Team, Match, Translation, LanguageCode, Prediction } from './types';
 
 // HOST CONFIGURATION
 export const HOST_KEYS = [
-  "AIzaSyAkhMmQN2OJo9ezJOw0Kr4ECNhfu0svm6s",
-  "AIzaSyDD1B6Yciiz2HMifr674Bnzx85bK1251Dg",
-  "AIzaSyBV51XFJnE4dH1tJyb-SgKQSOzh2-V30zg",
-  "AIzaSyC7BnxTrzpuwEDK8sKdrGl0urIpkYCuPKI",
-  "AIzaSyCoUCXnSApmm789VgzvhXNnmCNEuhKa6Do",
-  "AIzaSyAQl8JNBsg15v5IusJoGRJZYPIbDpI3B28",
-  "AIzaSyAaE4PFzQkMMYDK5TIqkgFe9zXoZ_8syZU"
+  "AIzaSyBXlaMB4YaacEvtoUJ4rK8QIHE0fy0qKgw"
 ];
 
 // --- INTRO VIDEOS ---
