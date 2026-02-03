@@ -240,15 +240,21 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         const myRes = mp.home > mp.away ? t.home : mp.home < mp.away ? t.away : t.draw;
                         const rivalRes = rp.home > rp.away ? t.home : rp.home < rp.away ? t.away : t.draw;
                         
+                        // Grab names safely
+                        const hName = teams[match.homeTeamId]?.name || "Home";
+                        const aName = teams[match.awayTeamId]?.name || "Away";
+
+                        // Set global vars for script context
+                        homeTeamName = hName;
+                        awayTeamName = aName;
+
                         // Grab the specific score if available
                         if (mp.home !== undefined && mp.away !== undefined) {
                             userScorePrediction = `${mp.home}-${mp.away}`;
-                            homeTeamName = teams[match.homeTeamId]?.name || "Home";
-                            awayTeamName = teams[match.awayTeamId]?.name || "Away";
                         }
 
                         if (myRes !== rivalRes) {
-                            keyMatch = `${homeName} vs ${awayName}`;
+                            keyMatch = `${hName} vs ${aName}`;
                             conflictText = `User has ${myRes} (${userScorePrediction}), but ${rivalAbove.user.name} has ${rivalRes}`;
                             foundConflict = true;
                             break;
@@ -302,7 +308,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     
                     **THE CHARACTERS:**
                     1. HOST (Female): Professional. Sets up the stats.
-                    2. PUNDIT (Male): Jamie Carragher style (Scouse/Liverpool accent). Loud. Passionate.
+                    2. PUNDIT (Male): Jamie Carragher style (Scouse/Liverpool accent context). High energy. Loud.
                     
                     **THE SCRIPT STRUCTURE (Exactly 4 lines):**
                     - Line 1 (Host): "Welcome back. Let's look at ${currentUser.name}. Currently sitting #${myRank}."
