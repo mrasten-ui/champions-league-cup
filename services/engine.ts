@@ -117,7 +117,11 @@ export const getManagerStats = (
   return { form: form.reverse(), streak };
 };
 
+// --- CRITICAL FIX APPLIED BELOW ---
 export const calculateGroupStandings = (groupId: string, matches: Match[], teams: Record<string, Team>): GroupStanding[] => {
+  // Safety Check 1: If teams is undefined/null, stop immediately
+  if (!teams) return [];
+
   const groupMatches = matches.filter(m => m.groupId === groupId);
   const standingsMap: Record<string, GroupStanding> = {};
   const groupConfig = GROUP_CONFIG.find((g: any) => g.id === groupId);
@@ -137,12 +141,16 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 
   if (groupConfig) {
       groupConfig.teams.forEach((tId: string) => {
-        standingsMap[tId] = initTeam(tId);
+        // Safety Check 2: Only initialize if the team exists in the loaded data
+        if (teams[tId]) {
+            standingsMap[tId] = initTeam(tId);
+        }
       });
   } else {
       groupMatches.forEach(m => {
-          if (!standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = initTeam(m.homeTeamId);
-          if (!standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = initTeam(m.awayTeamId);
+          // Safety Check 3: Only initialize derived teams if they exist
+          if (teams[m.homeTeamId] && !standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = initTeam(m.homeTeamId);
+          if (teams[m.awayTeamId] && !standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = initTeam(m.awayTeamId);
       });
   }
 
@@ -153,6 +161,7 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       const home = standingsMap[match.homeTeamId];
       const away = standingsMap[match.awayTeamId];
       
+      // Safety Check 4: Ensure both teams are in our standings map before updating
       if (!home || !away) return;
 
       const hScore = Number(match.homeScore);
