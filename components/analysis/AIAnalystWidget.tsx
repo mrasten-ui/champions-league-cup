@@ -28,8 +28,8 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Conflict found",
         picked: "picked",
-        // UPDATED PROMPT: Specific attributes, no celebrity names to avoid hallucinations
-        promptLang: "ENGLISH. Pundit accent: Scouse/Liverpool (High pitch, fast, passionate). Terms: 'Lad', 'Kidda', 'Sound', 'Boss', 'Gaffer'."
+        // UPDATED: Strict instructions to avoid hallucinations
+        promptLang: "ENGLISH. Accent: Scouse/Liverpool (High energy, passionate, Jamie Carragher style). Terms: 'Lad', 'Kidda', 'Sound', 'Boss', 'Gaffer'. RULE: DO NOT use fake team names. Use ONLY the provided team names."
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -159,15 +159,23 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const audio = audioRef.current;
             audio.src = currentLine.audioUrl;
             audio.onended = advance;
-            audio.onerror = () => setTimeout(advance, 2000); 
-            audio.play().catch(() => setTimeout(advance, 3000));
+            audio.onerror = () => {
+                console.warn("Audio playback error, skipping.");
+                setTimeout(advance, 2000); 
+            };
+            
+            // Critical Fix: Handle Autoplay blocks
+            audio.play().catch(e => {
+                console.warn("Autoplay blocked:", e);
+                // Pause UI so user can manually play
+                setIsPlaying(false); 
+            });
         } 
         else if ('speechSynthesis' in window) {
             // FALLBACK LOGIC
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(currentLine.text);
             
-            // Try to find a female voice for Host if we are in fallback mode
             const voices = window.speechSynthesis.getVoices();
             if (currentLine.speaker === 'Host') {
                 const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Samantha'));
@@ -207,20 +215,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
             const ai = new GoogleGenAI({ apiKey });
 
-            // 1. CALCULATE DEEP STATS
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
             const myRank = myStat?.rank || 99;
             const myScore = myStat?.score || 0;
             const myDiff = myStat?.diff || 0;
             
-            // Find Leader
             const leader = combinedStats.find(s => s.rank === 1);
             const pointsToLeader = leader ? (leader.score - myScore) : 0;
             
-            // Find Rival (Closest above)
-            const rivalAbove = combinedStats.find(s => s.rank === myRank - 1);
-            
-            // Movement Context
             let movementContext = "holding steady";
             if (myDiff > 0) movementContext = `climbing up ${myDiff} spots`;
             if (myDiff < 0) movementContext = `crashing down ${Math.abs(myDiff)} spots`;
@@ -230,50 +232,22 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             let keyMatch = "Upcoming matches";
             let userScorePrediction = ""; 
             
-            // Initialize vars to avoid build errors
-            let homeTeamName = "Home";
-            let awayTeamName = "Away";
+            // Initialize vars with types
+            let homeTeamName = "Home Team";
+            let awayTeamName = "Away Team";
+            let homeRank = 50;
+            let awayRank = 50;
 
-            // Priority: Find a Conflict Match first
-            let foundConflict = false;
-            if (rivalAbove) {
-                const myPreds = allPredictions.filter(p => p.userId === currentUser.email);
-                const rivalPreds = allPredictions.filter(p => p.userId === rivalAbove.user.email);
-
-                for (const match of nextMatches.slice(0, 3)) { 
-                    const mp = myPreds.find(p => p.matchId === match.id);
-                    const rp = rivalPreds.find(p => p.matchId === match.id);
-                    
-                    if (mp && rp) {
-                        const myRes = mp.home > mp.away ? t.home : mp.home < mp.away ? t.away : t.draw;
-                        const rivalRes = rp.home > rp.away ? t.home : rp.home < rp.away ? t.away : t.draw;
-                        
-                        // Grab names safely
-                        homeTeamName = teams[match.homeTeamId]?.name || "Home";
-                        awayTeamName = teams[match.awayTeamId]?.name || "Away";
-
-                        // Grab the specific score if available
-                        if (mp.home !== undefined && mp.away !== undefined) {
-                            userScorePrediction = `${mp.home}-${mp.away}`;
-                        }
-
-                        if (myRes !== rivalRes) {
-                            keyMatch = `${homeTeamName} vs ${awayTeamName}`;
-                            conflictText = `User has ${myRes} (${userScorePrediction}), but ${rivalAbove.user.name} has ${rivalRes}`;
-                            foundConflict = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Fallback: If no conflict, just grab the first upcoming match prediction
-            if (!foundConflict && nextMatches.length > 0) {
+            // Simple Logic: Just grab the first upcoming match prediction to keep it focused
+            if (nextMatches.length > 0) {
                 const match = nextMatches[0];
                 const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
                 
-                homeTeamName = teams[match.homeTeamId]?.name || "Home";
-                awayTeamName = teams[match.awayTeamId]?.name || "Away";
+                const hTeam = teams[match.homeTeamId];
+                const aTeam = teams[match.awayTeamId];
+
+                if (hTeam) { homeTeamName = hTeam.name; homeRank = hTeam.rank || 50; }
+                if (aTeam) { awayTeamName = aTeam.name; awayRank = aTeam.rank || 50; }
                 
                 if (mp && mp.home !== undefined) {
                     keyMatch = `${homeTeamName} vs ${awayTeamName}`;
@@ -285,7 +259,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             if (targetMode === 'coach') {
                 const prompt = `
                     Context: Football Prediction Game. User: ${currentUser.name}, Rank: #${myRank}.
-                    Rival Above: ${rivalAbove ? rivalAbove.user.name : "None"}.
                     Key Data: ${conflictText} in ${keyMatch}.
                     Task: Write a short, strategic advice summary (max 60 words).
                     Language: ${t.promptLang}.
@@ -307,24 +280,25 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     You are writing a TV Script for a World Cup Prediction Show called "The Rasten Cup".
                     
                     **CONTEXT:**
-                    - User: ${currentUser.name} (Rank #${myRank})
+                    - User: ${currentUser.name} (Current Rank: #${myRank})
                     - Status: ${movementContext}
-                    - Prediction to Discuss: ${userScorePrediction || "No prediction"} for ${keyMatch}.
+                    - PREDICTION TO DISCUSS: ${userScorePrediction || "No prediction yet"} for the match ${homeTeamName} (Rank ${homeRank}) vs ${awayTeamName} (Rank ${awayRank}).
                     
                     **CHARACTERS:**
                     1. HOST (Female): Professional Presenter.
-                    2. PUNDIT (Male): Scouse/Liverpool accent. Passionate.
+                    2. PUNDIT (Male): Scouse/Liverpool accent. Passionate. Loud.
                     
-                    **IMPORTANT RULES:**
-                    - DO NOT mention "Liverpool", "Premier League", or real-world clubs. 
-                    - Focus ONLY on the "Rasten Cup" (this game).
-                    - Use the provided match data (${homeTeamName} vs ${awayTeamName}).
+                    **STRICT RULES:**
+                    - DO NOT invent team names like "Thunderbolts". 
+                    - USE ONLY these specific team names: ${homeTeamName} and ${awayTeamName}.
+                    - REFER to the rankings (e.g. "Rank ${homeRank} vs Rank ${awayRank}") to explain if it's an upset.
+                    - If no prediction exists, tell the user to "Wake up and make a pick!".
                     
-                    **SCRIPT (4 Lines):**
-                    1. HOST: Welcome. Let's talk ${currentUser.name}. Rank #${myRank}.
-                    2. PUNDIT: Reaction to rank.
-                    3. HOST: "They've tipped ${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}. Thoughts?"
-                    4. PUNDIT: Verdict on the scoreline. Mention the score explicitly.
+                    **SCRIPT (Exactly 4 Lines):**
+                    1. HOST: "Welcome back. Let's look at ${currentUser.name}, currently sitting #${myRank}."
+                    2. PUNDIT: Reacts to the rank/form. (e.g. "He's flying!" or "He's having a mare!")
+                    3. HOST: "Well, for the next match, they've tipped ${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}. Thoughts?"
+                    4. PUNDIT: Verdict. MUST mention the SCORE and TEAMS. (e.g. "${homeTeamName} winning ${userScorePrediction}?! They are ranked ${homeRank}! He's dreaming!")
                     
                     **LANGUAGE:** ${t.promptLang}.
                     
@@ -370,6 +344,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         }
     }, [combinedStats]);
 
+    // Manual Play Handler
+    const handleManualPlay = () => {
+        if (script && script[currentLineIndex]?.audioUrl && audioRef.current) {
+            audioRef.current.play().then(() => setIsPlaying(true));
+        } else {
+            setIsPlaying(true); // Fallback to timer/TTS
+        }
+    };
+
     return (
         <div className={`relative overflow-hidden rounded-2xl p-5 mb-4 shadow-lg transition-all duration-500 ${mode === 'roast' ? 'bg-gradient-to-br from-orange-900 to-red-900 border border-orange-700' : 'bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700'}`}>
             
@@ -395,7 +378,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         ) : isPlaying ? (
                             <button onClick={() => { setIsPlaying(false); audioRef.current?.pause(); window.speechSynthesis.cancel(); }} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
-                            <button onClick={() => { setIsPlaying(true); }} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
+                            <button onClick={handleManualPlay} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
                         )}
                     </div>
                 )}
@@ -427,6 +410,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                     <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
                                         <div className="font-black text-[9px] uppercase opacity-50 mb-1 flex justify-between">
                                             {line.speaker}
+                                            {isCurrent && !isPlaying && (
+                                                <button onClick={handleManualPlay} className="p-1 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
+                                                    <Volume2 size={10} className="text-white" />
+                                                </button>
+                                            )}
                                             {isCurrent && isPlaying && <Volume2 size={10} className="animate-pulse text-green-400" />}
                                         </div>
                                         <p className={isCurrent && isPlaying ? "opacity-100" : "opacity-80"}>{line.text}</p>
