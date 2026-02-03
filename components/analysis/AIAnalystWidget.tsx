@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
@@ -22,33 +22,32 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Pundit's Corner",
         roastButton: "Listen to Roast",
         coachButton: "Back to Coach",
-        loading: "Analyzing tactics...",
-        error: "Signal lost... try again.",
+        loading: "Reviewing game tape...",
+        error: "Connection lost. Try again later.",
+        noGamesCoach: "No confirmed fixtures yet. We are waiting for the bracket to populate.",
         
-        // COACH: Focus on Consequences of existing picks
+        // COACH
         coachPrompt: `
-            ROLE: Fantasy League Strategist.
-            CONTEXT: Predictions were made PRE-TOURNAMENT. The user CANNOT change them now (unless they use a "Sub").
-            TASK: Analyze the IMPACT of the user's existing pick on the leaderboard.
-            
+            ROLE: Fantasy League Manager & Tactician.
+            GOAL: Analyze the "Points Swing" for the user.
+            CONTEXT TO USE:
+            - RIVALS: Mention specific names of who is ahead (Target) and behind (Threat).
+            - RISK: Is the user's pick different from the pack? (Differential)
             STRUCTURE:
-            1. THE PICK: "You have Brazil to beat Argentina." (State the user's locked-in pick).
-            2. THE STAKES: "If this holds, you will likely pass [Target Name]. If it fails, [Threat Name] is ready to pounce."
-            3. THE GAME: "Brazil's form suggests you're safe, but watch out for [Opponent Player]."
-            
-            TONE: Analytical, high-stakes, focused on points.
+            1. THE SITUATION: "You are chasing [Name Ahead] but [Name Behind] is closing in."
+            2. THE PLAY: "You've backed [Team] to win. Most rivals went for [Other Team]."
+            3. THE OUTCOME: "If this hits, you climb. If it misses, you're in trouble."
+            TONE: Serious, competitive, focused on winning the league.
         `,
         
-        // PUNDIT: Sarah & Gaz
+        // PUNDIT
         roastPrompt: `
             ROLE: UK Sports Broadcast.
-            CHARACTERS: Sarah (Posh Sky Sports Host) & Gaz (Scouse Pundit).
-            
-            MANDATORY RULES:
-            1. GAZ: Must aggressively challenge the user's locked-in pick. "What were you thinking picking [Team A], [Name]?!"
-            2. GAZ: Use "Lad", "Mate". NO "Kidda".
-            3. SARAH: Must end the show with EXACTLY: "Well, you heard it here first. Good luck, [Name]!"
-            4. NAMES: Refer to the user as [Name]. Refer to teams by their real names only.
+            CHARACTERS: Sarah (Host, Posh) & Gaz (Pundit, Scouse).
+            RULES:
+            1. GAZ: Challenge the user by name. "What are you on about, [Name]?!"
+            2. GAZ: Reference the specific match. "There is NO WAY [Team A] beats [Team B]!"
+            3. SARAH: Sign-off MUST be: "Well, you heard it here first. Good luck, [Name]!"
         `
     },
     'en-US': {
@@ -56,14 +55,15 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Hot Take Studio",
         roastButton: "Play Roast",
         coachButton: "Back to Stats",
-        loading: "Loading audio feed...",
+        loading: "Crunching numbers...",
         error: "Server timeout...",
-        coachPrompt: "ROLE: Fantasy Coach. FOCUS: The impact of the user's pre-tournament pick. Will it help them climb the standings?",
+        noGamesCoach: "No active matchups. Waiting for the playoffs to fill.",
+        coachPrompt: "ROLE: Fantasy Coach. FOCUS: Beating the rivals. Use names. Explain the points swing.",
         roastPrompt: `
             ROLE: US Sports Radio. 
             CHARACTERS: Jessica (Host) & Chuck (Shock Jock).
-            CHUCK: "Are you kidding me with that pick, [Name]?"
-            JESSICA: "You heard it here first. Good luck!"
+            CHUCK: Challenge the user ("Are you kidding me, [Name]?"). 
+            JESSICA Sign-off: "You heard it here first. Good luck!"
         `
     },
     sco: {
@@ -71,14 +71,15 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "The Pundit's Box",
         roastButton: "Hear the Roast",
         coachButton: "Back tae Gaffer",
-        loading: "Mic check...",
+        loading: "Checkin' the tactics...",
         error: "The machine's gubbed...",
-        coachPrompt: "ROLE: The Gaffer. FOCUS: Tell the lad if his pre-tournament prediction is going to save him or sink him.",
+        noGamesCoach: "Nae games yet, lad. Waitin' on the draw.",
+        coachPrompt: "ROLE: The Gaffer. FOCUS: The League Table. Tell the lad who he needs to beat.",
         roastPrompt: `
-            ROLE: Scottish Broadcast.
-            CHARACTERS: Shona (Edinburgh Posh) & Rab (Glasgow Street).
+            ROLE: Scottish Broadcast Team.
+            CHARACTERS: Shona (Host) & Rab (Pundit).
             RAB: "Whit are ye on aboot, [Name]?"
-            SHONA: "Ye heard it here first. Good luck!"
+            SHONA Sign-off: "Ye heard it here first. Good luck!"
         `
     },
     no: {
@@ -86,14 +87,17 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Studio Ekspertene",
         roastButton: "Hør Diskusjonen",
         coachButton: "Tilbake",
-        loading: "Klargjør sending...",
+        loading: "Kobler til studio...",
         error: "Teknisk feil...",
-        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Konsekvensen av brukerens forhåndstips. Vil dette tipset sikre avansement på tabellen?",
+        noGamesCoach: "Ingen kamper klare. Vi venter på at sluttspillet skal settes.",
+        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Tabellen. Nevn navn på rivalene. Forklar at tipset er nøkkelen.",
         roastPrompt: `
             ROLLE: Norsk TV-Studio.
             KARAKTERER: Silje (Host) & Nils Arne (Pundit).
-            NILS ARNE: Nevn "Brasil i 98" eller "Godfoten". Klag på at tipset er feigt eller ros det for å være offensivt.
-            SILJE: "Du hørte det her først. Lykke til!"
+            REGLER:
+            1. NILS ARNE: Må være entusiastisk. Nevn "Brasil i 98" eller "Godfoten".
+            2. UTFORDRING: "Hva er det du driver med, [Name]?!"
+            3. SIGNATUR: "Du hørte det her først. Lykke til!"
         `
     }
 };
@@ -120,8 +124,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState(false);
-    
-    // Karaoke State
     const [displayedText, setDisplayedText] = useState(""); 
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -129,7 +131,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
-    const hasFetched = useRef(false);
+    
+    // Track the "Next Match ID" to trigger updates when time travels
+    const nextMatchId = useMemo(() => {
+        const upcoming = nextMatches
+            .filter(m => m.status === 'UPCOMING')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        return upcoming.length > 0 ? upcoming[0].id : 'none';
+    }, [nextMatches]);
 
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
@@ -143,13 +152,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         return name;
     };
 
-    // --- JSON PARSER (The Stability Fix) ---
+    // --- JSON PARSER ---
     const extractJson = (text: string) => {
         try {
-            // 1. Try direct parse
             return JSON.parse(text);
         } catch (e) {
-            // 2. Try to find array brackets [ ... ]
             const start = text.indexOf('[');
             const end = text.lastIndexOf(']');
             if (start !== -1 && end !== -1) {
@@ -161,58 +168,44 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         }
     };
 
-    // --- 1. AUDIO GENERATION (RETURNS DATA, DOES NOT SET STATE) ---
+    // --- AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]): Promise<ScriptLine[]> => {
         const processedLines = [...lines];
-
-        // Name Mapping for Voice Engine
+        
         const getSpeakerType = (name: string): string => {
             const lowerName = name.toLowerCase();
             if (['gaz', 'chuck', 'rab', 'nils arne', 'pundit'].includes(lowerName)) return 'Pundit';
             return 'Host';
         };
 
-        // Fetch audio for ALL lines in parallel (faster) or sequence (safer)
-        // Sequential is safer to avoid rate limits/timeouts
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
-            const speakerType = getSpeakerType(line.speaker);
-
             try {
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
-                        speaker_type: speakerType,
+                        speaker_type: getSpeakerType(line.speaker), 
                         lang: langKey 
                     }
                 });
 
                 if (error) throw error;
 
-                if (data) {
-                    // Handle both Base64 JSON and Blob responses
-                    if (typeof data === 'string' || data.audioContent) {
-                         const content = data.audioContent || data;
-                         processedLines[i].audioUrl = `data:audio/mp3;base64,${content}`;
-                    } else {
-                        const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-                        if (audioBlob.size > 100) {
-                            processedLines[i].audioUrl = URL.createObjectURL(audioBlob);
-                        }
-                    }
-                }
+                if (data && data.audioContent) {
+                    processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
+                } 
             } catch (err) {
                 console.warn(`Audio Gen Error line ${i}:`, err);
                 processedLines[i].audioUrl = null; 
+                setAudioError(true);
             }
         }
         return processedLines;
     };
 
-    // --- 2. KARAOKE EFFECT ---
+    // --- PLAYBACK CONTROL ---
     useEffect(() => {
         if (!script || !isPlaying) return;
-        
         const currentLine = script[currentLineIndex];
         if (!currentLine) return;
 
@@ -221,7 +214,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         const words = currentLine.text.split(" ");
         let wordIdx = 0;
         setDisplayedText(""); 
-
+        
         const isPundit = ['Gaz', 'Chuck', 'Rab', 'Nils Arne', 'Pundit'].includes(currentLine.speaker);
         const baseSpeed = isPundit ? 180 : 230; 
         
@@ -234,18 +227,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
         }, baseSpeed);
 
-        return () => {
-            if (typewriterRef.current) clearInterval(typewriterRef.current);
-        };
-    }, [currentLineIndex, script, isPlaying]);
-
-    // --- 3. AUDIO PLAYER ---
-    useEffect(() => {
-        if (mode !== 'roast' || !script) return;
-
-        const currentLine = script[currentLineIndex];
-        if (!currentLine) return; 
-
         const advance = () => {
             if (currentLineIndex < script.length - 1) {
                 setCurrentLineIndex(prev => prev + 1);
@@ -254,38 +235,27 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
         };
 
-        if (isPlaying) {
-            if (currentLine.audioUrl) {
-                if (!audioRef.current) audioRef.current = new Audio();
-                const audio = audioRef.current;
-
-                if (audio.src !== currentLine.audioUrl) {
-                    audio.src = currentLine.audioUrl;
-                    audio.load();
-                    audio.onended = advance;
-                    audio.onerror = () => setTimeout(advance, 2000); // Skip if error
-                    audio.play().catch(() => setIsPlaying(false));
-                }
-            } else {
-                // Fallback Timer if no audio
-                const duration = Math.max(2000, currentLine.text.split(" ").length * 300);
-                setTimeout(advance, duration);
+        if (currentLine.audioUrl) {
+            if (!audioRef.current) audioRef.current = new Audio();
+            const audio = audioRef.current;
+            if (audio.src !== currentLine.audioUrl) {
+                audio.src = currentLine.audioUrl;
+                audio.load();
+                audio.onended = advance;
+                audio.onerror = () => setTimeout(advance, 2000);
+                audio.play().catch(e => console.warn("Autoplay blocked", e));
             }
         } else {
-            if (audioRef.current) audioRef.current.pause();
-            if (typewriterRef.current) clearInterval(typewriterRef.current);
+            const duration = Math.max(2000, currentLine.text.split(" ").length * 300);
+            setTimeout(advance, duration);
         }
 
-        return () => {
-            if (typewriterRef.current) clearInterval(typewriterRef.current);
-        };
-    }, [isPlaying, currentLineIndex, script, mode]);
+        return () => { if (typewriterRef.current) clearInterval(typewriterRef.current); };
+    }, [currentLineIndex, script, isPlaying]);
 
-    const togglePlay = () => {
-        setIsPlaying(!isPlaying);
-    };
+    const togglePlay = () => setIsPlaying(!isPlaying);
 
-    // --- 4. MAIN GENERATION LOGIC ---
+    // --- MAIN LOGIC ---
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
         setMode(targetMode);
@@ -305,10 +275,69 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myScore = myStat?.score || 0;
             const cleanName = getFormattedName();
             
-            // Context
-            let leaderboardContext = "You are currently isolated in the standings.";
-            const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
+            // --- MATCH FINDER ---
+            // 1. Sort by date
+            const sortedMatches = [...nextMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
+            // 2. Find ANY upcoming match
+            const nextMatch = sortedMatches.find(m => m.status === 'UPCOMING');
+
+            // 3. Check for TBD
+            const isTBD = nextMatch && (nextMatch.homeTeamId === 'TBD' || nextMatch.awayTeamId === 'TBD');
+
+            // --- SCENARIO 1: NO MATCHES AT ALL (Season Over) ---
+            if (!nextMatch) {
+                setAnalysis(t.noGamesCoach);
+                
+                // Fallback Pundit
+                const fallbackScript = [
+                    { speaker: "Host", text: `Welcome back, ${cleanName}. The schedule is completely clear.` },
+                    { speaker: "Pundit", text: "Nothing to talk about? That's a first for me!" },
+                    { speaker: "Host", text: "We'll be back when the new season starts." }
+                ];
+                const audioFallback = await generateAudioForScript(fallbackScript);
+                setScript(audioFallback);
+                setLoading(false);
+                if (targetMode === 'roast') setIsPlaying(true);
+                return;
+            }
+
+            // --- SCENARIO 2: WAITING FOR KNOCKOUTS (TBD) ---
+            if (isTBD) {
+                setAnalysis("The bracket is taking shape. We are waiting for the teams to be confirmed.");
+                
+                // Fallback Pundit for TBD
+                const fallbackScript = [
+                    { speaker: "Host", text: "The next round is coming up, but we're still waiting for the teams to be confirmed." },
+                    { speaker: "Pundit", text: "Come on! Get the draw done! I need to know who we're smashing next!" },
+                    { speaker: "Host", text: "Patience, please. Check back once the bracket updates." }
+                ];
+                const audioFallback = await generateAudioForScript(fallbackScript);
+                setScript(audioFallback);
+                setLoading(false);
+                if (targetMode === 'roast') setIsPlaying(true);
+                return;
+            }
+
+            // --- SCENARIO 3: REAL MATCH FOUND ---
+            const match = nextMatch;
+            const hTeam = teams[match.homeTeamId];
+            const aTeam = teams[match.awayTeamId];
+
+            if (!hTeam || !aTeam) {
+                setAnalysis("Syncing data...");
+                setLoading(false);
+                return;
+            }
+
+            const homeName = hTeam.name;
+            const awayName = aTeam.name;
+            let userScorePrediction = "No pick yet";
+            let rivalStats = "No rival data";
+            let leaderboardContext = "You are currently isolated.";
+
+            // Context Builders...
+            const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
             if (myIndex !== -1) {
                 const rivalAhead = combinedStats[myIndex - 1]; 
                 const rivalBehind = combinedStats[myIndex + 1];
@@ -319,61 +348,27 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (parts.length > 0) leaderboardContext = `You are ${parts.join(' and ')}.`;
             }
 
-            // Match Selection
-            const sortedUpcoming = [...nextMatches]
-                .filter(m => m.status === 'UPCOMING' && m.homeTeamId !== 'TBD')
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-            const match = sortedUpcoming.length > 0 ? sortedUpcoming[0] : null;
-
-            if (!match) {
-                setAnalysis("No upcoming matches to preview.");
-                setLoading(false);
-                return;
-            }
-
-            const hTeam = teams[match.homeTeamId];
-            const aTeam = teams[match.awayTeamId];
-
-            if (!hTeam || !aTeam || hTeam.name === "Home Team") {
-                setAnalysis("Waiting for team data...");
-                setLoading(false);
-                return;
-            }
-
-            const homeTeamName = hTeam.name;
-            const awayTeamName = aTeam.name;
-            let userScorePrediction = "No pick yet";
-            let rivalStats = "No rival data";
-
             const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
             if (mp && mp.home !== undefined) {
                 userScorePrediction = `${mp.home}-${mp.away}`;
-                
                 // Rivals
                 const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
                 if (rivalPreds.length > 0) {
-                    const backedHome = rivalPreds.filter(p => p.home > p.away).length;
-                    const homePct = Math.round((backedHome / rivalPreds.length) * 100);
-                    if (homePct > 60) rivalStats = `The pack backed ${homeTeamName} (${homePct}%).`;
-                    else if (homePct < 40) rivalStats = `The pack backed ${awayTeamName} (${100-homePct}%).`;
-                    else rivalStats = "The pack is split.";
+                    const h = rivalPreds.filter(p => p.home > p.away).length;
+                    const hPct = Math.round((h/rivalPreds.length)*100);
+                    if (hPct > 60) rivalStats = `The pack backed ${homeName} (${hPct}%)`;
+                    else if (hPct < 40) rivalStats = `The pack backed ${awayName} (${100-hPct}%)`;
+                    else rivalStats = "The pack is split";
                 }
             }
 
             if (targetMode === 'coach') {
                 const prompt = `
-                    Generate a "Coach's Tactical Report".
-                    User: ${cleanName} (Rank #${myRank}). 
-                    Context: ${leaderboardContext}.
-                    Match: ${homeTeamName} vs ${awayTeamName}.
-                    User's Locked Pick: ${userScorePrediction}.
-                    Rivals: ${rivalStats}.
-                    
-                    INSTRUCTIONS:
-                    ${t.coachPrompt}
-                    
-                    OUTPUT: Raw text (max 100 words).
+                    Generate "Coach Report".
+                    User: ${cleanName} (#${myRank}). Context: ${leaderboardContext}.
+                    Match: ${homeName} vs ${awayName}. Pick: ${userScorePrediction}. Rivals: ${rivalStats}.
+                    Instructions: ${t.coachPrompt}
+                    Output: Plain text only. Max 80 words.
                 `;
                 const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
                 // @ts-ignore
@@ -383,7 +378,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             } else {
                 const prompt = `
                     Write TV Script.
-                    User: ${cleanName} (#${myRank}). Match: ${homeTeamName} vs ${awayTeamName}. Pick: ${userScorePrediction}. Rivals: ${rivalStats}.
+                    User: ${cleanName} (#${myRank}). Match: ${homeName} vs ${awayName}. Pick: ${userScorePrediction}. Rivals: ${rivalStats}.
                     Instructions: ${t.roastPrompt}
                     Output: JSON Array only: [{"speaker": "Name", "text": "..."}]
                 `;
@@ -391,7 +386,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 // @ts-ignore
                 const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
                 
-                const parsed = extractJson(text); // Use robust parser
+                const parsed = extractJson(text);
                 
                 if (parsed) {
                     const audioScript = await generateAudioForScript(parsed);
@@ -405,22 +400,19 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
         } catch (e) {
             console.error(e);
-            if (targetMode === 'roast') {
-                // Gentle fallback that mimics a technical difficulty
-                setScript([{ speaker: "Host", text: "We are having trouble connecting to the pundit. Please try again in a moment." }]);
-            } else {
-                setAnalysis("Tactical analysis unavailable at this moment.");
-            }
+            setAnalysis("Signal lost.");
+            // Fallback script for error
+            setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio. Please try again." }]);
             setLoading(false);
         }
     };
 
+    // RE-FETCH TRIGGER: Runs when stats change OR the Next Match changes (Time Travel)
     useEffect(() => {
-        if (!hasFetched.current && combinedStats.length > 0 && Object.keys(teams).length > 0) {
+        if (combinedStats.length > 0 && Object.keys(teams).length > 0) {
             generateInsight('coach');
-            hasFetched.current = true;
         }
-    }, [combinedStats, teams]);
+    }, [combinedStats, teams, nextMatchId]);
 
     return (
         <div className={`relative overflow-hidden rounded-2xl p-5 mb-4 shadow-lg transition-all duration-500 ${mode === 'roast' ? 'bg-gradient-to-br from-orange-900 to-red-900 border border-orange-700' : 'bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700'}`}>
@@ -440,11 +432,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 {mode === 'roast' && script && (
                     <div className="flex items-center gap-2">
                         {isAudioLoading ? (
-                            <div className="text-white/50 text-xs"><RefreshCw size={12} className="animate-spin" /></div>
+                            <div className="text-white/50 text-xs flex items-center gap-1"><RefreshCw size={12} className="animate-spin" /> Audio</div>
                         ) : isPlaying ? (
-                            <button onClick={togglePlay} className="p-1.5 bg-red-500/20 text-red-300 rounded-full"><Pause size={14} fill="currentColor" /></button>
+                            <button onClick={togglePlay} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
-                            <button onClick={togglePlay} className={`p-1.5 rounded-full ${audioError ? 'bg-red-500/40 text-white' : 'bg-green-500/20 text-green-300'}`}>
+                            <button onClick={togglePlay} className={`p-1.5 rounded-full ${audioError ? 'bg-red-500/40 text-white' : 'bg-green-500/20 text-green-300 hover:bg-green-500/40'}`}>
                                 {audioError ? <AlertCircle size={14} /> : <Play size={14} fill="currentColor" />}
                             </button>
                         )}
@@ -463,6 +455,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">{analysis}</p>
                 ) : (
                     <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                        {/* FALLBACK MESSAGE IF SCRIPT IS EMPTY BUT NOT LOADING */}
+                        {!script && <div className="text-center text-white/50 text-xs">Microphone check...</div>}
+                        
                         {script && script.map((line, idx) => {
                             if (idx > currentLineIndex) return null;
                             const isCurrent = idx === currentLineIndex;
