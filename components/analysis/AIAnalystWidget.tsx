@@ -15,26 +15,58 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
+// --- PERSONA CONFIGURATION ---
 const PERSONAS: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
         roastTitle: "Pundit's Corner",
         roastButton: "Listen to Roast",
         coachButton: "Back to Coach",
-        loading: "Analyzing tactics...",
+        loading: "Scouting opposition...",
         error: "Signal lost... try again.",
-        coachPrompt: "ENGLISH. Role: Senior Football Analyst. Tone: Professional, encouraging, but direct. Focus on the user's rank and how to improve.",
-        roastPrompt: "ENGLISH. Accent: Scouse/Liverpool (High energy, passionate, Jamie Carragher style). Terms: 'Lad', 'Kidda', 'Sound', 'Boss', 'Gaffer'. RULE: You MUST use the specific Country Names provided (e.g. 'Brazil', 'France'). NEVER say 'Home Team'."
+        
+        // COACH: Leaderboard-Focused Strategy
+        coachPrompt: `
+            ROLE: Fantasy League Strategist.
+            TASK: Analyze the stakes of the upcoming match for the user's ranking (80-100 words).
+            
+            STRUCTURE:
+            1. THE PLAY: Analyze the User's pick vs the Rivals' consensus.
+            2. THE STAKES: You MUST reference the specific "Rival Context" (e.g. "If you hit this, you catch Paul").
+            3. THE GAME: Mention one tactical fact (e.g. "Their defense is leaking") to justify the risk.
+            
+            TONE: Competitive, calculated.
+        `,
+        
+        // PUNDIT: Sarah (Posh) & Gaz (Scouse)
+        roastPrompt: `
+            ROLE: TV Pundit "Gaz" (Scouse) & Host "Sarah" (Posh).
+            SCENARIO: Pre-match discussion for the NEXT upcoming game.
+            
+            CHARACTERS:
+            - Sarah (Host): Posh, professional Sky Sports presenter. Articulate, calm.
+            - Gaz (Pundit): Scouse accent (Liverpool). Passionate, loud. Terms: 'Lad', 'Sound', 'Boss', 'Gaffer'. (DO NOT USE 'Kidda').
+            
+            MANDATORY SCRIPT RULES:
+            1. PUNDIT: Must aggressively challenge the user by name. Example: "What are you on about, [Name]?! There is NO WAY [Team A] beats [Team B]!"
+            2. HOST: Must end the show with this exact Sign-Off: "You heard it here first. Good luck, [Name]!"
+            3. CONTENT: Focus purely on the specific match.
+        `
     },
     'en-US': {
         coachTitle: "Coach's Intel",
         roastTitle: "Hot Take Studio",
         roastButton: "Play Roast",
         coachButton: "Back to Stats",
-        loading: "Going live...",
+        loading: "Crunching numbers...",
         error: "Server timeout...",
-        coachPrompt: "AMERICAN ENGLISH. Role: Head Coach. Tone: Serious, strategic.",
-        roastPrompt: "AMERICAN ENGLISH. Radio Shock Jock style. Loud, opinionated, aggressive. USE REAL TEAM NAMES."
+        coachPrompt: "ROLE: Fantasy Coach. TASK: Analyze leaderboard impact. MENTION RIVALS BY NAME. Explain if this pick helps catch the leader.",
+        roastPrompt: `
+            ROLE: US Sports Radio. 
+            CHARACTERS: "Jessica" (ESPN Host) & "Chuck" (Shock Jock).
+            PUNDIT: Challenge the user ('Are you kidding me, [Name]?'). 
+            HOST Sign-off: 'You heard it here first. Good luck!'
+        `
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -43,8 +75,18 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back tae Gaffer",
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed...",
-        coachPrompt: "SCOTTISH ENGLISH. Role: The Gaffer. Tone: Stern but fair.",
-        roastPrompt: "SCOTTISH ENGLISH. Accent: Heavy Glasgow/Scots. Terms: 'Aye', 'Naw', 'Mince', 'Belter'. Pure aggressive banter. USE REAL TEAM NAMES."
+        coachPrompt: "ROLE: The Gaffer. TASK: Points analysis. Tell the lad who he needs to beat (use rival names).",
+        roastPrompt: `
+            ROLE: Scottish Broadcast Team.
+            
+            CHARACTERS:
+            - Shona (Host): Edinburgh dialect. Educated, softer accent, articulate.
+            - Rab (Pundit): Heavy Glasgow accent. Aggressive banter. Terms: "Belter", "Mince", "Numpty".
+            
+            RULES:
+            1. PUNDIT: "Whit are ye on aboot, [Name]?"
+            2. HOST Sign-off: "Ye heard it here first. Good luck!"
+        `
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -53,8 +95,20 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Tilbake",
         loading: "Kobler til studio...",
         error: "Teknisk feil...",
-        coachPrompt: "NORWEGIAN. Role: Fotballekspert. Tone: Saklig og analytisk.",
-        roastPrompt: "NORWEGIAN. Role: Engasjert supporter. Bruk dialekt og fotballslang. BRUK EKTE LAGNAVN."
+        coachPrompt: "ROLLE: Fantasy-ekspert. OPPGAVE: Analyser tabellsituasjonen. DU MÅ NEVNE RIVALENE. Forklar konsekvensen av tipset.",
+        roastPrompt: `
+            ROLLE: Norsk TV-Studio.
+            
+            KARAKTERER:
+            - Silje (Host): Profesjonell, saklig (Standard Østnorsk).
+            - Nils Arne (Pundit): Legendarisk Trønder (Nils Arne Eggen-stil). Entusiastisk, høylytt.
+            
+            VIKTIGE REGLER:
+            1. NILS ARNE MÅ ALLTID NEVNE "BRASIL I 98" eller "MARSEILLE" som bevis på at alt er mulig, eller klage på at "vi må tørre mer".
+            2. PUNDIT UTFORDRING: "Hva er det du driver med, [Name]?!"
+            3. HOST Sign-off: "Du hørte det her først. Lykke til!"
+            4. SIGNATUR: Nils Arne avslutter gjerne med "Go'fot!"
+        `
     }
 };
 
@@ -94,10 +148,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
-    // Helper to format name (e.g. mrasten -> Mrasten)
     const getFormattedName = () => {
         if (!currentUser?.name) return "Manager";
-        // If it looks like an email prefix (lowercase, no spaces), capitalize it
         const name = currentUser.name;
         if (name === name.toLowerCase() && !name.includes(' ')) {
             return name.charAt(0).toUpperCase() + name.slice(1);
@@ -124,7 +176,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
                 if (error) throw error;
 
-                // CRITICAL FIX: Handle Base64 String directly
                 if (data && data.audioContent) {
                     processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
                 } else {
@@ -156,9 +207,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         let wordIdx = 0;
         setDisplayedText(""); 
 
-        // Faster pacing for Pundit
         const isPundit = currentLine.speaker === 'Pundit';
-        const baseSpeed = isPundit ? 180 : 250; 
+        const baseSpeed = isPundit ? 180 : 240; 
         
         typewriterRef.current = setInterval(() => {
             if (wordIdx < words.length) {
@@ -271,31 +321,53 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
             const myRank = myStat?.rank || 99;
             const myScore = myStat?.score || 0;
-            const myDiff = myStat?.diff || 0;
             const cleanName = getFormattedName();
             
-            let movementContext = "holding position";
-            if (myDiff > 0) movementContext = `climbed ${myDiff} spots`;
-            if (myDiff < 0) movementContext = `dropped ${Math.abs(myDiff)} spots`;
+            // --- LEADERBOARD CONTEXT ---
+            let leaderboardContext = "You are currently isolated in the standings.";
+            const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
+            
+            if (myIndex !== -1) {
+                const rivalAhead = combinedStats[myIndex - 1]; // Rank 1 is index 0
+                const rivalBehind = combinedStats[myIndex + 1];
+                
+                const parts = [];
+                if (rivalAhead) {
+                    const diff = rivalAhead.score - myScore;
+                    parts.push(`chasing ${rivalAhead.user.name} (${diff} pts ahead)`);
+                } else {
+                    parts.push("currently leading the pack");
+                }
+                
+                if (rivalBehind) {
+                    const diff = myScore - rivalBehind.score;
+                    parts.push(`being hunted by ${rivalBehind.user.name} (${diff} pts behind)`);
+                }
+                
+                if (parts.length > 0) leaderboardContext = `You are ${parts.join(' and ')}.`;
+            }
 
-            // Identify Key Match
-            let keyMatch = "Upcoming matches";
+            // --- MATCH SELECTION LOGIC ---
+            const sortedUpcoming = [...nextMatches]
+                .filter(m => m.status === 'UPCOMING' && m.homeTeamId !== 'TBD')
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
             let userScorePrediction = ""; 
             let homeTeamName = "Home Team";
             let awayTeamName = "Away Team";
             let homeRank = 50;
             let awayRank = 50;
+            let rivalStats = "No rival data available";
 
-            if (nextMatches.length > 0) {
-                const match = nextMatches[0];
+            const match = sortedUpcoming.length > 0 ? sortedUpcoming[0] : null;
+
+            if (match) {
                 const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
-                
                 const hTeam = teams[match.homeTeamId];
                 const aTeam = teams[match.awayTeamId];
 
-                // Data Guard: Stop if teams aren't ready
                 if (!hTeam || !aTeam) {
-                    setAnalysis("Waiting for team data to sync... please try again in a moment.");
+                    setAnalysis("Waiting for team data to sync... please try again.");
                     setLoading(false);
                     return;
                 }
@@ -306,21 +378,36 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 awayRank = aTeam.rank || 50;
                 
                 if (mp && mp.home !== undefined) {
-                    keyMatch = `${homeTeamName} vs ${awayTeamName}`;
                     userScorePrediction = `${mp.home}-${mp.away}`;
+                    
+                    // RIVAL CONSENSUS
+                    const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
+                    if (rivalPreds.length > 0) {
+                        const backedHome = rivalPreds.filter(p => p.home > p.away).length;
+                        const homePct = Math.round((backedHome / rivalPreds.length) * 100);
+                        
+                        if (homePct > 60) rivalStats = `Most rivals (${homePct}%) backed ${homeTeamName}.`;
+                        else if (homePct < 40) rivalStats = `Most rivals (${100-homePct}%) backed ${awayTeamName}.`;
+                        else rivalStats = "Rivals are split 50/50.";
+                    }
                 }
             }
 
             if (targetMode === 'coach') {
                 const prompt = `
-                    You are a Senior Football Analyst for "The Rasten Cup".
-                    User: ${cleanName} (Rank #${myRank}, Score: ${myScore}).
-                    Status: ${movementContext}.
-                    Next Pick: ${userScorePrediction ? `${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}` : "No pick yet"}.
+                    Generate a "Coach's Tactical Report" for The Rasten Cup.
                     
-                    Task: Write a short, strategic advice summary (max 40 words).
-                    Use ONLY these team names: ${homeTeamName} and ${awayTeamName}.
-                    Tone: ${t.coachPrompt}
+                    **DATA:**
+                    - User: ${cleanName} (Rank #${myRank})
+                    - Rival Context: ${leaderboardContext}
+                    - Match: ${homeTeamName} vs ${awayTeamName}
+                    - User Pick: ${userScorePrediction || "None yet"}
+                    - Rival Consensus: ${rivalStats}
+                    
+                    **INSTRUCTIONS:**
+                    ${t.coachPrompt}
+                    
+                    OUTPUT: Just the raw text analysis (no markdown, no quotes). Max 100 words.
                 `;
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.0-flash',
@@ -338,28 +425,24 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     
                     **CONTEXT:**
                     - User: ${cleanName} (Rank #${myRank})
-                    - Recent Form: ${movementContext}
-                    - NEXT MATCH: ${homeTeamName} (Rank ${homeRank}) vs ${awayTeamName} (Rank ${awayRank}).
-                    - USER PREDICTION: ${userScorePrediction || "Has not predicted yet!"}.
-                    
-                    **CHARACTERS:**
-                    1. HOST (Female): Professional intro.
-                    2. PUNDIT (Male): Scouse/Liverpool accent. Very opinionated.
+                    - MATCH: ${homeTeamName} vs ${awayTeamName}
+                    - USER PREDICTION: ${userScorePrediction || "No pick yet"}
                     
                     **STRICT RULES:**
-                    - NEVER use "Home Team" or "Away Team". Use "${homeTeamName}" and "${awayTeamName}".
-                    - The user is called "${cleanName}". Do NOT mention their email address.
-                    - If the user predicted a score (e.g. 2-1), the Pundit MUST mention those numbers.
+                    1. REFER to teams ONLY by these exact names: "${homeTeamName}" and "${awayTeamName}".
+                    2. PUNDIT: Challenge the user by name. "What are you on about, ${cleanName}?!"
+                    3. HOST: Sign off with "You heard it here first. Good luck, ${cleanName}!"
                     
                     **SCRIPT FORMAT (JSON Array ONLY):**
                     [
-                        {"speaker": "Host", "text": "Start with user rank..."},
-                        {"speaker": "Pundit", "text": "React to rank..."},
-                        {"speaker": "Host", "text": "Mention the prediction for ${homeTeamName} vs ${awayTeamName}."},
-                        {"speaker": "Pundit", "text": "Verdict on that specific score."}
+                        {"speaker": "Host", "text": "Intro the match and the user's pick..."},
+                        {"speaker": "Pundit", "text": "Aggressive reaction. Challenge the user directly using their name."},
+                        {"speaker": "Host", "text": "Thoughts on the rival stats?"},
+                        {"speaker": "Pundit", "text": "Final verdict on the score."},
+                        {"speaker": "Host", "text": "You heard it here first. Good luck, ${cleanName}!"}
                     ]
                     
-                    **LANGUAGE:** ${t.roastPrompt}
+                    **TONE:** ${t.roastPrompt}
                 `;
                 
                 const response = await ai.models.generateContent({
