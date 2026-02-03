@@ -22,38 +22,33 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Pundit's Corner",
         roastButton: "Listen to Roast",
         coachButton: "Back to Coach",
-        loading: "Reviewing game tape...",
-        error: "Connection lost. Try again later.",
+        loading: "Preparing broadcast...", // Changed to indicate audio loading
+        error: "Signal lost... try again.",
         
-        // COACH: Leaderboard-Focused Strategy
+        // COACH: Focus on Consequences of existing picks
         coachPrompt: `
-            ROLE: Fantasy League Manager & Tactician.
-            GOAL: Analyze the "Points Swing" for the user.
-            
-            CONTEXT TO USE:
-            - RIVALS: Mention specific names of who is ahead (Target) and behind (Threat).
-            - RISK: Is the user's pick different from the pack? (Differential)
+            ROLE: Fantasy League Strategist.
+            CONTEXT: Predictions were made PRE-TOURNAMENT. The user CANNOT change them now (unless they use a "Sub").
+            TASK: Analyze the IMPACT of the user's existing pick on the leaderboard.
             
             STRUCTURE:
-            1. THE SITUATION: "You are chasing [Name Ahead] but [Name Behind] is closing in."
-            2. THE PLAY: "You've backed [Team] to win. Most rivals went for [Other Team]."
-            3. THE OUTCOME: "If this hits, you climb. If it misses, you're in trouble."
+            1. THE PICK: "You have Brazil to beat Argentina." (State the user's locked-in pick).
+            2. THE STAKES: "If this holds, you will likely pass [Target Name]. If it fails, [Threat Name] is ready to pounce."
+            3. THE GAME: "Brazil's form suggests you're safe, but watch out for [Opponent Player]."
             
-            TONE: Serious, competitive, focused on winning the league.
+            TONE: Analytical, high-stakes, focused on points.
         `,
         
-        // PUNDIT: Sarah (Posh) & Gaz (Scouse)
+        // PUNDIT: Sarah & Gaz
         roastPrompt: `
             ROLE: UK Sports Broadcast.
-            
-            CHARACTERS:
-            - Sarah (Host): Posh, professional Sky Sports presenter. Articulate, calm. "Welcome to the studio."
-            - Gaz (Pundit): Scouse accent (Liverpool). Passionate, blunt. Uses "Lad", "Mate". (NO "Kidda").
+            CHARACTERS: Sarah (Posh Sky Sports Host) & Gaz (Scouse Pundit).
             
             MANDATORY RULES:
-            1. GAZ: Must aggressively challenge the user by name. "What are you on about, [Name]?!"
-            2. GAZ: Must reference the specific match prediction. "There is NO WAY [Team A] beats [Team B]!"
-            3. SARAH: Sign-off MUST be: "Well, you heard it here first. Good luck, [Name]!"
+            1. GAZ: Must aggressively challenge the user's locked-in pick. "What were you thinking picking [Team A], [Name]?!"
+            2. GAZ: Use "Lad", "Mate". NO "Kidda".
+            3. SARAH: Must end the show with EXACTLY: "Well, you heard it here first. Good luck, [Name]!"
+            4. NAMES: Refer to the user as [Name]. Refer to teams by their real names only.
         `
     },
     'en-US': {
@@ -61,14 +56,14 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Hot Take Studio",
         roastButton: "Play Roast",
         coachButton: "Back to Stats",
-        loading: "Crunching numbers...",
+        loading: "Loading audio feed...",
         error: "Server timeout...",
-        coachPrompt: "ROLE: Fantasy Coach. FOCUS: Beating the rivals. Use names. Explain the points swing.",
+        coachPrompt: "ROLE: Fantasy Coach. FOCUS: The impact of the user's pre-tournament pick. Will it help them climb the standings?",
         roastPrompt: `
             ROLE: US Sports Radio. 
-            CHARACTERS: "Jessica" (ESPN Host) & "Chuck" (Shock Jock).
-            CHUCK: Challenge the user ("Are you kidding me, [Name]?"). 
-            JESSICA Sign-off: "You heard it here first. Good luck!"
+            CHARACTERS: Jessica (Host) & Chuck (Shock Jock).
+            CHUCK: "Are you kidding me with that pick, [Name]?"
+            JESSICA: "You heard it here first. Good luck!"
         `
     },
     sco: {
@@ -76,14 +71,14 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "The Pundit's Box",
         roastButton: "Hear the Roast",
         coachButton: "Back tae Gaffer",
-        loading: "Checkin' the tactics...",
+        loading: "Mic check...",
         error: "The machine's gubbed...",
-        coachPrompt: "ROLE: The Gaffer. FOCUS: The League Table. Tell the lad who he needs to beat.",
+        coachPrompt: "ROLE: The Gaffer. FOCUS: Tell the lad if his pre-tournament prediction is going to save him or sink him.",
         roastPrompt: `
-            ROLE: Scottish Broadcast Team.
-            CHARACTERS: Shona (Edinburgh, Posh) & Rab (Glasgow, Street).
+            ROLE: Scottish Broadcast.
+            CHARACTERS: Shona (Edinburgh Posh) & Rab (Glasgow Street).
             RAB: "Whit are ye on aboot, [Name]?"
-            SHONA Sign-off: "Ye heard it here first. Good luck!"
+            SHONA: "Ye heard it here first. Good luck!"
         `
     },
     no: {
@@ -91,18 +86,14 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Studio Ekspertene",
         roastButton: "Hør Diskusjonen",
         coachButton: "Tilbake",
-        loading: "Kobler til studio...",
+        loading: "Klargjør sending...",
         error: "Teknisk feil...",
-        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Tabellen. Du MÅ nevne navn på rivalene foran og bak. Forklar at dette tipset er nøkkelen til å klatre.",
+        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Konsekvensen av brukerens forhåndstips. Vil dette tipset sikre avansement på tabellen?",
         roastPrompt: `
             ROLLE: Norsk TV-Studio.
-            KARAKTERER: Silje (Host, Østlandsk) & Nils Arne (Pundit, Trønder/Eggen-stil).
-            
-            REGLER:
-            1. NILS ARNE: Må være entusiastisk/høylytt. Bruk uttrykk som "Godfoten", "Samhandling". 
-            2. REFERANSER: Nevn gjerne "Brasil i 98". IKKE nevn tilfeldige norske lag (som Odd/Molde) med mindre de spiller.
-            3. UTFORDRING: "Hva er det du driver med, [Name]?!"
-            4. SIGNATUR: "Du hørte det her først. Lykke til!"
+            KARAKTERER: Silje (Host) & Nils Arne (Pundit).
+            NILS ARNE: Nevn "Brasil i 98" eller "Godfoten". Klag på at tipset er feigt eller ros det for å være offensivt.
+            SILJE: "Du hørte det her først. Lykke til!"
         `
     }
 };
@@ -115,7 +106,7 @@ const resolveLanguage = (code: string): string => {
 };
 
 interface ScriptLine {
-    speaker: 'Host' | 'Pundit';
+    speaker: 'Host' | 'Pundit' | string;
     text: string;
     audioUrl?: string | null;
 }
@@ -143,55 +134,64 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
-    // Formatter: "mrasten" -> "Mrasten" (Best effort without real name)
     const getFormattedName = () => {
         if (!currentUser?.name) return "Manager";
         const name = currentUser.name;
-        // If it's a simple lowercase string (like a username), capitalize it.
         if (name === name.toLowerCase() && !name.includes(' ')) {
             return name.charAt(0).toUpperCase() + name.slice(1);
         }
         return name;
     };
 
-    // --- 1. AUDIO GENERATION ---
-    const generateAudioForScript = async (lines: ScriptLine[]) => {
-        setIsAudioLoading(true);
-        setAudioError(false);
+    // --- 1. AUDIO GENERATION (RETURNS DATA, DOES NOT SET STATE) ---
+    const generateAudioForScript = async (lines: ScriptLine[]): Promise<ScriptLine[]> => {
         const processedLines = [...lines];
 
+        // Name Mapping for Voice Engine
+        const getSpeakerType = (name: string): string => {
+            const lowerName = name.toLowerCase();
+            if (['gaz', 'chuck', 'rab', 'nils arne', 'pundit'].includes(lowerName)) return 'Pundit';
+            return 'Host';
+        };
+
+        // Fetch audio for ALL lines in parallel (faster) or sequence (safer)
+        // Sequential is safer to avoid rate limits/timeouts
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
+            const speakerType = getSpeakerType(line.speaker);
+
             try {
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
-                        speaker_type: line.speaker,
+                        speaker_type: speakerType,
                         lang: langKey 
                     }
                 });
 
                 if (error) throw error;
 
-                if (data && data.audioContent) {
-                    processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
-                } else {
-                    throw new Error("Invalid audio data received");
+                if (data) {
+                    // Handle both Base64 JSON and Blob responses
+                    if (typeof data === 'string' || data.audioContent) {
+                         const content = data.audioContent || data;
+                         processedLines[i].audioUrl = `data:audio/mp3;base64,${content}`;
+                    } else {
+                        const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+                        if (audioBlob.size > 100) {
+                            processedLines[i].audioUrl = URL.createObjectURL(audioBlob);
+                        }
+                    }
                 }
-
             } catch (err) {
-                console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`, err);
+                console.warn(`Audio Gen Error line ${i}:`, err);
                 processedLines[i].audioUrl = null; 
-                setAudioError(true);
             }
         }
-        
-        setScript(processedLines);
-        setIsAudioLoading(false);
-        setIsPlaying(true);
+        return processedLines;
     };
 
-    // --- 2. SMOOTH KARAOKE EFFECT ---
+    // --- 2. KARAOKE EFFECT ---
     useEffect(() => {
         if (!script || !isPlaying) return;
         
@@ -204,8 +204,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         let wordIdx = 0;
         setDisplayedText(""); 
 
-        const isPundit = currentLine.speaker === 'Pundit';
-        const baseSpeed = isPundit ? 180 : 240; 
+        const isPundit = ['Gaz', 'Chuck', 'Rab', 'Nils Arne', 'Pundit'].includes(currentLine.speaker);
+        const baseSpeed = isPundit ? 180 : 230; 
         
         typewriterRef.current = setInterval(() => {
             if (wordIdx < words.length) {
@@ -221,8 +221,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         };
     }, [currentLineIndex, script, isPlaying]);
 
-
-    // --- 3. ROBUST AUDIO PLAYER ---
+    // --- 3. AUDIO PLAYER ---
     useEffect(() => {
         if (mode !== 'roast' || !script) return;
 
@@ -245,46 +244,17 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (audio.src !== currentLine.audioUrl) {
                     audio.src = currentLine.audioUrl;
                     audio.load();
-                    
                     audio.onended = advance;
-                    audio.onerror = () => {
-                        console.warn("Audio file error, falling back to timer.");
-                        setTimeout(advance, 2000);
-                    };
-                    
-                    const playPromise = audio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.warn("Autoplay blocked. User interaction needed.");
-                            setIsPlaying(false);
-                        });
-                    }
+                    audio.onerror = () => setTimeout(advance, 2000); // Skip if error
+                    audio.play().catch(() => setIsPlaying(false));
                 }
-            } 
-            else if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(currentLine.text);
-                const voices = window.speechSynthesis.getVoices();
-                
-                if (currentLine.speaker === 'Host') {
-                    const female = voices.find(v => v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Samantha'));
-                    if (female) utterance.voice = female;
-                    utterance.pitch = 1.1;
-                } else {
-                    utterance.pitch = 0.9;
-                    utterance.rate = 1.1;
-                }
-
-                utterance.onend = advance;
-                window.speechSynthesis.speak(utterance);
-            } 
-            else {
-                const words = currentLine.text.split(" ").length;
-                setTimeout(advance, words * 300);
+            } else {
+                // Fallback Timer if no audio
+                const duration = Math.max(2000, currentLine.text.split(" ").length * 300);
+                setTimeout(advance, duration);
             }
         } else {
             if (audioRef.current) audioRef.current.pause();
-            window.speechSynthesis.cancel();
             if (typewriterRef.current) clearInterval(typewriterRef.current);
         }
 
@@ -297,7 +267,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setIsPlaying(!isPlaying);
     };
 
-    // --- 4. GENERATION LOGIC ---
+    // --- 4. MAIN GENERATION LOGIC ---
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
         setMode(targetMode);
@@ -317,42 +287,29 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myScore = myStat?.score || 0;
             const cleanName = getFormattedName();
             
-            // --- LEADERBOARD CONTEXT ---
+            // Context
             let leaderboardContext = "You are currently isolated in the standings.";
             const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
             
             if (myIndex !== -1) {
                 const rivalAhead = combinedStats[myIndex - 1]; 
                 const rivalBehind = combinedStats[myIndex + 1];
-                
                 const parts = [];
-                if (rivalAhead) {
-                    const diff = rivalAhead.score - myScore;
-                    parts.push(`chasing ${rivalAhead.user.name} (${diff} pts ahead)`);
-                } else {
-                    parts.push("currently leading the pack");
-                }
-                
-                if (rivalBehind) {
-                    const diff = myScore - rivalBehind.score;
-                    parts.push(`being hunted by ${rivalBehind.user.name} (${diff} pts behind)`);
-                }
-                
+                if (rivalAhead) parts.push(`chasing ${rivalAhead.user.name} (${rivalAhead.score - myScore} pts ahead)`);
+                else parts.push("leading the pack");
+                if (rivalBehind) parts.push(`hunted by ${rivalBehind.user.name} (${myScore - rivalBehind.score} pts behind)`);
                 if (parts.length > 0) leaderboardContext = `You are ${parts.join(' and ')}.`;
             }
 
-            // --- MATCH SELECTION (CRITICAL FIX) ---
-            // 1. Must have Team IDs
-            // 2. Must be Upcoming
+            // Match Selection
             const sortedUpcoming = [...nextMatches]
                 .filter(m => m.status === 'UPCOMING' && m.homeTeamId !== 'TBD')
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             const match = sortedUpcoming.length > 0 ? sortedUpcoming[0] : null;
 
-            // --- DATA GUARD (Stops Hallucinations) ---
             if (!match) {
-                setAnalysis("No upcoming matches to analyze right now.");
+                setAnalysis("No upcoming matches to preview.");
                 setLoading(false);
                 return;
             }
@@ -360,8 +317,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const hTeam = teams[match.homeTeamId];
             const aTeam = teams[match.awayTeamId];
 
-            if (!hTeam || !aTeam) {
-                setAnalysis("Syncing team data... please try again.");
+            if (!hTeam || !aTeam || hTeam.name === "Home Team") {
+                setAnalysis("Waiting for team data...");
                 setLoading(false);
                 return;
             }
@@ -369,39 +326,36 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const homeTeamName = hTeam.name;
             const awayTeamName = aTeam.name;
             let userScorePrediction = "No pick yet";
-            let rivalStats = "No rival data available";
+            let rivalStats = "No rival data";
 
             const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
             if (mp && mp.home !== undefined) {
                 userScorePrediction = `${mp.home}-${mp.away}`;
-            }
-
-            // RIVAL CONSENSUS
-            const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
-            if (rivalPreds.length > 0) {
-                const backedHome = rivalPreds.filter(p => p.home > p.away).length;
-                const homePct = Math.round((backedHome / rivalPreds.length) * 100);
                 
-                if (homePct > 60) rivalStats = `The pack is heavy on ${homeTeamName} (${homePct}%).`;
-                else if (homePct < 40) rivalStats = `The pack is heavy on ${awayTeamName} (${100-homePct}%).`;
-                else rivalStats = "The pack is split 50/50.";
+                // Rivals
+                const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
+                if (rivalPreds.length > 0) {
+                    const backedHome = rivalPreds.filter(p => p.home > p.away).length;
+                    const homePct = Math.round((backedHome / rivalPreds.length) * 100);
+                    if (homePct > 60) rivalStats = `The pack backed ${homeTeamName} (${homePct}%).`;
+                    else if (homePct < 40) rivalStats = `The pack backed ${awayTeamName} (${100-homePct}%).`;
+                    else rivalStats = "The pack is split.";
+                }
             }
 
             if (targetMode === 'coach') {
                 const prompt = `
-                    Generate a "Coach's Tactical Report" for The Rasten Cup.
+                    Generate a "Coach's Tactical Report".
+                    User: ${cleanName} (Rank #${myRank}). 
+                    Context: ${leaderboardContext}.
+                    Match: ${homeTeamName} vs ${awayTeamName}.
+                    User's Locked Pick: ${userScorePrediction}.
+                    Rivals: ${rivalStats}.
                     
-                    **DATA:**
-                    - User: ${cleanName} (Rank #${myRank})
-                    - Rival Context: ${leaderboardContext}
-                    - Match: ${homeTeamName} vs ${awayTeamName}
-                    - User Pick: ${userScorePrediction}
-                    - Rival Consensus: ${rivalStats}
-                    
-                    **INSTRUCTIONS:**
+                    INSTRUCTIONS:
                     ${t.coachPrompt}
                     
-                    OUTPUT: Just the raw text analysis (no markdown, no quotes). Max 100 words.
+                    OUTPUT: Raw text (max 100 words).
                 `;
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.0-flash',
@@ -415,30 +369,16 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
             } else {
                 const prompt = `
-                    Write a TV Script for "The Rasten Cup".
+                    Write a TV Script.
+                    User: ${cleanName} (Rank #${myRank}).
+                    Match: ${homeTeamName} vs ${awayTeamName}.
+                    Pick: ${userScorePrediction}.
+                    Rivals: ${rivalStats}.
                     
-                    **CONTEXT:**
-                    - User: ${cleanName} (Rank #${myRank})
-                    - MATCH: ${homeTeamName} vs ${awayTeamName}
-                    - USER PREDICTION: ${userScorePrediction}
-                    - RIVAL STATS: ${rivalStats}
+                    INSTRUCTIONS:
+                    ${t.roastPrompt}
                     
-                    **STRICT RULES:**
-                    1. REFER to teams ONLY by these exact names: "${homeTeamName}" and "${awayTeamName}".
-                    2. PUNDIT: Challenge the user by name. "What are you on about, ${cleanName}?!"
-                    3. HOST: Sign off with "Well, you heard it here first. Good luck, ${cleanName}!"
-                    4. IF "No pick yet", the Pundit must yell at the user to wake up and make a selection.
-                    
-                    **SCRIPT FORMAT (JSON Array ONLY):**
-                    [
-                        {"speaker": "Host", "text": "Intro the match..."},
-                        {"speaker": "Pundit", "text": "Aggressive reaction..."},
-                        {"speaker": "Host", "text": "Thoughts on the prediction?"},
-                        {"speaker": "Pundit", "text": "Final verdict."},
-                        {"speaker": "Host", "text": "Well, you heard it here first. Good luck, ${cleanName}!"}
-                    ]
-                    
-                    **TONE:** ${t.roastPrompt}
+                    OUTPUT JSON: [{"speaker": "Name", "text": "..."}]
                 `;
                 
                 const response = await ai.models.generateContent({
@@ -452,23 +392,25 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 try {
                     const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
                     const parsedScript = JSON.parse(cleanJson);
-                    setScript(parsedScript); 
+                    
+                    // PRE-LOAD AUDIO BEFORE DISPLAYING
+                    // We stay in 'loading' state while this happens
+                    const scriptWithAudio = await generateAudioForScript(parsedScript);
+                    
+                    setScript(scriptWithAudio);
                     setLoading(false);
-                    generateAudioForScript(parsedScript);
+                    setIsPlaying(true); // Auto-play once ready
+
                 } catch (err) {
-                    console.error("JSON Error", err);
-                    setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio right now." }]);
+                    console.error("Script Error", err);
+                    setAnalysis("Technical difficulties in the studio.");
                     setLoading(false);
                 }
             }
 
         } catch (e) {
             console.error(e);
-            if (targetMode === 'roast') {
-                setScript([{ speaker: "Host", text: "Signal lost... we cannot reach the studio." }]);
-            } else {
-                setAnalysis(t.error);
-            }
+            setAnalysis("Signal lost.");
             setLoading(false);
         }
     };
@@ -498,11 +440,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 </div>
                 {mode === 'roast' && script && (
                     <div className="flex items-center gap-2">
-                        {isAudioLoading ? (
-                            <div className="flex items-center gap-2 text-[10px] text-orange-200">
-                                <RefreshCw size={12} className="animate-spin" /> {t.loading}
-                            </div>
-                        ) : isPlaying ? (
+                        {isPlaying ? (
                             <button onClick={togglePlay} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
                             <button onClick={togglePlay} className={`p-1.5 rounded-full ${audioError ? 'bg-red-500/40 text-white' : 'bg-green-500/20 text-green-300 hover:bg-green-500/40'}`}>
@@ -516,9 +454,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             <div className="relative z-10 min-h-[100px] flex flex-col justify-center">
                 {loading ? (
                     <div className="space-y-3 animate-pulse">
-                        <div className="h-2 bg-white/10 rounded w-3/4"></div>
-                        <div className="h-2 bg-white/10 rounded w-full"></div>
-                        <div className="h-2 bg-white/10 rounded w-1/2"></div>
+                        <div className="flex items-center justify-center gap-2 text-white/50 text-xs">
+                            <RefreshCw size={14} className="animate-spin"/> {t.loading}
+                        </div>
+                        <div className="h-2 bg-white/10 rounded w-3/4 mx-auto"></div>
+                        <div className="h-2 bg-white/10 rounded w-1/2 mx-auto"></div>
                     </div>
                 ) : mode === 'coach' ? (
                     <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">
@@ -529,17 +469,17 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         {script && script.map((line, idx) => {
                             if (idx > currentLineIndex) return null;
                             const isCurrent = idx === currentLineIndex;
-                            const isHost = line.speaker === 'Host';
+                            const isPundit = ['Gaz', 'Chuck', 'Rab', 'Nils Arne', 'Pundit'].includes(line.speaker);
                             
                             return (
-                                <div key={idx} className={`flex gap-3 ${isHost ? 'flex-row' : 'flex-row-reverse'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-white/10 ${isHost ? 'bg-blue-500/20 text-blue-200' : 'bg-orange-500/20 text-orange-200'}`}>
-                                        {isHost ? 'H' : 'P'}
+                                <div key={idx} className={`flex gap-3 ${!isPundit ? 'flex-row' : 'flex-row-reverse'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-white/10 ${!isPundit ? 'bg-blue-500/20 text-blue-200' : 'bg-orange-500/20 text-orange-200'}`}>
+                                        {/* Avatar Initials */}
+                                        {!isPundit ? 'H' : 'P'}
                                     </div>
-                                    <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
+                                    <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${!isPundit ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
                                         <div className="font-black text-[9px] uppercase opacity-50 mb-1 flex justify-between">
                                             {line.speaker}
-                                            {/* Click to play specific line manually */}
                                             {isCurrent && !isPlaying && (
                                                 <button onClick={togglePlay} className="p-1 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                                                     <Volume2 size={10} className="text-white" />
@@ -548,7 +488,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                             {isCurrent && isPlaying && <Volume2 size={10} className="animate-pulse text-green-400" />}
                                         </div>
                                         <p className="opacity-100 min-h-[1.5em] leading-relaxed">
-                                            {/* KARAOKE TEXT RENDERER */}
                                             {isCurrent ? displayedText : line.text}
                                             {isCurrent && <span className="animate-pulse ml-1 text-sky-400">|</span>}
                                         </p>
@@ -556,7 +495,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                 </div>
                             );
                         })}
-                        {isAudioLoading && <div className="text-[10px] text-white/30 text-center animate-pulse mt-2 flex items-center justify-center gap-2"><RefreshCw size={10} className="animate-spin"/> Connecting audio feed...</div>}
                     </div>
                 )}
             </div>
