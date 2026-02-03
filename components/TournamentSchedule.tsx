@@ -207,7 +207,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 />
             </div>
 
-            {/* DATE HEADLINE (Moved ABOVE the Match of the Day) */}
+            {/* DATE HEADLINE */}
             <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">
                     {getDateHeadline(filterDate)}
@@ -227,6 +227,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     locale={currentLang}
                     allMatches={matches}
                     onTeamClick={createClickHandler(heroMatch)}
+                    userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)} // Pass prediction
                 />
             )}
 
@@ -253,7 +254,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     onSpy={() => {}}
                                     revealedRivals={[]}
                                     currentUser={user}
-                                    allPredictions={[]}
+                                    allPredictions={userPredictions} // Pass userPredictions here!
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={createClickHandler(match)} 
@@ -262,7 +263,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     awayTeamPoints={teamPointsMap[match.awayTeamId]}
                                     allMatches={matches}
                                     allTeams={teams}
-                                    variant="official" // <--- THIS IS THE KEY FIX
+                                    variant="official" 
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Match, Team, Translation, GroupStanding } from '../types';
-import { Activity, Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
+import { Match, Team, Translation, GroupStanding, Prediction } from '../types';
+import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain } from 'lucide-react';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
 interface MatchdayHeroProps {
@@ -11,9 +11,10 @@ interface MatchdayHeroProps {
   locale?: string;
   onTeamClick: (id: string) => void;
   allMatches?: Match[];
+  userPrediction?: Prediction; // New Prop
 }
 
-// --- SUB-COMPONENT: HERO TBD SLOT ---
+// --- SUB-COMPONENT: HERO TBD SLOT (Unchanged) ---
 const TbdHeroSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -34,12 +35,10 @@ const TbdHeroSlot: React.FC<{
         return getGroupTeams(source.groupId, allMatches, allTeams);
     }, [source, allMatches, allTeams]);
 
-    // 1. GROUP SOURCE (2x2 Grid, Full Color)
     if (source.type === 'GROUP_RANK') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-lg backdrop-blur-sm">
                 {groupTeams.length > 0 ? (
-                    // 2x2 GRID
                     <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2">
                         {groupTeams.slice(0, 4).map(team => (
                             <div key={team.id} className="relative w-full h-full">
@@ -48,11 +47,8 @@ const TbdHeroSlot: React.FC<{
                         ))}
                     </div>
                 ) : (
-                    // Fallback
                     <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 )}
-                
-                {/* Label */}
                 <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                     <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-none block">
                         {source.label}
@@ -62,11 +58,9 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 2. 3RD PLACE (Full Color Logo on Navy)
     if (source.type === '3RD_PLACE') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-                {/* FULL COLOR LOGO */}
                 <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
                 <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                     <span className="text-[9px] sm:text-[10px] font-black text-white uppercase text-center leading-tight block">
@@ -77,7 +71,6 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 3. KNOCKOUT FEEDER (2 Flags = 1:1 Split)
     if (potentialTeams && potentialTeams.length === 2) {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-blue-400/50 bg-blue-900/40 flex flex-col items-center justify-center relative overflow-hidden shadow-lg">
@@ -89,8 +82,6 @@ const TbdHeroSlot: React.FC<{
                         <img src={potentialTeams[1].flag} alt="" className="w-full h-full object-cover" />
                     </div>
                 </div>
-                
-                {/* Label */}
                 <div className="relative z-10 flex gap-1 text-[8px] sm:text-[9px] font-black text-white uppercase leading-none bg-black/70 px-2 py-1 rounded backdrop-blur-sm">
                     <span>{potentialTeams[0].id}</span>
                     <span className="text-white/50 font-normal">/</span>
@@ -100,10 +91,8 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
-    // 4. FALLBACK TBD (Standard on Navy)
     return (
         <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
-            {/* FULL COLOR LOGO */}
             <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
             <div className="relative z-10 bg-black/70 px-2 py-1 rounded backdrop-blur-sm shadow-md">
                 <span className="text-[10px] font-black text-white uppercase tracking-widest block">TBD</span>
@@ -112,20 +101,18 @@ const TbdHeroSlot: React.FC<{
     );
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
 
-  // Checks for TBD
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
 
-  // Helper to find team rank in group
-  const getRank = (teamId: string) => groupStandings?.findIndex(g => g.teamId === teamId) ?? -1;
-
-  // --- HELPER LOGIC ---
+  // Calculate points for display under team name
+  const homeStats = groupStandings?.find(g => g.teamId === match.homeTeamId);
+  const awayStats = groupStandings?.find(g => g.teamId === match.awayTeamId);
 
   const getContextLabel = () => {
       if (match.round) {
@@ -224,14 +211,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         {/* Main Content */}
         <div className="relative z-10 p-6 sm:p-8 flex items-center justify-between">
             
-            {/* Home Team (or TBD) */}
+            {/* Home Team */}
             <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isHomeTBD && onTeamClick(home.id)}>
                 {isHomeTBD ? (
                     <TbdHeroSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
                     <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
                         <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
-                        {/* UPDATE: FIFA RANK BADGE */}
                         {home?.rank && (
                             <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
                                 #{home.rank}
@@ -239,7 +225,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         )}
                     </div>
                 )}
-                {!isHomeTBD && <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>}
+                {!isHomeTBD && (
+                    <div className="flex flex-col items-center">
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[home.id] || home.name}</span>
+                        {homeStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{homeStats.pts} PTS</span>}
+                    </div>
+                )}
             </div>
 
             {/* Scoreboard */}
@@ -261,14 +252,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Away Team (or TBD) */}
+            {/* Away Team */}
             <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isAwayTBD && onTeamClick(away.id)}>
                 {isAwayTBD ? (
                     <TbdHeroSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
                     <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
                         <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
-                        {/* UPDATE: FIFA RANK BADGE */}
                         {away?.rank && (
                             <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
                                 #{away.rank}
@@ -276,28 +266,36 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         )}
                     </div>
                 )}
-                {!isAwayTBD && <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>}
+                {!isAwayTBD && (
+                    <div className="flex flex-col items-center">
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[away.id] || away.name}</span>
+                        {awayStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{awayStats.pts} PTS</span>}
+                    </div>
+                )}
             </div>
         </div>
 
-        {/* Footer: Stadium & Standings (Context) */}
+        {/* Footer: Stadium & User Prediction */}
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
-            {/* Left: Stadium (Venue) */}
-            <div className="flex items-center gap-2">
+            {/* Left: Stadium */}
+            <div className="flex items-center gap-2 w-1/3">
                 <MapPin size={12} className="text-slate-500" />
                 <span className="truncate max-w-[120px]">{match.venue ? match.venue.split(',')[0] : 'Stadium TBD'}</span>
             </div>
 
-            {/* Right: Top 2 Standings (If Group Stage) */}
-            {groupStandings && (
-                <div className="flex gap-4 hidden sm:flex">
-                    {groupStandings.slice(0, 2).map((row, i) => (
-                        <span key={row.teamId} className={row.teamId === match.homeTeamId || row.teamId === match.awayTeamId ? 'text-white font-bold' : ''}>
-                            {i+1}. {teams[row.teamId]?.name} ({row.pts}pts)
-                        </span>
-                    ))}
-                </div>
-            )}
+            {/* Center: Prediction */}
+            <div className="w-1/3 flex justify-center">
+                {userPrediction && (
+                    <div className="flex items-center gap-1.5 text-white bg-white/10 px-3 py-1 rounded-full border border-white/10 shadow-sm animate-in zoom-in">
+                        <Brain size={12} className="text-yellow-400" />
+                        <span className="font-medium text-white/70 mr-1">{lang.myPick || "My Pick"}:</span>
+                        <span className="font-black text-yellow-400">{userPrediction.home} - {userPrediction.away}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Right: Empty spacer to balance layout */}
+            <div className="w-1/3"></div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, Brain } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers'; 
@@ -30,7 +30,6 @@ interface MatchCardProps {
   allMatches?: Match[];
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
-  // FIX: Added 'carousel' to the allowed types to resolve the red line error
   context?: 'groups' | 'knockout' | 'carousel'; 
 }
 
@@ -263,20 +262,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     {variant === 'prediction' ? (
-                        // CONTEXT CHECK: Only replace Logo if we are in Groups or Knockout
                         (context === 'groups' || context === 'knockout') ? (
                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
                                 {new Date(match.date).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}
                              </span>
                         ) : (
-                             // DEFAULT BEHAVIOR (For Manager Carousel / Tree View) - Keep as it was!
                              <div className="h-6 opacity-80 flex items-center justify-center">
                                 <img src="/logo-white.png" alt="Rasten Cup" className="h-full object-contain max-w-[80px]" />
                              </div>
                         )
                     ) : (
                         <div className="flex items-center gap-1.5">
-                            {/* OFFICIAL MODE: Show Text (Group A, Round of 16, etc) */}
                             {(match.round || match.groupId) && <Trophy size={12} className="text-amber-400" />}
                             <span className="text-xs font-black uppercase tracking-widest shadow-black/50 drop-shadow-sm whitespace-nowrap">{getContextLabel()}</span>
                         </div>
@@ -308,7 +304,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     <ScoreStepper value={localHome} onChange={(v) => handleScoreChange('home', v)} isLocked={isLocked} onActivate={handleActivate} />
                                     <div className="flex flex-col items-center gap-1">
                                         <span className="font-black text-slate-300 text-lg">-</span>
-                                        {/* SAVING INDICATOR */}
                                         {isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}
                                     </div>
                                     <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
@@ -372,8 +367,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                    <div className="flex items-center gap-1.5 opacity-80 min-w-0"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
-                    <div className="flex items-center gap-3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
+                    <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
+                    
+                    {/* CENTER: User Prediction */}
+                    <div className="w-1/3 flex justify-center">
+                        {prediction && (
+                            <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
+                                <Brain size={10} className="text-yellow-400" />
+                                <span className="text-[9px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
+                                <span className="text-[10px] font-black text-yellow-400">{prediction.home} - {prediction.away}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3 justify-end w-1/3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
                 </div>
             )}
 
