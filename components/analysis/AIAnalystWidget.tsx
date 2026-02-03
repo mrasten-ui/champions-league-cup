@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -28,7 +28,8 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Conflict found",
         picked: "picked",
-        promptLang: "ENGLISH"
+        // Jamie Carragher / Scouse Persona
+        promptLang: "ENGLISH (The Pundit must speak in a strong LIVERPOOL/SCOUSE dialect, like Jamie Carragher. High energy, fast, passionate. Use terms like 'Lad', 'Kidda', 'Sound', 'Boss', 'Soft', 'Gaffer', 'Absolutely shocker')"
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -42,7 +43,7 @@ const TEXT: Record<string, any> = {
         draw: "Tie",
         conflict: "Matchup conflict",
         picked: "picked",
-        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster')"
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster', 'Clinch', 'MVP')"
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -56,7 +57,7 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Battle",
         picked: "backed",
-        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter')"
+        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter', 'Pure dead brilliant')"
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -70,7 +71,7 @@ const TEXT: Record<string, any> = {
         draw: "Uavgjort",
         conflict: "Konflikt",
         picked: "valgte",
-        promptLang: "NORWEGIAN"
+        promptLang: "NORWEGIAN (Use a sharp, knowledgeable football tone)"
     }
 };
 
@@ -143,7 +144,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         if (mode !== 'roast' || !isPlaying || !script) return;
 
         const currentLine = script[currentLineIndex];
-        if (!currentLine) return; // End of script
+        if (!currentLine) return; 
 
         const advance = () => {
             if (currentLineIndex < script.length - 1) {
@@ -153,36 +154,28 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
         };
 
-        // METHOD 1: PRE-GENERATED MP3 (Google)
         if (currentLine.audioUrl) {
             if (!audioRef.current) audioRef.current = new Audio();
             const audio = audioRef.current;
             audio.src = currentLine.audioUrl;
             audio.onended = advance;
-            audio.onerror = () => {
-                console.warn("MP3 playback error, skipping.");
-                setTimeout(advance, 2000); 
-            };
+            audio.onerror = () => setTimeout(advance, 2000); 
             audio.play().catch(() => setTimeout(advance, 3000));
         } 
-        // METHOD 2: BROWSER ROBOT VOICE (Fallback)
         else if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(currentLine.text);
             utterance.lang = langKey === 'no' ? 'nb-NO' : 'en-GB'; 
-            
             if (currentLine.speaker === 'Pundit') {
                 utterance.pitch = 0.8; 
                 utterance.rate = 1.1;  
             } else {
                 utterance.pitch = 1.1; 
             }
-
             utterance.onend = advance;
             utterance.onerror = () => setTimeout(advance, 3000);
             window.speechSynthesis.speak(utterance);
         } 
-        // METHOD 3: SILENT READING (Safety Net)
         else {
             const words = currentLine.text.split(' ').length;
             setTimeout(advance, Math.max(2000, words * 300));
@@ -208,13 +201,33 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
             const ai = new GoogleGenAI({ apiKey });
 
+            // 1. CALCULATE DEEP STATS
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
             const myRank = myStat?.rank || 99;
+            const myScore = myStat?.score || 0;
+            const myDiff = myStat?.diff || 0;
+            
+            // Find Leader
+            const leader = combinedStats.find(s => s.rank === 1);
+            const pointsToLeader = leader ? (leader.score - myScore) : 0;
+            
+            // Find Rival (Closest above)
             const rivalAbove = combinedStats.find(s => s.rank === myRank - 1);
             
+            // Movement Context
+            let movementContext = "holding steady";
+            if (myDiff > 0) movementContext = `climbing up ${myDiff} spots`;
+            if (myDiff < 0) movementContext = `crashing down ${Math.abs(myDiff)} spots`;
+
+            // 2. FIND KEY MATCH PREDICTION (SCORING)
             let conflictText = "Predictions align closely.";
             let keyMatch = "Upcoming matches";
+            let userScorePrediction = ""; 
+            let homeTeamName = "";
+            let awayTeamName = "";
 
+            // Priority: Find a Conflict Match first
+            let foundConflict = false;
             if (rivalAbove) {
                 const myPreds = allPredictions.filter(p => p.userId === currentUser.email);
                 const rivalPreds = allPredictions.filter(p => p.userId === rivalAbove.user.email);
@@ -226,14 +239,34 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     if (mp && rp) {
                         const myRes = mp.home > mp.away ? t.home : mp.home < mp.away ? t.away : t.draw;
                         const rivalRes = rp.home > rp.away ? t.home : rp.home < rp.away ? t.away : t.draw;
+                        
+                        // Grab the specific score if available
+                        if (mp.home !== undefined && mp.away !== undefined) {
+                            userScorePrediction = `${mp.home}-${mp.away}`;
+                            homeTeamName = teams[match.homeTeamId]?.name || "Home";
+                            awayTeamName = teams[match.awayTeamId]?.name || "Away";
+                        }
+
                         if (myRes !== rivalRes) {
-                            const homeName = teams[match.homeTeamId]?.name || "Home";
-                            const awayName = teams[match.awayTeamId]?.name || "Away";
                             keyMatch = `${homeName} vs ${awayName}`;
-                            conflictText = `${t.conflict}: User ${t.picked} ${myRes}, Rival ${t.picked} ${rivalRes}`;
+                            conflictText = `User has ${myRes} (${userScorePrediction}), but ${rivalAbove.user.name} has ${rivalRes}`;
+                            foundConflict = true;
                             break;
                         }
                     }
+                }
+            }
+
+            // Fallback: If no conflict, just grab the first upcoming match prediction
+            if (!foundConflict && nextMatches.length > 0) {
+                const match = nextMatches[0];
+                const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
+                if (mp && mp.home !== undefined) {
+                    homeTeamName = teams[match.homeTeamId]?.name || "Home";
+                    awayTeamName = teams[match.awayTeamId]?.name || "Away";
+                    keyMatch = `${homeTeamName} vs ${awayTeamName}`;
+                    userScorePrediction = `${mp.home}-${mp.away}`;
+                    conflictText = `User has predicted ${userScorePrediction}`;
                 }
             }
 
@@ -257,21 +290,29 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 setLoading(false);
 
             } else {
-                // GENERATE SCRIPT JSON
+                // 3. TARGETED SCRIPT GENERATION
                 const prompt = `
-                    Context: Football Pundit Show regarding ${currentUser.name} (Rank #${myRank}).
-                    Rival: ${rivalAbove ? rivalAbove.user.name : "Top 1"}.
-                    Match: ${keyMatch}. Data: ${conflictText}.
+                    You are writing a TV Script for a Football Pundit Show about "The Rasten Cup".
                     
-                    Task: Script 4 short lines of dialogue between HOST and PUNDIT.
-                    Language: ${t.promptLang}.
+                    **THE SUBJECT:**
+                    - Name: ${currentUser.name}
+                    - Current Rank: #${myRank}
+                    - Recent Form: ${movementContext}
+                    - UPCOMING PREDICTION: ${userScorePrediction || "No prediction yet"} for ${keyMatch}.
                     
-                    Characters:
-                    - HOST: Professional, sets up the stats.
-                    - PUNDIT: Loud, opinionated, slang-heavy.
+                    **THE CHARACTERS:**
+                    1. HOST (Female): Professional. Sets up the stats.
+                    2. PUNDIT (Male): Jamie Carragher style (Scouse/Liverpool accent). Loud. Passionate.
                     
-                    Format: JSON Array: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
-                    RETURN ONLY JSON. NO MARKDOWN.
+                    **THE SCRIPT STRUCTURE (Exactly 4 lines):**
+                    - Line 1 (Host): "Welcome back. Let's look at ${currentUser.name}. Currently sitting #${myRank}."
+                    - Line 2 (Pundit): Reacts to the rank/form. (e.g. "It's not good enough!" or "Flying high, lad!")
+                    - Line 3 (Host): CLOSING STATEMENT. "Well, for the next match, they've tipped ${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}. Thoughts?"
+                    - Line 4 (Pundit): FINAL VERDICT. Must mention the TEAMS and the SCORE explicitly. (e.g. "${homeTeamName} winning ${userScorePrediction}?! Against ${awayTeamName}? He's dreaming!")
+                    
+                    **LANGUAGE:** ${t.promptLang}.
+                    
+                    OUTPUT: JSON Array only: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
                 `;
                 
                 const response = await ai.models.generateContent({
@@ -297,7 +338,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
         } catch (e) {
             console.error(e);
-            // FIXED: If we fail in ROAST mode, set a text script so it's not blank
             if (targetMode === 'roast') {
                 setScript([{ speaker: "Host", text: "Signal lost... we cannot reach the studio right now." }]);
             } else {
@@ -357,7 +397,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         {analysis}
                     </p>
                 ) : (
-                    // ROAST UI
                     <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {script && script.map((line, idx) => {
                             if (idx > currentLineIndex) return null;
@@ -384,7 +423,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 )}
             </div>
 
-            {/* Footer Actions */}
             <div className="relative z-10 mt-6 flex justify-end border-t border-white/5 pt-3">
                 {mode === 'coach' ? (
                     <button 
