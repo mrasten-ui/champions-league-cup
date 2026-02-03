@@ -22,35 +22,38 @@ const PERSONAS: Record<string, any> = {
         roastTitle: "Pundit's Corner",
         roastButton: "Listen to Roast",
         coachButton: "Back to Coach",
-        loading: "Scouting opposition...",
-        error: "Signal lost... try again.",
+        loading: "Reviewing game tape...",
+        error: "Connection lost. Try again later.",
         
         // COACH: Leaderboard-Focused Strategy
         coachPrompt: `
-            ROLE: Fantasy League Strategist.
-            TASK: Analyze the stakes of the upcoming match for the user's ranking (80-100 words).
+            ROLE: Fantasy League Manager & Tactician.
+            GOAL: Analyze the "Points Swing" for the user.
+            
+            CONTEXT TO USE:
+            - RIVALS: Mention specific names of who is ahead (Target) and behind (Threat).
+            - RISK: Is the user's pick different from the pack? (Differential)
             
             STRUCTURE:
-            1. THE PLAY: Analyze the User's pick vs the Rivals' consensus.
-            2. THE STAKES: You MUST reference the specific "Rival Context" (e.g. "If you hit this, you catch Paul").
-            3. THE GAME: Mention one tactical fact (e.g. "Their defense is leaking") to justify the risk.
+            1. THE SITUATION: "You are chasing [Name Ahead] but [Name Behind] is closing in."
+            2. THE PLAY: "You've backed [Team] to win. Most rivals went for [Other Team]."
+            3. THE OUTCOME: "If this hits, you climb. If it misses, you're in trouble."
             
-            TONE: Competitive, calculated.
+            TONE: Serious, competitive, focused on winning the league.
         `,
         
         // PUNDIT: Sarah (Posh) & Gaz (Scouse)
         roastPrompt: `
-            ROLE: TV Pundit "Gaz" (Scouse) & Host "Sarah" (Posh).
-            SCENARIO: Pre-match discussion for the NEXT upcoming game.
+            ROLE: UK Sports Broadcast.
             
             CHARACTERS:
-            - Sarah (Host): Posh, professional Sky Sports presenter. Articulate, calm.
-            - Gaz (Pundit): Scouse accent (Liverpool). Passionate, loud. Terms: 'Lad', 'Sound', 'Boss', 'Gaffer'. (DO NOT USE 'Kidda').
+            - Sarah (Host): Posh, professional Sky Sports presenter. Articulate, calm. "Welcome to the studio."
+            - Gaz (Pundit): Scouse accent (Liverpool). Passionate, blunt. Uses "Lad", "Mate". (NO "Kidda").
             
-            MANDATORY SCRIPT RULES:
-            1. PUNDIT: Must aggressively challenge the user by name. Example: "What are you on about, [Name]?! There is NO WAY [Team A] beats [Team B]!"
-            2. HOST: Must end the show with this exact Sign-Off: "You heard it here first. Good luck, [Name]!"
-            3. CONTENT: Focus purely on the specific match.
+            MANDATORY RULES:
+            1. GAZ: Must aggressively challenge the user by name. "What are you on about, [Name]?!"
+            2. GAZ: Must reference the specific match prediction. "There is NO WAY [Team A] beats [Team B]!"
+            3. SARAH: Sign-off MUST be: "Well, you heard it here first. Good luck, [Name]!"
         `
     },
     'en-US': {
@@ -60,12 +63,12 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back to Stats",
         loading: "Crunching numbers...",
         error: "Server timeout...",
-        coachPrompt: "ROLE: Fantasy Coach. TASK: Analyze leaderboard impact. MENTION RIVALS BY NAME. Explain if this pick helps catch the leader.",
+        coachPrompt: "ROLE: Fantasy Coach. FOCUS: Beating the rivals. Use names. Explain the points swing.",
         roastPrompt: `
             ROLE: US Sports Radio. 
             CHARACTERS: "Jessica" (ESPN Host) & "Chuck" (Shock Jock).
-            PUNDIT: Challenge the user ('Are you kidding me, [Name]?'). 
-            HOST Sign-off: 'You heard it here first. Good luck!'
+            CHUCK: Challenge the user ("Are you kidding me, [Name]?"). 
+            JESSICA Sign-off: "You heard it here first. Good luck!"
         `
     },
     sco: {
@@ -75,17 +78,12 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back tae Gaffer",
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed...",
-        coachPrompt: "ROLE: The Gaffer. TASK: Points analysis. Tell the lad who he needs to beat (use rival names).",
+        coachPrompt: "ROLE: The Gaffer. FOCUS: The League Table. Tell the lad who he needs to beat.",
         roastPrompt: `
             ROLE: Scottish Broadcast Team.
-            
-            CHARACTERS:
-            - Shona (Host): Edinburgh dialect. Educated, softer accent, articulate.
-            - Rab (Pundit): Heavy Glasgow accent. Aggressive banter. Terms: "Belter", "Mince", "Numpty".
-            
-            RULES:
-            1. PUNDIT: "Whit are ye on aboot, [Name]?"
-            2. HOST Sign-off: "Ye heard it here first. Good luck!"
+            CHARACTERS: Shona (Edinburgh, Posh) & Rab (Glasgow, Street).
+            RAB: "Whit are ye on aboot, [Name]?"
+            SHONA Sign-off: "Ye heard it here first. Good luck!"
         `
     },
     no: {
@@ -95,19 +93,16 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Tilbake",
         loading: "Kobler til studio...",
         error: "Teknisk feil...",
-        coachPrompt: "ROLLE: Fantasy-ekspert. OPPGAVE: Analyser tabellsituasjonen. DU MÅ NEVNE RIVALENE. Forklar konsekvensen av tipset.",
+        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Tabellen. Du MÅ nevne navn på rivalene foran og bak. Forklar at dette tipset er nøkkelen til å klatre.",
         roastPrompt: `
             ROLLE: Norsk TV-Studio.
+            KARAKTERER: Silje (Host, Østlandsk) & Nils Arne (Pundit, Trønder/Eggen-stil).
             
-            KARAKTERER:
-            - Silje (Host): Profesjonell, saklig (Standard Østnorsk).
-            - Nils Arne (Pundit): Legendarisk Trønder (Nils Arne Eggen-stil). Entusiastisk, høylytt.
-            
-            VIKTIGE REGLER:
-            1. NILS ARNE MÅ ALLTID NEVNE "BRASIL I 98" eller "MARSEILLE" som bevis på at alt er mulig, eller klage på at "vi må tørre mer".
-            2. PUNDIT UTFORDRING: "Hva er det du driver med, [Name]?!"
-            3. HOST Sign-off: "Du hørte det her først. Lykke til!"
-            4. SIGNATUR: Nils Arne avslutter gjerne med "Go'fot!"
+            REGLER:
+            1. NILS ARNE: Må være entusiastisk/høylytt. Bruk uttrykk som "Godfoten", "Samhandling". 
+            2. REFERANSER: Nevn gjerne "Brasil i 98". IKKE nevn tilfeldige norske lag (som Odd/Molde) med mindre de spiller.
+            3. UTFORDRING: "Hva er det du driver med, [Name]?!"
+            4. SIGNATUR: "Du hørte det her først. Lykke til!"
         `
     }
 };
@@ -148,9 +143,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
+    // Formatter: "mrasten" -> "Mrasten" (Best effort without real name)
     const getFormattedName = () => {
         if (!currentUser?.name) return "Manager";
         const name = currentUser.name;
+        // If it's a simple lowercase string (like a username), capitalize it.
         if (name === name.toLowerCase() && !name.includes(' ')) {
             return name.charAt(0).toUpperCase() + name.slice(1);
         }
@@ -241,7 +238,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         };
 
         if (isPlaying) {
-            // A. PRE-GENERATED AUDIO
             if (currentLine.audioUrl) {
                 if (!audioRef.current) audioRef.current = new Audio();
                 const audio = audioRef.current;
@@ -265,7 +261,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     }
                 }
             } 
-            // B. BROWSER TTS FALLBACK
             else if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(currentLine.text);
@@ -283,7 +278,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 utterance.onend = advance;
                 window.speechSynthesis.speak(utterance);
             } 
-            // C. SILENT TIMER
             else {
                 const words = currentLine.text.split(" ").length;
                 setTimeout(advance, words * 300);
@@ -328,7 +322,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
             
             if (myIndex !== -1) {
-                const rivalAhead = combinedStats[myIndex - 1]; // Rank 1 is index 0
+                const rivalAhead = combinedStats[myIndex - 1]; 
                 const rivalBehind = combinedStats[myIndex + 1];
                 
                 const parts = [];
@@ -347,50 +341,50 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (parts.length > 0) leaderboardContext = `You are ${parts.join(' and ')}.`;
             }
 
-            // --- MATCH SELECTION LOGIC ---
+            // --- MATCH SELECTION (CRITICAL FIX) ---
+            // 1. Must have Team IDs
+            // 2. Must be Upcoming
             const sortedUpcoming = [...nextMatches]
                 .filter(m => m.status === 'UPCOMING' && m.homeTeamId !== 'TBD')
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-            let userScorePrediction = ""; 
-            let homeTeamName = "Home Team";
-            let awayTeamName = "Away Team";
-            let homeRank = 50;
-            let awayRank = 50;
-            let rivalStats = "No rival data available";
-
             const match = sortedUpcoming.length > 0 ? sortedUpcoming[0] : null;
 
-            if (match) {
-                const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
-                const hTeam = teams[match.homeTeamId];
-                const aTeam = teams[match.awayTeamId];
+            // --- DATA GUARD (Stops Hallucinations) ---
+            if (!match) {
+                setAnalysis("No upcoming matches to analyze right now.");
+                setLoading(false);
+                return;
+            }
 
-                if (!hTeam || !aTeam) {
-                    setAnalysis("Waiting for team data to sync... please try again.");
-                    setLoading(false);
-                    return;
-                }
+            const hTeam = teams[match.homeTeamId];
+            const aTeam = teams[match.awayTeamId];
 
-                homeTeamName = hTeam.name;
-                awayTeamName = aTeam.name;
-                homeRank = hTeam.rank || 50; 
-                awayRank = aTeam.rank || 50;
+            if (!hTeam || !aTeam) {
+                setAnalysis("Syncing team data... please try again.");
+                setLoading(false);
+                return;
+            }
+
+            const homeTeamName = hTeam.name;
+            const awayTeamName = aTeam.name;
+            let userScorePrediction = "No pick yet";
+            let rivalStats = "No rival data available";
+
+            const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
+            if (mp && mp.home !== undefined) {
+                userScorePrediction = `${mp.home}-${mp.away}`;
+            }
+
+            // RIVAL CONSENSUS
+            const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
+            if (rivalPreds.length > 0) {
+                const backedHome = rivalPreds.filter(p => p.home > p.away).length;
+                const homePct = Math.round((backedHome / rivalPreds.length) * 100);
                 
-                if (mp && mp.home !== undefined) {
-                    userScorePrediction = `${mp.home}-${mp.away}`;
-                    
-                    // RIVAL CONSENSUS
-                    const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
-                    if (rivalPreds.length > 0) {
-                        const backedHome = rivalPreds.filter(p => p.home > p.away).length;
-                        const homePct = Math.round((backedHome / rivalPreds.length) * 100);
-                        
-                        if (homePct > 60) rivalStats = `Most rivals (${homePct}%) backed ${homeTeamName}.`;
-                        else if (homePct < 40) rivalStats = `Most rivals (${100-homePct}%) backed ${awayTeamName}.`;
-                        else rivalStats = "Rivals are split 50/50.";
-                    }
-                }
+                if (homePct > 60) rivalStats = `The pack is heavy on ${homeTeamName} (${homePct}%).`;
+                else if (homePct < 40) rivalStats = `The pack is heavy on ${awayTeamName} (${100-homePct}%).`;
+                else rivalStats = "The pack is split 50/50.";
             }
 
             if (targetMode === 'coach') {
@@ -401,7 +395,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     - User: ${cleanName} (Rank #${myRank})
                     - Rival Context: ${leaderboardContext}
                     - Match: ${homeTeamName} vs ${awayTeamName}
-                    - User Pick: ${userScorePrediction || "None yet"}
+                    - User Pick: ${userScorePrediction}
                     - Rival Consensus: ${rivalStats}
                     
                     **INSTRUCTIONS:**
@@ -426,20 +420,22 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     **CONTEXT:**
                     - User: ${cleanName} (Rank #${myRank})
                     - MATCH: ${homeTeamName} vs ${awayTeamName}
-                    - USER PREDICTION: ${userScorePrediction || "No pick yet"}
+                    - USER PREDICTION: ${userScorePrediction}
+                    - RIVAL STATS: ${rivalStats}
                     
                     **STRICT RULES:**
                     1. REFER to teams ONLY by these exact names: "${homeTeamName}" and "${awayTeamName}".
                     2. PUNDIT: Challenge the user by name. "What are you on about, ${cleanName}?!"
-                    3. HOST: Sign off with "You heard it here first. Good luck, ${cleanName}!"
+                    3. HOST: Sign off with "Well, you heard it here first. Good luck, ${cleanName}!"
+                    4. IF "No pick yet", the Pundit must yell at the user to wake up and make a selection.
                     
                     **SCRIPT FORMAT (JSON Array ONLY):**
                     [
-                        {"speaker": "Host", "text": "Intro the match and the user's pick..."},
-                        {"speaker": "Pundit", "text": "Aggressive reaction. Challenge the user directly using their name."},
-                        {"speaker": "Host", "text": "Thoughts on the rival stats?"},
-                        {"speaker": "Pundit", "text": "Final verdict on the score."},
-                        {"speaker": "Host", "text": "You heard it here first. Good luck, ${cleanName}!"}
+                        {"speaker": "Host", "text": "Intro the match..."},
+                        {"speaker": "Pundit", "text": "Aggressive reaction..."},
+                        {"speaker": "Host", "text": "Thoughts on the prediction?"},
+                        {"speaker": "Pundit", "text": "Final verdict."},
+                        {"speaker": "Host", "text": "Well, you heard it here first. Good luck, ${cleanName}!"}
                     ]
                     
                     **TONE:** ${t.roastPrompt}
@@ -461,7 +457,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     generateAudioForScript(parsedScript);
                 } catch (err) {
                     console.error("JSON Error", err);
-                    setScript([{ speaker: "Host", text: "We are experiencing technical difficulties." }]);
+                    setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio right now." }]);
                     setLoading(false);
                 }
             }
