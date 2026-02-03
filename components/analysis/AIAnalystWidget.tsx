@@ -94,6 +94,17 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
+    // Helper to format name (e.g. mrasten -> Mrasten)
+    const getFormattedName = () => {
+        if (!currentUser?.name) return "Manager";
+        // If it looks like an email prefix (lowercase, no spaces), capitalize it
+        const name = currentUser.name;
+        if (name === name.toLowerCase() && !name.includes(' ')) {
+            return name.charAt(0).toUpperCase() + name.slice(1);
+        }
+        return name;
+    };
+
     // --- 1. AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
@@ -113,13 +124,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
                 if (error) throw error;
 
-                const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-                if (audioBlob.size < 100) throw new Error("Audio file too small");
-
-                processedLines[i].audioUrl = URL.createObjectURL(audioBlob);
+                // CRITICAL FIX: Handle Base64 String directly
+                if (data && data.audioContent) {
+                    processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
+                } else {
+                    throw new Error("Invalid audio data received");
+                }
 
             } catch (err) {
-                console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`);
+                console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`, err);
                 processedLines[i].audioUrl = null; 
                 setAudioError(true);
             }
@@ -259,6 +272,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myRank = myStat?.rank || 99;
             const myScore = myStat?.score || 0;
             const myDiff = myStat?.diff || 0;
+            const cleanName = getFormattedName();
             
             let movementContext = "holding position";
             if (myDiff > 0) movementContext = `climbed ${myDiff} spots`;
@@ -276,7 +290,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 const match = nextMatches[0];
                 const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
                 
-                // --- STRICT TEAM NAME LOOKUP ---
                 const hTeam = teams[match.homeTeamId];
                 const aTeam = teams[match.awayTeamId];
 
@@ -301,7 +314,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             if (targetMode === 'coach') {
                 const prompt = `
                     You are a Senior Football Analyst for "The Rasten Cup".
-                    User: ${currentUser.name} (Rank #${myRank}, Score: ${myScore}).
+                    User: ${cleanName} (Rank #${myRank}, Score: ${myScore}).
                     Status: ${movementContext}.
                     Next Pick: ${userScorePrediction ? `${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}` : "No pick yet"}.
                     
@@ -324,7 +337,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Write a TV Script for "The Rasten Cup".
                     
                     **CONTEXT:**
-                    - User: ${currentUser.name} (Rank #${myRank})
+                    - User: ${cleanName} (Rank #${myRank})
                     - Recent Form: ${movementContext}
                     - NEXT MATCH: ${homeTeamName} (Rank ${homeRank}) vs ${awayTeamName} (Rank ${awayRank}).
                     - USER PREDICTION: ${userScorePrediction || "Has not predicted yet!"}.
@@ -335,6 +348,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     
                     **STRICT RULES:**
                     - NEVER use "Home Team" or "Away Team". Use "${homeTeamName}" and "${awayTeamName}".
+                    - The user is called "${cleanName}". Do NOT mention their email address.
                     - If the user predicted a score (e.g. 2-1), the Pundit MUST mention those numbers.
                     
                     **SCRIPT FORMAT (JSON Array ONLY):**
@@ -381,7 +395,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     };
 
     useEffect(() => {
-        // Wait for teams to be populated before generating
         if (!hasFetched.current && combinedStats.length > 0 && Object.keys(teams).length > 0) {
             generateInsight('coach');
             hasFetched.current = true;
