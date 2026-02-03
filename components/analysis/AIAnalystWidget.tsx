@@ -85,7 +85,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [displayedText, setDisplayedText] = useState(""); 
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const typewriterRef = useRef<any>(null); // Using any for timeout ID
+    const typewriterRef = useRef<any>(null);
 
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
@@ -121,13 +121,13 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             } catch (err) {
                 console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`);
                 processedLines[i].audioUrl = null; 
-                setAudioError(true); // Flag that we are in fallback mode
+                setAudioError(true);
             }
         }
         
         setScript(processedLines);
         setIsAudioLoading(false);
-        setIsPlaying(true); // Auto-start
+        setIsPlaying(true);
     };
 
     // --- 2. SMOOTH KARAOKE EFFECT ---
@@ -137,17 +137,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         const currentLine = script[currentLineIndex];
         if (!currentLine) return;
 
-        // Clean up previous interval
         if (typewriterRef.current) clearInterval(typewriterRef.current);
         
-        // Split text into words for typewriter effect
         const words = currentLine.text.split(" ");
         let wordIdx = 0;
-        setDisplayedText(""); // Clear text initially
+        setDisplayedText(""); 
 
-        // Calculate pacing: faster for Pundit, slower for Host
+        // Faster pacing for Pundit
         const isPundit = currentLine.speaker === 'Pundit';
-        const baseSpeed = isPundit ? 180 : 250; // ms per word
+        const baseSpeed = isPundit ? 180 : 250; 
         
         typewriterRef.current = setInterval(() => {
             if (wordIdx < words.length) {
@@ -185,7 +183,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (!audioRef.current) audioRef.current = new Audio();
                 const audio = audioRef.current;
 
-                // Only load if source changed
                 if (audio.src !== currentLine.audioUrl) {
                     audio.src = currentLine.audioUrl;
                     audio.load();
@@ -205,7 +202,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     }
                 }
             } 
-            // B. BROWSER TTS FALLBACK (If API Key Failed)
+            // B. BROWSER TTS FALLBACK
             else if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(currentLine.text);
@@ -223,7 +220,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 utterance.onend = advance;
                 window.speechSynthesis.speak(utterance);
             } 
-            // C. SILENT TIMER (Last Resort)
+            // C. SILENT TIMER
             else {
                 const words = currentLine.text.split(" ").length;
                 setTimeout(advance, words * 300);
@@ -283,7 +280,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 const hTeam = teams[match.homeTeamId];
                 const aTeam = teams[match.awayTeamId];
 
-                // If teams aren't loaded yet, stop generation to avoid "Home Team" generic text
+                // Data Guard: Stop if teams aren't ready
                 if (!hTeam || !aTeam) {
                     setAnalysis("Waiting for team data to sync... please try again in a moment.");
                     setLoading(false);
