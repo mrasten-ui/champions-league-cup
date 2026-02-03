@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Flame, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -28,8 +28,7 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Conflict found",
         picked: "picked",
-        // UPDATED: Jamie Carragher / Scouse Persona
-        promptLang: "ENGLISH (The Pundit must speak in a strong LIVERPOOL/SCOUSE dialect, like Jamie Carragher. High energy, passionate. Use terms like 'Lad', 'Kidda', 'Sound', 'Boss', 'Soft', 'Gaffer', 'Absolutely shocker')"
+        promptLang: "ENGLISH"
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -43,7 +42,7 @@ const TEXT: Record<string, any> = {
         draw: "Tie",
         conflict: "Matchup conflict",
         picked: "picked",
-        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster', 'Clinch', 'MVP')"
+        promptLang: "AMERICAN ENGLISH (Use terms like 'Soccer', 'Tie', 'Roster')"
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -57,7 +56,7 @@ const TEXT: Record<string, any> = {
         draw: "Draw",
         conflict: "Battle",
         picked: "backed",
-        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter', 'Pure dead brilliant')"
+        promptLang: "SCOTTISH ENGLISH (Use terms like 'Aye', 'Lad', 'Rubbish', 'Sitter')"
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -71,7 +70,7 @@ const TEXT: Record<string, any> = {
         draw: "Uavgjort",
         conflict: "Konflikt",
         picked: "valgte",
-        promptLang: "NORWEGIAN (Use a sharp, knowledgeable football tone)"
+        promptLang: "NORWEGIAN"
     }
 };
 
@@ -96,7 +95,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const [loading, setLoading] = useState(true);
@@ -110,12 +108,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
         const processedLines = [...lines];
-        let hasSuccess = false;
 
         for (let i = 0; i < processedLines.length; i++) {
             const line = processedLines[i];
             try {
-                // Pass language to backend for voice selection
                 const { data, error } = await supabase.functions.invoke('generate-audio', {
                     body: { 
                         input: line.text, 
@@ -127,16 +123,13 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (error) throw error;
 
                 const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-                // Basic check for valid audio file size
                 if (audioBlob.size < 100) throw new Error("Audio file too small");
 
-                const audioUrl = URL.createObjectURL(audioBlob);
-                processedLines[i].audioUrl = audioUrl;
-                hasSuccess = true;
+                processedLines[i].audioUrl = URL.createObjectURL(audioBlob);
 
             } catch (err) {
-                console.warn("Audio Gen Failed for line", i, err);
-                processedLines[i].audioUrl = null; // Mark as failed
+                console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`);
+                processedLines[i].audioUrl = null; 
             }
         }
         
@@ -152,8 +145,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         const currentLine = script[currentLineIndex];
         if (!currentLine) return; // End of script
 
-        let timer: NodeJS.Timeout;
-
         const advance = () => {
             if (currentLineIndex < script.length - 1) {
                 setCurrentLineIndex(prev => prev + 1);
@@ -166,48 +157,38 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         if (currentLine.audioUrl) {
             if (!audioRef.current) audioRef.current = new Audio();
             const audio = audioRef.current;
-            
             audio.src = currentLine.audioUrl;
             audio.onended = advance;
             audio.onerror = () => {
-                console.warn("MP3 playback error, skipping to next.");
+                console.warn("MP3 playback error, skipping.");
                 setTimeout(advance, 2000); 
             };
-            
-            audio.play().catch(e => {
-                console.warn("Autoplay blocked", e);
-                setTimeout(advance, 3000); 
-            });
+            audio.play().catch(() => setTimeout(advance, 3000));
         } 
-        // METHOD 2: BROWSER SPEECH SYNTHESIS (Fallback)
+        // METHOD 2: BROWSER ROBOT VOICE (Fallback)
         else if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(currentLine.text);
-            
-            // Voice matching logic for fallback
             utterance.lang = langKey === 'no' ? 'nb-NO' : 'en-GB'; 
             
             if (currentLine.speaker === 'Pundit') {
-                utterance.pitch = 0.8; // Lower
-                utterance.rate = 1.1;  // Faster
+                utterance.pitch = 0.8; 
+                utterance.rate = 1.1;  
             } else {
-                utterance.pitch = 1.1; // Higher/Polite
+                utterance.pitch = 1.1; 
             }
 
             utterance.onend = advance;
             utterance.onerror = () => setTimeout(advance, 3000);
-            
             window.speechSynthesis.speak(utterance);
         } 
-        // METHOD 3: SILENT TIMER
+        // METHOD 3: SILENT READING (Safety Net)
         else {
             const words = currentLine.text.split(' ').length;
-            const duration = Math.max(2000, words * 300);
-            timer = setTimeout(advance, duration);
+            setTimeout(advance, Math.max(2000, words * 300));
         }
 
         return () => {
-            if (timer) clearTimeout(timer);
             if (audioRef.current) audioRef.current.pause();
             window.speechSynthesis.cancel();
         };
@@ -286,8 +267,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Language: ${t.promptLang}.
                     
                     Characters:
-                    - HOST: Sets up the question calmly.
-                    - PUNDIT: Loud, opinionated, uses heavy slang/dialect appropriate for ${t.promptLang}.
+                    - HOST: Professional, sets up the stats.
+                    - PUNDIT: Loud, opinionated, slang-heavy.
                     
                     Format: JSON Array: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
                     RETURN ONLY JSON. NO MARKDOWN.
@@ -309,14 +290,19 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     generateAudioForScript(parsedScript);
                 } catch (err) {
                     console.error("JSON Error", err);
-                    setScript([{ speaker: "Host", text: "Technical difficulties in the studio." }]);
+                    setScript([{ speaker: "Host", text: "We are experiencing technical difficulties in the studio." }]);
                     setLoading(false);
                 }
             }
 
         } catch (e) {
             console.error(e);
-            setAnalysis(t.error);
+            // FIXED: If we fail in ROAST mode, set a text script so it's not blank
+            if (targetMode === 'roast') {
+                setScript([{ speaker: "Host", text: "Signal lost... we cannot reach the studio right now." }]);
+            } else {
+                setAnalysis(t.error);
+            }
             setLoading(false);
         }
     };
@@ -371,6 +357,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         {analysis}
                     </p>
                 ) : (
+                    // ROAST UI
                     <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {script && script.map((line, idx) => {
                             if (idx > currentLineIndex) return null;
@@ -397,6 +384,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 )}
             </div>
 
+            {/* Footer Actions */}
             <div className="relative z-10 mt-6 flex justify-end border-t border-white/5 pt-3">
                 {mode === 'coach' ? (
                     <button 

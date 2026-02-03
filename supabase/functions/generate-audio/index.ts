@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 serve(async (req) => {
+  // 1. Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
@@ -13,32 +14,35 @@ serve(async (req) => {
   try {
     const { input, speaker_type, lang } = await req.json()
     
-    // 1. Voice Selection Strategy (Google Cloud TTS Voices)
+    // 2. VOICE CONFIGURATION (Host = Female, Pundit = Male)
     let languageCode = 'en-US';
-    let voiceName = 'en-US-Journey-F'; // Default
+    let voiceName = 'en-US-Wavenet-F'; // Default Host (Female)
 
     if (lang === 'no') {
         languageCode = 'nb-NO';
-        // D = Male (Deep), E = Female (Clear)
+        // Norwegian: D = Male (Pundit), E = Female (Host)
         voiceName = speaker_type === 'Pundit' ? 'nb-NO-Wavenet-D' : 'nb-NO-Wavenet-E';
     } 
     else if (lang === 'sco' || lang === 'en') {
-        // Use British voices for Scottish/English context
+        // UK English (for Scouse/Scottish vibes)
         languageCode = 'en-GB';
-        // D = Male (Pundit), A = Female (Host)
-        voiceName = speaker_type === 'Pundit' ? 'en-GB-Neural2-D' : 'en-GB-Neural2-A';
+        // D = Male (Deep Pundit), A = Female (Host)
+        voiceName = speaker_type === 'Pundit' ? 'en-GB-Wavenet-D' : 'en-GB-Wavenet-A';
     } 
-    else if (lang === 'en-US') {
+    else {
+        // US English
         languageCode = 'en-US';
-        // Polyglot = Deep Pundit, Journey = Host
-        voiceName = speaker_type === 'Pundit' ? 'en-US-Polyglot-1' : 'en-US-Journey-F';
+        // D = Male (Deep Pundit), F = Female (Professional Host)
+        voiceName = speaker_type === 'Pundit' ? 'en-US-Wavenet-D' : 'en-US-Wavenet-F';
     }
 
-    // 2. Get API Key
+    // 3. Verify API Key
     const apiKey = Deno.env.get('GOOGLE_API_KEY') || Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) throw new Error("Missing Google API Key")
+    if (!apiKey) {
+      throw new Error("Server Error: Missing GOOGLE_API_KEY in Supabase Secrets");
+    }
 
-    // 3. Call Google Cloud TTS
+    // 4. Call Google Cloud TTS API
     const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
     
     const response = await fetch(url, {
@@ -52,21 +56,23 @@ serve(async (req) => {
         },
         audioConfig: {
             audioEncoding: "MP3",
-            // Make Pundit deeper and faster
+            // Pundit: Lower pitch (-2.0), Faster rate (1.15) for aggression
+            // Host: Normal pitch, Normal rate for clarity
             pitch: speaker_type === 'Pundit' ? -2.0 : 0, 
-            speakingRate: 1.15 
+            speakingRate: speaker_type === 'Pundit' ? 1.15 : 1.0 
         }
       }),
     })
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error?.message || "Google TTS Error");
+      console.error("Google TTS Error:", JSON.stringify(err));
+      throw new Error(`Google API Error: ${err.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
     
-    // 4. Decode Base64 to Binary for the frontend
+    // 5. Success! Convert to Audio Blob
     const audioContent = data.audioContent;
     const binaryString = atob(audioContent);
     const len = binaryString.length;
@@ -83,9 +89,13 @@ serve(async (req) => {
     })
 
   } catch (error) {
+    console.error("Function Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*" 
+      },
     })
   }
 })
