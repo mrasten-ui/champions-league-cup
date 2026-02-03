@@ -15,7 +15,6 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
-// DEFINING DISTINCT PERSONAS
 const PERSONAS: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
@@ -24,17 +23,8 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back to Coach",
         loading: "Analyzing tactics...",
         error: "Signal lost... try again.",
-        home: "Home",
-        away: "Away",
-        draw: "Draw",
-        conflict: "Conflict found",
-        picked: "picked",
-        
-        // 1. THE COACH (Professional, Helpful, Slight Accent)
-        coachPrompt: "ENGLISH. Role: Senior Football Analyst. Tone: Professional, encouraging, but direct. Use the metric system. You may use 1-2 local terms (e.g., 'Lad', 'Gaffer', 'Solid') to sound authentic, but DO NOT be a comedian. Focus 100% on the user's rank and how to improve.",
-        
-        // 2. THE PUNDIT (Wild, Loud, Scouse)
-        roastPrompt: "ENGLISH. Accent: Scouse/Liverpool (High energy, passionate, Jamie Carragher style). Terms: 'Lad', 'Kidda', 'Sound', 'Boss', 'Gaffer'. RULE: DO NOT use fake team names. Use ONLY the provided team names."
+        coachPrompt: "ENGLISH. Role: Senior Football Analyst. Tone: Professional, encouraging, but direct. Focus on the user's rank and how to improve.",
+        roastPrompt: "ENGLISH. Accent: Scouse/Liverpool (High energy, passionate, Jamie Carragher style). Terms: 'Lad', 'Kidda', 'Sound', 'Boss', 'Gaffer'. RULE: You MUST use the specific Country Names provided (e.g. 'Brazil', 'France'). NEVER say 'Home Team'."
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -43,13 +33,8 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back to Stats",
         loading: "Going live...",
         error: "Server timeout...",
-        home: "Home",
-        away: "Away",
-        draw: "Tie",
-        conflict: "Matchup conflict",
-        picked: "picked",
-        coachPrompt: "AMERICAN ENGLISH. Role: Head Coach. Tone: Serious, strategic. Use terms like 'Roster', 'Clinch', 'Playoffs'.",
-        roastPrompt: "AMERICAN ENGLISH. Radio Shock Jock style. Loud, opinionated, aggressive."
+        coachPrompt: "AMERICAN ENGLISH. Role: Head Coach. Tone: Serious, strategic.",
+        roastPrompt: "AMERICAN ENGLISH. Radio Shock Jock style. Loud, opinionated, aggressive. USE REAL TEAM NAMES."
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -58,13 +43,8 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Back tae Gaffer",
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed...",
-        home: "Hame",
-        away: "Awa",
-        draw: "Draw",
-        conflict: "Battle",
-        picked: "backed",
-        coachPrompt: "SCOTTISH ENGLISH. Role: The Gaffer. Tone: Stern but fair. Use terms like 'Lad', 'Son', 'Dig in'. Focus on the points.",
-        roastPrompt: "SCOTTISH ENGLISH. Accent: Heavy Glasgow/Scots. Terms: 'Aye', 'Naw', 'Mince', 'Belter'. Pure aggressive banter."
+        coachPrompt: "SCOTTISH ENGLISH. Role: The Gaffer. Tone: Stern but fair.",
+        roastPrompt: "SCOTTISH ENGLISH. Accent: Heavy Glasgow/Scots. Terms: 'Aye', 'Naw', 'Mince', 'Belter'. Pure aggressive banter. USE REAL TEAM NAMES."
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -73,13 +53,8 @@ const PERSONAS: Record<string, any> = {
         coachButton: "Tilbake",
         loading: "Kobler til studio...",
         error: "Teknisk feil...",
-        home: "Hjemme",
-        away: "Borte",
-        draw: "Uavgjort",
-        conflict: "Konflikt",
-        picked: "valgte",
         coachPrompt: "NORWEGIAN. Role: Fotballekspert. Tone: Saklig og analytisk.",
-        roastPrompt: "NORWEGIAN. Role: Engasjert supporter. Bruk dialekt og fotballslang."
+        roastPrompt: "NORWEGIAN. Role: Engasjert supporter. Bruk dialekt og fotballslang. BRUK EKTE LAGNAVN."
     }
 };
 
@@ -104,9 +79,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const [displayedText, setDisplayedText] = useState(""); // For Karaoke Effect
     
-    // Audio Ref with init check
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const typewriterRef = useRef<NodeJS.Timeout | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
@@ -115,7 +91,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
-    // --- AUDIO GENERATION ---
+    // --- 1. AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
         const processedLines = [...lines];
@@ -146,19 +122,48 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         
         setScript(processedLines);
         setIsAudioLoading(false);
-        
-        // Auto-play attempt
-        setIsPlaying(true);
+        setIsPlaying(true); // Auto-start
     };
 
-    // --- ROBUST PLAYBACK CONTROL ---
+    // --- 2. KARAOKE TYPEWRITER EFFECT ---
+    useEffect(() => {
+        if (!script || !isPlaying) return;
+        
+        const currentLine = script[currentLineIndex];
+        if (!currentLine) return;
+
+        // Reset text when line changes
+        setDisplayedText(""); 
+        if (typewriterRef.current) clearInterval(typewriterRef.current);
+
+        const words = currentLine.text.split(" ");
+        let wordIndex = 0;
+        
+        // Calculate speed based on length (aim for ~3 seconds per line average)
+        const speed = Math.max(150, 2500 / words.length); 
+
+        typewriterRef.current = setInterval(() => {
+            if (wordIndex < words.length) {
+                setDisplayedText(prev => prev + (wordIndex === 0 ? "" : " ") + words[wordIndex]);
+                wordIndex++;
+            } else {
+                if (typewriterRef.current) clearInterval(typewriterRef.current);
+            }
+        }, speed);
+
+        return () => {
+            if (typewriterRef.current) clearInterval(typewriterRef.current);
+        };
+    }, [currentLineIndex, script, isPlaying]);
+
+
+    // --- 3. ROBUST AUDIO PLAYER ---
     useEffect(() => {
         if (mode !== 'roast' || !script) return;
 
         const currentLine = script[currentLineIndex];
         if (!currentLine) return; 
 
-        // Function to move to next line
         const advance = () => {
             if (currentLineIndex < script.length - 1) {
                 setCurrentLineIndex(prev => prev + 1);
@@ -168,38 +173,37 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         };
 
         if (isPlaying) {
-            // OPTION 1: GOOGLE CLOUD AUDIO
+            // A. PRE-GENERATED AUDIO
             if (currentLine.audioUrl) {
-                // Initialize audio object if missing
                 if (!audioRef.current) audioRef.current = new Audio();
-                
                 const audio = audioRef.current;
 
-                // Only set source if it's different (prevents reloading loop)
+                // Prevent reloading if already playing this url
                 if (audio.src !== currentLine.audioUrl) {
                     audio.src = currentLine.audioUrl;
+                    audio.load();
+                    
                     audio.onended = advance;
-                    audio.onerror = () => {
-                        console.warn("Audio Error, skipping");
-                        setTimeout(advance, 1500);
-                    };
+                    audio.onerror = () => setTimeout(advance, 1000);
+                    
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.warn("Autoplay blocked. User interaction needed.");
+                            setIsPlaying(false);
+                        });
+                    }
                 }
-
-                // Play and catch autoplay errors
-                audio.play().catch(err => {
-                    console.warn("Autoplay blocked. Waiting for user interaction.", err);
-                    setIsPlaying(false); // Stop UI so user sees "Play" button
-                });
             } 
-            // OPTION 2: BROWSER FALLBACK (Robot Voice)
+            // B. BROWSER TTS FALLBACK
             else if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(currentLine.text);
-                
-                // Voice selection
                 const voices = window.speechSynthesis.getVoices();
+                
+                // Try to find gendered voices
                 if (currentLine.speaker === 'Host') {
-                    const female = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google'));
+                    const female = voices.find(v => v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Samantha'));
                     if (female) utterance.voice = female;
                     utterance.pitch = 1.1;
                 } else {
@@ -208,47 +212,52 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 }
 
                 utterance.onend = advance;
-                utterance.onerror = () => setTimeout(advance, 3000);
                 window.speechSynthesis.speak(utterance);
             } 
-            // OPTION 3: SILENT TIMER (Just read)
+            // C. SILENT TIMER
             else {
-                const duration = Math.max(2000, currentLine.text.split(' ').length * 300);
-                const timer = setTimeout(advance, duration);
-                return () => clearTimeout(timer);
+                setTimeout(advance, 3000);
             }
         } else {
-            // If paused, pause the audio
             if (audioRef.current) audioRef.current.pause();
             window.speechSynthesis.cancel();
         }
 
+        return () => {
+            if (typewriterRef.current) clearInterval(typewriterRef.current);
+        };
     }, [isPlaying, currentLineIndex, script, mode]);
 
-    // Simple handler to unblock audio
     const togglePlay = () => {
         setIsPlaying(!isPlaying);
     };
 
+    // --- 4. GENERATION LOGIC ---
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
         setLoading(true);
         setMode(targetMode);
         setScript(null);
         setAnalysis(null);
         setCurrentLineIndex(0);
+        setDisplayedText("");
         setIsPlaying(false);
         
+        // Wait for teams to load if empty
+        if (Object.keys(teams).length === 0) {
+            setAnalysis("Loading team data... please wait.");
+            setLoading(false);
+            return;
+        }
+
         try {
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
             const ai = new GoogleGenAI({ apiKey });
 
-            // Stats Calc
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
             const myRank = myStat?.rank || 99;
             const myScore = myStat?.score || 0;
             const myDiff = myStat?.diff || 0;
             
-            // Movement Context
             let movementContext = "holding position";
             if (myDiff > 0) movementContext = `climbed ${myDiff} spots`;
             if (myDiff < 0) movementContext = `dropped ${Math.abs(myDiff)} spots`;
@@ -265,6 +274,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 const match = nextMatches[0];
                 const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
                 
+                // SAFER TEAM LOOKUP
                 const hTeam = teams[match.homeTeamId];
                 const aTeam = teams[match.awayTeamId];
 
@@ -278,23 +288,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
             if (targetMode === 'coach') {
-                // 1. COACH PROMPT (Professional + Helpful)
                 const prompt = `
                     You are a Senior Football Analyst for "The Rasten Cup".
+                    User: ${currentUser.name} (Rank #${myRank}, Score: ${myScore}).
+                    Status: ${movementContext}.
+                    Next Pick: ${userScorePrediction ? `${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}` : "No pick yet"}.
                     
-                    **USER SITUATION:**
-                    - Name: ${currentUser.name}
-                    - Rank: #${myRank} (Score: ${myScore})
-                    - Recent Form: ${movementContext}
-                    - Next Prediction: ${userScorePrediction ? `Predicted ${userScorePrediction} for ${homeTeamName} vs ${awayTeamName}` : "No prediction made yet"}
-                    
-                    **TASK:**
-                    Write a short report (max 50 words).
-                    1. Acknowledge their current rank/form professionally.
-                    2. Give specific advice on the next match (e.g. "Brazil are strong, consider that" or "You need points, take a risk").
-                    3. Tone: ${t.coachPrompt}.
-                    
-                    Use ONLY real team names. No jokes.
+                    Task: Write a short, strategic advice summary (max 40 words).
+                    Use ONLY these team names: ${homeTeamName} and ${awayTeamName}.
+                    Tone: ${t.coachPrompt}
                 `;
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.0-flash',
@@ -307,32 +309,32 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 setLoading(false);
 
             } else {
-                // 2. PUNDIT PROMPT (Fun/Scouse)
                 const prompt = `
-                    TV Script for "The Rasten Cup".
+                    Write a TV Script for "The Rasten Cup".
                     
                     **CONTEXT:**
                     - User: ${currentUser.name} (Rank #${myRank})
-                    - Status: ${movementContext}
-                    - BET: ${userScorePrediction || "No pick"} for ${homeTeamName} (Rank ${homeRank}) vs ${awayTeamName} (Rank ${awayRank}).
+                    - Recent Form: ${movementContext}
+                    - NEXT MATCH: ${homeTeamName} (Rank ${homeRank}) vs ${awayTeamName} (Rank ${awayRank}).
+                    - USER PREDICTION: ${userScorePrediction || "Has not predicted yet!"}.
                     
                     **CHARACTERS:**
-                    1. HOST (Female): Professional.
-                    2. PUNDIT (Male): Scouse/Liverpool accent. Loud.
+                    1. HOST (Female): Professional intro.
+                    2. PUNDIT (Male): Scouse/Liverpool accent. Very opinionated.
                     
-                    **RULES:**
-                    - Use ONLY these team names: ${homeTeamName}, ${awayTeamName}.
-                    - Pundit must mention the specific score ${userScorePrediction}.
+                    **STRICT RULES:**
+                    - NEVER use "Home Team" or "Away Team". Use "${homeTeamName}" and "${awayTeamName}".
+                    - If the user predicted a score (e.g. 2-1), the Pundit MUST mention those numbers.
                     
-                    **SCRIPT (4 Lines):**
-                    1. HOST: Intro user and rank.
-                    2. PUNDIT: Reaction to rank.
-                    3. HOST: "They've tipped ${homeTeamName} to beat ${awayTeamName} ${userScorePrediction}. Thoughts?"
-                    4. PUNDIT: Verdict.
+                    **SCRIPT FORMAT (JSON Array):**
+                    [
+                        {"speaker": "Host", "text": "Start with user rank..."},
+                        {"speaker": "Pundit", "text": "React to rank..."},
+                        {"speaker": "Host", "text": "Mention the prediction for ${homeTeamName} vs ${awayTeamName} (${userScorePrediction})."},
+                        {"speaker": "Pundit", "text": "Verdict on that specific score."}
+                    ]
                     
-                    **LANGUAGE:** ${t.roastPrompt}.
-                    
-                    OUTPUT: JSON Array only: [{"speaker": "Host", "text": "..."}, {"speaker": "Pundit", "text": "..."}]
+                    **LANGUAGE:** ${t.roastPrompt}
                 `;
                 
                 const response = await ai.models.generateContent({
@@ -368,11 +370,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     };
 
     useEffect(() => {
-        if (!hasFetched.current && combinedStats.length > 0) {
+        if (!hasFetched.current && combinedStats.length > 0 && Object.keys(teams).length > 0) {
             generateInsight('coach');
             hasFetched.current = true;
         }
-    }, [combinedStats]);
+    }, [combinedStats, teams]);
 
     return (
         <div className={`relative overflow-hidden rounded-2xl p-5 mb-4 shadow-lg transition-all duration-500 ${mode === 'roast' ? 'bg-gradient-to-br from-orange-900 to-red-900 border border-orange-700' : 'bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700'}`}>
@@ -431,7 +433,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                     <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
                                         <div className="font-black text-[9px] uppercase opacity-50 mb-1 flex justify-between">
                                             {line.speaker}
-                                            {/* Click to play specific line manually */}
+                                            {/* Manual Play Button if stuck */}
                                             {isCurrent && !isPlaying && (
                                                 <button onClick={togglePlay} className="p-1 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                                                     <Volume2 size={10} className="text-white" />
@@ -439,7 +441,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                             )}
                                             {isCurrent && isPlaying && <Volume2 size={10} className="animate-pulse text-green-400" />}
                                         </div>
-                                        <p className={isCurrent && isPlaying ? "opacity-100" : "opacity-80"}>{line.text}</p>
+                                        <p className="opacity-100 min-h-[1.5em]">
+                                            {isCurrent ? displayedText : line.text}
+                                            {isCurrent && <span className="animate-pulse">|</span>}
+                                        </p>
                                     </div>
                                 </div>
                             );
