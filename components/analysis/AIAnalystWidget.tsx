@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2 } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -79,10 +79,13 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [currentLineIndex, setCurrentLineIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioLoading, setIsAudioLoading] = useState(false);
-    const [displayedText, setDisplayedText] = useState(""); // For Karaoke Effect
+    const [audioError, setAudioError] = useState(false);
+    
+    // Karaoke State
+    const [displayedText, setDisplayedText] = useState(""); 
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const typewriterRef = useRef<NodeJS.Timeout | null>(null);
+    const typewriterRef = useRef<any>(null); // Using any for timeout ID
 
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
@@ -94,6 +97,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     // --- 1. AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]) => {
         setIsAudioLoading(true);
+        setAudioError(false);
         const processedLines = [...lines];
 
         for (let i = 0; i < processedLines.length; i++) {
@@ -117,6 +121,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             } catch (err) {
                 console.warn(`Audio Gen Failed for line ${i}. Falling back to TTS.`);
                 processedLines[i].audioUrl = null; 
+                setAudioError(true); // Flag that we are in fallback mode
             }
         }
         
@@ -125,31 +130,33 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setIsPlaying(true); // Auto-start
     };
 
-    // --- 2. KARAOKE TYPEWRITER EFFECT ---
+    // --- 2. SMOOTH KARAOKE EFFECT ---
     useEffect(() => {
         if (!script || !isPlaying) return;
         
         const currentLine = script[currentLineIndex];
         if (!currentLine) return;
 
-        // Reset text when line changes
-        setDisplayedText(""); 
+        // Clean up previous interval
         if (typewriterRef.current) clearInterval(typewriterRef.current);
-
-        const words = currentLine.text.split(" ");
-        let wordIndex = 0;
         
-        // Calculate speed based on length (aim for ~3 seconds per line average)
-        const speed = Math.max(150, 2500 / words.length); 
+        // Split text into words for typewriter effect
+        const words = currentLine.text.split(" ");
+        let wordIdx = 0;
+        setDisplayedText(""); // Clear text initially
 
+        // Calculate pacing: faster for Pundit, slower for Host
+        const isPundit = currentLine.speaker === 'Pundit';
+        const baseSpeed = isPundit ? 180 : 250; // ms per word
+        
         typewriterRef.current = setInterval(() => {
-            if (wordIndex < words.length) {
-                setDisplayedText(prev => prev + (wordIndex === 0 ? "" : " ") + words[wordIndex]);
-                wordIndex++;
+            if (wordIdx < words.length) {
+                setDisplayedText(prev => (prev ? prev + " " : "") + words[wordIdx]);
+                wordIdx++;
             } else {
-                if (typewriterRef.current) clearInterval(typewriterRef.current);
+                clearInterval(typewriterRef.current);
             }
-        }, speed);
+        }, baseSpeed);
 
         return () => {
             if (typewriterRef.current) clearInterval(typewriterRef.current);
@@ -178,13 +185,16 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 if (!audioRef.current) audioRef.current = new Audio();
                 const audio = audioRef.current;
 
-                // Prevent reloading if already playing this url
+                // Only load if source changed
                 if (audio.src !== currentLine.audioUrl) {
                     audio.src = currentLine.audioUrl;
                     audio.load();
                     
                     audio.onended = advance;
-                    audio.onerror = () => setTimeout(advance, 1000);
+                    audio.onerror = () => {
+                        console.warn("Audio file error, falling back to timer.");
+                        setTimeout(advance, 2000);
+                    };
                     
                     const playPromise = audio.play();
                     if (playPromise !== undefined) {
@@ -195,13 +205,12 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     }
                 }
             } 
-            // B. BROWSER TTS FALLBACK
+            // B. BROWSER TTS FALLBACK (If API Key Failed)
             else if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(currentLine.text);
                 const voices = window.speechSynthesis.getVoices();
                 
-                // Try to find gendered voices
                 if (currentLine.speaker === 'Host') {
                     const female = voices.find(v => v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Samantha'));
                     if (female) utterance.voice = female;
@@ -214,13 +223,15 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 utterance.onend = advance;
                 window.speechSynthesis.speak(utterance);
             } 
-            // C. SILENT TIMER
+            // C. SILENT TIMER (Last Resort)
             else {
-                setTimeout(advance, 3000);
+                const words = currentLine.text.split(" ").length;
+                setTimeout(advance, words * 300);
             }
         } else {
             if (audioRef.current) audioRef.current.pause();
             window.speechSynthesis.cancel();
+            if (typewriterRef.current) clearInterval(typewriterRef.current);
         }
 
         return () => {
@@ -241,14 +252,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setCurrentLineIndex(0);
         setDisplayedText("");
         setIsPlaying(false);
+        setAudioError(false);
         
-        // Wait for teams to load if empty
-        if (Object.keys(teams).length === 0) {
-            setAnalysis("Loading team data... please wait.");
-            setLoading(false);
-            return;
-        }
-
         try {
             const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
             const ai = new GoogleGenAI({ apiKey });
@@ -274,12 +279,21 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 const match = nextMatches[0];
                 const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
                 
-                // SAFER TEAM LOOKUP
+                // --- STRICT TEAM NAME LOOKUP ---
                 const hTeam = teams[match.homeTeamId];
                 const aTeam = teams[match.awayTeamId];
 
-                if (hTeam) { homeTeamName = hTeam.name; homeRank = hTeam.rank || 50; }
-                if (aTeam) { awayTeamName = aTeam.name; awayRank = aTeam.rank || 50; }
+                // If teams aren't loaded yet, stop generation to avoid "Home Team" generic text
+                if (!hTeam || !aTeam) {
+                    setAnalysis("Waiting for team data to sync... please try again in a moment.");
+                    setLoading(false);
+                    return;
+                }
+
+                homeTeamName = hTeam.name;
+                awayTeamName = aTeam.name;
+                homeRank = hTeam.rank || 50; 
+                awayRank = aTeam.rank || 50;
                 
                 if (mp && mp.home !== undefined) {
                     keyMatch = `${homeTeamName} vs ${awayTeamName}`;
@@ -326,11 +340,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     - NEVER use "Home Team" or "Away Team". Use "${homeTeamName}" and "${awayTeamName}".
                     - If the user predicted a score (e.g. 2-1), the Pundit MUST mention those numbers.
                     
-                    **SCRIPT FORMAT (JSON Array):**
+                    **SCRIPT FORMAT (JSON Array ONLY):**
                     [
                         {"speaker": "Host", "text": "Start with user rank..."},
                         {"speaker": "Pundit", "text": "React to rank..."},
-                        {"speaker": "Host", "text": "Mention the prediction for ${homeTeamName} vs ${awayTeamName} (${userScorePrediction})."},
+                        {"speaker": "Host", "text": "Mention the prediction for ${homeTeamName} vs ${awayTeamName}."},
                         {"speaker": "Pundit", "text": "Verdict on that specific score."}
                     ]
                     
@@ -370,6 +384,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     };
 
     useEffect(() => {
+        // Wait for teams to be populated before generating
         if (!hasFetched.current && combinedStats.length > 0 && Object.keys(teams).length > 0) {
             generateInsight('coach');
             hasFetched.current = true;
@@ -401,7 +416,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         ) : isPlaying ? (
                             <button onClick={togglePlay} className="p-1.5 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/40"><Pause size={14} fill="currentColor" /></button>
                         ) : (
-                            <button onClick={togglePlay} className="p-1.5 bg-green-500/20 text-green-300 rounded-full hover:bg-green-500/40"><Play size={14} fill="currentColor" /></button>
+                            <button onClick={togglePlay} className={`p-1.5 rounded-full ${audioError ? 'bg-red-500/40 text-white' : 'bg-green-500/20 text-green-300 hover:bg-green-500/40'}`}>
+                                {audioError ? <AlertCircle size={14} /> : <Play size={14} fill="currentColor" />}
+                            </button>
                         )}
                     </div>
                 )}
@@ -433,7 +450,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                     <div className={`rounded-2xl p-3 text-xs max-w-[85%] relative ${isHost ? 'bg-white/10 text-white rounded-tl-none' : 'bg-orange-500/10 text-orange-100 rounded-tr-none border border-orange-500/20'}`}>
                                         <div className="font-black text-[9px] uppercase opacity-50 mb-1 flex justify-between">
                                             {line.speaker}
-                                            {/* Manual Play Button if stuck */}
+                                            {/* Click to play specific line manually */}
                                             {isCurrent && !isPlaying && (
                                                 <button onClick={togglePlay} className="p-1 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
                                                     <Volume2 size={10} className="text-white" />
@@ -441,9 +458,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                                             )}
                                             {isCurrent && isPlaying && <Volume2 size={10} className="animate-pulse text-green-400" />}
                                         </div>
-                                        <p className="opacity-100 min-h-[1.5em]">
+                                        <p className="opacity-100 min-h-[1.5em] leading-relaxed">
+                                            {/* KARAOKE TEXT RENDERER */}
                                             {isCurrent ? displayedText : line.text}
-                                            {isCurrent && <span className="animate-pulse">|</span>}
+                                            {isCurrent && <span className="animate-pulse ml-1 text-sky-400">|</span>}
                                         </p>
                                     </div>
                                 </div>
