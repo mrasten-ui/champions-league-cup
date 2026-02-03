@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Team, Translation, LanguageCode, MatchHistoryItem, ScoutingData, TeamFormData } from '../types';
-import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown } from 'lucide-react';
+import { Search, Swords, Target, Brain, UserPlus, RefreshCw, X, TrendingUp, AlertCircle, Activity, Crown, Minus, TrendingDown, Info } from 'lucide-react';
 import { fetchTeamTactics, analyzeMatchup, TeamDNA } from '../services/analyst';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
@@ -366,28 +366,43 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
               {filteredTeams.map(team => {
                   const isSelected = slotA === team.id || slotB === team.id;
                   const translatedName = getTeamName(team);
+                  const isDisabled = isSelected && activeSlot !== null;
+
                   return (
-                      <button 
-                          key={team.id} 
-                          onClick={() => handleTeamClick(team.id)}
-                          disabled={isSelected && activeSlot !== null} 
+                      <div 
+                          key={team.id}
+                          onClick={() => !isDisabled && handleTeamClick(team.id)}
                           className={`
-                              flex items-center gap-3 p-3 rounded-xl border transition-all text-left
+                              relative group flex items-center gap-3 p-3 rounded-xl border transition-all text-left select-none
                               ${isSelected 
                                 ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed' 
                                 : activeSlot 
                                     ? 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md cursor-pointer' 
-                                    : 'bg-white border-slate-200 hover:bg-slate-50'}
+                                    : 'bg-white border-slate-200 hover:bg-slate-50 cursor-pointer'}
                           `}
                       >
                           <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 shrink-0">
                               <img src={team.flag} alt={translatedName} className="w-full h-full object-cover" />
                           </div>
-                          <div className="min-w-0">
+                          
+                          <div className="min-w-0 flex-1">
                               <div className="font-bold text-slate-800 text-xs truncate">{translatedName}</div>
                               <div className="text-[9px] font-medium text-slate-400">{lang.fifaRank || "Rank"} {team.rank}</div>
                           </div>
-                      </button>
+
+                          {/* INFO BUTTON (Peeking) */}
+                          <div
+                              role="button"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTeam(team);
+                              }}
+                              className="p-1.5 rounded-full text-slate-300 hover:text-blue-600 hover:bg-blue-50 transition-colors z-10"
+                              title="View Team Details"
+                          >
+                              <Info size={16} />
+                          </div>
+                      </div>
                   );
               })}
           </div>
