@@ -168,11 +168,17 @@ const App: React.FC = () => {
     addToast('success', 'Profile Updated', 'New avatar looks great!');
   };
 
+  // --- NEW: SCORE UPDATE WITH AUTO-RELOCK ---
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
-    if (!match || (match.isLocked && !user.unlockedMatches?.includes(matchId))) return;
+    if (!match) return;
+
+    // Check if user is allowed to update (Global Lock OR Unlocked Whitelist)
+    const isWhitelisted = user.unlockedMatches?.includes(matchId);
+    if (match.isLocked && !isWhitelisted) return;
     
+    // 1. Save Prediction
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -181,6 +187,14 @@ const App: React.FC = () => {
     });
 
     await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
+
+    // 2. AUTO-RELOCK (Remove from whitelist after save)
+    if (isWhitelisted) {
+        const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
+        setUser({ ...user, unlockedMatches: newUnlocked });
+        await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
+        addToast('success', 'Prediction Saved', 'Match re-locked.');
+    }
   };
 
   const handleSpy = async (matchId: string) => {
@@ -193,9 +207,21 @@ const App: React.FC = () => {
       addToast('success', 'Rival Revealed', '-1 Intel used.');
   };
 
+  // --- NEW: SUBSTITUTION WITH STRICTER RULES ---
   const handleSubstitute = async (matchId: string) => {
       if (!user || !supabase) return;
+      
+      // Safety: Find Match
+      const match = matches.find(m => m.id === matchId);
+      
+      // Rule 1: Cannot sub finished games
+      if (match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status)) {
+          addToast('error', 'Too Late', 'Can only substitute UPCOMING matches.');
+          return;
+      }
+
       if (user.substitutions < 1) { addToast('error', 'No Subs Left', 'All substitutions used.'); return; }
+      
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
       setUser({ ...user, substitutions: newSubs, unlockedMatches: newUnlocked });
@@ -224,6 +250,41 @@ const App: React.FC = () => {
   };
 
   const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
+
+  // --- NEW: REFUND WATCHER ---
+  // Watches for unlocked matches that suddenly start -> Refunds the user
+  useEffect(() => {
+    if (!user || !matches || !user.unlockedMatches || user.unlockedMatches.length === 0) return;
+
+    const matchesToRefund: string[] = [];
+    user.unlockedMatches.forEach(unlockedId => {
+        const match = matches.find(m => m.id === unlockedId);
+        // If match exists AND it is no longer UPCOMING/NS
+        if (match && !['UPCOMING', 'NS'].includes(match.status)) {
+            matchesToRefund.push(unlockedId);
+        }
+    });
+
+    if (matchesToRefund.length > 0) {
+        const performRefund = async () => {
+            const newUnlocked = user.unlockedMatches!.filter(id => !matchesToRefund.includes(id));
+            const newSubs = user.substitutions + matchesToRefund.length;
+            
+            // Update State
+            setUser(prev => prev ? { ...prev, unlockedMatches: newUnlocked, substitutions: newSubs } : null);
+            
+            // Update DB
+            if (supabase) {
+                await supabase.from('profiles')
+                    .update({ unlocked_matches: newUnlocked, substitutions: newSubs } as any)
+                    .eq('email', user.email);
+            }
+
+            addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
+        };
+        performRefund();
+    }
+  }, [matches, user?.unlockedMatches]); // Runs whenever matches update (e.g. Time Travel or Live Poll)
 
   useEffect(() => {
       const checkPendingLeague = async () => {
