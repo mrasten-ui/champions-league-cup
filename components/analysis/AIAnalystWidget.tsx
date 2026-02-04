@@ -15,7 +15,7 @@ interface AIAnalystProps {
     teams: Record<string, Team>;
 }
 
-// --- PERSONA CONFIGURATION ---
+// --- PERSONA CONFIGURATION  ---
 const PERSONAS: Record<string, any> = {
     en: {
         coachTitle: "Coach's Report",
