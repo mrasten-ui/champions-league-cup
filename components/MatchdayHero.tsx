@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction } from '../types';
-import { Activity, Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
+import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain } from 'lucide-react';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
 interface MatchdayHeroProps {
@@ -11,7 +11,7 @@ interface MatchdayHeroProps {
   locale?: string;
   onTeamClick: (id: string) => void;
   allMatches?: Match[];
-  userPrediction?: Prediction;
+  userPrediction?: Prediction; 
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -35,6 +35,7 @@ const TbdHeroSlot: React.FC<{
         return getGroupTeams(source.groupId, allMatches, allTeams);
     }, [source, allMatches, allTeams]);
 
+    // 1. GROUP SOURCE (2x2 Grid)
     if (source.type === 'GROUP_RANK') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-lg backdrop-blur-sm">
@@ -58,6 +59,7 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
+    // 2. 3RD PLACE
     if (source.type === '3RD_PLACE') {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
@@ -71,6 +73,7 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
+    // 3. KNOCKOUT FEEDER
     if (potentialTeams && potentialTeams.length === 2) {
         return (
             <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-blue-400/50 bg-blue-900/40 flex flex-col items-center justify-center relative overflow-hidden shadow-lg">
@@ -91,6 +94,7 @@ const TbdHeroSlot: React.FC<{
         );
     }
 
+    // 4. FALLBACK TBD
     return (
         <div className="w-16 h-12 sm:w-24 sm:h-16 rounded-xl border-2 border-dashed border-white/30 bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
@@ -235,6 +239,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {!isHomeTBD && (
                     <div className="flex flex-col items-center">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[home.id] || home.name}</span>
+                        {/* Points Badge */}
                         {homeStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{homeStats.pts} PTS</span>}
                     </div>
                 )}
@@ -252,13 +257,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
                 )}
                 
-                {/* MOVED USER PREDICTION HERE */}
+                {/* MOVED USER PREDICTION HERE (UPDATED STYLE) */}
                 {userPrediction && (
                     <div className="mt-2 flex flex-col items-center animate-in zoom-in">
-                        <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{lang.myPick || "MY PICK"}</span>
-                        <span className="text-xl font-black text-yellow-400 tracking-widest leading-none mt-0.5 filter drop-shadow-sm">
-                            {userPrediction.home} - {userPrediction.away}
-                        </span>
+                       <span className="text-[10px] font-bold text-yellow-400 bg-yellow-900/20 px-2 py-0.5 rounded border border-yellow-700/30">
+                            {lang.myPick || "Pick"}: {userPrediction.home} - {userPrediction.away}
+                       </span>
                     </div>
                 )}
                 
@@ -286,6 +290,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {!isAwayTBD && (
                     <div className="flex flex-col items-center">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[away.id] || away.name}</span>
+                        {/* Points Badge */}
                         {awayStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{awayStats.pts} PTS</span>}
                     </div>
                 )}
