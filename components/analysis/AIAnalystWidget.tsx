@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
-import { GoogleGenAI } from "@google/genai";
+// FIX: Switch to the correct Browser SDK
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle, SignalHigh, WifiOff } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle, WifiOff } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -224,6 +225,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setUsingBackupModel(false);
         
         try {
+            // FIX: Access API Key via Vite Env or Fallback
             const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
             const hostKey = HOST_KEYS[0];
             const apiKey = viteKey || hostKey;
@@ -233,7 +235,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 throw new Error("No API Key");
             }
             
-            const ai = new GoogleGenAI({ apiKey });
+            // FIX: Initialize the correct Browser SDK
+            const genAI = new GoogleGenerativeAI(apiKey);
 
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
             const myRank = myStat?.rank || 99;
@@ -290,33 +293,30 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 }
             }
 
-            // --- HELPER TO CALL API WITH RETRY ---
+            // --- HELPER: CALL MODEL WITH FALLBACK ---
             const callModelWithFallback = async (promptText: string) => {
-                const primaryModel = 'gemini-2.0-flash';
-                const backupModel = 'gemini-1.5-flash';
+                const primaryModelName = 'gemini-2.0-flash';
+                const backupModelName = 'gemini-1.5-flash';
                 
                 try {
-                    console.log(`[AI Widget] Attempting primary model: ${primaryModel}`);
-                    const res = await ai.models.generateContent({ 
-                        model: primaryModel, 
-                        contents: [{ role: 'user', parts: [{ text: promptText }] }] 
-                    });
-                    // @ts-ignore
-                    return typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                    console.log(`[AI Widget] Attempting primary model: ${primaryModelName}`);
+                    const model = genAI.getGenerativeModel({ model: primaryModelName });
+                    const result = await model.generateContent(promptText);
+                    const response = await result.response;
+                    return response.text();
                 } catch (err: any) {
-                    // Check for Quota (429) or Overloaded (503) errors
-                    if (err.status === 429 || err.code === 429 || (err.message && err.message.includes("429"))) {
-                        console.warn(`[AI Widget] Primary model exhausted (429). Switching to backup: ${backupModel}`);
+                    // Detect Quota (429) or Service Unavailable (503)
+                    const status = err.status || err.response?.status;
+                    if (status === 429 || status === 503 || (err.message && err.message.includes("429"))) {
+                        console.warn(`[AI Widget] Primary exhausted (${status}). Switching to backup: ${backupModelName}`);
                         setUsingBackupModel(true);
                         
-                        const res = await ai.models.generateContent({ 
-                            model: backupModel, 
-                            contents: [{ role: 'user', parts: [{ text: promptText }] }] 
-                        });
-                        // @ts-ignore
-                        return typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                        const backupModel = genAI.getGenerativeModel({ model: backupModelName });
+                        const result = await backupModel.generateContent(promptText);
+                        const response = await result.response;
+                        return response.text();
                     }
-                    throw err; // Re-throw other errors
+                    throw err; // Re-throw other errors (like Auth)
                 }
             };
 
@@ -358,7 +358,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             console.error(e);
             
             // Show error in UI
-            setAnalysis(`Service unavailable (${e.status || 'Error'}). Check console.`);
+            setAnalysis(`Service unavailable. Check console.`);
             setScript([{ speaker: "Host", text: "Technical difficulties in the studio." }]);
             setLoading(false);
         }
