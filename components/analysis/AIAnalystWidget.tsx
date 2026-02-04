@@ -267,7 +267,13 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setAudioError(false);
         
         try {
-            const apiKey = process.env.API_KEY || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
+            // FIX: Use Vite env var if available, otherwise use host keys
+            // This prevents "process is not defined" errors in Vite
+            const envKey = import.meta.env?.VITE_GOOGLE_API_KEY; 
+            const apiKey = envKey || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
+            
+            if (!apiKey) throw new Error("No API Key found");
+
             const ai = new GoogleGenAI({ apiKey });
 
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
@@ -399,8 +405,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
         } catch (e) {
-            console.error(e);
-            setAnalysis("Signal lost.");
+            console.error("AI Widget Error:", e);
+            setAnalysis("Signal lost. (Check API Key)"); // More descriptive error
             // Fallback script for error
             setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio. Please try again." }]);
             setLoading(false);
