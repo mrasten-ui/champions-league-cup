@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
-// FIX: Switch to the correct Browser SDK
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle, WifiOff } from 'lucide-react';
@@ -153,7 +152,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
                 } 
             } catch (err) {
-                console.warn(`Audio Gen Error line ${i}:`, err);
+                // Silent fail for audio
                 processedLines[i].audioUrl = null; 
                 setAudioError(true);
             }
@@ -224,6 +223,25 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setAudioError(false);
         setUsingBackupModel(false);
         
+        const myStat = combinedStats.find(s => s.user.email === currentUser.email);
+        const myRank = myStat?.rank || 99;
+        const myScore = myStat?.score || 0;
+        const cleanName = getFormattedName();
+        
+        // --- OFFLINE FALLBACK GENERATOR ---
+        const generateOfflineResponse = () => {
+            if (targetMode === 'coach') {
+                setAnalysis(`Rank ${myRank}. Points: ${myScore}. Focus on the next match. (Offline Mode)`);
+            } else {
+                setScript([
+                    { speaker: "Host", text: `We are back with ${cleanName}. Sitting at rank ${myRank}.` },
+                    { speaker: "Pundit", text: "Rank ${myRank}? They need to step it up!" }
+                ]);
+                setIsPlaying(true);
+            }
+            setLoading(false);
+        };
+
         try {
             // FIX: Access API Key via Vite Env or Fallback
             const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
@@ -231,18 +249,14 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const apiKey = viteKey || hostKey;
             
             if (!apiKey) {
-                console.error("[AI Widget] CRITICAL: No API Key found.");
-                throw new Error("No API Key");
+                console.warn("[AI Widget] No API Key found. Using offline mode.");
+                generateOfflineResponse();
+                return;
             }
             
             // FIX: Initialize the correct Browser SDK
             const genAI = new GoogleGenerativeAI(apiKey);
 
-            const myStat = combinedStats.find(s => s.user.email === currentUser.email);
-            const myRank = myStat?.rank || 99;
-            const myScore = myStat?.score || 0;
-            const cleanName = getFormattedName();
-            
             const sortedMatches = [...nextMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             const nextMatch = sortedMatches.find(m => m.status === 'UPCOMING');
 
@@ -253,7 +267,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
             const match = nextMatch;
-            
             const hTeam = teams[match.homeTeamId];
             const aTeam = teams[match.awayTeamId];
 
@@ -293,30 +306,35 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 }
             }
 
-            // --- HELPER: CALL MODEL WITH FALLBACK ---
+            // --- HELPER: CALL MODEL WITH DOUBLE FALLBACK ---
             const callModelWithFallback = async (promptText: string) => {
-                const primaryModelName = 'gemini-2.0-flash';
-                const backupModelName = 'gemini-1.5-flash';
-                
+                // 1. Try Fancy Model
                 try {
-                    console.log(`[AI Widget] Attempting primary model: ${primaryModelName}`);
-                    const model = genAI.getGenerativeModel({ model: primaryModelName });
+                    console.log(`[AI Widget] Attempting primary: gemini-2.0-flash`);
+                    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
                     const result = await model.generateContent(promptText);
-                    const response = await result.response;
-                    return response.text();
+                    return result.response.text();
                 } catch (err: any) {
-                    // Detect Quota (429) or Service Unavailable (503)
                     const status = err.status || err.response?.status;
                     if (status === 429 || status === 503 || (err.message && err.message.includes("429"))) {
-                        console.warn(`[AI Widget] Primary exhausted (${status}). Switching to backup: ${backupModelName}`);
+                        console.warn(`[AI Widget] Primary exhausted (${status}). Switching to backup: gemini-1.5-flash`);
                         setUsingBackupModel(true);
                         
-                        const backupModel = genAI.getGenerativeModel({ model: backupModelName });
-                        const result = await backupModel.generateContent(promptText);
-                        const response = await result.response;
-                        return response.text();
+                        // 2. Try Standard Model
+                        try {
+                            const backupModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                            const result = await backupModel.generateContent(promptText);
+                            return result.response.text();
+                        } catch (backupErr: any) {
+                             console.warn(`[AI Widget] Backup 1.5 failed. Switching to legacy: gemini-pro`);
+                             
+                             // 3. Try Legacy Model (Last Resort)
+                             const legacyModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+                             const result = await legacyModel.generateContent(promptText);
+                             return result.response.text();
+                        }
                     }
-                    throw err; // Re-throw other errors (like Auth)
+                    throw err; // Re-throw if it's not a quota error
                 }
             };
 
@@ -354,13 +372,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             }
 
         } catch (e: any) {
-            console.error("----- FINAL WIDGET ERROR -----");
-            console.error(e);
-            
-            // Show error in UI
-            setAnalysis(`Service unavailable. Check console.`);
-            setScript([{ speaker: "Host", text: "Technical difficulties in the studio." }]);
-            setLoading(false);
+            console.error("----- FINAL WIDGET ERROR -----", e);
+            // Fallback to offline content if EVERYTHING fails
+            generateOfflineResponse();
         }
     };
 
