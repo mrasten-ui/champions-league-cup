@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
 import { calculateGroupStandings } from '../services/engine';
 import { DateRibbon } from './DateRibbon';
@@ -167,8 +167,24 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   currentLang,
   onTeamClick
 }) => {
-  const todayStr = new Date().toDateString();
-  const [filterDate, setFilterDate] = useState<string>(todayStr);
+  // 1. CALCULATE "GAME TODAY" (Date of next match)
+  const defaultDate = useMemo(() => {
+      // We look at the OFFICIAL matches state (which App.tsx updates during Time Travel)
+      const upcoming = matches
+          .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      // If we have upcoming matches, use the first one. Otherwise use real today.
+      if (upcoming.length > 0) return new Date(upcoming[0].date).toDateString();
+      return new Date().toDateString();
+  }, [matches]);
+
+  const [filterDate, setFilterDate] = useState<string>(defaultDate);
+
+  // CRITICAL: Sync state if defaultDate changes (e.g. Data Loaded OR Time Travel)
+  useEffect(() => {
+     setFilterDate(defaultDate);
+  }, [defaultDate]);
 
   // Translation Selection
   const locKey = getLocKey(currentLang);
@@ -176,7 +192,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // USE THE NEW HOOK
+  // USE THE SIMULATION HOOK
   const { 
       simulation, 
       updateSim, 
@@ -187,32 +203,44 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       userBracketData 
   } = useTournamentSimulation(matches, allPredictions, teams, allUsers);
 
-  // DATE FILTERING
+  // DATE FILTERING FOR RIBBON
   const uniqueDates = useMemo(() => {
       const dates = new Set<string>();
       const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 3); 
+      cutoff.setDate(cutoff.getDate() - 3); // Show recent history too
 
       simulatedMatches.forEach(m => {
           if (m.date && m.date !== 'TBD') {
               const d = new Date(m.date);
-              if (d >= cutoff) dates.add(d.toDateString());
+              if (d >= cutoff || m.status === 'UPCOMING') dates.add(d.toDateString());
           }
       });
       return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [simulatedMatches]);
 
+  // 2. FILTERED LIST FOR DISPLAY (User Selection)
   const displayMatches = useMemo(() => {
       let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
       
       if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
       } else {
+          // If viewing ALL, still filter out very old stuff to keep it snappy
           const now = Date.now();
-          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
+          filtered = filtered.filter(m => new Date(m.date).getTime() > now - (86400000 * 3)); 
       }
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [simulatedMatches, filterDate]);
+
+  // 3. INDEPENDENT LIST FOR AI ANALYST (Always Next Up)
+  // We use the raw 'matches' prop here to ensure the AI talks about the *Real* schedule
+  // even if the user is time-traveling.
+  const analysisMatches = useMemo(() => {
+    return matches
+        .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 3);
+  }, [matches]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
@@ -232,7 +260,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
             <AIAnalystWidget 
                 currentUser={currentUser}
                 combinedStats={combinedStats}
-                nextMatches={displayMatches.slice(0, 3)}
+                nextMatches={analysisMatches} // <--- Pass independent next matches
                 allPredictions={allPredictions}
                 lang={lang}
                 currentLang={currentLang}
@@ -246,7 +274,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
             simulatedUsers={combinedStats} 
             currentUser={currentUser} 
             lang={lang}
-            t={t} // Pass translation keys
+            t={t} 
         />
 
         <div className="flex-1 p-4 space-y-4 pb-20">
