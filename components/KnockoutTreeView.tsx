@@ -15,10 +15,10 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   matches, teams, userPredictions, onUpdate, lang, highlightedMatchId 
 }) => {
   
-  // 1. ORDER: R16 -> QF -> SF -> 3RD -> FIN
-  const rounds = ['R16', 'QF', 'SF', '3RD', 'FIN'];
+  // 1. UPDATED ORDER: Added R32 at the start, 3RD before FIN
+  const rounds = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
   
-  // 2. HELPER: Translate Codes to Full Names
+  // 2. HELPER: Full Round Names
   const getRoundTitle = (round: string) => {
       const map: Record<string, string> = {
           'R32': lang.roundOf32 || 'Round of 32',
@@ -90,17 +90,26 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                               showStatusBadge={false} 
                           />
                           
-                          {/* Visual Connector Lines */}
+                          {/* --- Visual Connector Lines --- */}
                           
-                          {/* 1. Line to the RIGHT (Connects to next round) */}
-                          {/* Hide for Final & 3rd Place (they are endpoints) */}
-                          {round !== 'FIN' && round !== '3RD' && (
+                          {/* 1. RIGHT LINE (Connects to next round) 
+                              Hide for:
+                              - FIN (End)
+                              - 3RD (End)
+                              - SF (Because the next col is 3RD, we don't want a line pointing to it)
+                          */}
+                          {round !== 'FIN' && round !== '3RD' && round !== 'SF' && (
                               <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                           
-                          {/* 2. Line from the LEFT (Connects from prev round) */}
-                          {/* Hide for R16 (start) & 3rd Place (detached visually) */}
-                          {round !== 'R16' && round !== '3RD' && round !== 'R32' && (
+                          {/* 2. LEFT LINE (Connects from prev round) 
+                              Hide for:
+                              - R32 (Start)
+                              - 3RD (Detached)
+                              - FIN (Detached visually because 3RD is in the way)
+                              - R16 (Only if R32 doesn't exist, but here we assume flow is contiguous)
+                          */}
+                          {round !== 'R32' && round !== '3RD' && round !== 'FIN' && (
                               <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                       </div>
