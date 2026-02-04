@@ -168,8 +168,8 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   onTeamClick
 }) => {
   // 1. CALCULATE "GAME TODAY" (Date of next match)
+  // This ensures the dashboard opens on a relevant date
   const defaultDate = useMemo(() => {
-      // We look at the OFFICIAL matches state (which App.tsx updates during Time Travel)
       const upcoming = matches
           .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -181,7 +181,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const [filterDate, setFilterDate] = useState<string>(defaultDate);
 
-  // CRITICAL: Sync state if defaultDate changes (e.g. Data Loaded OR Time Travel)
+  // Sync state if defaultDate changes (e.g. data loaded or Time Travel used)
   useEffect(() => {
      setFilterDate(defaultDate);
   }, [defaultDate]);
@@ -192,7 +192,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
-  // USE THE SIMULATION HOOK
+  // USE THE NEW HOOK
   const { 
       simulation, 
       updateSim, 
@@ -207,7 +207,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   const uniqueDates = useMemo(() => {
       const dates = new Set<string>();
       const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 3); // Show recent history too
+      cutoff.setDate(cutoff.getDate() - 3); 
 
       simulatedMatches.forEach(m => {
           if (m.date && m.date !== 'TBD') {
@@ -218,23 +218,21 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [simulatedMatches]);
 
-  // 2. FILTERED LIST FOR DISPLAY (User Selection)
+  // 2. FILTERED LIST FOR DISPLAY (Affected by User's Date Selection)
   const displayMatches = useMemo(() => {
       let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
       
       if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
       } else {
-          // If viewing ALL, still filter out very old stuff to keep it snappy
           const now = Date.now();
-          filtered = filtered.filter(m => new Date(m.date).getTime() > now - (86400000 * 3)); 
+          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
       }
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [simulatedMatches, filterDate]);
 
   // 3. INDEPENDENT LIST FOR AI ANALYST (Always Next Up)
-  // We use the raw 'matches' prop here to ensure the AI talks about the *Real* schedule
-  // even if the user is time-traveling.
+  // CRITICAL FIX: This ignores 'filterDate' so the AI always sees the future schedule
   const analysisMatches = useMemo(() => {
     return matches
         .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
@@ -260,7 +258,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
             <AIAnalystWidget 
                 currentUser={currentUser}
                 combinedStats={combinedStats}
-                nextMatches={analysisMatches} // <--- Pass independent next matches
+                nextMatches={analysisMatches} // <--- UPDATED: Uses the independent list
                 allPredictions={allPredictions}
                 lang={lang}
                 currentLang={currentLang}
