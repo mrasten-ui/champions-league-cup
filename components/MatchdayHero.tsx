@@ -11,7 +11,7 @@ interface MatchdayHeroProps {
   locale?: string;
   onTeamClick: (id: string) => void;
   allMatches?: Match[];
-  userPrediction?: Prediction; 
+  userPrediction?: Prediction;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -239,13 +239,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {!isHomeTBD && (
                     <div className="flex flex-col items-center">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[home.id] || home.name}</span>
-                        {/* Points Badge */}
                         {homeStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{homeStats.pts} PTS</span>}
                     </div>
                 )}
             </div>
 
-            {/* Scoreboard & User Pick */}
+            {/* Scoreboard */}
             <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
                 {match.homeScore !== null ? (
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
@@ -255,15 +254,6 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     </div>
                 ) : (
                     <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
-                )}
-                
-                {/* MOVED USER PREDICTION HERE (UPDATED STYLE) */}
-                {userPrediction && (
-                    <div className="mt-2 flex flex-col items-center animate-in zoom-in">
-                       <span className="text-[10px] font-bold text-yellow-400 bg-yellow-900/20 px-2 py-0.5 rounded border border-yellow-700/30">
-                            {lang.myPick || "Pick"}: {userPrediction.home} - {userPrediction.away}
-                       </span>
-                    </div>
                 )}
                 
                 {match.status === 'PEN' && (
@@ -290,14 +280,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {!isAwayTBD && (
                     <div className="flex flex-col items-center">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[away.id] || away.name}</span>
-                        {/* Points Badge */}
                         {awayStats && <span className="text-[10px] font-bold text-blue-300 bg-blue-900/40 px-2 py-0.5 rounded border border-blue-800/50">{awayStats.pts} PTS</span>}
                     </div>
                 )}
             </div>
         </div>
 
-        {/* Footer: Stadium (Prediction removed from here) */}
+        {/* Footer: Stadium & User Prediction */}
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
             {/* Left: Stadium */}
             <div className="flex items-center gap-2 w-1/3">
@@ -305,8 +294,14 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 <span className="truncate max-w-[120px]">{match.venue ? match.venue.split(',')[0] : 'Stadium TBD'}</span>
             </div>
 
-            {/* Center: Empty (Prediction moved up) */}
-            <div className="w-1/3 flex justify-center"></div>
+            {/* Center: Prediction (Moved back here, no pill) */}
+            <div className="w-1/3 flex justify-center">
+                {userPrediction && (
+                    <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
+                        {lang.myPick || "Pick"}: {userPrediction.home} - {userPrediction.away}
+                    </span>
+                )}
+            </div>
 
             {/* Right: Empty spacer */}
             <div className="w-1/3"></div>
