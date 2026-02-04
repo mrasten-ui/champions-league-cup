@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
-// KEEPING ORIGINAL SDK
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
-import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle, SignalHigh, WifiOff } from 'lucide-react';
 import { supabase } from '../../supabase';
 
 interface AIAnalystProps {
@@ -87,6 +86,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [audioError, setAudioError] = useState(false);
     const [displayedText, setDisplayedText] = useState(""); 
+    const [usingBackupModel, setUsingBackupModel] = useState(false);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const typewriterRef = useRef<any>(null);
@@ -211,10 +211,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
     const togglePlay = () => setIsPlaying(!isPlaying);
 
-    // --- MAIN LOGIC (WITH LOGGING) ---
+    // --- MAIN LOGIC ---
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
-        console.log(`[AI Widget] Starting generation. Mode: ${targetMode}`);
-        
         setLoading(true);
         setMode(targetMode);
         setScript(null);
@@ -223,22 +221,18 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setDisplayedText("");
         setIsPlaying(false);
         setAudioError(false);
+        setUsingBackupModel(false);
         
         try {
-            // LOGGING API KEY SOURCE
-            // We verify if we are in Vite (import.meta.env) or have a fallback
             const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
             const hostKey = HOST_KEYS[0];
             const apiKey = viteKey || hostKey;
             
-            console.log(`[AI Widget] Key Source: ${viteKey ? 'Vite Env' : 'HOST_KEYS fallback'}`);
             if (!apiKey) {
                 console.error("[AI Widget] CRITICAL: No API Key found.");
                 throw new Error("No API Key");
             }
             
-            // LOGGING SDK INIT
-            console.log("[AI Widget] Initializing GoogleGenAI...");
             const ai = new GoogleGenAI({ apiKey });
 
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
@@ -250,31 +244,17 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const nextMatch = sortedMatches.find(m => m.status === 'UPCOMING');
 
             if (!nextMatch) {
-                console.log("[AI Widget] No upcoming matches found.");
                 setAnalysis(t.noGamesCoach);
-                // Fallback Pundit
-                const fallbackScript = [
-                    { speaker: "Host", text: `Welcome back, ${cleanName}. The schedule is completely clear.` },
-                    { speaker: "Pundit", text: "Nothing to talk about? That's a first for me!" },
-                    { speaker: "Host", text: "We'll be back when the new season starts." }
-                ];
-                try {
-                    const audioFallback = await generateAudioForScript(fallbackScript);
-                    setScript(audioFallback);
-                } catch(e) { setScript(fallbackScript); }
                 setLoading(false);
-                if (targetMode === 'roast') setIsPlaying(true);
                 return;
             }
 
             const match = nextMatch;
-            console.log(`[AI Widget] Analyzing Match: ${match.homeTeamId} vs ${match.awayTeamId}`);
             
             const hTeam = teams[match.homeTeamId];
             const aTeam = teams[match.awayTeamId];
 
             if (!hTeam || !aTeam) {
-                console.warn("[AI Widget] Missing Team Data.");
                 setAnalysis("Syncing data...");
                 setLoading(false);
                 return;
@@ -310,8 +290,36 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 }
             }
 
-            console.log("[AI Widget] Sending Prompt to Gemini...");
-            
+            // --- HELPER TO CALL API WITH RETRY ---
+            const callModelWithFallback = async (promptText: string) => {
+                const primaryModel = 'gemini-2.0-flash';
+                const backupModel = 'gemini-1.5-flash';
+                
+                try {
+                    console.log(`[AI Widget] Attempting primary model: ${primaryModel}`);
+                    const res = await ai.models.generateContent({ 
+                        model: primaryModel, 
+                        contents: [{ role: 'user', parts: [{ text: promptText }] }] 
+                    });
+                    // @ts-ignore
+                    return typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                } catch (err: any) {
+                    // Check for Quota (429) or Overloaded (503) errors
+                    if (err.status === 429 || err.code === 429 || (err.message && err.message.includes("429"))) {
+                        console.warn(`[AI Widget] Primary model exhausted (429). Switching to backup: ${backupModel}`);
+                        setUsingBackupModel(true);
+                        
+                        const res = await ai.models.generateContent({ 
+                            model: backupModel, 
+                            contents: [{ role: 'user', parts: [{ text: promptText }] }] 
+                        });
+                        // @ts-ignore
+                        return typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                    }
+                    throw err; // Re-throw other errors
+                }
+            };
+
             if (targetMode === 'coach') {
                 const prompt = `
                     Generate "Coach Report".
@@ -321,24 +329,9 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Output: Plain text only. Max 80 words.
                 `;
                 
-                // LOGGING MODEL CALL
-                try {
-                    // KEEPING GEMINI-2.0-FLASH as originally requested
-                    const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-                    
-                    console.log("[AI Widget] Response received.");
-                    // @ts-ignore
-                    const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
-                    setAnalysis(text);
-                    setLoading(false);
-                } catch (apiError: any) {
-                    console.error("----- GEMINI API ERROR (Coach) -----");
-                    console.error("Status:", apiError.status);
-                    console.error("StatusText:", apiError.statusText);
-                    console.error("Message:", apiError.message);
-                    console.error("Full Error:", apiError);
-                    throw apiError; // Re-throw to hit main catch
-                }
+                const text = await callModelWithFallback(prompt);
+                setAnalysis(text);
+                setLoading(false);
 
             } else {
                 const prompt = `
@@ -348,35 +341,25 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Output: JSON Array only: [{"speaker": "Name", "text": "..."}]
                 `;
                 
-                try {
-                    const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-                    // @ts-ignore
-                    const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
-                    
-                    const parsed = extractJson(text);
-                    if (parsed) {
-                        const audioScript = await generateAudioForScript(parsed);
-                        setScript(audioScript);
-                        setLoading(false);
-                        setIsPlaying(true);
-                    } else {
-                        throw new Error("Failed to parse script");
-                    }
-                } catch (apiError: any) {
-                    console.error("----- GEMINI API ERROR (Roast) -----");
-                    console.error("Message:", apiError.message);
-                    console.error("Full Error:", apiError);
-                    throw apiError;
+                const text = await callModelWithFallback(prompt);
+                const parsed = extractJson(text);
+                if (parsed) {
+                    const audioScript = await generateAudioForScript(parsed);
+                    setScript(audioScript);
+                    setLoading(false);
+                    setIsPlaying(true);
+                } else {
+                    throw new Error("Failed to parse script");
                 }
             }
 
         } catch (e: any) {
-            console.error("----- FINAL WIDGET CATCH BLOCK -----");
+            console.error("----- FINAL WIDGET ERROR -----");
             console.error(e);
             
             // Show error in UI
-            setAnalysis(`Signal lost. Error logged to console: ${e.message || String(e)}`);
-            setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio. Please check the console logs." }]);
+            setAnalysis(`Service unavailable (${e.status || 'Error'}). Check console.`);
+            setScript([{ speaker: "Host", text: "Technical difficulties in the studio." }]);
             setLoading(false);
         }
     };
@@ -401,6 +384,12 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     <span className={`text-xs font-black uppercase tracking-widest ${mode === 'roast' ? 'text-orange-200' : 'text-indigo-200'}`}>
                         {mode === 'roast' ? t.roastTitle : t.coachTitle}
                     </span>
+                    {usingBackupModel && (
+                        <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-0.5 rounded text-[9px] text-yellow-300 font-bold uppercase tracking-wider border border-yellow-500/30">
+                            <WifiOff size={10} />
+                            <span>Backup Link</span>
+                        </div>
+                    )}
                 </div>
                 {mode === 'roast' && script && (
                     <div className="flex items-center gap-2">
@@ -425,7 +414,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                         <div className="h-2 bg-white/10 rounded w-1/2 mx-auto"></div>
                     </div>
                 ) : mode === 'coach' ? (
-                    <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">{analysis}</p>
+                    <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line animate-in fade-in duration-500">{analysis}</p>
                 ) : (
                     <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                         {!script && <div className="text-center text-white/50 text-xs">Microphone check...</div>}
