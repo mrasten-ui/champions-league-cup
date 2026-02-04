@@ -8,19 +8,31 @@ interface KnockoutTreeViewProps {
   userPredictions: Prediction[];
   onUpdate: (id: string, h: number, a: number) => void;
   lang: Translation;
-  highlightedMatchId?: string | null; // NEW PROP: Trigger the yellow flash
+  highlightedMatchId?: string | null; // Trigger the yellow flash
 }
 
 export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({ 
   matches, teams, userPredictions, onUpdate, lang, highlightedMatchId 
 }) => {
   
-  const rounds = ['R16', 'QF', 'SF', 'FIN'];
+  // 1. UPDATED ORDER: 3RD before FIN
+  const rounds = ['R16', 'QF', 'SF', '3RD', 'FIN'];
+  
+  // 2. HELPER: Full Round Names
+  const getRoundTitle = (round: string) => {
+      const map: Record<string, string> = {
+          'R16': lang.roundOf16 || 'Round of 16',
+          'QF': lang.quarterFinal || 'Quarter Final',
+          'SF': lang.semiFinal || 'Semi Final',
+          '3RD': lang.thirdPlace || '3rd Place',
+          'FIN': lang.final || 'Final'
+      };
+      return map[round] || round;
+  };
   
   // Render a specific round column
-  const renderRound = (round: string, count: number) => {
+  const renderRound = (round: string) => {
       // Get matches for this round, sorted by ID order (e.g. R16_1, R16_2...)
-      // This sorting is critical for the tree lines to line up visually
       const roundMatches = matches
           .filter(m => m.round === round)
           .sort((a, b) => {
@@ -29,11 +41,14 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
               return numA - numB;
           });
 
+      // If specific round has no matches (e.g. 3rd place not yet determined), don't render column
+      if (roundMatches.length === 0) return null;
+
       return (
-          <div className="flex flex-col justify-around gap-4 min-w-[20rem] px-2">
-              {/* Sticky Header for the Round Name */}
-              <h3 className="text-center text-xs font-black uppercase text-slate-400 tracking-widest mb-4 sticky top-0 bg-slate-50 py-2 z-10 border-b border-slate-200">
-                  {round === 'FIN' ? (lang.final || 'Final') : round}
+          <div key={round} className="flex flex-col justify-around gap-4 min-w-[20rem] px-2">
+              {/* Sticky Header with Full Name */}
+              <h3 className="text-center text-xs font-black uppercase text-slate-400 tracking-widest mb-4 sticky top-0 bg-slate-50 py-2 z-10 border-b border-slate-200 shadow-sm">
+                  {getRoundTitle(round)}
               </h3>
               
               {roundMatches.map(match => {
@@ -46,7 +61,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                   return (
                       <div 
                         key={match.id} 
-                        id={`bracket-match-${match.id}`} // CRITICAL: Used by App.tsx to scroll to this element
+                        id={`bracket-match-${match.id}`} // Used for auto-scroll
                         className={`
                             relative transition-all duration-1000 ease-in-out
                             ${isHighlighted 
@@ -70,16 +85,17 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                               allPredictions={userPredictions}
                               phase="LIVE"
                               isAdminMode={false}
-                              showStatusBadge={false} // Keep bracket clean without countdown badges
+                              showStatusBadge={false} 
                           />
                           
-                          {/* Visual Connector Logic (Optional visual lines) */}
-                          {/* Horizontal line to the right (except Final) */}
-                          {round !== 'FIN' && (
+                          {/* Visual Connector Lines */}
+                          {/* 1. Line to the RIGHT (Connects to next round) - Hide for Final & 3rd Place */}
+                          {round !== 'FIN' && round !== '3RD' && (
                               <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
-                          {/* Horizontal line from the left (except R16) */}
-                          {round !== 'R16' && (
+                          
+                          {/* 2. Line from the LEFT (Connects from prev round) - Hide for R16 & 3rd Place (since 3rd place is detached in this view) */}
+                          {round !== 'R16' && round !== '3RD' && (
                               <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                       </div>
@@ -92,10 +108,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   return (
     <div className="overflow-x-auto pb-12 pt-4 hide-scrollbar cursor-grab active:cursor-grabbing snap-x">
         <div className="flex gap-8 px-4 min-w-max">
-            {renderRound('R16', 8)}
-            {renderRound('QF', 4)}
-            {renderRound('SF', 2)}
-            {renderRound('FIN', 1)}
+            {rounds.map(round => renderRound(round))}
         </div>
     </div>
   );
