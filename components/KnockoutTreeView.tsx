@@ -95,7 +95,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                           )}
                           
                           {/* 2. Line from the LEFT (Connects from prev round) - Hide for R16 & 3rd Place (since 3rd place is detached in this view) */}
-                          {round !== 'R16' && round !== '3RD' && (
+                          {round !== 'R16' && round !== '3RD' && round !== 'FIN' && (
                               <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                       </div>
