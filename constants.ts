@@ -126,6 +126,15 @@ const EN_TRANSLATION: Translation = {
     firstMeeting: "First Ever Meeting!", firstMeetingDesc: "We couldn't find any previous competitive matches between these two. History starts now!",
     showingLast5: "Showing last 5 of {0} meetings", noHistory: "No recorded history found.", loadingHistory: "Loading history...",
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on",
+    
+    // --- ROUND NAMES ---
+    roundOf32: "Round of 32",
+    roundOf16: "Round of 16",
+    quarterFinal: "Quarter Final",
+    semiFinal: "Semi Final",
+    thirdPlace: "3rd Place Play-off",
+    final: "Final",
+
     teamNames: BASE_TEAM_NAMES, teamOverviews: {}
 };
 
@@ -188,6 +197,14 @@ const SCO_TRANSLATION: Translation = {
     teamCol: "Team", grpCol: "Grp", headToHead: "The Square Go", wins: "Wins", draws: "Draws", totalMeetings: "rammies",
     firstMeeting: "First Ever Square Go!", firstMeetingDesc: "Never focht afore. This is history!", showingLast5: "Last 5 of {0} scraps",
     noHistory: "No history found.", loadingHistory: "Diggin' it up...", myPickShort: "Pick", watchOn: "Watch on",
+
+    // --- ROUND NAMES ---
+    roundOf32: "Roond o' 32",
+    roundOf16: "Roond o' 16",
+    quarterFinal: "Quarter Final",
+    semiFinal: "Semi Final",
+    thirdPlace: "3rd Place Play-off",
+    final: "The Big Yin"
 };
 
 const US_TRANSLATION: Translation = {
@@ -249,6 +266,14 @@ const US_TRANSLATION: Translation = {
     nextRound: "Next", prevRound: "Prev", lockedBracketTitle: "Bracket Locked", lockedBracketDesc: "Finish your regular season picks first.",
     allGroupTables: "All Standings", bestThirdPlace: "Wild Card Race", top8Advance: "Top 8 Advance", eliminationLine: "Eliminated",
     teamCol: "Team", grpCol: "Grp", myPickShort: "Pick", watchOn: "Watch on",
+
+    // --- ROUND NAMES ---
+    roundOf32: "Round of 32",
+    roundOf16: "Round of 16",
+    quarterFinal: "Quarterfinals",
+    semiFinal: "Semifinals",
+    thirdPlace: "Bronze Medal Match",
+    final: "Championship",
 };
 
 const NO_TRANSLATION: Translation = {
@@ -314,6 +339,14 @@ const NO_TRANSLATION: Translation = {
     firstMeetingDesc: "Vi fant ingen tidligere kamper mellom disse lagene. Historien starter nå!", showingLast5: "Viser siste 5 av {0} møter",
     noHistory: "Ingen historikk funnet.", loadingHistory: "Laster historikk...", days: "Dager", hours: "Timer", minutes: "Min", seconds: "Sek",
     myPickShort: "Tips", watchOn: "Se på",
+
+    // --- ROUND NAMES ---
+    roundOf32: "16-delsfinale",
+    roundOf16: "8-delsfinale",
+    quarterFinal: "Kvartfinale",
+    semiFinal: "Semifinale",
+    thirdPlace: "Bronsefinale",
+    final: "Finale",
 };
 
 // --- DATA EXPORTS ---
@@ -396,20 +429,20 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
 
 export const TEAMS: Record<string, Team> = {};
 Object.keys(BASE_TEAM_NAMES).forEach(id => {
-    const stats = TEAM_STATS[id] || { rank: 50, att: 75, mid: 75, def: 75 };
-    TEAMS[id] = {
-        id,
-        name: BASE_TEAM_NAMES[id],
-        flag: FLAG_MAP[id] ? `https://flagcdn.com/w320/${FLAG_MAP[id]}.png` : '',
-        rank: stats.rank,
-        rating: Math.round((stats.att + stats.mid + stats.def) / 3),
-        att: stats.att,
-        mid: stats.mid,
-        def: stats.def,
-        overview: "Team overview unavailable.",
-        starPlayer: "Star Player",
-        form: ['D', 'D', 'D', 'D', 'D']
-    };
+  const stats = TEAM_STATS[id] || { rank: 50, att: 75, mid: 75, def: 75 };
+  TEAMS[id] = {
+    id,
+    name: BASE_TEAM_NAMES[id],
+    flag: FLAG_MAP[id] ? `https://flagcdn.com/w320/${FLAG_MAP[id]}.png` : '',
+    rank: stats.rank,
+    rating: Math.round((stats.att + stats.mid + stats.def) / 3),
+    att: stats.att,
+    mid: stats.mid,
+    def: stats.def,
+    overview: "Team overview unavailable.",
+    starPlayer: "Star Player",
+    form: ['D', 'D', 'D', 'D', 'D']
+  };
 });
 
 // --- UPDATED GROUPS WITH REALISTIC TEAMS ---
@@ -441,45 +474,45 @@ let matchCounter = 0;
 
 // Generate Group Matches
 GROUP_CONFIG.forEach(group => {
-    const [t1, t2, t3, t4] = group.teams;
-    // Round 1
-    INITIAL_MATCHES.push({ id: `${group.id}1`, groupId: group.id, homeTeamId: t1, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-    INITIAL_MATCHES.push({ id: `${group.id}2`, groupId: group.id, homeTeamId: t3, awayTeamId: t4, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-    // Round 2
-    INITIAL_MATCHES.push({ id: `${group.id}3`, groupId: group.id, homeTeamId: t1, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-    INITIAL_MATCHES.push({ id: `${group.id}4`, groupId: group.id, homeTeamId: t4, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-    // Round 3
-    INITIAL_MATCHES.push({ id: `${group.id}5`, groupId: group.id, homeTeamId: t4, awayTeamId: t1, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-    INITIAL_MATCHES.push({ id: `${group.id}6`, groupId: group.id, homeTeamId: t2, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  const [t1, t2, t3, t4] = group.teams;
+  // Round 1
+  INITIAL_MATCHES.push({ id: `${group.id}1`, groupId: group.id, homeTeamId: t1, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  INITIAL_MATCHES.push({ id: `${group.id}2`, groupId: group.id, homeTeamId: t3, awayTeamId: t4, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  // Round 2
+  INITIAL_MATCHES.push({ id: `${group.id}3`, groupId: group.id, homeTeamId: t1, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  INITIAL_MATCHES.push({ id: `${group.id}4`, groupId: group.id, homeTeamId: t4, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  // Round 3
+  INITIAL_MATCHES.push({ id: `${group.id}5`, groupId: group.id, homeTeamId: t4, awayTeamId: t1, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
+  INITIAL_MATCHES.push({ id: `${group.id}6`, groupId: group.id, homeTeamId: t2, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
 });
 
 // Generate Knockout placeholders
 const rounds = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
 const counts = [16, 8, 4, 2, 1, 1];
 rounds.forEach((round, idx) => {
-    const count = counts[idx];
-    for(let i=1; i<=count; i++) {
-        let nextMatchId: string | undefined = undefined;
-        if (round === 'R32') nextMatchId = `R16_${Math.ceil(i/2)}`;
-        else if (round === 'R16') nextMatchId = `QF_${Math.ceil(i/2)}`;
-        else if (round === 'QF') nextMatchId = `SF_${Math.ceil(i/2)}`;
-        else if (round === 'SF') nextMatchId = `FIN_1`;
+  const count = counts[idx];
+  for(let i=1; i<=count; i++) {
+    let nextMatchId: string | undefined = undefined;
+    if (round === 'R32') nextMatchId = `R16_${Math.ceil(i/2)}`;
+    else if (round === 'R16') nextMatchId = `QF_${Math.ceil(i/2)}`;
+    else if (round === 'QF') nextMatchId = `SF_${Math.ceil(i/2)}`;
+    else if (round === 'SF') nextMatchId = `FIN_1`;
 
-        INITIAL_MATCHES.push({
-            id: `${round}_${i}`,
-            round: round as any,
-            homeTeamId: 'TBD',
-            awayTeamId: 'TBD',
-            homeScore: null,
-            awayScore: null,
-            date: 'TBD',
-            venue: 'TBD',
-            status: 'UPCOMING',
-            isLocked: false,
-            nextMatchId: nextMatchId,
-            channels: assignChannels(matchCounter++)
-        });
-    }
+    INITIAL_MATCHES.push({
+      id: `${round}_${i}`,
+      round: round as any,
+      homeTeamId: 'TBD',
+      awayTeamId: 'TBD',
+      homeScore: null,
+      awayScore: null,
+      date: 'TBD',
+      venue: 'TBD',
+      status: 'UPCOMING',
+      isLocked: false,
+      nextMatchId: nextMatchId,
+      channels: assignChannels(matchCounter++)
+    });
+  }
 });
 
 export const MOCK_PREDICTIONS: Prediction[] = [];
