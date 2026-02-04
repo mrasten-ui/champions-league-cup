@@ -11,7 +11,7 @@ interface MatchdayHeroProps {
   locale?: string;
   onTeamClick: (id: string) => void;
   allMatches?: Match[];
-  userPrediction?: Prediction; // New Prop
+  userPrediction?: Prediction;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT (Unchanged) ---
@@ -142,10 +142,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               </span>
           );
       }
+      
+      // UPDATED TIME FORMATTING
       return (
           <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
               <Clock size={12} />
-              {new Date(match.date).toLocaleTimeString(locale, {hour: '2-digit', minute:'2-digit'})}
+              {new Date(match.date).toLocaleTimeString(locale, { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: false, // Force 24h
+                  timeZoneName: 'short' // Add Timezone (e.g. GMT)
+              })}
           </span>
       );
   };

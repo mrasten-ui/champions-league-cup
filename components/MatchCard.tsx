@@ -227,7 +227,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
-        return <div className="flex items-center gap-1.5 text-slate-300"><Clock size={12} /><span className="text-[10px] font-bold">{new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span></div>;
+        
+        // UPDATED TIME FORMATTING
+        return (
+            <div className="flex items-center gap-1.5 text-slate-300">
+                <Clock size={12} />
+                <span className="text-[10px] font-bold">
+                    {new Date(match.date).toLocaleTimeString(locale, { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short'
+                    })}
+                </span>
+            </div>
+        );
     };
 
     const renderControlButtons = () => {
