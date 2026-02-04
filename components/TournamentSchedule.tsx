@@ -26,6 +26,14 @@ const LANG_TEAM_MAP: Record<string, string> = {
     'EN': 'England' 
 };
 
+// LOCALE MAPPING: Ensure correct time formatting (24h vs 12h)
+const LOCALE_MAP: Record<string, string> = {
+    'EN': 'en-GB', // Force UK time (24h + BST)
+    'SCO': 'en-GB',
+    'NO': 'no-NO', // Norway (24h + CET)
+    'US': 'en-US'  // US (12h - but we override to 24h via options)
+};
+
 // OTHER SUPPORTED TEAMS (Priority Tier 2)
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
@@ -33,6 +41,9 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket 
 }) => {
   
+  // Get the correct BCP 47 locale string
+  const activeLocale = LOCALE_MAP[currentLang] || 'en-GB';
+
   // 1. SMART DEFAULT: Check if today has matches. 
   // If NOT, find the next available day with matches.
   const [filterDate, setFilterDate] = useState<string>(() => {
@@ -80,7 +91,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
 
-  // 4. "MATCH OF THE DAY" SELECTION LOGIC (Updated1)
+  // 4. "MATCH OF THE DAY" SELECTION LOGIC
   const heroMatch = useMemo(() => {
     if (searchTerm) return null;
 
@@ -117,7 +128,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     const myMatch = candidatePool.find(m => m.homeTeamId === myTeamId || m.awayTeamId === myTeamId);
     if (myMatch) return myMatch;
 
-    // 2. Priority Nations (Norway, Scotland, USA, England)
+    // 2. Priority Nations
     const priorityMatch = candidatePool.find(m => 
         PRIORITY_TEAMS.includes(m.homeTeamId) || PRIORITY_TEAMS.includes(m.awayTeamId)
     );
@@ -131,7 +142,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     });
     if (top10Match) return top10Match;
 
-    // 4. Biggest Clash (Lowest Combined Rank)
+    // 4. Biggest Clash
     const sortedByRank = [...candidatePool].sort((a, b) => {
         const rankA = (teams[a.homeTeamId]?.rank || 50) + (teams[a.awayTeamId]?.rank || 50);
         const rankB = (teams[b.homeTeamId]?.rank || 50) + (teams[b.awayTeamId]?.rank || 50);
@@ -160,7 +171,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       if (dateObj.toDateString() === tomorrow.toDateString()) return lang.tomorrow || "Tomorrow";
       if (dateObj.toDateString() === yesterday.toDateString()) return lang.yesterday || "Yesterday";
 
-      return dateObj.toLocaleDateString(currentLang === 'NO' ? 'no-NO' : 'en-GB', { 
+      return dateObj.toLocaleDateString(activeLocale, { 
           weekday: 'long', month: 'long', day: 'numeric' 
       });
   };
@@ -224,10 +235,10 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     teams={teams} 
                     groupStandings={heroStandings} 
                     lang={lang}
-                    locale={currentLang}
+                    locale={activeLocale} // Pass the mapped locale
                     allMatches={matches}
                     onTeamClick={createClickHandler(heroMatch)}
-                    userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)} // Pass prediction
+                    userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
                 />
             )}
 
@@ -248,13 +259,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     awayTeam={teams[match.awayTeamId]}
                                     onUpdate={() => {}} 
                                     lang={lang}
-                                    locale={currentLang}
+                                    locale={activeLocale} // Pass the mapped locale
                                     userTokens={0}
                                     rivals={[]}
                                     onSpy={() => {}}
                                     revealedRivals={[]}
                                     currentUser={user}
-                                    allPredictions={userPredictions} // Pass userPredictions here!
+                                    allPredictions={userPredictions}
                                     phase={'LIVE'}
                                     isAdminMode={false}
                                     onTeamClick={createClickHandler(match)} 

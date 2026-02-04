@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, Brain } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers'; 
@@ -228,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
         
-        // UPDATED TIME FORMATTING
+        // 24H Format
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
@@ -271,7 +271,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
-             {/* HEADER WITH CONTEXT-AWARE LOGIC */}
+             {/* HEADER */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
@@ -337,7 +337,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-4 py-2 rounded-xl font-mono text-2xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2"><span>-</span><span className="opacity-50 text-lg mx-1">:</span><span>-</span></div>
-                                             {prediction && <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{prediction.home}-{prediction.away}</div>}
+                                             {/* REMOVED PREDICTION PILL FROM HERE AS REQUESTED */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
@@ -383,11 +383,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
                     
-                    {/* CENTER: User Prediction */}
+                    {/* CENTER: User Prediction (Brain icon removed) */}
                     <div className="w-1/3 flex justify-center">
                         {prediction && (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
-                                <Brain size={10} className="text-yellow-400" />
                                 <span className="text-[9px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">{prediction.home} - {prediction.away}</span>
                             </div>

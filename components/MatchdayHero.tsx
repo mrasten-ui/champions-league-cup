@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction } from '../types';
-import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain } from 'lucide-react';
+import { Activity, Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
 interface MatchdayHeroProps {
@@ -14,7 +14,7 @@ interface MatchdayHeroProps {
   userPrediction?: Prediction;
 }
 
-// --- SUB-COMPONENT: HERO TBD SLOT (Unchanged) ---
+// --- SUB-COMPONENT: HERO TBD SLOT ---
 const TbdHeroSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -143,15 +143,15 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           );
       }
       
-      // UPDATED TIME FORMATTING
+      // 24h + Timezone
       return (
           <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
               <Clock size={12} />
               {new Date(match.date).toLocaleTimeString(locale, { 
                   hour: '2-digit', 
                   minute: '2-digit',
-                  hour12: false, // Force 24h
-                  timeZoneName: 'short' // Add Timezone (e.g. GMT)
+                  hour12: false,
+                  timeZoneName: 'short'
               })}
           </span>
       );
@@ -240,7 +240,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Scoreboard */}
+            {/* Scoreboard & User Pick */}
             <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
                 {match.homeScore !== null ? (
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
@@ -250,6 +250,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     </div>
                 ) : (
                     <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
+                )}
+                
+                {/* MOVED USER PREDICTION HERE */}
+                {userPrediction && (
+                    <div className="mt-2 flex flex-col items-center animate-in zoom-in">
+                        <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{lang.myPick || "MY PICK"}</span>
+                        <span className="text-xl font-black text-yellow-400 tracking-widest leading-none mt-0.5 filter drop-shadow-sm">
+                            {userPrediction.home} - {userPrediction.away}
+                        </span>
+                    </div>
                 )}
                 
                 {match.status === 'PEN' && (
@@ -282,7 +292,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             </div>
         </div>
 
-        {/* Footer: Stadium & User Prediction */}
+        {/* Footer: Stadium (Prediction removed from here) */}
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
             {/* Left: Stadium */}
             <div className="flex items-center gap-2 w-1/3">
@@ -290,18 +300,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 <span className="truncate max-w-[120px]">{match.venue ? match.venue.split(',')[0] : 'Stadium TBD'}</span>
             </div>
 
-            {/* Center: Prediction */}
-            <div className="w-1/3 flex justify-center">
-                {userPrediction && (
-                    <div className="flex items-center gap-1.5 text-white bg-white/10 px-3 py-1 rounded-full border border-white/10 shadow-sm animate-in zoom-in">
-                        <Brain size={12} className="text-yellow-400" />
-                        <span className="font-medium text-white/70 mr-1">{lang.myPick || "My Pick"}:</span>
-                        <span className="font-black text-yellow-400">{userPrediction.home} - {userPrediction.away}</span>
-                    </div>
-                )}
-            </div>
+            {/* Center: Empty (Prediction moved up) */}
+            <div className="w-1/3 flex justify-center"></div>
 
-            {/* Right: Empty spacer to balance layout */}
+            {/* Right: Empty spacer */}
             <div className="w-1/3"></div>
         </div>
       </div>
