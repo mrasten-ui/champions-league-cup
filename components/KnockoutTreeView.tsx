@@ -15,12 +15,13 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   matches, teams, userPredictions, onUpdate, lang, highlightedMatchId 
 }) => {
   
-  // 1. UPDATED ORDER: 3RD before FIN
+  // 1. ORDER: R16 -> QF -> SF -> 3RD -> FIN
   const rounds = ['R16', 'QF', 'SF', '3RD', 'FIN'];
   
-  // 2. HELPER: Full Round Names
+  // 2. HELPER: Translate Codes to Full Names
   const getRoundTitle = (round: string) => {
       const map: Record<string, string> = {
+          'R32': lang.roundOf32 || 'Round of 32',
           'R16': lang.roundOf16 || 'Round of 16',
           'QF': lang.quarterFinal || 'Quarter Final',
           'SF': lang.semiFinal || 'Semi Final',
@@ -33,6 +34,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   // Render a specific round column
   const renderRound = (round: string) => {
       // Get matches for this round, sorted by ID order (e.g. R16_1, R16_2...)
+      // This sorting is critical for the visual tree lines
       const roundMatches = matches
           .filter(m => m.round === round)
           .sort((a, b) => {
@@ -41,7 +43,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
               return numA - numB;
           });
 
-      // If specific round has no matches (e.g. 3rd place not yet determined), don't render column
+      // If specific round has no matches yet, don't render empty column
       if (roundMatches.length === 0) return null;
 
       return (
@@ -89,13 +91,16 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                           />
                           
                           {/* Visual Connector Lines */}
-                          {/* 1. Line to the RIGHT (Connects to next round) - Hide for Final & 3rd Place */}
+                          
+                          {/* 1. Line to the RIGHT (Connects to next round) */}
+                          {/* Hide for Final & 3rd Place (they are endpoints) */}
                           {round !== 'FIN' && round !== '3RD' && (
                               <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                           
-                          {/* 2. Line from the LEFT (Connects from prev round) - Hide for R16 & 3rd Place (since 3rd place is detached in this view) */}
-                          {round !== 'R16' && round !== '3RD' && round !== 'FIN' && (
+                          {/* 2. Line from the LEFT (Connects from prev round) */}
+                          {/* Hide for R16 (start) & 3rd Place (detached visually) */}
+                          {round !== 'R16' && round !== '3RD' && round !== 'R32' && (
                               <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block" />
                           )}
                       </div>
