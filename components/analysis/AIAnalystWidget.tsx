@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
+// KEEPING ORIGINAL SDK
 import { GoogleGenAI } from "@google/genai";
 import { HOST_KEYS } from '../../constants';
 import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle } from 'lucide-react';
@@ -23,32 +24,10 @@ const PERSONAS: Record<string, any> = {
         roastButton: "Listen to Roast",
         coachButton: "Back to Coach",
         loading: "Reviewing game tape...",
-        error: "Connection lost. Try again later.",
+        error: "Connection lost. See Console.",
         noGamesCoach: "No confirmed fixtures yet. We are waiting for the bracket to populate.",
-        
-        // COACH
-        coachPrompt: `
-            ROLE: Fantasy League Manager & Tactician.
-            GOAL: Analyze the "Points Swing" for the user.
-            CONTEXT TO USE:
-            - RIVALS: Mention specific names of who is ahead (Target) and behind (Threat).
-            - RISK: Is the user's pick different from the pack? (Differential)
-            STRUCTURE:
-            1. THE SITUATION: "You are chasing [Name Ahead] but [Name Behind] is closing in."
-            2. THE PLAY: "You've backed [Team] to win. Most rivals went for [Other Team]."
-            3. THE OUTCOME: "If this hits, you climb. If it misses, you're in trouble."
-            TONE: Serious, competitive, focused on winning the league.
-        `,
-        
-        // PUNDIT
-        roastPrompt: `
-            ROLE: UK Sports Broadcast.
-            CHARACTERS: Sarah (Host, Posh) & Gaz (Pundit, Scouse).
-            RULES:
-            1. GAZ: Challenge the user by name. "What are you on about, [Name]?!"
-            2. GAZ: Reference the specific match. "There is NO WAY [Team A] beats [Team B]!"
-            3. SARAH: Sign-off MUST be: "Well, you heard it here first. Good luck, [Name]!"
-        `
+        coachPrompt: `ROLE: Fantasy League Manager. GOAL: Analyze the user's standing.`,
+        roastPrompt: `ROLE: UK Sports Pundit. GOAL: Roast the user's picks.`
     },
     'en-US': {
         coachTitle: "Coach's Intel",
@@ -58,13 +37,8 @@ const PERSONAS: Record<string, any> = {
         loading: "Crunching numbers...",
         error: "Server timeout...",
         noGamesCoach: "No active matchups. Waiting for the playoffs to fill.",
-        coachPrompt: "ROLE: Fantasy Coach. FOCUS: Beating the rivals. Use names. Explain the points swing.",
-        roastPrompt: `
-            ROLE: US Sports Radio. 
-            CHARACTERS: Jessica (Host) & Chuck (Shock Jock).
-            CHUCK: Challenge the user ("Are you kidding me, [Name]?"). 
-            JESSICA Sign-off: "You heard it here first. Good luck!"
-        `
+        coachPrompt: "ROLE: Fantasy Coach. FOCUS: Beating the rivals.",
+        roastPrompt: "ROLE: US Sports Radio. GOAL: Roast the user."
     },
     sco: {
         coachTitle: "The Gaffer",
@@ -74,13 +48,8 @@ const PERSONAS: Record<string, any> = {
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed...",
         noGamesCoach: "Nae games yet, lad. Waitin' on the draw.",
-        coachPrompt: "ROLE: The Gaffer. FOCUS: The League Table. Tell the lad who he needs to beat.",
-        roastPrompt: `
-            ROLE: Scottish Broadcast Team.
-            CHARACTERS: Shona (Host) & Rab (Pundit).
-            RAB: "Whit are ye on aboot, [Name]?"
-            SHONA Sign-off: "Ye heard it here first. Good luck!"
-        `
+        coachPrompt: "ROLE: The Gaffer. FOCUS: The League Table.",
+        roastPrompt: "ROLE: Scottish Broadcast Team. GOAL: Roast the lad."
     },
     no: {
         coachTitle: "Trenerens Rapport",
@@ -90,15 +59,8 @@ const PERSONAS: Record<string, any> = {
         loading: "Kobler til studio...",
         error: "Teknisk feil...",
         noGamesCoach: "Ingen kamper klare. Vi venter på at sluttspillet skal settes.",
-        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Tabellen. Nevn navn på rivalene. Forklar at tipset er nøkkelen.",
-        roastPrompt: `
-            ROLLE: Norsk TV-Studio.
-            KARAKTERER: Silje (Host) & Nils Arne (Pundit).
-            REGLER:
-            1. NILS ARNE: Må være entusiastisk. Nevn "Brasil i 98" eller "Godfoten".
-            2. UTFORDRING: "Hva er det du driver med, [Name]?!"
-            3. SIGNATUR: "Du hørte det her først. Lykke til!"
-        `
+        coachPrompt: "ROLLE: Fantasy-ekspert. FOKUS: Tabellen.",
+        roastPrompt: "ROLLE: Norsk TV-Studio. MÅL: Diskuter tipsene."
     }
 };
 
@@ -132,7 +94,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'coach' | 'roast'>('coach');
     
-    // Track the "Next Match ID" to trigger updates when time travels
     const nextMatchId = useMemo(() => {
         const upcoming = nextMatches
             .filter(m => m.status === 'UPCOMING')
@@ -152,7 +113,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         return name;
     };
 
-    // --- JSON PARSER ---
     const extractJson = (text: string) => {
         try {
             return JSON.parse(text);
@@ -168,10 +128,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         }
     };
 
-    // --- AUDIO GENERATION ---
     const generateAudioForScript = async (lines: ScriptLine[]): Promise<ScriptLine[]> => {
         const processedLines = [...lines];
-        
         const getSpeakerType = (name: string): string => {
             const lowerName = name.toLowerCase();
             if (['gaz', 'chuck', 'rab', 'nils arne', 'pundit'].includes(lowerName)) return 'Pundit';
@@ -190,7 +148,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 });
 
                 if (error) throw error;
-
                 if (data && data.audioContent) {
                     processedLines[i].audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
                 } 
@@ -203,7 +160,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         return processedLines;
     };
 
-    // --- PLAYBACK CONTROL ---
     useEffect(() => {
         if (!script || !isPlaying) return;
         const currentLine = script[currentLineIndex];
@@ -255,8 +211,10 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
     const togglePlay = () => setIsPlaying(!isPlaying);
 
-    // --- MAIN LOGIC ---
+    // --- MAIN LOGIC (WITH LOGGING) ---
     const generateInsight = async (targetMode: 'coach' | 'roast') => {
+        console.log(`[AI Widget] Starting generation. Mode: ${targetMode}`);
+        
         setLoading(true);
         setMode(targetMode);
         setScript(null);
@@ -267,13 +225,20 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         setAudioError(false);
         
         try {
-            // FIX: Use Vite env var if available, otherwise use host keys
-            // This prevents "process is not defined" errors in Vite
-            const envKey = import.meta.env?.VITE_GOOGLE_API_KEY; 
-            const apiKey = envKey || HOST_KEYS[Math.floor(Math.random() * HOST_KEYS.length)];
+            // LOGGING API KEY SOURCE
+            // We verify if we are in Vite (import.meta.env) or have a fallback
+            const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
+            const hostKey = HOST_KEYS[0];
+            const apiKey = viteKey || hostKey;
             
-            if (!apiKey) throw new Error("No API Key found");
-
+            console.log(`[AI Widget] Key Source: ${viteKey ? 'Vite Env' : 'HOST_KEYS fallback'}`);
+            if (!apiKey) {
+                console.error("[AI Widget] CRITICAL: No API Key found.");
+                throw new Error("No API Key");
+            }
+            
+            // LOGGING SDK INIT
+            console.log("[AI Widget] Initializing GoogleGenAI...");
             const ai = new GoogleGenAI({ apiKey });
 
             const myStat = combinedStats.find(s => s.user.email === currentUser.email);
@@ -281,56 +246,35 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const myScore = myStat?.score || 0;
             const cleanName = getFormattedName();
             
-            // --- MATCH FINDER ---
-            // 1. Sort by date
             const sortedMatches = [...nextMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            
-            // 2. Find ANY upcoming match
             const nextMatch = sortedMatches.find(m => m.status === 'UPCOMING');
 
-            // 3. Check for TBD
-            const isTBD = nextMatch && (nextMatch.homeTeamId === 'TBD' || nextMatch.awayTeamId === 'TBD');
-
-            // --- SCENARIO 1: NO MATCHES AT ALL (Season Over) ---
             if (!nextMatch) {
+                console.log("[AI Widget] No upcoming matches found.");
                 setAnalysis(t.noGamesCoach);
-                
                 // Fallback Pundit
                 const fallbackScript = [
                     { speaker: "Host", text: `Welcome back, ${cleanName}. The schedule is completely clear.` },
                     { speaker: "Pundit", text: "Nothing to talk about? That's a first for me!" },
                     { speaker: "Host", text: "We'll be back when the new season starts." }
                 ];
-                const audioFallback = await generateAudioForScript(fallbackScript);
-                setScript(audioFallback);
+                try {
+                    const audioFallback = await generateAudioForScript(fallbackScript);
+                    setScript(audioFallback);
+                } catch(e) { setScript(fallbackScript); }
                 setLoading(false);
                 if (targetMode === 'roast') setIsPlaying(true);
                 return;
             }
 
-            // --- SCENARIO 2: WAITING FOR KNOCKOUTS (TBD) ---
-            if (isTBD) {
-                setAnalysis("The bracket is taking shape. We are waiting for the teams to be confirmed.");
-                
-                // Fallback Pundit for TBD
-                const fallbackScript = [
-                    { speaker: "Host", text: "The next round is coming up, but we're still waiting for the teams to be confirmed." },
-                    { speaker: "Pundit", text: "Come on! Get the draw done! I need to know who we're smashing next!" },
-                    { speaker: "Host", text: "Patience, please. Check back once the bracket updates." }
-                ];
-                const audioFallback = await generateAudioForScript(fallbackScript);
-                setScript(audioFallback);
-                setLoading(false);
-                if (targetMode === 'roast') setIsPlaying(true);
-                return;
-            }
-
-            // --- SCENARIO 3: REAL MATCH FOUND ---
             const match = nextMatch;
+            console.log(`[AI Widget] Analyzing Match: ${match.homeTeamId} vs ${match.awayTeamId}`);
+            
             const hTeam = teams[match.homeTeamId];
             const aTeam = teams[match.awayTeamId];
 
             if (!hTeam || !aTeam) {
+                console.warn("[AI Widget] Missing Team Data.");
                 setAnalysis("Syncing data...");
                 setLoading(false);
                 return;
@@ -342,7 +286,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             let rivalStats = "No rival data";
             let leaderboardContext = "You are currently isolated.";
 
-            // Context Builders...
             const myIndex = combinedStats.findIndex(s => s.user.email === currentUser.email);
             if (myIndex !== -1) {
                 const rivalAhead = combinedStats[myIndex - 1]; 
@@ -357,7 +300,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
             const mp = allPredictions.find(p => p.userId === currentUser.email && p.matchId === match.id);
             if (mp && mp.home !== undefined) {
                 userScorePrediction = `${mp.home}-${mp.away}`;
-                // Rivals
                 const rivalPreds = allPredictions.filter(p => p.matchId === match.id && p.userId !== currentUser.email);
                 if (rivalPreds.length > 0) {
                     const h = rivalPreds.filter(p => p.home > p.away).length;
@@ -368,6 +310,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 }
             }
 
+            console.log("[AI Widget] Sending Prompt to Gemini...");
+            
             if (targetMode === 'coach') {
                 const prompt = `
                     Generate "Coach Report".
@@ -376,11 +320,26 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Instructions: ${t.coachPrompt}
                     Output: Plain text only. Max 80 words.
                 `;
-                const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-                // @ts-ignore
-                const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
-                setAnalysis(text);
-                setLoading(false);
+                
+                // LOGGING MODEL CALL
+                try {
+                    // KEEPING GEMINI-2.0-FLASH as originally requested
+                    const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+                    
+                    console.log("[AI Widget] Response received.");
+                    // @ts-ignore
+                    const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                    setAnalysis(text);
+                    setLoading(false);
+                } catch (apiError: any) {
+                    console.error("----- GEMINI API ERROR (Coach) -----");
+                    console.error("Status:", apiError.status);
+                    console.error("StatusText:", apiError.statusText);
+                    console.error("Message:", apiError.message);
+                    console.error("Full Error:", apiError);
+                    throw apiError; // Re-throw to hit main catch
+                }
+
             } else {
                 const prompt = `
                     Write TV Script.
@@ -388,32 +347,40 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     Instructions: ${t.roastPrompt}
                     Output: JSON Array only: [{"speaker": "Name", "text": "..."}]
                 `;
-                const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-                // @ts-ignore
-                const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
                 
-                const parsed = extractJson(text);
-                
-                if (parsed) {
-                    const audioScript = await generateAudioForScript(parsed);
-                    setScript(audioScript);
-                    setLoading(false);
-                    setIsPlaying(true);
-                } else {
-                    throw new Error("Failed to parse script");
+                try {
+                    const res = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+                    // @ts-ignore
+                    const text = typeof res.response.text === 'function' ? res.response.text() : res.response.text;
+                    
+                    const parsed = extractJson(text);
+                    if (parsed) {
+                        const audioScript = await generateAudioForScript(parsed);
+                        setScript(audioScript);
+                        setLoading(false);
+                        setIsPlaying(true);
+                    } else {
+                        throw new Error("Failed to parse script");
+                    }
+                } catch (apiError: any) {
+                    console.error("----- GEMINI API ERROR (Roast) -----");
+                    console.error("Message:", apiError.message);
+                    console.error("Full Error:", apiError);
+                    throw apiError;
                 }
             }
 
-        } catch (e) {
-            console.error("AI Widget Error:", e);
-            setAnalysis("Signal lost. (Check API Key)"); // More descriptive error
-            // Fallback script for error
-            setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio. Please try again." }]);
+        } catch (e: any) {
+            console.error("----- FINAL WIDGET CATCH BLOCK -----");
+            console.error(e);
+            
+            // Show error in UI
+            setAnalysis(`Signal lost. Error logged to console: ${e.message || String(e)}`);
+            setScript([{ speaker: "Host", text: "We are having trouble connecting to the studio. Please check the console logs." }]);
             setLoading(false);
         }
     };
 
-    // RE-FETCH TRIGGER: Runs when stats change OR the Next Match changes (Time Travel)
     useEffect(() => {
         if (combinedStats.length > 0 && Object.keys(teams).length > 0) {
             generateInsight('coach');
@@ -461,7 +428,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                     <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">{analysis}</p>
                 ) : (
                     <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                        {/* FALLBACK MESSAGE IF SCRIPT IS EMPTY BUT NOT LOADING */}
                         {!script && <div className="text-center text-white/50 text-xs">Microphone check...</div>}
                         
                         {script && script.map((line, idx) => {
