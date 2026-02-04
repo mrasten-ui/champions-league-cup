@@ -243,7 +243,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         };
 
         try {
-            // FIX: Access API Key via Vite Env or Fallback
             const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
             const hostKey = HOST_KEYS[0];
             const apiKey = viteKey || hostKey;
@@ -254,7 +253,6 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
                 return;
             }
             
-            // FIX: Initialize the correct Browser SDK
             const genAI = new GoogleGenerativeAI(apiKey);
 
             const sortedMatches = [...nextMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -308,33 +306,29 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
 
             // --- HELPER: CALL MODEL WITH DOUBLE FALLBACK ---
             const callModelWithFallback = async (promptText: string) => {
-                // 1. Try Fancy Model
-                try {
-                    console.log(`[AI Widget] Attempting primary: gemini-2.0-flash`);
-                    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+                const tryModel = async (modelName: string) => {
+                    console.log(`[AI Widget] Attempting model: ${modelName}`);
+                    const model = genAI.getGenerativeModel({ model: modelName });
                     const result = await model.generateContent(promptText);
-                    return result.response.text();
+                    const response = await result.response;
+                    return response.text();
+                };
+
+                try {
+                    // 1. Try Fancy Model
+                    return await tryModel('gemini-2.0-flash');
                 } catch (err: any) {
-                    const status = err.status || err.response?.status;
-                    if (status === 429 || status === 503 || (err.message && err.message.includes("429"))) {
-                        console.warn(`[AI Widget] Primary exhausted (${status}). Switching to backup: gemini-1.5-flash`);
-                        setUsingBackupModel(true);
-                        
+                    console.warn(`[AI Widget] Primary failed. Switching to backup.`);
+                    setUsingBackupModel(true);
+                    
+                    try {
                         // 2. Try Standard Model
-                        try {
-                            const backupModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                            const result = await backupModel.generateContent(promptText);
-                            return result.response.text();
-                        } catch (backupErr: any) {
-                             console.warn(`[AI Widget] Backup 1.5 failed. Switching to legacy: gemini-pro`);
-                             
-                             // 3. Try Legacy Model (Last Resort)
-                             const legacyModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-                             const result = await legacyModel.generateContent(promptText);
-                             return result.response.text();
-                        }
+                        return await tryModel('gemini-1.5-flash');
+                    } catch (backupErr: any) {
+                         console.warn(`[AI Widget] Backup failed. Switching to legacy.`);
+                         // 3. Try Legacy Model (Last Resort)
+                         return await tryModel('gemini-pro');
                     }
-                    throw err; // Re-throw if it's not a quota error
                 }
             };
 
