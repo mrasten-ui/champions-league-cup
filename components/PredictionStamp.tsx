@@ -77,10 +77,11 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       const bgClass = isFinal ? 'bg-[#0f2545] border-[#1a3a6c] shadow-lg' : 'bg-white';
       const borderClass = isFinal ? '' : 'border-slate-100';
       const textClass = isFinal ? 'text-blue-200' : 'text-slate-300';
+      const teamTextClass = isFinal ? 'text-blue-100' : 'text-slate-600';
 
       return (
         <div 
-            className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all h-32 w-full hover:shadow-md ${bgClass} ${borderClass}`}
+            className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all min-h-[9rem] w-full hover:shadow-md ${bgClass} ${borderClass}`}
         >
             {isFinal && <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] rounded-xl"></div>}
 
@@ -94,13 +95,30 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                 </div>
             )}
 
-            <div className="flex items-center justify-center gap-6 relative z-10 w-full">
-                <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(true)}`}>
-                    <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
+            <div className="flex items-start justify-center gap-2 relative z-10 w-full">
+                
+                {/* Home Team */}
+                <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(true)}`}>
+                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
+                        <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
+                    </div>
+                    <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
+                        {homeTeam.name}
+                    </span>
                 </div>
-                <span className={`text-xs font-black ${textClass}`}>VS</span>
-                <div className={`transition-all duration-300 rounded-lg overflow-hidden border-2 ${isFinal ? 'border-white/20' : 'border-slate-100'} ${getTeamOpacity(false)}`}>
-                    <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
+
+                <div className="flex flex-col items-center justify-center pt-3 w-1/5">
+                    <span className={`text-xs font-black ${textClass}`}>VS</span>
+                </div>
+
+                {/* Away Team */}
+                <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(false)}`}>
+                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
+                        <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
+                    </div>
+                    <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
+                        {awayTeam.name}
+                    </span>
                 </div>
             </div>
         </div>
@@ -117,21 +135,38 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
   }
 
   return (
-    <div className={`relative flex flex-col items-center justify-between p-3 rounded-xl border-2 transition-all ${standardStatusColor} h-32 w-full hover:shadow-md`}>
+    <div className={`relative flex flex-col items-center justify-between p-3 rounded-xl border-2 transition-all ${standardStatusColor} min-h-[9rem] w-full hover:shadow-md`}>
       
-      {/* HEADER: Updated to use cleaner component */}
+      {/* HEADER */}
       <div className="h-6 flex items-center justify-center w-full border-b border-slate-100/50 pb-1 mb-1">
           {getStatusContent()}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center w-full gap-2">
-          <div className="flex items-center gap-3 w-full justify-center">
-              <img src={homeTeam.flag} className="w-8 h-6 object-cover rounded shadow-sm border border-slate-100" alt={homeTeam.name} />
-              <span className="text-[10px] font-black text-slate-300">vs</span>
-              <img src={awayTeam.flag} className="w-8 h-6 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
+          
+          {/* Teams Grid */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+              {/* Home */}
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                  <img src={homeTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={homeTeam.name} />
+                  <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
+                      {homeTeam.name}
+                  </span>
+              </div>
+
+              {/* VS */}
+              <span className="text-[9px] font-black text-slate-300 mb-4">vs</span>
+
+              {/* Away */}
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                  <img src={awayTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
+                  <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
+                      {awayTeam.name}
+                  </span>
+              </div>
           </div>
           
-          <div className="text-3xl font-black text-slate-800 tracking-tight leading-none">
+          <div className="text-3xl font-black text-slate-800 tracking-tight leading-none mt-1">
               {prediction ? `${prediction.home} - ${prediction.away}` : <span className="text-slate-200 text-xl">-</span>}
           </div>
           
