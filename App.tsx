@@ -211,7 +211,6 @@ const App: React.FC = () => {
   const handleSubstitute = async (matchId: string) => {
       if (!user || !supabase) return;
       
-      // Safety: Find Match
       const match = matches.find(m => m.id === matchId);
       
       // Rule 1: Cannot sub finished games
@@ -252,7 +251,6 @@ const App: React.FC = () => {
   const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
 
   // --- NEW: REFUND WATCHER ---
-  // Watches for unlocked matches that suddenly start -> Refunds the user
   useEffect(() => {
     if (!user || !matches || !user.unlockedMatches || user.unlockedMatches.length === 0) return;
 
@@ -344,11 +342,8 @@ const App: React.FC = () => {
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
-  // FIX: REMOVED 'manager' (My Hub) from PRE_LIVE. RETAINED 'leaderboard' (The Competition).
   const navTabs = useMemo(() => {
       if (tournamentPhase === 'PRE_LIVE') {
-          // In Pre-Live: 'leaderboard' is "The Competition" (PlayerProgress)
-          // 'manager' (My Hub) is HIDDEN
           return ['groups', 'knockout', 'scouting', 'leaderboard'];
       }
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
