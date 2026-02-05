@@ -1,12 +1,12 @@
-import React from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
-import { LanguageCode, TournamentPhase, Round } from '../types';
+import { LanguageCode, TournamentPhase, Round, UserProfile, Translation, Match, Team, Prediction } from '../types';
 
 interface AppHeaderProps {
-  user: any;
+  user: UserProfile;
   language: LanguageCode;
   setLanguage: (code: LanguageCode) => void;
   tournamentPhase: TournamentPhase;
@@ -25,10 +25,10 @@ interface AppHeaderProps {
   handleLogout: () => void;
   onReplayIntro: () => void;
   navTabs: string[];
-  t: any;
-  matches: any[];
-  teamsData: any;
-  allPredictions: any[];
+  t: Translation;
+  matches: Match[];
+  teamsData: Record<string, Team>;
+  allPredictions: Prediction[];
   activeKnockoutRound?: Round;
   setActiveKnockoutRound?: (r: Round) => void;
 }
@@ -49,10 +49,59 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
+  // --- CLARITY: COMPLETION BAR LOGIC ---
+  const completionStats = useMemo(() => {
+    // Only count Group Stage matches for the "Pre-Live" progress bar
+    const groupMatches = matches.filter(m => m.groupId);
+    const total = groupMatches.length;
+    
+    // Count predictions made by THIS user for GROUP matches
+    const myPreds = new Set(
+        allPredictions
+            .filter(p => p.userId === user.email)
+            .map(p => p.matchId)
+    );
+    
+    const completed = groupMatches.filter(m => myPreds.has(m.id)).length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    return { completed, total, percentage };
+  }, [matches, allPredictions, user.email]);
+
   return (
     <header className="sticky top-0 z-50">
+      
       {/* 1. TOP BAR */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
+          
+          {/* --- NEW: COMPLETION BAR (Inserted Here) --- */}
+          {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
+            <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
+                <div className="max-w-5xl mx-auto flex items-center gap-3 relative z-10">
+                    <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+                        <span className="opacity-50">{t.progressGroups || "Progress"}:</span> 
+                        <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
+                            {completionStats.completed}/{completionStats.total}
+                        </span>
+                    </span>
+                    <div className="flex-1 h-1.5 bg-blue-900/30 rounded-full overflow-hidden relative">
+                        <div 
+                            className={`h-full transition-all duration-1000 ease-out rounded-full ${completionStats.percentage === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`} 
+                            style={{ width: `${completionStats.percentage}%` }}
+                        ></div>
+                    </div>
+                    {completionStats.percentage === 100 && (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-green-400 uppercase tracking-widest animate-in fade-in zoom-in">
+                            <CheckCircle size={10} strokeWidth={3} />
+                            <span>{t.managerReady || "Ready"}</span>
+                        </div>
+                    )}
+                </div>
+                {/* Subtle glow effect when complete */}
+                {completionStats.percentage === 100 && <div className="absolute inset-0 bg-green-500/5 animate-pulse"></div>}
+            </div>
+          )}
+
           <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
               <div className="flex items-center gap-3">
                  <button onClick={props.onReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
@@ -95,10 +144,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                  </div>
                               </div>
                               <div className="p-1">
-                                 <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> Change Identity</button>
+                                 <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
                                  <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
                                  
-                                 {/* RENAMED BUTTON */}
                                  <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-lg flex items-center gap-2 transition-colors border-t border-slate-100 mt-1"><Bot size={16} /> Admin Controls</button>
                                  
                                  <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
@@ -116,22 +164,22 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           <div className="max-w-5xl mx-auto px-4 overflow-x-auto no-scrollbar">
               <nav className="flex justify-center">
                   {props.navTabs.map((tab) => {
-                     const isActive = props.activeTab === tab;
-                     let label = '';
-                     const val = t[tab as keyof typeof t];
-                     if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
-                     else if (tab === 'analysis') label = t.analysisTab as string;
-                     else if (tab === 'scouting') label = t.scoutingTab as string;
-                     else if (tab === 'tournament') label = t.tabTournament as string; 
-                     else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
-                     else label = (typeof val === 'string' ? val : tab) as string;
-                     
-                     return (
-                        <button key={tab} onClick={() => props.setActiveTab(tab as any)} className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
-                           {label}
-                           {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
-                        </button>
-                     );
+                      const isActive = props.activeTab === tab;
+                      let label = '';
+                      const val = t[tab as keyof typeof t];
+                      if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
+                      else if (tab === 'analysis') label = t.analysisTab as string;
+                      else if (tab === 'scouting') label = t.scoutingTab as string;
+                      else if (tab === 'tournament') label = t.tabTournament as string; 
+                      else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
+                      else label = (typeof val === 'string' ? val : tab) as string;
+                      
+                      return (
+                         <button key={tab} onClick={() => props.setActiveTab(tab as any)} className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
+                            {label}
+                            {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
+                         </button>
+                      );
                   })}
               </nav>
           </div>
