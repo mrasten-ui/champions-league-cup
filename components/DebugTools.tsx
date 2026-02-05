@@ -85,27 +85,49 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </p>
             </div>
 
-            {/* 2. LOCK OVERRIDE SWITCH */}
+            {/* 2. MATCH STATE & ADMIN TOGGLES */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Lock size={14} /> Match State Overrides
+                    <Lock size={14} /> Admin & Locks
                 </h4>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <div className="font-bold text-slate-800 text-sm">Force Lock All Matches</div>
-                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                            Locks upcoming matches to enable substitution testing.
-                        </div>
-                    </div>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     
-                    <button 
-                        onClick={toggleForceLock}
-                        className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isForceLocked ? 'bg-red-500' : 'bg-slate-200'}`}
-                    >
-                        <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isForceLocked ? 'translate-x-6' : 'translate-x-0'}`}>
-                            {isForceLocked ? <Lock size={12} className="text-red-500" /> : <Unlock size={12} className="text-slate-400" />}
+                    {/* FORCE LOCK ROW */}
+                    <div className="p-4 flex items-center justify-between border-b border-slate-100">
+                        <div>
+                            <div className="font-bold text-slate-800 text-sm">Force Lock All Matches</div>
+                            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                Locks upcoming matches to test substitutions.
+                            </div>
                         </div>
-                    </button>
+                        <button 
+                            onClick={toggleForceLock}
+                            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isForceLocked ? 'bg-amber-500' : 'bg-slate-200'}`}
+                        >
+                            <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isForceLocked ? 'translate-x-6' : 'translate-x-0'}`}>
+                                {isForceLocked ? <Lock size={12} className="text-amber-500" /> : <Unlock size={12} className="text-slate-400" />}
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* SUPER ADMIN ROW */}
+                    <div className="p-4 flex items-center justify-between bg-slate-50/50">
+                        <div>
+                            <div className="font-bold text-slate-800 text-sm">Super Admin Mode</div>
+                            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                Unlocks ALL cards & shows debug badges.
+                            </div>
+                        </div>
+                        <button 
+                            onClick={onToggleAdmin}
+                            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isAdminMode ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        >
+                            <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isAdminMode ? 'translate-x-6' : 'translate-x-0'}`}>
+                                {isAdminMode ? <ShieldAlert size={12} className="text-emerald-500" /> : <Lock size={12} className="text-slate-400" />}
+                            </div>
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
