@@ -112,7 +112,7 @@ const EN_TRANSLATION: Translation = {
     rank: "Rank", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Standings", bankedOnly: "Banked", scoringRulesInfo: "Scoring Rules:",
     lbBreakdown: "Point Breakdown", lbAccuracy: "Accuracy", lbExact: "Exact Scores", lbCorrect: "Correct Outcomes", lbGroupPts: "Group Stage", lbKoPts: "Knockout",
     lbGlobal: "Global", lbLeague: "League", liveToggle: "LIVE", bankedToggle: "BANKED", lbQualified: "Qualified", lbQualifiedDesc: "Knockout Correct", lbGroupRes: "Group Results",
-    journeyTitle: "Your Tournament Journey", journeyDesc: "Track your prediction progress.", picksMade: "Picks Made", completion: "Completion", searchPlaceholder: "Search teams...",
+    journeyTitle: "Your Tournament Journey", journeyDesc: "Track your prediction progress.", picksMade: "Picks", completion: "Completion", searchPlaceholder: "Search teams...",
     noMatches: "No matches found", noMatchesHint: "Try adjusting your filters or search terms.", groupStagePoints: "Group Stage Points",
     filterUpcoming: "Upcoming", filterLive: "Live", filterFinished: "Finished",
     simKnockoutTitle: "Simulate Knockout Stage", simGroupTitle: "Simulate Group Stage",
@@ -127,6 +127,10 @@ const EN_TRANSLATION: Translation = {
     showingLast5: "Showing last 5 of {0} meetings", noHistory: "No recorded history found.", loadingHistory: "Loading history...",
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on",
     
+    // --- NEW ACTION BUTTONS ---
+    actionSpy: "Spy",
+    actionSub: "Sub",
+
     // --- ROUND NAMES ---
     roundOf32: "Round of 32",
     roundOf16: "Round of 16",
@@ -198,6 +202,10 @@ const SCO_TRANSLATION: Translation = {
     firstMeeting: "First Ever Square Go!", firstMeetingDesc: "Never focht afore. This is history!", showingLast5: "Last 5 of {0} scraps",
     noHistory: "No history found.", loadingHistory: "Diggin' it up...", myPickShort: "Pick", watchOn: "Watch on",
 
+    // --- NEW ACTION BUTTONS ---
+    actionSpy: "Keek",
+    actionSub: "Sub",
+
     // --- ROUND NAMES ---
     roundOf32: "Roond o' 32",
     roundOf16: "Roond o' 16",
@@ -266,6 +274,10 @@ const US_TRANSLATION: Translation = {
     nextRound: "Next", prevRound: "Prev", lockedBracketTitle: "Bracket Locked", lockedBracketDesc: "Finish your regular season picks first.",
     allGroupTables: "All Standings", bestThirdPlace: "Wild Card Race", top8Advance: "Top 8 Advance", eliminationLine: "Eliminated",
     teamCol: "Team", grpCol: "Grp", myPickShort: "Pick", watchOn: "Watch on",
+
+    // --- NEW ACTION BUTTONS ---
+    actionSpy: "Spy",
+    actionSub: "Sub",
 
     // --- ROUND NAMES ---
     roundOf32: "Round of 32",
@@ -339,6 +351,10 @@ const NO_TRANSLATION: Translation = {
     firstMeetingDesc: "Vi fant ingen tidligere kamper mellom disse lagene. Historien starter nå!", showingLast5: "Viser siste 5 av {0} møter",
     noHistory: "Ingen historikk funnet.", loadingHistory: "Laster historikk...", days: "Dager", hours: "Timer", minutes: "Min", seconds: "Sek",
     myPickShort: "Tips", watchOn: "Se på",
+
+    // --- NEW ACTION BUTTONS ---
+    actionSpy: "Spion",
+    actionSub: "Bytte",
 
     // --- ROUND NAMES ---
     roundOf32: "16-delsfinale",

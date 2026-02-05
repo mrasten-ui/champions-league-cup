@@ -39,11 +39,9 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
     return allPredictions.filter(p => p.userId === currentUser.email);
   }, [allPredictions, currentUser.email]);
 
-  // --- GLOBAL 3RD PLACE CALCULATION ---
   const qualifiedThirdsSet = useMemo(() => {
       const allStandings = getAllGroupStandings(userMatches, teams);
       const thirds = getThirdPlaceStandings(allStandings);
-      // Top 8 qualify in the 48-team format (12 groups)
       const top8 = thirds.slice(0, 8).map(t => t.teamId);
       return new Set(top8);
   }, [userMatches, teams]);
@@ -77,21 +75,32 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return matches.find(m => m.id === userMatchId);
   };
 
-  // --- UPDATED LOGIC: WHEN CAN A SUB BE USED? ---
   const canSubMatch = (realMatch: Match | undefined) => {
       if (!realMatch) return false;
-      
-      // 1. KNOCKOUTS: DISABLED (Subs only for groups typically)
       if (realMatch.round) return false;
-
-      // 2. STATUS CHECK: Must be UPCOMING
       const isStarted = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isStarted) return false;
-
-      // 3. LOCK CHECK: 
-      // If Phase is LIVE, games are considered locked by default, thus SUB is allowed.
-      // We override the DB 'isLocked' check because we want to force the option in LIVE phase.
+      
+      // If already unlocked, user can just "edit", but the button logic is handled by 'phase' mostly
+      // We return true here so the button shows up. Inside handleSubClick we check status.
       return phase === 'LIVE'; 
+  };
+
+  // --- DIRECT CONFIRMATION HANDLER ---
+  const handleSubClick = (matchId: string) => {
+      const isUnlocked = currentUser.unlockedMatches?.includes(matchId);
+      
+      if (isUnlocked) {
+          // Already unlocked -> Open modal directly to Edit
+          setSelectedMatchId(matchId);
+      } else {
+          // Locked -> Confirm First -> Unlock -> Then Open Modal
+          const confirmMsg = lang.subConfirm || "Use 1 Substitution to unlock?";
+          if (window.confirm(confirmMsg)) {
+              onSubstitute(matchId); // Action
+              setSelectedMatchId(matchId); // Open Modal (it will render unlocked)
+          }
+      }
   };
 
   const hasKnockouts = useMemo(() => {
@@ -104,7 +113,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const realMatch = matches.find(m => m.id === selectedMatchId);
       if (!userMatch || !realMatch) return null;
       
-      // Force 'isLocked' to true if in LIVE phase to ensure Modal shows "Unlock" option instead of "Save"
+      // Force 'isLocked' to true if in LIVE phase (unless unlocked) 
+      // ensuring the modal handles the UI correctly
       const effectiveLocked = phase === 'LIVE' ? true : realMatch.isLocked;
 
       return {
@@ -166,53 +176,38 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
       </div>
 
-      {/* --- A) GROUP STAGE GRID --- */}
       {viewMode === 'groups' && (
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
               {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
-                  
-                  // Calculate Predicted Standings for this group
                   const standings = calculateGroupStandings(groupId, userMatches, teams);
-
                   return (
                       <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                          
-                          {/* ENHANCED HEADER: Group Name + Live Standings Strip */}
                           <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
                               <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-white font-black text-xs border border-white/10">
-                                          {groupId}
-                                      </div>
+                                      <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-white font-black text-xs border border-white/10">{groupId}</div>
                                       <span className="text-white text-xs font-black uppercase tracking-widest">Group {groupId}</span>
                                   </div>
                                   <span className="text-[9px] font-bold text-blue-200 bg-white/5 px-2 py-0.5 rounded border border-white/5">{groupMatches.length} Games</span>
                               </div>
-
-                              {/* Mini Standings Strip - CENTERED */}
                               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:justify-center">
                                   {standings.map((row, index) => {
                                       const rank = index + 1;
-                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600'; // Eliminated (4th)
+                                      let badgeColor = 'bg-slate-700 text-slate-400 border-slate-600';
                                       let rankIndicator = null;
-
                                       if (rank <= 2) {
-                                          badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm'; // Top 2 Qualify
+                                          badgeColor = 'bg-emerald-600 text-white border-emerald-500 shadow-sm';
                                       } else if (rank === 3) {
-                                          // 3RD PLACE CHECK: Is this team in the top 8 thirds?
                                           if (qualifiedThirdsSet.has(row.teamId)) {
-                                              badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400 shadow-sm'; // Qualifying 3rd
+                                              badgeColor = 'bg-amber-500 text-[#0f2545] border-amber-400 shadow-sm';
                                               rankIndicator = <span className="text-[8px] font-black bg-white/20 px-1 rounded ml-1">Q</span>;
                                           } else {
-                                              badgeColor = 'bg-slate-600 text-slate-300 border-slate-500 opacity-80'; // Eliminated 3rd
+                                              badgeColor = 'bg-slate-600 text-slate-300 border-slate-500 opacity-80';
                                               rankIndicator = <span className="text-[8px] font-bold text-red-300 ml-1">X</span>;
                                           }
                                       }
-
-                                      // FIX: Use substring fallback
                                       const teamName = teams[row.teamId]?.name || row.teamId;
                                       const teamCode = teamName.substring(0,3).toUpperCase();
-
                                       return (
                                           <div key={row.teamId} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${badgeColor} shrink-0`}>
                                               <span className="text-[9px] font-black">{rank}.</span>
@@ -225,8 +220,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                   })}
                               </div>
                           </div>
-
-                          {/* Stamps Grid */}
                           <div className="p-4 bg-slate-50/50">
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                   {groupMatches.map(userMatch => {
@@ -238,8 +231,9 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               homeTeam={teams[userMatch.homeTeamId]}
                                               awayTeam={teams[userMatch.awayTeamId]}
                                               prediction={userPredictions.find(p => p.matchId === userMatch.id)}
-                                              onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                              onOpenSub={() => handleSubClick(userMatch.id)} // USE NEW HANDLER
                                               canSubstitute={canSubMatch(realMatch)}
+                                              substitutionsLeft={currentUser.substitutions}
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
                                               variant="standard" 
@@ -254,7 +248,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
       )}
 
-      {/* --- B) KNOCKOUT GRID --- */}
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
@@ -265,22 +258,12 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                           <div className="bg-[#0f2545] px-4 py-3 border-b border-slate-700 flex justify-center sm:justify-start">
                               <span className="text-white text-sm font-black uppercase tracking-[0.2em]">{round}</span>
                           </div>
-                          
                           <div className="p-4 bg-slate-50/30">
                               <div className={gridClass}>
                                   {roundMatches.map(userMatch => {
                                       const realMatch = getRealMatch(userMatch.id);
-                                      const isMatchupCorrect = realMatch && 
-                                          realMatch.homeTeamId === userMatch.homeTeamId && 
-                                          realMatch.awayTeamId === userMatch.awayTeamId;
-
-                                      const displayMatch = isMatchupCorrect ? realMatch : { 
-                                          ...userMatch, 
-                                          homeScore: null, 
-                                          awayScore: null,
-                                          status: realMatch?.status || 'UPCOMING'
-                                      };
-
+                                      const isMatchupCorrect = realMatch && realMatch.homeTeamId === userMatch.homeTeamId && realMatch.awayTeamId === userMatch.awayTeamId;
+                                      const displayMatch = isMatchupCorrect ? realMatch : { ...userMatch, homeScore: null, awayScore: null, status: realMatch?.status || 'UPCOMING' };
                                       return (
                                           <PredictionStamp 
                                               key={userMatch.id}
@@ -288,8 +271,9 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               homeTeam={teams[userMatch.homeTeamId]}
                                               awayTeam={teams[userMatch.awayTeamId]}
                                               prediction={userPredictions.find(p => p.matchId === userMatch.id)}
-                                              onOpenSub={() => setSelectedMatchId(userMatch.id)}
+                                              onOpenSub={() => handleSubClick(userMatch.id)} // USE NEW HANDLER
                                               canSubstitute={canSubMatch(realMatch)} 
+                                              substitutionsLeft={currentUser.substitutions}
                                               userHasPenalty={currentUser.hasTakenSecondChance}
                                               lang={lang}
                                               variant="knockout"
@@ -308,12 +292,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       {viewMode === 'knockout' && !hasKnockouts && (
           <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
               <CalendarClock size={64} className="text-slate-300 mb-4" />
-              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">
-                  Knockout Stage<br/>Not Yet Predicted
-              </h3>
-              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">
-                  Predict the group stages first to unlock the bracket.
-              </p>
+              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">Knockout Stage<br/>Not Yet Predicted</h3>
+              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">Predict the group stages first to unlock the bracket.</p>
           </div>
       )}
 

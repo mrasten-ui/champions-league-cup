@@ -31,7 +31,7 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
             {/* Close Button */}
             <button 
                 onClick={onClose}
-                className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors"
+                className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors z-50"
             >
                 <X size={24} />
             </button>
@@ -42,7 +42,8 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
                     <p className="text-blue-200 text-[10px] font-bold mt-0.5">Edit prediction • Costs 1 Sub</p>
                 </div>
                 
-                <div className="p-2">
+                {/* Added pb-12 to ensure floating Save button is visible */}
+                <div className="p-2 pb-12">
                     <MatchCard 
                         match={match}
                         homeTeam={homeTeam}
@@ -59,15 +60,11 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
                         phase="LIVE" // Force live phase so inputs are active
                         isAdminMode={false}
                         
-                        // CRITICAL: We pass the sub handler here
-                        onSubstitute={() => {
-                            onSubstitute();
-                            // Optional: Close modal after sub? Or let user close.
-                            // keeping open allows them to edit immediately.
-                        }}
+                        // We pass this just in case, but ManagerHub handles the unlock logic beforehand
+                        onSubstitute={onSubstitute}
                         substitutionsLeft={currentUser.substitutions}
                         
-                        // Force unlock UI if they have unlocked it, or show locked state
+                        // Pass unlocked status so the card knows to show Inputs + Save button
                         isUnlockedBySub={currentUser.unlockedMatches?.includes(match.id)}
                         showStatusBadge={false}
                     />
@@ -75,7 +72,7 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
                 
                 <div className="bg-slate-50 p-3 text-center border-t border-slate-100">
                     <p className="text-[10px] text-slate-400 font-medium">
-                        Changes are auto-saved. Click Save inside the card to confirm.
+                        Adjust your score and click the <span className="font-bold text-green-600">SAVE</span> button to confirm.
                     </p>
                 </div>
             </div>

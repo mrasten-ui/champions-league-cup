@@ -197,7 +197,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (userTokens > 0) {
-             onSpy(match.id); // FIXED: Removed "id:" label
+             onSpy(match.id); 
         } else {
             // Toast handled by App.tsx usually, or fallback alert
         }
@@ -254,7 +254,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const renderControlButtons = () => {
         if (canSubstitute) {
-            return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
+            return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.actionSub || "Sub"} ({substitutionsLeft})</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
             return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30 animate-pulse"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">Save</span></button>;
@@ -353,7 +353,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                                         >
                                             <ScanEye size={10} />
-                                            <span className="text-[9px] font-black uppercase tracking-wider">{lang.useIntel || "PEEK"}</span>
+                                            <span className="text-[9px] font-black uppercase tracking-wider">{lang.actionSpy || "Spy"} ({userTokens})</span>
                                         </button>
                                     )}
                                 </div>

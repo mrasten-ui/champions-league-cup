@@ -10,6 +10,7 @@ interface PredictionStampProps {
   prediction?: Prediction;
   onOpenSub: () => void;
   canSubstitute: boolean;
+  substitutionsLeft?: number;
   userHasPenalty: boolean;
   lang: Translation;
   variant?: 'standard' | 'knockout';
@@ -17,7 +18,7 @@ interface PredictionStampProps {
 }
 
 export const PredictionStamp: React.FC<PredictionStampProps> = ({
-  match, homeTeam, awayTeam, prediction, onOpenSub, canSubstitute, userHasPenalty, lang, variant = 'standard', isFinal = false
+  match, homeTeam, awayTeam, prediction, onOpenSub, canSubstitute, substitutionsLeft, userHasPenalty, lang, variant = 'standard', isFinal = false
 }) => {
   const isFinished = ['FT', 'FINISHED', 'AET', 'PEN'].includes(match.status);
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET'].includes(match.status);
@@ -134,8 +135,9 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
   if (hasRealScore && prediction) {
       if (points > 0) standardStatusColor = 'border-green-200 bg-green-50/30'; 
       else standardStatusColor = 'border-red-200 bg-red-50/30'; 
+  } else if (canSubstitute) {
+      standardStatusColor = 'border-amber-200 bg-amber-50/30 shadow-sm ring-1 ring-amber-100'; 
   }
-  // NOTE: Removed the "else if (canSubstitute)" block to get rid of the gold border
 
   return (
     <div className={`relative flex flex-col items-center justify-between p-3 rounded-xl border-2 transition-all ${standardStatusColor} min-h-[9rem] w-full hover:shadow-md`}>
@@ -193,7 +195,9 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                 className="flex items-center justify-center gap-1.5 px-4 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all active:scale-95 shadow-sm"
               >
                   <RefreshCw size={10} strokeWidth={2.5} /> 
-                  <span className="text-[9px] font-black uppercase tracking-widest">{lang.makeSub || "SUB"}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">
+                      {lang.actionSub || "Sub"} {substitutionsLeft !== undefined ? `(${substitutionsLeft})` : ''}
+                  </span>
               </button>
           ) : (
               <div className="text-slate-300 flex items-center gap-1 opacity-50">
