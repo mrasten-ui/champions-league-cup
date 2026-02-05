@@ -31,7 +31,9 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
       return users.filter(u => u.leagues?.includes(activeLeague));
   }, [users, activeLeague]);
 
-  const totalGameMatches = totalMatches.group + totalMatches.knockout;
+  // FIX: Force total matches to 104 (Full 2026 Tournament) instead of relying on loaded props
+  // This ensures the progress bar tracks the complete journey (Group + Knockout)
+  const totalGameMatches = 104; 
 
   // Calculate Stats for Header
   const readyManagersCount = useMemo(() => {
@@ -149,7 +151,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                         </div>
 
                         <div className="flex flex-col items-end gap-1 w-24">
-                            <div className="text-xs font-black text-slate-700">{percent}%</div>
+                            <div className="text-xs font-black text-slate-700">{count}/{totalGameMatches}</div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div 
                                     className={`h-full rounded-full transition-all duration-1000 ${isReady ? 'bg-green-500' : 'bg-blue-500'}`} 
