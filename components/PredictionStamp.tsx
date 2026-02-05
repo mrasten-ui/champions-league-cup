@@ -102,9 +102,11 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                     <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
                         <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
                     </div>
-                    <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
-                        {homeTeam.name}
-                    </span>
+                    <div className="h-6 flex items-center justify-center w-full">
+                        <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
+                            {homeTeam.name}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center pt-3 w-1/5">
@@ -116,9 +118,11 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                     <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
                         <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
                     </div>
-                    <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
-                        {awayTeam.name}
-                    </span>
+                    <div className="h-6 flex items-center justify-center w-full">
+                        <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
+                            {awayTeam.name}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -131,7 +135,7 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       if (points > 0) standardStatusColor = 'border-green-200 bg-green-50/30'; 
       else standardStatusColor = 'border-red-200 bg-red-50/30'; 
   } else if (canSubstitute) {
-      standardStatusColor = 'border-blue-200 bg-blue-50/30 shadow-sm ring-1 ring-blue-100'; 
+      standardStatusColor = 'border-amber-200 bg-amber-50/30 shadow-sm ring-1 ring-amber-100'; 
   }
 
   return (
@@ -144,28 +148,33 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
 
       <div className="flex-1 flex flex-col items-center justify-center w-full gap-2">
           
-          {/* Teams Grid */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 w-full">
+          {/* Teams Grid - FIXED WIDTHS & HEIGHTS */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 w-full">
               {/* Home */}
               <div className="flex flex-col items-center gap-1.5 text-center">
                   <img src={homeTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={homeTeam.name} />
-                  <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
-                      {homeTeam.name}
-                  </span>
+                  <div className="h-6 flex items-center justify-center w-full">
+                      <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
+                          {homeTeam.name}
+                      </span>
+                  </div>
               </div>
 
               {/* VS */}
-              <span className="text-[9px] font-black text-slate-300 mb-4">vs</span>
+              <span className="text-[9px] font-black text-slate-300 mt-2">vs</span>
 
               {/* Away */}
               <div className="flex flex-col items-center gap-1.5 text-center">
                   <img src={awayTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
-                  <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
-                      {awayTeam.name}
-                  </span>
+                  <div className="h-6 flex items-center justify-center w-full">
+                      <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
+                          {awayTeam.name}
+                      </span>
+                  </div>
               </div>
           </div>
           
+          {/* Score */}
           <div className="text-3xl font-black text-slate-800 tracking-tight leading-none mt-1">
               {prediction ? `${prediction.home} - ${prediction.away}` : <span className="text-slate-200 text-xl">-</span>}
           </div>
@@ -177,10 +186,15 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
           )}
       </div>
 
+      {/* FOOTER ACTION BUTTON */}
       <div className="h-8 w-full flex items-end justify-center mt-1">
           {canSubstitute ? (
-              <button onClick={onOpenSub} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm hover:shadow-md">
-                  <RefreshCw size={10} /> {lang.makeSub || "SUB"}
+              <button 
+                onClick={onOpenSub} 
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm hover:shadow-md border border-amber-600/20"
+              >
+                  <RefreshCw size={12} className="text-white/90" /> 
+                  {lang.makeSub || "SUBSTITUTE"}
               </button>
           ) : (
               <div className="text-slate-300 flex items-center gap-1 opacity-50">

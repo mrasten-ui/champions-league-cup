@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
+import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle, ScanEye } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers'; 
@@ -137,7 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [prediction, isDirty]);
 
-    // AUTO-SAVE MECHANISM (Only if dirty & valid score)
+    // AUTO-SAVE MECHANISM
     useEffect(() => {
         if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
             const timer = setTimeout(() => {
@@ -162,26 +162,24 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
-    // --- GAME STATUS ---
     const isStarted = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN', 'FINISHED', 'FT'].includes(match.status);
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
 
-    // --- NEW SIMPLIFIED LOCKING LOGIC ---
     let isLocked = false;
-
     if (phase === 'PRE_LIVE') {
         isLocked = false;
     } else {
         isLocked = !isUnlockedBySub || isStarted;
     }
-
     if (isAdminMode) isLocked = false;
 
-    // --- SUBSTITUTION LOGIC ---
+    // Logic Checks
     const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && !!onSubstitute;
+    const isSpied = currentUser?.spiedMatches?.includes(match.id);
+    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0;
 
-    // HELPERS
+    // Handlers
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -196,6 +194,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             if (window.confirm(`${lang.subConfirm} (${substitutionsLeft} ${lang.substitutions} left)`)) { onSubstitute(); }
         }
     };
+    const handleSpyClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (userTokens > 0) {
+             onSpy(match.id);
+        } else {
+            alert("No Intel tokens left!"); // Fallback if no toast
+        }
+    };
 
     const pointsEarned = (isStarted) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
@@ -203,7 +209,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
     const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
-    const isSpied = currentUser?.spiedMatches?.includes(match.id);
     const showRivals = isSpied || isLocked; 
 
     const getContextLabel = () => {
@@ -231,17 +236,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
-        
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {new Date(match.date).toLocaleTimeString(locale, { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZoneName: 'short'
-                    })}
+                    {new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })}
                 </span>
             </div>
         );
@@ -298,16 +297,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="w-1/3 flex items-center justify-end">{getTvChannel()}</div>
              </div>
 
-             {/* MAIN CARD CONTENT - ALIGNMENT FIXED: items-start, pt-5 */}
+             {/* MAIN CARD CONTENT */}
              <div className="p-4 pt-5 flex items-start justify-center relative z-10 gap-2 flex-1">
                 
-                {/* Home Team - Fixed Width equal to Away Team */}
+                {/* Home Team */}
                 <div onClick={() => { if (isHomeTBD) return; if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-shrink-0 w-28 sm:w-36 flex flex-col items-center justify-start gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none shrink-0"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center w-full">
                         {!isHomeTBD && (
                             <>
-                                {/* FIXED HEIGHT CONTAINER FOR NAME - prevents vertical jump */}
                                 <div className="h-8 flex items-center justify-center w-full px-1">
                                     <span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
                                 </div>
@@ -317,7 +315,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
 
-                {/* Center Control - FIXED WIDTH (w-32 mobile / w-40 desktop) */}
+                {/* Center Control */}
                 <div className="flex flex-col items-center justify-start px-1 z-20 shrink-0 w-32 sm:w-40 pt-1">
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
@@ -327,17 +325,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     ) : (
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
-                                <div className="flex items-center gap-2 relative justify-center w-full">
-                                    <ScoreStepper value={localHome} onChange={(v) => handleScoreChange('home', v)} isLocked={isLocked} onActivate={handleActivate} />
-                                    <div className="flex flex-col items-center gap-1 shrink-0">
-                                        <span className="font-black text-slate-300 text-lg">-</span>
-                                        {isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}
-                                    </div>
-                                    <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
-                                    {isUnlockedBySub && isDirty && (
-                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
-                                            <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button>
+                                <div className="flex flex-col items-center w-full gap-2">
+                                    <div className="flex items-center gap-2 relative justify-center w-full">
+                                        <ScoreStepper value={localHome} onChange={(v) => handleScoreChange('home', v)} isLocked={isLocked} onActivate={handleActivate} />
+                                        <div className="flex flex-col items-center gap-1 shrink-0">
+                                            <span className="font-black text-slate-300 text-lg">-</span>
+                                            {isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}
                                         </div>
+                                        <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
+                                        {isUnlockedBySub && isDirty && (
+                                            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
+                                                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* INTEL BUTTON */}
+                                    {canSpy && (
+                                        <button onClick={handleSpyClick} disabled={userTokens < 1} className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 w-full ${userTokens > 0 ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-cyan-600/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}>
+                                            <ScanEye size={12} className={userTokens > 0 ? "text-white" : "opacity-50"} />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">{lang.useIntel || "USE INTEL"}</span>
+                                        </button>
                                     )}
                                 </div>
                             ) : (
@@ -358,7 +365,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                     )}
                     
-                    {/* ADMIN DEBUG BADGE: WHY IS SUB HIDDEN? */}
                     {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
                         <div className="mt-2 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1">
                             <AlertCircle size={8} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
@@ -366,13 +372,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     )}
                 </div>
 
-                {/* Away Team - Fixed Width equal to Home Team */}
+                {/* Away Team */}
                 <div onClick={() => { if (isAwayTBD) return; if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-shrink-0 w-28 sm:w-36 flex flex-col items-center justify-start gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none shrink-0"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center w-full">
                         {!isAwayTBD && (
                             <>
-                                {/* FIXED HEIGHT CONTAINER FOR NAME */}
                                 <div className="h-8 flex items-center justify-center w-full px-1">
                                     <span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
                                 </div>
