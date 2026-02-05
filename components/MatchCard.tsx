@@ -176,8 +176,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     // Logic Checks
     const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && !!onSubstitute;
+    // SPY LOGIC: Can spy if NOT Locked (so Pre-Live) AND not already spied AND not started
+    // Note: Usually "Intel" is for Pre-Live to see others before lock? Or see locked picks?
+    // Based on user request: "Group Stages tab".
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0;
+    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute;
 
     // Handlers
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
@@ -197,9 +200,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (userTokens > 0) {
-             onSpy(match.id);
+             onSpy(id: match.id);
         } else {
-            alert("No Intel tokens left!"); // Fallback if no toast
+            // Toast handled by App.tsx usually, or fallback alert
         }
     };
 
@@ -236,11 +239,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
+        
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })}
+                    {new Date(match.date).toLocaleTimeString(locale, { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short'
+                    })}
                 </span>
             </div>
         );
@@ -339,11 +348,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    {/* INTEL BUTTON */}
+                                    {/* SMALL PILL INTEL BUTTON */}
                                     {canSpy && (
-                                        <button onClick={handleSpyClick} disabled={userTokens < 1} className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 w-full ${userTokens > 0 ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-cyan-600/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}>
-                                            <ScanEye size={12} className={userTokens > 0 ? "text-white" : "opacity-50"} />
-                                            <span className="text-[9px] font-black uppercase tracking-widest">{lang.useIntel || "USE INTEL"}</span>
+                                        <button 
+                                            onClick={handleSpyClick} 
+                                            disabled={userTokens < 1} 
+                                            className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                                        >
+                                            <ScanEye size={10} />
+                                            <span className="text-[9px] font-black uppercase tracking-wider">{lang.useIntel || "PEEK"}</span>
                                         </button>
                                     )}
                                 </div>
