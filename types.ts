@@ -3,6 +3,35 @@ export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
 export interface Translation {
   [key: string]: string | any;
   teamNames: Record<string, string>;
+
+  // --- NEW: Alerts & Toasts ---
+  noSubsTitle: string;
+  noSubsMsg: string;
+  loggedOutTitle: string;
+  loggedOutMsg: string;
+  profileUpdated: string;
+  profileMsg: string;
+  predSaved: string;
+  predLocked: string;
+  rivalRevealed: string;
+  intelUsed: string;
+  subRefunded: string;
+  subRefundedMsg: string;
+  secondChanceConfirm: string;
+  
+  // --- NEW: Navigation & UI ---
+  prevGroup: string;
+  nextGroup: string;
+  bracketBtn: string;
+  scoutBtn: string;
+  saveBtn: string;
+  watchOn: string;
+  stadiumTbd: string;
+  liveTag: string;
+  ftTag: string;
+  changeIdentity: string;
+  cancelBtn: string;
+  noMatchesDate: string;
 }
 
 export type Round = 'R32' | 'R16' | 'QF' | 'SF' | 'FIN' | '3RD';
@@ -35,7 +64,7 @@ export interface Team {
   def: number;
   overview?: string;
   starPlayer?: string;
-  code?: string; // Added to fix build error (optional, usually matches id)
+  code?: string;
   form?: string[]; 
 }
 
@@ -112,7 +141,6 @@ export interface ScoutingData {
     lang?: string; 
 }
 
-// Moved from engine.ts to here to fix circular dependency/export issues
 export interface TeamFormData {
     fifaRank: number;
     history: MatchHistoryItem[];

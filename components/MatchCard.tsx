@@ -198,8 +198,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         e.stopPropagation();
         if (userTokens > 0) {
              onSpy(match.id); 
-        } else {
-            // Toast handled by App.tsx usually, or fallback alert
         }
     };
 
@@ -230,12 +228,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if ((lang as any).isScotland && match.channels['SCO']) { regionKey = 'SCO'; }
         let channel = match.channels[regionKey] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
         if (!channel) return null;
-        return <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}><Tv size={12} /><span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">{channel}</span></div>;
+        return <div className="flex items-center gap-1.5 text-blue-300" title={`${lang.watchOn || 'Watch on'} ${channel}`}><Tv size={12} /><span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">{channel}</span></div>;
     };
 
     const getLeftStatus = () => {
-        if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
-        if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
+        if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{lang.ftTag || 'FT'}</span>;
+        if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : (lang.liveTag || 'LIVE')}</span></div>;
         
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
@@ -254,10 +252,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const renderControlButtons = () => {
         if (canSubstitute) {
-            return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.actionSub || "Sub"} ({substitutionsLeft})</span></button>;
+            return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
-            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30 animate-pulse"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">Save</span></button>;
+            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30 animate-pulse"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.saveBtn || 'Save'}</span></button>;
         }
         if (isUnlockedBySub && !isDirty) {
             return <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 w-full"><Unlock size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.unlocked}</span></div>;
@@ -325,7 +323,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="flex flex-col items-center justify-start px-1 z-20 shrink-0 w-32 sm:w-40 pt-1">
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
-                            <div className="text-2xl font-black text-slate-200">VS</div>
+                            <div className="text-2xl font-black text-slate-200">{lang.vs || 'VS'}</div>
                             <div className="mt-1 w-full">{renderControlButtons()}</div>
                         </div>
                     ) : (
@@ -341,7 +339,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
                                         {isUnlockedBySub && isDirty && (
                                             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
-                                                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> {lang.saveBtn || 'Save'}</button>
                                             </div>
                                         )}
                                     </div>
@@ -423,7 +421,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                    <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
+                    <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || lang.stadiumTbd || 'Stadium TBD'}</span></div>
                     
                     {/* CENTER: User Prediction (Brain icon removed) */}
                     <div className="w-1/3 flex justify-center">

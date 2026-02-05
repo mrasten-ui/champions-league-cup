@@ -144,7 +144,7 @@ const App: React.FC = () => {
       if (supabase) await supabase.auth.signOut();
       setUser(null); setIsProfileMenuOpen(false);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-      addToast('info', 'Logged Out', 'See you next match day.');
+      addToast('info', t.loggedOutTitle, t.loggedOutMsg);
   };
 
   const updateAvatar = async (newAvatar: string) => {
@@ -165,7 +165,7 @@ const App: React.FC = () => {
     setUser({ ...user, avatar: finalUrl });
     await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
     setShowAvatarEditor(false);
-    addToast('success', 'Profile Updated', 'New avatar looks great!');
+    addToast('success', t.profileUpdated, t.profileMsg);
   };
 
   // --- NEW: SCORE UPDATE WITH AUTO-RELOCK ---
@@ -193,7 +193,7 @@ const App: React.FC = () => {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
         setUser({ ...user, unlockedMatches: newUnlocked });
         await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
-        addToast('success', 'Prediction Saved', 'Match re-locked.');
+        addToast('success', t.predSaved, t.predLocked);
     }
   };
 
@@ -204,7 +204,7 @@ const App: React.FC = () => {
       const newTokens = user.tokens - 1;
       setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
       await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
-      addToast('success', 'Rival Revealed', '-1 Intel used.');
+      addToast('success', t.rivalRevealed, t.intelUsed);
   };
 
   // --- NEW: SUBSTITUTION WITH STRICTER RULES ---
@@ -219,7 +219,7 @@ const App: React.FC = () => {
           return;
       }
 
-      if (user.substitutions < 1) { addToast('error', 'No Subs Left', 'All substitutions used.'); return; }
+      if (user.substitutions < 1) { addToast('error', t.noSubsTitle, t.noSubsMsg); return; }
       
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
@@ -230,10 +230,10 @@ const App: React.FC = () => {
 
   const handleUnlockSecondChance = async () => {
       if (!user || !supabase) return;
-      if (window.confirm("Unlock Second Chance? This reduces future points by 50%.")) {
+      if (window.confirm(t.secondChanceConfirm)) {
           setUser({ ...user, hasTakenSecondChance: true });
           await supabase.from('profiles').update({ has_taken_second_chance: true } as any).eq('email', user.email);
-          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
+          addToast('info', t.secondChanceActive, t.pointsReduced);
           setActiveTab('knockout');
       }
   };
@@ -278,7 +278,7 @@ const App: React.FC = () => {
                     .eq('email', user.email);
             }
 
-            addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
+            addToast('info', t.subRefunded, t.subRefundedMsg);
         };
         performRefund();
     }
@@ -490,8 +490,8 @@ const App: React.FC = () => {
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
-                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>Prev Group</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Group</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">Bracket <ChevronRight size={18} /></button></div>}
+                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
+                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
                           </div>
                       </div>
                    </>
@@ -505,11 +505,11 @@ const App: React.FC = () => {
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? t.groups : t.prevRound}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
-                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Round</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
+                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : (
-                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Start Scouting</span><ScanEye size={18} /></button>
+                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.scoutBtn}</span><ScanEye size={18} /></button>
                         )}
                      </div>
                 </div>
@@ -567,7 +567,7 @@ const App: React.FC = () => {
             <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{(t as any).changeIdentity || "Change Identity"}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} />
-                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">Cancel</button>
+                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
             </div>
         </div>
       )}
