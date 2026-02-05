@@ -77,27 +77,21 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return matches.find(m => m.id === userMatchId);
   };
 
-  // --- LOGIC: WHEN CAN A SUB BE USED? ---
+  // --- UPDATED LOGIC: WHEN CAN A SUB BE USED? ---
   const canSubMatch = (realMatch: Match | undefined) => {
       if (!realMatch) return false;
       
-      // 1. KNOCKOUTS: DISABLED
+      // 1. KNOCKOUTS: DISABLED (Subs only for groups typically)
       if (realMatch.round) return false;
 
-      // 2. TIME CHECK: Must be STRICTLY BEFORE Kickoff
-      // If Date.now() is past the match date, no subs allowed.
-      const matchTime = new Date(realMatch.date).getTime();
-      const now = Date.now();
-      
-      if (now >= matchTime) return false;
+      // 2. STATUS CHECK: Must be UPCOMING
+      const isStarted = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
+      if (isStarted) return false;
 
-      // 3. STATUS CHECK: Must be UPCOMING (Backup check)
-      const isLiveOrDone = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
-      if (isLiveOrDone) return false;
-
-      // 4. LOCK CHECK: Must be locked
-      // The button only appears if the match is locked.
-      return realMatch.isLocked; 
+      // 3. LOCK CHECK: 
+      // If Phase is LIVE, games are considered locked by default, thus SUB is allowed.
+      // We override the DB 'isLocked' check because we want to force the option in LIVE phase.
+      return phase === 'LIVE'; 
   };
 
   const hasKnockouts = useMemo(() => {
@@ -109,12 +103,17 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const userMatch = userMatches.find(m => m.id === selectedMatchId);
       const realMatch = matches.find(m => m.id === selectedMatchId);
       if (!userMatch || !realMatch) return null;
+      
+      // Force 'isLocked' to true if in LIVE phase to ensure Modal shows "Unlock" option instead of "Save"
+      const effectiveLocked = phase === 'LIVE' ? true : realMatch.isLocked;
+
       return {
           ...realMatch,
+          isLocked: effectiveLocked,
           homeTeamId: userMatch.homeTeamId,
           awayTeamId: userMatch.awayTeamId
       };
-  }, [selectedMatchId, userMatches, matches]);
+  }, [selectedMatchId, userMatches, matches, phase]);
 
   const getKnockoutGridClass = (round: string, count: number) => {
       if (round === 'FIN') return 'flex justify-center max-w-sm mx-auto';

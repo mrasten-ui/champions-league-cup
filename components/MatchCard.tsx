@@ -137,7 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [prediction, isDirty]);
 
-    // AUTO-SAVE MECHANISM
+    // AUTO-SAVE MECHANISM (Only if dirty & valid score)
     useEffect(() => {
         if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
             const timer = setTimeout(() => {
@@ -162,20 +162,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
+    // --- GAME STATUS ---
     const isStarted = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN', 'FINISHED', 'FT'].includes(match.status);
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
 
+    // --- NEW SIMPLIFIED LOCKING LOGIC ---
     let isLocked = false;
+
     if (phase === 'PRE_LIVE') {
         isLocked = false;
     } else {
         isLocked = !isUnlockedBySub || isStarted;
     }
+
     if (isAdminMode) isLocked = false;
 
+    // --- SUBSTITUTION LOGIC ---
     const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && !!onSubstitute;
 
+    // HELPERS
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -312,7 +318,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Center Control - FIXED WIDTH (w-32 mobile / w-40 desktop) */}
-                <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 w-32 sm:w-40">
+                <div className="flex flex-col items-center justify-start px-1 z-20 shrink-0 w-32 sm:w-40 pt-1">
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
                             <div className="text-2xl font-black text-slate-200">VS</div>
