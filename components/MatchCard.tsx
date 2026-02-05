@@ -18,7 +18,7 @@ interface MatchCardProps {
   revealedRivals: string[]; 
   currentUser: UserProfile | null;
   allPredictions: Prediction[];
-  phase: TournamentPhase;
+  phase: TournamentPhase; // <--- The Master Switch
   isAdminMode: boolean;
   onSubstitute?: () => void;
   substitutionsLeft?: number;
@@ -33,8 +33,7 @@ interface MatchCardProps {
   context?: 'groups' | 'knockout' | 'carousel'; 
 }
 
-// --- 1. SUB-COMPONENTS (TbdSlot, ScoreStepper) REMAIN UNCHANGED ---
-
+// --- SUB-COMPONENTS REMAIN UNCHANGED ---
 const TbdSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -85,16 +84,6 @@ const TbdSlot: React.FC<{
             </div>
         );
     }
-    if (source.type === '3RD_PLACE') {
-        return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
-                <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
-                    <span className="text-[8px] font-black text-slate-600 uppercase text-center leading-none block">{lang.thirdPlace || "3rd Place"}</span>
-                </div>
-            </div>
-        );
-    }
     return (
         <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
              <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
@@ -120,10 +109,12 @@ const ScoreStepper: React.FC<{
   );
 };
 
-// --- 2. MAIN COMPONENT ---
+// --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
+    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, 
+    phase, // PRE_LIVE or LIVE
+    isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
     homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context 
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
@@ -146,7 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [prediction, isDirty]);
 
-    // AUTO-SAVE MECHANISM
+    // AUTO-SAVE MECHANISM (Only if dirty & valid score)
     useEffect(() => {
         if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
             const timer = setTimeout(() => {
@@ -171,13 +162,36 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
+    // --- GAME STATUS ---
+    // A game is 'started' if it is LIVE or FINISHED. 
+    // It is 'upcoming' otherwise.
+    const isStarted = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN', 'FINISHED', 'FT'].includes(match.status);
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-    
-    const isRealLifeLocked = match.isLocked || isLive || isFinished;
-    const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
-    const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
 
+    // --- NEW SIMPLIFIED LOCKING LOGIC ---
+    let isLocked = false;
+
+    if (phase === 'PRE_LIVE') {
+        // PRE-LIVE: Everything is Open. No subs needed.
+        isLocked = false;
+    } else {
+        // LIVE PHASE: Everything is Locked by default.
+        // Unlocked ONLY if user used a Sub token.
+        // BUT: If game started, it is permanently locked.
+        isLocked = !isUnlockedBySub || isStarted;
+    }
+
+    if (isAdminMode) isLocked = false;
+
+    // --- SUBSTITUTION LOGIC ---
+    // 1. Must be in LIVE phase
+    // 2. Game must NOT be started (Upcoming only)
+    // 3. Must be currently locked (haven't used sub yet)
+    // 4. Component must have received the onSubstitute callback
+    const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && onSubstitute;
+
+    // HELPERS
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -193,14 +207,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     };
 
-    const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
+    const pointsEarned = (isStarted) && match.homeScore !== null && match.awayScore !== null && prediction
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
         : null;
 
     const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
     const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    const showRivals = isSpied || isRealLifeLocked;
+    const showRivals = isSpied || isLocked; // Simplified: Show rivals if locked
 
     const getContextLabel = () => {
         if (match.round) {
@@ -228,7 +242,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
         
-        // 24H Format
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
@@ -329,7 +342,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
-                                    {(isLive || isFinished || match.homeScore !== null) ? (
+                                    {isStarted ? (
                                         <>
                                             <div className={`px-4 py-2 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${isLive ? 'bg-red-600 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-xl mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
@@ -337,7 +350,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-4 py-2 rounded-xl font-mono text-2xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2"><span>-</span><span className="opacity-50 text-lg mx-1">:</span><span>-</span></div>
-                                             {/* REMOVED PREDICTION PILL FROM HERE AS REQUESTED */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
@@ -383,7 +395,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
                     
-                    {/* CENTER: User Prediction (Brain icon removed) */}
                     <div className="w-1/3 flex justify-center">
                         {prediction && (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
