@@ -42,13 +42,13 @@ const TbdSlot: React.FC<{
     lang: Translation;
 }> = ({ matchId, side, allMatches, allTeams, lang }) => {
     const source = useMemo(() => getSlotSource(matchId, side), [matchId, side]);
-    const groupTeams = useMemo(() => {
-        if (source.type !== 'GROUP_RANK' || !allMatches || !allTeams) return [];
-        return getGroupTeams(source.groupId, allMatches, allTeams);
-    }, [source, allMatches, allTeams]);
     const potentialTeams = useMemo(() => {
         if (!allMatches || !allTeams) return null;
         return getPotentialTeams(source, allMatches, allTeams);
+    }, [source, allMatches, allTeams]);
+    const groupTeams = useMemo(() => {
+        if (source.type !== 'GROUP_RANK' || !allMatches || !allTeams) return [];
+        return getGroupTeams(source.groupId, allMatches, allTeams);
     }, [source, allMatches, allTeams]);
 
     if (source.type === 'GROUP_RANK') {
@@ -57,7 +57,9 @@ const TbdSlot: React.FC<{
                 {groupTeams.length > 0 ? (
                     <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2">
                         {groupTeams.slice(0, 4).map(team => (
-                            <div key={team.id} className="relative w-full h-full"><img src={team.flag} alt="" className="w-full h-full object-cover" /></div>
+                            <div key={team.id} className="relative w-full h-full">
+                                <img src={team.flag} alt="" className="w-full h-full object-cover" />
+                            </div>
                         ))}
                     </div>
                 ) : (
@@ -107,6 +109,8 @@ const ScoreStepper: React.FC<{
   );
 };
 
+// --- MAIN COMPONENT ---
+
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, 
     phase, 
@@ -133,6 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [prediction, isDirty]);
 
+    // AUTO-SAVE MECHANISM
     useEffect(() => {
         if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
             const timer = setTimeout(() => {
@@ -161,7 +166,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
 
-    // LOGIC: Locked by default in LIVE, unless subbed or admin
     let isLocked = false;
     if (phase === 'PRE_LIVE') {
         isLocked = false;
@@ -170,7 +174,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     }
     if (isAdminMode) isLocked = false;
 
-    // LOGIC: Can Substitute?
     const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && !!onSubstitute;
 
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
@@ -222,11 +225,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
+        
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {new Date(match.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })}
+                    {new Date(match.date).toLocaleTimeString(locale, { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short'
+                    })}
                 </span>
             </div>
         );
@@ -265,9 +274,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="w-1/3 flex items-center justify-center text-center">
                     {variant === 'prediction' ? (
                         (context === 'groups' || context === 'knockout') ? (
-                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">{new Date(match.date).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                                {new Date(match.date).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}
+                             </span>
                         ) : (
-                             <div className="h-6 opacity-80 flex items-center justify-center"><img src="/logo-white.png" alt="Rasten Cup" className="h-full object-contain max-w-[80px]" /></div>
+                             <div className="h-6 opacity-80 flex items-center justify-center">
+                                <img src="/logo-white.png" alt="Rasten Cup" className="h-full object-contain max-w-[80px]" />
+                             </div>
                         )
                     ) : (
                         <div className="flex items-center gap-1.5">
@@ -282,31 +295,44 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {/* MAIN CARD CONTENT - ALIGNMENT FIXED: items-start, pt-5 */}
              <div className="p-4 pt-5 flex items-start justify-center relative z-10 gap-2 flex-1">
                 
-                {/* Home Team */}
+                {/* Home Team - Fixed Width equal to Away Team */}
                 <div onClick={() => { if (isHomeTBD) return; if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-shrink-0 w-28 sm:w-36 flex flex-col items-center justify-start gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none shrink-0"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center w-full">
                         {!isHomeTBD && (
                             <>
-                                <div className="h-8 flex items-center justify-center w-full px-1"><span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span></div>
+                                {/* FIXED HEIGHT CONTAINER FOR NAME - prevents vertical jump */}
+                                <div className="h-8 flex items-center justify-center w-full px-1">
+                                    <span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>
+                                </div>
                                 {match.groupId && homeTeamPoints !== undefined && <span className="text-[9px] font-bold text-slate-400">{homeTeamPoints} {lang.pts || 'pts'}</span>}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Center Control */}
-                <div className="flex flex-col items-center justify-start px-1 z-20 shrink-0 w-32 sm:w-40 pt-1">
+                {/* Center Control - FIXED WIDTH (w-32 mobile / w-40 desktop) */}
+                <div className="flex flex-col items-center justify-center px-1 z-20 shrink-0 w-32 sm:w-40">
                     {isKnockout ? (
-                        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full"><div className="text-2xl font-black text-slate-200">VS</div><div className="mt-1 w-full">{renderControlButtons()}</div></div>
+                        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
+                            <div className="text-2xl font-black text-slate-200">VS</div>
+                            <div className="mt-1 w-full">{renderControlButtons()}</div>
+                        </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
                                 <div className="flex items-center gap-2 relative justify-center w-full">
                                     <ScoreStepper value={localHome} onChange={(v) => handleScoreChange('home', v)} isLocked={isLocked} onActivate={handleActivate} />
-                                    <div className="flex flex-col items-center gap-1 shrink-0"><span className="font-black text-slate-300 text-lg">-</span>{isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}</div>
+                                    <div className="flex flex-col items-center gap-1 shrink-0">
+                                        <span className="font-black text-slate-300 text-lg">-</span>
+                                        {isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}
+                                    </div>
                                     <ScoreStepper value={localAway} onChange={(v) => handleScoreChange('away', v)} isLocked={isLocked} onActivate={handleActivate} />
-                                    {isUnlockedBySub && isDirty && <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30"><button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button></div>}
+                                    {isUnlockedBySub && isDirty && (
+                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
+                                            <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
@@ -334,13 +360,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     )}
                 </div>
 
-                {/* Away Team */}
+                {/* Away Team - Fixed Width equal to Home Team */}
                 <div onClick={() => { if (isAwayTBD) return; if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-shrink-0 w-28 sm:w-36 flex flex-col items-center justify-start gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none shrink-0"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center w-full">
                         {!isAwayTBD && (
                             <>
-                                <div className="h-8 flex items-center justify-center w-full px-1"><span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span></div>
+                                {/* FIXED HEIGHT CONTAINER FOR NAME */}
+                                <div className="h-8 flex items-center justify-center w-full px-1">
+                                    <span className={`font-black text-slate-800 text-xs leading-tight uppercase tracking-tight text-center line-clamp-2 w-full ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>
+                                </div>
                                 {match.groupId && awayTeamPoints !== undefined && <span className="text-[9px] font-bold text-slate-400">{awayTeamPoints} {lang.pts || 'pts'}</span>}
                             </>
                         )}
@@ -348,7 +377,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
             </div>
 
-            {/* EXPANDABLE SECTIONS */}
+            {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity"><div className="flex items-center gap-2"><History size={12} className="text-slate-400" /><span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{lang.headToHead}</span></div><ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} /></div>
@@ -375,6 +404,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
                     
+                    {/* CENTER: User Prediction (Brain icon removed) */}
                     <div className="w-1/3 flex justify-center">
                         {prediction && (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
