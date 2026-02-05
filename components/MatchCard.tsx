@@ -176,9 +176,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     // Logic Checks
     const canSubstitute = phase === 'LIVE' && !isStarted && !isUnlockedBySub && !!onSubstitute;
-    // SPY LOGIC: Can spy if NOT Locked (so Pre-Live) AND not already spied AND not started
-    // Note: Usually "Intel" is for Pre-Live to see others before lock? Or see locked picks?
-    // Based on user request: "Group Stages tab".
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
     const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute;
 
@@ -200,7 +197,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (userTokens > 0) {
-             onSpy(id: match.id);
+             onSpy(match.id); // FIXED: Removed "id:" label
         } else {
             // Toast handled by App.tsx usually, or fallback alert
         }
