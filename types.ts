@@ -161,6 +161,10 @@ export interface TourStep {
   targetId?: string; // HTML ID of the element to highlight (Legacy/Single target)
   targets?: string[]; // NEW: Array of IDs to highlight simultaneously
   position: 'center' | 'top' | 'bottom';
+  
+  // NEW: Defines which "Telestrator" graphic to draw
+  overlayType?: 'none' | 'score-arrows' | 'swipe-hand' | 'sparkles' | 'tap-target'; 
+  
   audioFiles: Record<string, string>; // e.g. { 'en': '/audio/...', 'no': '/audio/...' }
   
   // Visual Text (Short headlines for the TV Graphic)

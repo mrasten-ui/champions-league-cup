@@ -330,15 +330,18 @@ const App: React.FC = () => {
   // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
   const handleTourNavigation = (stepId: string) => {
       
-      const scrollToId = (id: string, block: ScrollLogicalPosition = 'center') => {
+      const scrollToId = (id: string) => {
           setTimeout(() => {
               const el = document.getElementById(id);
               if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block });
+                  const rect = el.getBoundingClientRect();
+                  // Center the element in the viewport (minus the 120px footer)
+                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 60;
+                  window.scrollTo({ top: offset, behavior: 'smooth' });
               } else {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
               }
-          }, 400); // 400ms delay to allow Tab switch to render DOM
+          }, 500);
       };
 
       if (stepId === 'match_card') {
@@ -346,22 +349,22 @@ const App: React.FC = () => {
               setActiveTab('groups');
               setActiveGroup('A');
           }
-          scrollToId('tour-first-match', 'center'); // Center the card
+          scrollToId('tour-first-match');
       } 
       else if (stepId === 'groups_nav') {
           if (activeTab !== 'groups') setActiveTab('groups');
-          scrollToId('nav-groups', 'start'); // Scroll to top nav
+          scrollToId('subnav-groups');
       }
       else if (stepId === 'magic_wand') {
-          // Wand is floating, usually visible, but safe to scroll top
+          // Wand is fixed
           window.scrollTo({ top: 0, behavior: 'smooth' });
       }
       else if (stepId === 'knockout_tab') {
           if (activeTab !== 'knockout') setActiveTab('knockout');
-          scrollToId('nav-knockout', 'start');
+          scrollToId('subnav-knockout');
       }
       else if (stepId === 'profile_menu') {
-          // --- UPDATED: RESET TO GROUPS FOR FINISH ---
+          // RESET TO GROUP A FOR END OF TOUR
           if (activeTab !== 'groups') {
               setActiveTab('groups');
               setActiveGroup('A');
@@ -729,9 +732,7 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* --- MODIFIED: Pass 'isTourActive' to lift the wand --- */}
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
-      
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
     </div>
   );
