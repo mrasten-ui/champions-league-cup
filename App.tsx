@@ -37,7 +37,7 @@ import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
 // --- NEW IMPORTS FOR TOUR ---
 import { TourGuide } from './components/TourGuide';
-import { PRE_SEASON_TOUR } from './tourConfig';
+import { PRE_SEASON_TOUR } from './components/tourConfig';
 
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 

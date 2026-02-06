@@ -1,4 +1,4 @@
-import { TourStep } from './types';
+import { TourStep } from '../types';
 
 export const PRE_SEASON_TOUR: TourStep[] = [
   {

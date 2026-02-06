@@ -84,7 +84,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           audioRef.current = audio;
           audio.play().catch(e => {
               console.warn("Audio autoplay blocked by browser policy", e);
-              // Optional: Show a "Click to play" button if blocked, but usually fine after first interaction
           });
       }
     }
@@ -124,7 +123,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       )}
 
       {/* DIALOG BOX */}
-      <div className={`absolute left-0 right-0 p-4 flex justify-center transition-all duration-500 ${position?.position === 'top' || (position?.top && position.top > window.innerHeight / 2) ? 'top-20' : 'bottom-20'}`}>
+      <div className={`absolute left-0 right-0 p-4 flex justify-center transition-all duration-500 ${
+          currentStep.position === 'top' || (position?.top && position.top > window.innerHeight / 2) 
+            ? 'top-20' 
+            : 'bottom-20'
+        }`}>
         <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 relative z-50">
           
           {/* Header */}
