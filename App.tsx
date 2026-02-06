@@ -329,23 +329,39 @@ const App: React.FC = () => {
 
   // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
   const handleTourNavigation = (stepId: string) => {
-      // Logic to auto-drive the app based on tour steps
-      if (stepId === 'match_card' || stepId === 'groups_nav' || stepId === 'magic_wand') {
+      
+      const scrollToId = (id: string, block: ScrollLogicalPosition = 'center') => {
+          setTimeout(() => {
+              const el = document.getElementById(id);
+              if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block });
+              } else {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+          }, 400); // 400ms delay to allow Tab switch to render DOM
+      };
+
+      if (stepId === 'match_card') {
           if (activeTab !== 'groups') {
               setActiveTab('groups');
               setActiveGroup('A');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
           }
+          scrollToId('tour-first-match', 'center'); // Center the card
       } 
+      else if (stepId === 'groups_nav') {
+          if (activeTab !== 'groups') setActiveTab('groups');
+          scrollToId('nav-groups', 'start'); // Scroll to top nav
+      }
+      else if (stepId === 'magic_wand') {
+          // Wand is floating, usually visible, but safe to scroll top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       else if (stepId === 'knockout_tab') {
-          if (activeTab !== 'knockout') {
-              setActiveTab('knockout');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+          if (activeTab !== 'knockout') setActiveTab('knockout');
+          scrollToId('nav-knockout', 'start');
       }
       else if (stepId === 'profile_menu') {
-          // Optional: Open profile menu if you really want to, but might be intrusive
-          // setIsProfileMenuOpen(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
       }
   };
 

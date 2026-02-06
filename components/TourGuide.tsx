@@ -8,7 +8,7 @@ interface TourGuideProps {
   isOpen: boolean;
   onComplete: () => void;
   langCode: string; 
-  onStepChange?: (stepId: string) => void; // <--- NEW: Tells App to navigate
+  onStepChange?: (stepId: string) => void;
 }
 
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
@@ -29,14 +29,14 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   const safeLang = getSafeLangKey(langCode);
 
-  // 1. Navigation Effect: Tell App.tsx to change views when step changes
+  // 1. Navigation Effect
   useEffect(() => {
       if (isOpen && onStepChange && hasStarted) {
           onStepChange(currentStep.id);
       }
   }, [currentStepIdx, isOpen, hasStarted, onStepChange, currentStep.id]);
 
-  // 2. Spotlight Position Effect
+  // 2. Spotlight Position
   useEffect(() => {
     if (!isOpen) return;
     
@@ -65,9 +65,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     updatePosition();
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition);
-    
-    // Slight delay to allow UI to settle after navigation
-    const timer = setTimeout(updatePosition, 600); // Increased delay for tab switching
+    const timer = setTimeout(updatePosition, 600); // Wait for App scroll to finish
 
     return () => {
         window.removeEventListener('resize', updatePosition);
@@ -76,7 +74,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     };
   }, [currentStepIdx, isOpen, currentStep]);
 
-  // 3. Audio Effect
+  // 3. Audio & Auto-Advance Logic
   useEffect(() => {
     if (!isOpen) return;
     
@@ -90,10 +88,22 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       if (src) {
           const audio = new Audio(src);
           audioRef.current = audio;
+          
+          // AUTO-ADVANCE: Wait 2s after audio finishes
+          audio.onended = () => {
+              setTimeout(() => {
+                  if (currentStepIdx < steps.length - 1) {
+                      setCurrentStepIdx(prev => prev + 1);
+                  } else {
+                      onComplete();
+                  }
+              }, 2000); 
+          };
+
           audio.play().catch(e => console.warn("Audio autoplay blocked", e));
       }
     }
-  }, [currentStepIdx, isMuted, isOpen, safeLang, currentStep, hasStarted]);
+  }, [currentStepIdx, isMuted, isOpen, safeLang, currentStep, hasStarted, steps.length, onComplete]);
 
   const handleStart = () => {
       setHasStarted(true);
@@ -120,13 +130,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   if (!isOpen) return null;
 
   const content = currentStep.display?.[safeLang] || currentStep.display?.['en'];
-  const audioScript = currentStep.audioScript?.[safeLang] || currentStep.audioScript?.['en']; 
+  const audioScript = currentStep.audioScript?.[safeLang] || currentStep.audioScript?.['en'];
   const isWelcome = currentStep.id === 'welcome';
 
   // --- WELCOME MODAL ---
   if (isWelcome) {
       return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
                 <div className="h-32 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
@@ -152,66 +162,71 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       );
   }
 
-  // --- TV GRAPHIC OVERLAY (FIXED BOTTOM) ---
+  // --- TV GRAPHIC OVERLAY ---
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden font-sans touch-none pointer-events-none">
+    <div className="fixed inset-0 z-[100] overflow-hidden font-sans touch-none">
       
-      {/* 1. DIMMER */}
-      <div className="absolute inset-0 bg-black/60 transition-all duration-700 ease-in-out"
+      {/* 1. DIMMER & CLICK BLOCKER */}
+      <div className="absolute inset-0 bg-black/50 transition-all duration-700 ease-in-out pointer-events-auto"
         style={position ? {
            clipPath: `polygon(0% 0%, 0% 100%, ${position.left}px 100%, ${position.left}px ${position.top}px, ${position.left + position.width}px ${position.top}px, ${position.left + position.width}px ${position.top + position.height}px, ${position.left}px ${position.top + position.height}px, ${position.left}px 100%, 100% 100%, 100% 0%)`
         } : {}}></div>
 
       {/* 2. GLOWING BORDER */}
       {position && (
-        <div className="absolute border-4 border-yellow-400/80 rounded-xl shadow-[0_0_30px_rgba(250,204,21,0.5)] transition-all duration-700 box-border animate-pulse"
+        <div className="absolute border-4 border-yellow-400/80 rounded-xl shadow-[0_0_30px_rgba(250,204,21,0.5)] transition-all duration-700 box-border animate-pulse pointer-events-none"
           style={{ top: position.top, left: position.left, width: position.width, height: position.height }}></div>
       )}
 
-      {/* 3. BROADCAST LOWER-THIRD (Fixed to Bottom) */}
-      <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-auto">
-        <div className="relative w-full max-w-lg overflow-hidden rounded-xl shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-500">
-            {/* Background */}
-            <div className="absolute inset-0 bg-[#0f172a] border-t-4 border-yellow-400"></div>
+      {/* 3. FIXED FOOTER (Full Width TV) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[200] pointer-events-auto flex justify-center">
+        
+        {/* TV CONTAINER: Full width, dark background, top border */}
+        <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-full duration-500">
             
-            {/* Layout */}
-            <div className="relative z-10 flex h-24">
-                {/* Host */}
-                <div className="w-20 bg-[#1e293b] flex items-end justify-center relative border-r border-white/10">
-                    <AvatarDisplay avatar="/avatars/host.png" size="lg" className="translate-y-2 scale-110 drop-shadow-xl" />
+            {/* Centered Content Wrapper */}
+            <div className="max-w-4xl mx-auto flex h-24 sm:h-28 relative">
+                
+                {/* Left: Host Avatar */}
+                <div className="w-24 bg-[#1e293b] flex items-end justify-center relative border-r border-white/10 shrink-0">
+                    <AvatarDisplay avatar="/avatars/host.png" size="lg" className="translate-y-2 scale-125 drop-shadow-2xl" />
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 p-3 flex flex-col justify-center">
-                    <div className="flex justify-between items-center mb-1">
-                        <h3 className="text-sm font-black text-yellow-400 uppercase tracking-widest italic">{content?.title}</h3>
-                        <div className="flex gap-2">
-                             <button onClick={() => setIsMuted(!isMuted)} className="text-white/40 hover:text-white transition-colors">{isMuted ? <VolumeX size={14}/> : <Volume2 size={14}/>}</button>
-                        </div>
+                {/* Middle: Content */}
+                <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center min-w-0">
+                    <div className="flex justify-between items-center mb-1.5">
+                        <h3 className="text-sm sm:text-base font-black text-yellow-400 uppercase tracking-widest italic truncate pr-2">{content?.title}</h3>
+                        <button onClick={() => setIsMuted(!isMuted)} className="text-white/40 hover:text-white transition-colors shrink-0">
+                            {isMuted ? <VolumeX size={16}/> : <Volume2 size={16}/>}
+                        </button>
                     </div>
                     <div className="space-y-1">
                         {content?.lines?.map((line, i) => (
-                            <div key={i} className="flex items-center gap-2 text-white/90 text-xs font-bold">
-                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                                {line}
+                            <div key={i} className="flex items-center gap-2 text-white/90 text-xs sm:text-sm font-bold truncate">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></span>
+                                <span className="truncate">{line}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Controls */}
-                <div className="w-24 bg-[#1e293b] flex flex-col items-center justify-between p-2 border-l border-white/10">
-                     <div className="flex gap-1 w-full justify-center">
-                        <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`p-1.5 rounded-lg transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'text-white hover:bg-white/10'}`}>
-                            <ChevronLeft size={16} strokeWidth={3} />
+                {/* Right: Controls */}
+                <div className="w-28 bg-[#1e293b] flex flex-col items-center justify-center gap-2 p-2 border-l border-white/10 shrink-0">
+                     <button 
+                        onClick={handleNext} 
+                        className="w-full py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all"
+                     >
+                        {currentStepIdx === steps.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={14} strokeWidth={3} />
+                     </button>
+                     
+                     <div className="flex w-full gap-1">
+                        <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`flex-1 py-1.5 flex justify-center rounded-md transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                            <ChevronLeft size={14} strokeWidth={3} />
                         </button>
-                        <button onClick={handleNext} className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-lg active:scale-95">
-                            <ChevronRight size={16} strokeWidth={3} />
+                        <button onClick={handleSkip} className="flex-1 py-1.5 flex justify-center text-[9px] font-bold text-white/40 hover:text-white uppercase tracking-widest rounded-md hover:bg-white/10 transition-colors">
+                            Skip
                         </button>
                      </div>
-                     <button onClick={handleSkip} className="text-[9px] font-bold text-white/30 hover:text-white uppercase tracking-widest mt-1">
-                        Skip
-                     </button>
                 </div>
             </div>
         </div>

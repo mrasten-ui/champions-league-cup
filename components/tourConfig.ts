@@ -94,7 +94,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: KNOCKOUTS
+  // STOP 5: KNOCKOUTS (UPDATED TEXT)
   {
     id: 'knockout_tab',
     targetId: 'nav-knockout',
@@ -104,16 +104,16 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_05.mp3', sco: '/audio/tour_pre_sco_05.mp3' 
     },
     display: {
-      en: { title: "FINISH THE JOB", lines: ["Go here next", "Pick your Champion!"] },
-      'en-US': { title: "PICK A WINNER", lines: ["Don't forget the bracket", "Pick a Champion"] },
-      no: { title: "SLUTTSPILLET", lines: ["Gå hit etterpå", "Kår en mester!"] },
-      sco: { title: "THE BIG ONE", lines: ["Knockouts next", "Pick a winner!"] },
+      en: { title: "KNOCKOUTS", lines: ["Pick WINNERS, not scores", "Don't leave it blank!"] },
+      'en-US': { title: "THE BRACKET", lines: ["Pick who advances", "Pick a Champion"] },
+      no: { title: "SLUTTSPILLET", lines: ["Velg vinner, ikke resultat", "Kår en mester!"] },
+      sco: { title: "THE BIG ONE", lines: ["Who goes through?", "Pick a winner!"] },
     },
     audioScript: {
-      en: { host: "Finally, go to the Knockout tab. You must pick a Champion to complete your entry.", pundit: "You can use the Magic Wand there too. Just get it done!" },
-      'en-US': { host: "Head to the Bracket tab next. You have to pick a Champion to win the game.", pundit: "The Magic Wand works there too. Just make sure you pick a winner." },
-      no: { host: "Til slutt, gå til Sluttspill-fanen. Du må kåre en mester for å delta.", pundit: "Tryllestaven virker der også. Bare sørg for at du har en vinner!" },
-      sco: { host: "Last thing, go tae the Knockouts. Ye need tae pick a winner to play.", pundit: "The Wand works there too. Just dinnae leave it blank!" }
+      en: { host: "Finally, go to the Knockout tab. Here you just pick who advances, you don't need to guess the score.", pundit: "If you don't pick a Champion, you can't win the league. Get it done!" },
+      'en-US': { host: "Head to the Bracket tab next. Just pick the winners here, no scores needed.", pundit: "You gotta pick a Champion to win the game. Don't leave this empty!" },
+      no: { host: "Til slutt, gå til Sluttspill-fanen. Her velger du bare hvem som går videre, ikke resultatet.", pundit: "Du må kåre en mester for å vinne. Få det gjort!" },
+      sco: { host: "Last thing, go tae the Knockouts. Just pick who wins, nae scores needed.", pundit: "Ye cannae win if ye don't pick a winner. Get it filled in!" }
     }
   },
 
