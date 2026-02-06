@@ -327,7 +327,7 @@ const App: React.FC = () => {
       }
   };
 
-  // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
+  // --- TOUR NAVIGATION HANDLER (Auto-drives the app) ---
   const handleTourNavigation = (stepId: string) => {
       
       const scrollToId = (id: string) => {
@@ -335,8 +335,10 @@ const App: React.FC = () => {
               const el = document.getElementById(id);
               if (el) {
                   const rect = el.getBoundingClientRect();
-                  // Center the element in the viewport (minus the 120px footer)
-                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 60;
+                  // Center the element vertically in the visible area above the footer
+                  // Formula: Scroll + ElementTop - (ViewHeight/2) + (ElementHeight/2) + FOOTER_OFFSET
+                  // Footer is large (~112px), so we push the content UP by adding ~150px
+                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 150;
                   window.scrollTo({ top: offset, behavior: 'smooth' });
               } else {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -732,7 +734,9 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* --- MODIFIED: Pass 'isTourActive' to lift the wand --- */}
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
+      
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
     </div>
   );
