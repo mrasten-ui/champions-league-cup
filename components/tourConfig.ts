@@ -1,27 +1,28 @@
 import { TourStep } from '../types';
 
 export const PRE_SEASON_TOUR: TourStep[] = [
+  // STOP 1: THE WELCOME (Modal Center)
   {
     id: 'welcome',
     position: 'center',
     audioFiles: {
-      en: '/audio/pre_en_01_welcome.mp3',
-      'en-US': '/audio/pre_us_01_welcome.mp3',
-      no: '/audio/pre_no_01_welcome.mp3',
-      sco: '/audio/pre_sco_01_welcome.mp3'
+      en: '/audio/tour_pre_en_01.mp3',
+      'en-US': '/audio/tour_pre_us_01.mp3',
+      no: '/audio/tour_pre_no_01.mp3',
+      sco: '/audio/tour_pre_sco_01.mp3'
     },
     script: {
       en: { 
-        host: "Welcome to The Rasten Cup Stadium! The pitch is pristine, and the fans are gathering.", 
-        pundit: "Let's see if you know your stuff, or if you're just here for the pies." 
+        host: "Welcome to The Rasten Cup! The stadium is ready. Are you?", 
+        pundit: "Let's see if you know your football, or if you're just guessing." 
       },
       'en-US': { 
-        host: "Welcome to Rasten Cup Stadium! The field looks perfect and the crowd is pumped.", 
-        pundit: "Time to step up. Do you know soccer, or are you just here for the hot dogs?" 
+        host: "Welcome to The Rasten Cup! The field is perfect. It's game time.", 
+        pundit: "Do you know soccer, or are you just here for the snacks?" 
       },
       no: { 
-        host: "Velkommen til Rasten Cup Stadion! Gresset er grønt og stemningen er elektrisk.", 
-        pundit: "Nå får vi se om du har peiling, eller om du bare er her for vaflene." 
+        host: "Velkommen til Rasten Cup! Stadionet er klart. Er du?", 
+        pundit: "Nå skal vi se om du har peiling, eller om du bare tipper i blinde." 
       },
       sco: { 
         host: "Welcome tae The Rasten Cup! The atmosphere is building nicely.", 
@@ -29,90 +30,127 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       }
     }
   },
+
+  // STOP 2: THE MATCH CARD (Predict + Spy)
   {
-    id: 'groups_tab',
-    targetId: 'nav-groups', 
-    position: 'bottom',
+    id: 'match_card',
+    targetId: 'tour-first-match', // We added this ID to MatchCard.tsx
+    position: 'top',
     audioFiles: { 
-        en: '/audio/pre_en_02_groups.mp3', 
-        'en-US': '/audio/pre_us_02_groups.mp3',
-        no: '/audio/pre_no_02_groups.mp3', 
-        sco: '/audio/pre_sco_02_groups.mp3' 
+        en: '/audio/tour_pre_en_02.mp3', 
+        'en-US': '/audio/tour_pre_us_02.mp3',
+        no: '/audio/tour_pre_no_02.mp3', 
+        sco: '/audio/tour_pre_sco_02.mp3' 
     },
     script: {
       en: { 
-        host: "This is your workspace. Navigate through the groups and predict the score for every match.", 
-        pundit: "Don't sit on the fence! 0-0 draws get you nowhere in this game." 
+        host: "This is your main job. Predict the score for every single match.", 
+        pundit: "See that Eye icon? That's the Spy button. Use it to steal your rival's tactics!" 
       },
       'en-US': { 
-        host: "This is your dashboard. Go through the brackets and pick the score for every matchup.", 
-        pundit: "Don't play it safe! 0-0 ties won't win you the championship." 
+        host: "This is the game. Pick a score for every matchup in the bracket.", 
+        pundit: "That Eye icon is the Spy button. Peek at your opponent's picks if you're nervous." 
       },
       no: { 
-        host: "Dette er arbeidsplassen din. Gå gjennom gruppene og tipp resultatet i alle kampene.", 
-        pundit: "Ingen feige 0-0 tips nå! Vi må ha mål!" 
+        host: "Dette er jobben din. Tipp resultatet i hver eneste kamp.", 
+        pundit: "Ser du øye-ikonet? Det er Spion-knappen. Bruk den til å snoke på konkurrentene!" 
       },
       sco: { 
-        host: "This is where ye do the work. Pick a score for every single game in the groups.", 
-        pundit: "And dinnae be picking draws just to be safe. fortune favors the brave!" 
+        host: "This is what ye do. Pick a score for every game.", 
+        pundit: "That wee eye is the Spy button. Have a keek at what the others are picking." 
       }
     }
   },
+
+  // STOP 3: GROUP NAVIGATION (Scope)
   {
-    id: 'magic_wand',
-    targetId: 'btn-magic-wand', 
-    position: 'top',
+    id: 'groups_nav',
+    targetId: 'nav-groups',
+    position: 'bottom',
     audioFiles: { 
-        en: '/audio/pre_en_03_wand.mp3', 
-        'en-US': '/audio/pre_us_03_wand.mp3',
-        no: '/audio/pre_no_03_wand.mp3', 
-        sco: '/audio/pre_sco_03_wand.mp3' 
+        en: '/audio/tour_pre_en_03.mp3', 
+        'en-US': '/audio/tour_pre_us_03.mp3',
+        no: '/audio/tour_pre_no_03.mp3', 
+        sco: '/audio/tour_pre_sco_03.mp3' 
     },
     script: {
       en: { 
-        host: "Stuck for ideas? The Magic Wand can analyze stats and auto-fill your bracket.", 
-        pundit: "It's for the lazy managers, basically. But it might save your skin." 
+        host: "There are 12 groups to complete. Use the navigation to find them all.", 
+        pundit: "Don't just fill in Group A and quit. That's a rookie mistake." 
       },
       'en-US': { 
-        host: "Need a hand? The Magic Wand analyzes the stats and auto-fills your picks.", 
-        pundit: "Basically a cheat code for lazy coaches. But hey, a win is a win." 
+        host: "There are 12 groups in total. Swipe or click to move between them.", 
+        pundit: "Don't stop after the first page. You can't win if you don't play." 
       },
       no: { 
-        host: "Står du fast? Tryllestaven kan analysere stats og fylle ut tipsene for deg.", 
-        pundit: "Juksemaker pipelort! Men det er lov å bruke hodet... eller staven." 
+        host: "Det er 12 grupper totalt. Bruk menyen for å finne alle.", 
+        pundit: "Ikke bare fyll ut Gruppe A og tro at du er ferdig. Det er amatørmessig." 
       },
       sco: { 
-        host: "Stuck? The Magic Wand will look at the stats and fill the scores in for ye.", 
+        host: "There's 12 groups tae get through. Keep swiping til yer done.", 
+        pundit: "Dinnae just do the first one and stop. Ye'll look like a numpty." 
+      }
+    }
+  },
+
+  // STOP 4: MAGIC WAND (The Cheat)
+  {
+    id: 'magic_wand',
+    targetId: 'btn-magic-wand',
+    position: 'top',
+    audioFiles: { 
+        en: '/audio/tour_pre_en_04.mp3', 
+        'en-US': '/audio/tour_pre_us_04.mp3',
+        no: '/audio/tour_pre_no_04.mp3', 
+        sco: '/audio/tour_pre_sco_04.mp3' 
+    },
+    script: {
+      en: { 
+        host: "Short on time? The Magic Wand will analyze stats and auto-fill your predictions.", 
+        pundit: "It's for lazy managers, basically. But it might save your skin." 
+      },
+      'en-US': { 
+        host: "In a rush? The Magic Wand analyzes the data and picks the winners for you.", 
+        pundit: "It's basically a cheat code. Use it if you're stuck." 
+      },
+      no: { 
+        host: "Dårlig tid? Tryllestaven analyserer stats og fyller ut tipsene for deg.", 
+        pundit: "Det er juks for latsabber. Men det er bedre enn å levere blankt." 
+      },
+      sco: { 
+        host: "Short o' time? The Magic Wand will look at the stats and fill it in for ye.", 
         pundit: "It's cheating if ye ask me, but use it if yer desperate." 
       }
     }
   },
+
+  // STOP 5: KNOCKOUTS (The End Goal)
   {
-    id: 'leaderboard',
-    targetId: 'nav-leaderboard', 
+    id: 'knockout_tab',
+    targetId: 'nav-knockout',
     position: 'bottom',
     audioFiles: { 
-        en: '/audio/pre_en_04_signup.mp3', 
-        'en-US': '/audio/pre_us_04_signup.mp3',
-        no: '/audio/pre_no_04_signup.mp3', 
-        sco: '/audio/pre_sco_04_signup.mp3' 
+        en: '/audio/tour_pre_en_05.mp3', 
+        'en-US': '/audio/tour_pre_us_05.mp3',
+        no: '/audio/tour_pre_no_05.mp3', 
+        sco: '/audio/tour_pre_sco_05.mp3' 
     },
     script: {
       en: { 
-        host: "This is the Manager List. See who has signed up and who has completed their predictions.", 
-        pundit: "Check who's slacking off! If your mates aren't here yet, get on their case!" 
+        host: "Finally, go to the Knockout tab. You must pick a Champion to complete your entry.", 
+        pundit: "You can use the Magic Wand there too. Just get it done!" 
       },
       'en-US': { 
-        host: "Here is the Roster. See who has joined the league and locked in their picks.", 
-        pundit: "See who's dragging their feet? Send them a text and tell them to wake up!" 
+        host: "Head to the Bracket tab next. You have to pick a Champion to win the game.", 
+        pundit: "The Magic Wand works there too. Just make sure you pick a winner." 
       },
       no: { 
-        host: "Her er deltakerlisten. Se hvem som er påmeldt og hvem som har levert tipsene sine.", 
-        pundit: "Sjekk hvem som somler! Hvis vennene dine ikke er her, må du mase på dem!" 
+        host: "Til slutt, gå til Sluttspill-fanen. Du må kåre en mester for å delta.", 
+        pundit: "Tryllestaven virker der også. Bare sørg for at du har en vinner!" 
       },
       sco: { 
-        host: "This is the Team Sheet. See who's turned up and who's filled in their slip.", 
-        pundit: "See who's skiving! If yer pals aren't on the list, give them a shout!" 
+        host: "Last thing, go tae the Knockouts. Ye need tae pick a winner to play.", 
+        pundit: "The Wand works there too. Just dinnae leave it blank!" 
       }
     }
   }
