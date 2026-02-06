@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle } from 'lucide-react'; // <--- Added PlayCircle
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -24,6 +24,7 @@ interface AppHeaderProps {
   setShowRules: (b: boolean) => void;
   handleLogout: () => void;
   onReplayIntro: () => void;
+  onStartTour: () => void; // <--- NEW PROP for Tour Replay
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -74,7 +75,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* 1. TOP BAR */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
           
-          {/* --- NEW: COMPLETION BAR (Inserted Here) --- */}
+          {/* --- COMPLETION BAR --- */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
                 <div className="max-w-5xl mx-auto flex items-center gap-3 relative z-10">
@@ -124,7 +125,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
                   </button>
                   <div className="relative">
-                      <button onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
+                      {/* --- ID ADDED HERE: Profile Menu Button for Tour Targeting --- */}
+                      <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
                           <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-0.5 rounded-full border border-white shadow-sm"><Edit3 size={8} /></div>
                       </button>
@@ -144,6 +146,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                  </div>
                               </div>
                               <div className="p-1">
+                                 {/* --- NEW: Replay Tour Button --- */}
+                                 {props.tournamentPhase === 'PRE_LIVE' && (
+                                     <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
+                                 )}
+                                 
                                  <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
                                  <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
                                  
@@ -175,7 +182,10 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      else label = (typeof val === 'string' ? val : tab) as string;
                      
                      // --- ADDED: ID Logic for Tour Guide ---
-                     const tabId = tab === 'groups' ? 'nav-groups' : (tab === 'leaderboard' ? 'nav-leaderboard' : undefined);
+                     let tabId = undefined;
+                     if (tab === 'groups') tabId = 'nav-groups';
+                     else if (tab === 'knockout') tabId = 'nav-knockout'; 
+                     else if (tab === 'leaderboard') tabId = 'nav-leaderboard';
 
                      return (
                         <button 
@@ -236,32 +246,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       const inProgress = predsCount > 0 && !isComplete;
 
                       return (
-                          <button
-                              key={r}
-                              onClick={() => props.setActiveKnockoutRound?.(r)}
-                              className={`
-                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 
-                                  ${isActive 
-                                      ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
-                                      : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
-                                  }
-                              `}
-                          >
-                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">
-                                  {getRoundIcon(r)}
-                              </div>
+                          <button key={r} onClick={() => props.setActiveKnockoutRound?.(r)} className={`relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'}`}>
+                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">{getRoundIcon(r)}</div>
                               <div className="absolute inset-0 bg-black/30"></div>
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>
-                                      {r === 'FIN' ? 'FINAL' : r}
-                                  </span>
-                              </div>
-                              <div className={`
-                                  absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
-                                  ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' 
-                                    : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' 
-                                    : 'bg-slate-500'}
-                              `}></div>
+                              <div className="absolute inset-0 flex items-center justify-center"><span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>{r === 'FIN' ? 'FINAL' : r}</span></div>
+                              <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
                           </button>
                       );
                   })}

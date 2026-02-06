@@ -439,6 +439,7 @@ const App: React.FC = () => {
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
+        onStartTour={() => setShowTour(true)} // <--- NEW: REPLAY HANDLER
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
@@ -489,9 +490,10 @@ const App: React.FC = () => {
                           <StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} qualifiedThirds={predictedQualifiedThirds} />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {groupMatchesList.map(match => (
+                          {groupMatchesList.map((match, index) => (
                               <MatchCard 
                                 key={match.id} 
+                                cardId={index === 0 ? "tour-first-match" : undefined} // <--- NEW: ID FOR TOUR SPOTLIGHT
                                 match={match} 
                                 homeTeam={teamsData[match.homeTeamId]} 
                                 awayTeam={teamsData[match.awayTeamId]} 
