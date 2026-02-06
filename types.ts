@@ -4,7 +4,7 @@ export interface Translation {
   [key: string]: string | any;
   teamNames: Record<string, string>;
 
-  // --- NEW: Alerts & Toasts ---
+  // --- Alerts & Toasts ---
   noSubsTitle: string;
   noSubsMsg: string;
   loggedOutTitle: string;
@@ -19,7 +19,7 @@ export interface Translation {
   subRefundedMsg: string;
   secondChanceConfirm: string;
   
-  // --- NEW: Navigation & UI ---
+  // --- Navigation & UI ---
   prevGroup: string;
   nextGroup: string;
   bracketBtn: string;
@@ -86,6 +86,12 @@ export interface UserProfile {
   spiedMatches: string[];
   unlockedMatches: string[];
   hasTakenSecondChance: boolean;
+  
+  // --- NEW: Tour Tracking ---
+  toursCompleted?: {
+    preSeason: boolean;
+    liveSeason: boolean;
+  };
 }
 
 export interface GroupStanding {
@@ -148,3 +154,12 @@ export interface TeamFormData {
 }
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
+
+// --- NEW: Tour Configuration Interface ---
+export interface TourStep {
+  id: string;
+  targetId?: string; // HTML ID of the element to highlight (undefined = center modal)
+  position: 'center' | 'top' | 'bottom';
+  audioFiles: Record<string, string>; // e.g. { 'en': '/audio/...', 'no': '/audio/...' }
+  script: Record<string, { host: string; pundit: string }>;
+}
