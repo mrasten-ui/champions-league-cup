@@ -25,10 +25,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 2: THE MATCH CARD
+  // STOP 2: THE MATCH CARD (Multiple Targets)
   {
     id: 'match_card',
-    targetId: 'tour-first-match',
+    // Targets: Card, Up Buttons, Down Buttons
+    targets: ['tour-first-match', 'tour-up-home', 'tour-down-home', 'tour-up-away', 'tour-down-away'], 
     position: 'top',
     audioFiles: { 
         en: '/audio/tour_pre_en_02.mp3', 'en-US': '/audio/tour_pre_us_02.mp3',
@@ -48,10 +49,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 3: GROUP NAVIGATION (Target Updated)
+  // STOP 3: GROUP NAVIGATION (Seq Targets)
   {
     id: 'groups_nav',
-    targetId: 'subnav-groups', // <--- CHANGED FROM nav-groups
+    targets: ['nav-groups', 'subnav-groups'], // Main then Sub
     position: 'bottom',
     audioFiles: { 
         en: '/audio/tour_pre_en_03.mp3', 'en-US': '/audio/tour_pre_us_03.mp3',
@@ -94,10 +95,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: KNOCKOUTS (Target Updated)
+  // STOP 5: KNOCKOUTS
   {
     id: 'knockout_tab',
-    targetId: 'subnav-knockout', // <--- CHANGED FROM nav-knockout
+    targets: ['nav-knockout', 'subnav-knockout'], // Main then Sub
     position: 'bottom',
     audioFiles: { 
         en: '/audio/tour_pre_en_05.mp3', 'en-US': '/audio/tour_pre_us_05.mp3',

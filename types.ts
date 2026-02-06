@@ -158,7 +158,8 @@ export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;
-  targetId?: string; // HTML ID of the element to highlight (undefined = center modal)
+  targetId?: string; // HTML ID of the element to highlight (Legacy/Single target)
+  targets?: string[]; // NEW: Array of IDs to highlight simultaneously
   position: 'center' | 'top' | 'bottom';
   audioFiles: Record<string, string>; // e.g. { 'en': '/audio/...', 'no': '/audio/...' }
   

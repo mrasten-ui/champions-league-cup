@@ -361,6 +361,11 @@ const App: React.FC = () => {
           scrollToId('nav-knockout', 'start');
       }
       else if (stepId === 'profile_menu') {
+          // --- UPDATED: RESET TO GROUPS FOR FINISH ---
+          if (activeTab !== 'groups') {
+              setActiveTab('groups');
+              setActiveGroup('A');
+          }
           window.scrollTo({ top: 0, behavior: 'smooth' });
       }
   };
