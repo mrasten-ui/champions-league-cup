@@ -87,7 +87,7 @@ export interface UserProfile {
   unlockedMatches: string[];
   hasTakenSecondChance: boolean;
   
-  // --- NEW: Tour Tracking ---
+  // --- Tour Tracking ---
   toursCompleted?: {
     preSeason: boolean;
     liveSeason: boolean;
@@ -155,11 +155,19 @@ export interface TeamFormData {
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
 
-// --- NEW: Tour Configuration Interface ---
+// --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;
   targetId?: string; // HTML ID of the element to highlight (undefined = center modal)
   position: 'center' | 'top' | 'bottom';
   audioFiles: Record<string, string>; // e.g. { 'en': '/audio/...', 'no': '/audio/...' }
-  script: Record<string, { host: string; pundit: string }>;
+  
+  // Visual Text (Short headlines for the TV Graphic)
+  display: Record<string, {
+    title: string;
+    lines: string[];
+  }>;
+
+  // Audio Script (Full text spoken by personas)
+  audioScript: Record<string, { host: string; pundit: string }>;
 }
