@@ -375,12 +375,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )}
                             {/* --- RESTORED SPY BUTTON --- */}
                             {canSpy && (
-                                <button 
-                                    id={cardId ? "tour-spy-btn" : undefined} // <--- ID ADDED HERE
-                                    onClick={handleSpyClick} 
-                                    disabled={userTokens < 1} 
-                                    className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
-                                >
+                                <button onClick={handleSpyClick} disabled={userTokens < 1} className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}>
                                     <ScanEye size={10} />
                                     <span className="text-[9px] font-black uppercase tracking-wider">{lang.actionSpy || "Spy"} ({userTokens})</span>
                                 </button>

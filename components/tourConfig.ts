@@ -1,11 +1,10 @@
 import { TourStep } from '../types';
 
 export const PRE_SEASON_TOUR: TourStep[] = [
-  // STOP 1: THE WELCOME
   {
     id: 'welcome',
     position: 'center',
-    overlayType: 'none',
+    overlayType: 'none', // No spotlight needed
     audioFiles: {
       en: '/audio/tour_pre_en_01.mp3',
       'en-US': '/audio/tour_pre_us_01.mp3',
@@ -25,14 +24,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: { host: "Welcome tae The Rasten Cup! The atmosphere is building nicely.", pundit: "Aye, let's see if ye ken yer fitba or if yer just chancing it." }
     }
   },
-
-  // STOP 2: THE MATCH CARD (Added Spy Button Target)
   {
     id: 'match_card',
-    // Targets: Card, Up/Down Arrows, AND the Spy Button
-    targets: ['tour-first-match', 'tour-up-home', 'tour-down-home', 'tour-up-away', 'tour-down-away', 'tour-spy-btn'], 
+    targetId: 'tour-first-match',
+    overlayType: 'score-arrows', // <--- NEW: Draws arrows pointing at the score inputs
     position: 'top',
-    overlayType: 'score-arrows',
     audioFiles: { 
         en: '/audio/tour_pre_en_02.mp3', 'en-US': '/audio/tour_pre_us_02.mp3',
         no: '/audio/tour_pre_no_02.mp3', sco: '/audio/tour_pre_sco_02.mp3' 
@@ -50,13 +46,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: { host: "This is what ye do. Pick a score for every game.", pundit: "That wee eye is the Spy button. Have a keek at what the others are picking." }
     }
   },
-
-  // STOP 3: GROUP NAVIGATION (Main Tab + Sub Nav)
   {
     id: 'groups_nav',
-    targets: ['nav-groups', 'subnav-groups'], 
+    targetId: 'subnav-groups',
+    overlayType: 'swipe-hand', // <--- NEW: Shows a swiping hand gesture
     position: 'bottom',
-    overlayType: 'swipe-hand', 
     audioFiles: { 
         en: '/audio/tour_pre_en_03.mp3', 'en-US': '/audio/tour_pre_us_03.mp3',
         no: '/audio/tour_pre_no_03.mp3', sco: '/audio/tour_pre_sco_03.mp3' 
@@ -74,13 +68,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: { host: "There's 12 groups tae get through. Keep swiping til yer done.", pundit: "Dinnae just do the first one and stop. Ye'll look like a numpty." }
     }
   },
-
-  // STOP 4: MAGIC WAND
   {
     id: 'magic_wand',
     targetId: 'btn-magic-wand',
+    overlayType: 'sparkles', // <--- NEW: Sparkles around the wand
     position: 'top',
-    overlayType: 'sparkles',
     audioFiles: { 
         en: '/audio/tour_pre_en_04.mp3', 'en-US': '/audio/tour_pre_us_04.mp3',
         no: '/audio/tour_pre_no_04.mp3', sco: '/audio/tour_pre_sco_04.mp3' 
@@ -98,13 +90,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: { host: "Short o' time? The Magic Wand will look at the stats and fill it in for ye.", pundit: "It's cheating if ye ask me, but use it if yer desperate." }
     }
   },
-
-  // STOP 5: KNOCKOUTS (Main Tab + Sub Nav)
   {
     id: 'knockout_tab',
-    targets: ['nav-knockout', 'subnav-knockout'],
+    targetId: 'subnav-knockout',
+    overlayType: 'tap-target', // <--- NEW: A "Tap Here" circle
     position: 'bottom',
-    overlayType: 'tap-target',
     audioFiles: { 
         en: '/audio/tour_pre_en_05.mp3', 'en-US': '/audio/tour_pre_us_05.mp3',
         no: '/audio/tour_pre_no_05.mp3', sco: '/audio/tour_pre_sco_05.mp3' 
@@ -122,13 +112,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: { host: "Last thing, go tae the Knockouts. Just pick who wins, nae scores needed.", pundit: "Ye cannae win if ye don't pick a winner. Get it filled in!" }
     }
   },
-
-  // STOP 6: PROFILE
   {
     id: 'profile_menu',
     targetId: 'btn-profile-menu',
-    position: 'bottom',
     overlayType: 'none',
+    position: 'bottom',
     audioFiles: { 
         en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
         no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3' 
