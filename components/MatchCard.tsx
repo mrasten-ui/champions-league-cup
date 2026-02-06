@@ -30,10 +30,12 @@ interface MatchCardProps {
   allMatches?: Match[];
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
-  context?: 'groups' | 'knockout' | 'carousel'; 
+  context?: 'groups' | 'knockout' | 'carousel';
+  cardId?: string; // <--- FIXED: Added this optional prop
 }
 
-// --- SUB-COMPONENTS REMAIN UNCHANGED ---
+// --- SUB-COMPONENTS (TbdSlot, ScoreStepper) REMAIN UNCHANGED ---
+
 const TbdSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -115,7 +117,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, 
     phase, 
     isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context 
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId 
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -275,7 +277,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isAwayTBD = match.awayTeamId === 'TBD' || !awayTeam;
 
     return (
-        <div className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
+        <div id={cardId} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
              {/* HEADER */}
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
@@ -365,6 +367,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-4 py-2 rounded-xl font-mono text-2xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2"><span>-</span><span className="opacity-50 text-lg mx-1">:</span><span>-</span></div>
+                                             {/* Sub Button Lives Here */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
