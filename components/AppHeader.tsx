@@ -59,16 +59,57 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return { completed, total, percentage };
   }, [matches, allPredictions, user.email]);
 
+  // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
+  const renderNavTabs = (isDesktop: boolean) => (
+      <nav className={`flex ${isDesktop ? 'items-center gap-1 h-full' : 'justify-center'}`}>
+          {props.navTabs.map((tab) => {
+             const isActive = props.activeTab === tab;
+             let label = '';
+             const val = t[tab as keyof typeof t];
+             if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
+             else if (tab === 'analysis') label = t.analysisTab as string;
+             else if (tab === 'scouting') label = t.scoutingTab as string;
+             else if (tab === 'tournament') label = t.tabTournament as string; 
+             else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
+             else label = (typeof val === 'string' ? val : tab) as string;
+             
+             let tabId = undefined;
+             if (tab === 'groups') tabId = isDesktop ? 'nav-groups-desk' : 'nav-groups'; // Distinct IDs helps Tour Guide find correct element
+             else if (tab === 'knockout') tabId = isDesktop ? 'nav-knockout-desk' : 'nav-knockout'; 
+             else if (tab === 'leaderboard') tabId = isDesktop ? 'nav-leaderboard-desk' : 'nav-leaderboard';
+
+             return (
+                <button 
+                    key={tab} 
+                    id={tabId}
+                    onClick={() => props.setActiveTab(tab as any)} 
+                    className={`
+                        relative font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center
+                        ${isDesktop 
+                            ? `h-10 px-4 rounded-lg text-[10px] ${isActive ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}` 
+                            : `px-4 py-6 text-[10px] md:text-xs ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`
+                        }
+                    `}
+                >
+                   {label}
+                   {/* Mobile underline indicator */}
+                   {!isDesktop && isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
+                </button>
+             );
+          })}
+      </nav>
+  );
+
   return (
     <header className="sticky top-0 z-50">
       
-      {/* 1. TOP BAR */}
+      {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
           
-          {/* COMPLETION BAR */}
+          {/* Completion Bar (Stacked on top) */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
-                <div className="max-w-5xl mx-auto flex items-center gap-3 relative z-10">
+                <div className="max-w-7xl mx-auto flex items-center gap-3 relative z-10">
                     <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
                         <span className="opacity-50">{t.progressGroups || "Progress"}:</span> 
                         <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
@@ -92,8 +133,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             </div>
           )}
 
-          <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+              {/* LEFT: Logo */}
+              <div className="flex items-center gap-3 shrink-0">
                  <button onClick={props.onReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
                      <Logo className="w-12 h-12" variant="theme" />
                  </button>
@@ -101,7 +143,14 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1>
                  </div>
               </div>
-              <div className="flex items-center gap-3">
+
+              {/* CENTER: Desktop Navigation (Hidden on Mobile) */}
+              <div className="hidden md:flex flex-1 justify-center px-8">
+                  {renderNavTabs(true)}
+              </div>
+
+              {/* RIGHT: Controls & Profile */}
+              <div className="flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5 mr-2">
                       {LANGUAGES.map(l => (
                         <button key={l.code} onClick={() => props.setLanguage(l.code)} className={`w-6 h-4 sm:w-8 sm:h-5 rounded overflow-hidden transition-all duration-200 transform ${props.language === l.code ? 'ring-2 ring-yellow-400 scale-110 z-10 shadow-md grayscale-0' : 'opacity-60 grayscale hover:opacity-100 hover:scale-105'}`} title={l.name}>
@@ -134,7 +183,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                  </div>
                               </div>
                               <div className="p-1">
-                                 {/* Restart Tour Button */}
                                  {props.tournamentPhase === 'PRE_LIVE' && (
                                      <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
                                  )}
@@ -152,45 +200,16 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
 
-      {/* 2. TAB NAVIGATION */}
-      <div className="bg-[#0f2545]/95 backdrop-blur-md border-b border-white/5 shadow-2xl relative z-10">
-          <div className="max-w-5xl mx-auto px-4 overflow-x-auto no-scrollbar">
-              <nav className="flex justify-center">
-                  {props.navTabs.map((tab) => {
-                     const isActive = props.activeTab === tab;
-                     let label = '';
-                     const val = t[tab as keyof typeof t];
-                     if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
-                     else if (tab === 'analysis') label = t.analysisTab as string;
-                     else if (tab === 'scouting') label = t.scoutingTab as string;
-                     else if (tab === 'tournament') label = t.tabTournament as string; 
-                     else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
-                     else label = (typeof val === 'string' ? val : tab) as string;
-                     
-                     let tabId = undefined;
-                     if (tab === 'groups') tabId = 'nav-groups';
-                     else if (tab === 'knockout') tabId = 'nav-knockout'; 
-                     else if (tab === 'leaderboard') tabId = 'nav-leaderboard';
-
-                     return (
-                        <button 
-                            key={tab} 
-                            id={tabId}
-                            onClick={() => props.setActiveTab(tab as any)} 
-                            className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}
-                        >
-                           {label}
-                           {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
-                        </button>
-                     );
-                  })}
-              </nav>
+      {/* 2. MOBILE ONLY: SECONDARY TAB NAVIGATION */}
+      <div className="md:hidden bg-[#0f2545]/95 backdrop-blur-md border-b border-white/5 shadow-2xl relative z-10">
+          <div className="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar">
+              {renderNavTabs(false)}
           </div>
       </div>
       
       {/* 3. GROUP NAV (Only for Groups Tab) */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
-          <div id="subnav-groups" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> {/* <--- ADDED ID HERE */}
+          <div id="subnav-groups" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
               <div className="flex gap-2 px-4 justify-start sm:justify-center">
                   {GROUP_CONFIG.map(g => {
                       const groupMatches = matches.filter(m => m.groupId === g.id);
@@ -220,7 +239,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
       {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
-          <div id="subnav-knockout" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> {/* <--- ADDED ID HERE */}
+          <div id="subnav-knockout" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
                   {rounds.map(r => {
                       const isActive = props.activeKnockoutRound === r;
