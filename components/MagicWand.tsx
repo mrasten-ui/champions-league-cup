@@ -65,12 +65,10 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
           }`}
           title={isConfirmingDelete ? "Confirm Delete?" : lang.clearAll}
         >
-           {/* Background Glow */}
            <div className={`absolute inset-0 rounded-2xl transition-colors duration-300 ${
                isConfirmingDelete ? 'bg-red-600' : 'bg-red-500/0 group-hover:bg-red-50/50'
            }`}></div>
            
-           {/* Icons */}
            <div className="relative z-10 flex items-center justify-center">
                 {isConfirmingDelete ? (
                     <AlertCircle size={24} className="text-white animate-pulse" strokeWidth={3} />
@@ -79,7 +77,6 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
                 )}
            </div>
            
-           {/* Tooltip Label */}
            <span className={`absolute right-full mr-4 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all whitespace-nowrap pointer-events-none border shadow-2xl translate-x-2 group-hover:translate-x-0 ${
                isConfirmingDelete 
                 ? 'bg-red-600 text-white border-red-500 opacity-100 translate-x-0' 
@@ -93,23 +90,22 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
       {/* Main Magic Wand */}
       <button
         type="button"
+        id="btn-magic-wand" // <--- ID ADDED HERE
         onClick={(e) => {
             e.stopPropagation();
             onOpen();
         }}
         className={`pointer-events-auto relative bg-[#0f172a] text-white p-4 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-700 border-2 ${
           isActive 
-            ? 'border-yellow-400 scale-110 animate-bounce' // UPDATED: Gold Border
-            : 'border-yellow-500/20 hover:border-yellow-400/60 scale-100' // UPDATED: Gold Hover
+            ? 'border-yellow-400 scale-110 animate-bounce' 
+            : 'border-yellow-500/20 hover:border-yellow-400/60 scale-100' 
         } group active:scale-95`}
         aria-label={lang.openHand}
       >
-        {/* UPDATED: Gold Glow */}
         <div className={`absolute inset-0 bg-yellow-500/10 rounded-2xl blur-2xl transition-opacity duration-1000 ${isActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`}></div>
         <div className={`absolute -inset-1 rounded-2xl bg-gradient-to-tr from-transparent via-yellow-500/20 to-transparent transition-opacity duration-1000 ${isActive ? 'opacity-100 animate-spin-slow' : 'opacity-0 group-hover:opacity-100'}`}></div>
         
         <div className="relative z-10">
-           {/* UPDATED: Gold Icon */}
            <Wand2 size={28} className={`transition-all duration-500 ${isActive ? 'text-yellow-400 scale-110 rotate-12' : 'text-slate-400 group-hover:text-yellow-400 group-hover:rotate-12'}`} />
            <Sparkles size={16} className={`absolute -top-3 -right-3 text-yellow-300 transition-all duration-1000 ${isActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`} />
         </div>

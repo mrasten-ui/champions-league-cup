@@ -35,6 +35,9 @@ import { useAppData } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
+// --- NEW IMPORTS FOR TOUR ---
+import { TourGuide } from './components/TourGuide';
+import { PRE_SEASON_TOUR } from './tourConfig';
 
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 
@@ -65,6 +68,9 @@ const App: React.FC = () => {
 
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
+
+  // --- NEW: Tour State ---
+  const [showTour, setShowTour] = useState(false);
 
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
@@ -144,7 +150,7 @@ const App: React.FC = () => {
       if (supabase) await supabase.auth.signOut();
       setUser(null); setIsProfileMenuOpen(false);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-      addToast('info', t.loggedOutTitle, t.loggedOutMsg);
+      addToast('info', 'Logged Out', 'See you next match day.');
   };
 
   const updateAvatar = async (newAvatar: string) => {
@@ -165,20 +171,19 @@ const App: React.FC = () => {
     setUser({ ...user, avatar: finalUrl });
     await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
     setShowAvatarEditor(false);
-    addToast('success', t.profileUpdated, t.profileMsg);
+    addToast('success', 'Profile Updated', 'New avatar looks great!');
   };
 
-  // --- NEW: SCORE UPDATE WITH AUTO-RELOCK ---
+  // --- SCORE UPDATE & RELOCK ---
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-
+    
     // Check if user is allowed to update (Global Lock OR Unlocked Whitelist)
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
-    if (match.isLocked && !isWhitelisted) return;
+    if (!match || (match.isLocked && !isWhitelisted)) return;
     
-    // 1. Save Prediction
+    // 1. Save Prediction Locally & DB
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -193,7 +198,7 @@ const App: React.FC = () => {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
         setUser({ ...user, unlockedMatches: newUnlocked });
         await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
-        addToast('success', t.predSaved, t.predLocked);
+        addToast('success', 'Prediction Saved', 'Match re-locked.');
     }
   };
 
@@ -204,22 +209,24 @@ const App: React.FC = () => {
       const newTokens = user.tokens - 1;
       setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
       await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
-      addToast('success', t.rivalRevealed, t.intelUsed);
+      addToast('success', 'Rival Revealed', '-1 Intel used.');
   };
 
-  // --- NEW: SUBSTITUTION WITH STRICTER RULES ---
+  // --- SUBSTITUTE WITH STATUS CHECKS ---
   const handleSubstitute = async (matchId: string) => {
       if (!user || !supabase) return;
       
       const match = matches.find(m => m.id === matchId);
       
-      // Rule 1: Cannot sub finished games
-      if (match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status)) {
+      // Rule: Cannot sub finished or live games
+      const isStarted = match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status);
+      
+      if (!match || isStarted) {
           addToast('error', 'Too Late', 'Can only substitute UPCOMING matches.');
           return;
       }
 
-      if (user.substitutions < 1) { addToast('error', t.noSubsTitle, t.noSubsMsg); return; }
+      if (user.substitutions < 1) { addToast('error', 'No Subs Left', 'All substitutions used.'); return; }
       
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
@@ -230,10 +237,10 @@ const App: React.FC = () => {
 
   const handleUnlockSecondChance = async () => {
       if (!user || !supabase) return;
-      if (window.confirm(t.secondChanceConfirm)) {
+      if (window.confirm("Unlock Second Chance? This reduces future points by 50%.")) {
           setUser({ ...user, hasTakenSecondChance: true });
           await supabase.from('profiles').update({ has_taken_second_chance: true } as any).eq('email', user.email);
-          addToast('info', t.secondChanceActive, t.pointsReduced);
+          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
           setActiveTab('knockout');
       }
   };
@@ -250,7 +257,7 @@ const App: React.FC = () => {
 
   const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
 
-  // --- NEW: REFUND WATCHER ---
+  // --- REFUND WATCHER ---
   useEffect(() => {
     if (!user || !matches || !user.unlockedMatches || user.unlockedMatches.length === 0) return;
 
@@ -278,11 +285,11 @@ const App: React.FC = () => {
                     .eq('email', user.email);
             }
 
-            addToast('info', t.subRefunded, t.subRefundedMsg);
+            addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
         };
         performRefund();
     }
-  }, [matches, user?.unlockedMatches]); // Runs whenever matches update (e.g. Time Travel or Live Poll)
+  }, [matches, user?.unlockedMatches]);
 
   useEffect(() => {
       const checkPendingLeague = async () => {
@@ -299,6 +306,26 @@ const App: React.FC = () => {
       };
       checkPendingLeague();
   }, [user]);
+
+  // --- NEW: TRIGGER TOUR ---
+  useEffect(() => {
+      // Logic: If user exists, phase is PRE_LIVE, and user has NOT seen the tour
+      if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason) {
+          const timer = setTimeout(() => setShowTour(true), 1500); // 1.5s Delay so UI loads
+          return () => clearTimeout(timer);
+      }
+  }, [user, tournamentPhase]);
+
+  const handleTourComplete = async () => {
+      setShowTour(false);
+      if (user && supabase) {
+          const newTours = { ...(user.toursCompleted || { liveSeason: false }), preSeason: true };
+          // Update local state
+          setUser({ ...user, toursCompleted: newTours });
+          // Update DB (Uses JSONB column in supabase usually, or we map it)
+          await supabase.from('profiles').update({ tours_completed: newTours } as any).eq('email', user.email);
+      }
+  };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => user ? allPredictions.filter(p => p.userId === user.email && groupStageMatches.some(gm => gm.id === p.matchId)).length : 0, [allPredictions, user, groupStageMatches]);
@@ -490,8 +517,8 @@ const App: React.FC = () => {
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
-                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
+                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>Prev Group</span></button>}
+                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Group</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">Bracket <ChevronRight size={18} /></button></div>}
                           </div>
                       </div>
                    </>
@@ -505,11 +532,11 @@ const App: React.FC = () => {
                 <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? t.groups : t.prevRound}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
-                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
+                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Round</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : (
-                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.scoutBtn}</span><ScanEye size={18} /></button>
+                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Start Scouting</span><ScanEye size={18} /></button>
                         )}
                      </div>
                 </div>
@@ -561,13 +588,21 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* --- TOUR GUIDE OVERLAY --- */}
+      <TourGuide 
+        steps={PRE_SEASON_TOUR} 
+        isOpen={showTour} 
+        onComplete={handleTourComplete} 
+        langCode={language} 
+      />
+
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
             <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{(t as any).changeIdentity || "Change Identity"}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} />
-                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
+                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">Cancel</button>
             </div>
         </div>
       )}

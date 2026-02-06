@@ -164,22 +164,30 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           <div className="max-w-5xl mx-auto px-4 overflow-x-auto no-scrollbar">
               <nav className="flex justify-center">
                   {props.navTabs.map((tab) => {
-                      const isActive = props.activeTab === tab;
-                      let label = '';
-                      const val = t[tab as keyof typeof t];
-                      if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
-                      else if (tab === 'analysis') label = t.analysisTab as string;
-                      else if (tab === 'scouting') label = t.scoutingTab as string;
-                      else if (tab === 'tournament') label = t.tabTournament as string; 
-                      else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
-                      else label = (typeof val === 'string' ? val : tab) as string;
-                      
-                      return (
-                         <button key={tab} onClick={() => props.setActiveTab(tab as any)} className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}>
-                            {label}
-                            {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
-                         </button>
-                      );
+                     const isActive = props.activeTab === tab;
+                     let label = '';
+                     const val = t[tab as keyof typeof t];
+                     if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
+                     else if (tab === 'analysis') label = t.analysisTab as string;
+                     else if (tab === 'scouting') label = t.scoutingTab as string;
+                     else if (tab === 'tournament') label = t.tabTournament as string; 
+                     else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
+                     else label = (typeof val === 'string' ? val : tab) as string;
+                     
+                     // --- ADDED: ID Logic for Tour Guide ---
+                     const tabId = tab === 'groups' ? 'nav-groups' : (tab === 'leaderboard' ? 'nav-leaderboard' : undefined);
+
+                     return (
+                        <button 
+                            key={tab} 
+                            id={tabId} // <--- ID Assigned Here
+                            onClick={() => props.setActiveTab(tab as any)} 
+                            className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}
+                        >
+                           {label}
+                           {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
+                        </button>
+                     );
                   })}
               </nav>
           </div>
