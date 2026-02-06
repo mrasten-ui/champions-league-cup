@@ -31,21 +31,21 @@ interface MatchCardProps {
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
-  cardId?: string; // Used for Tour targeting
+  cardId?: string; 
 }
 
-// --- UPDATED SUB-COMPONENT: ScoreStepper with IDs ---
+// --- SUB-COMPONENT: ScoreStepper with IDs ---
 const ScoreStepper: React.FC<{ 
     value: number | null; 
     onChange: (val: number) => void; 
     isLocked: boolean;
     onActivate: () => void;
-    ids?: { up: string, down: string }; // <--- NEW PROP for Tour IDs
+    ids?: { up: string, down: string };
 }> = ({ value, onChange, isLocked, onActivate, ids }) => {
   return (
     <div className={`flex flex-col items-center justify-between w-12 h-24 sm:w-14 sm:h-28 bg-white border border-slate-200 rounded-2xl transition-all shadow-sm group ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'hover:border-blue-300 hover:shadow-md'}`}>
       <button 
-        id={ids?.up} // <--- ID APPLIED
+        id={ids?.up}
         disabled={isLocked} 
         onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(value + 1); }} 
         className="w-full flex-1 flex items-center justify-center text-slate-300 group-hover:text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-t-xl transition-colors active:bg-blue-50 focus:outline-none"
@@ -56,7 +56,7 @@ const ScoreStepper: React.FC<{
       <div className="h-10 flex items-center justify-center text-2xl sm:text-3xl font-black text-slate-800 leading-none select-none z-10">{value === null ? '-' : value}</div>
       
       <button 
-        id={ids?.down} // <--- ID APPLIED
+        id={ids?.down}
         disabled={isLocked} 
         onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(Math.max(0, value - 1)); }} 
         className="w-full flex-1 flex items-center justify-center text-slate-300 group-hover:text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-b-xl transition-colors active:bg-blue-50 focus:outline-none"
@@ -67,7 +67,7 @@ const ScoreStepper: React.FC<{
   );
 };
 
-// --- SUB-COMPONENT: TbdSlot (Unchanged) ---
+// --- SUB-COMPONENT: TbdSlot ---
 const TbdSlot: React.FC<{ 
     matchId: string;
     side: 'home' | 'away';
@@ -179,13 +179,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
+    // --- STATUS HELPERS (FIXED: Added missing definitions) ---
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
+    const isStarted = isLive || isFinished; 
     
     // Only lock if it's actually locked, live, or finished
     const isRealLifeLocked = match.isLocked || isLive || isFinished;
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
+    
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
+    const isSpied = currentUser?.spiedMatches?.includes(match.id);
+    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute;
 
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
@@ -214,7 +219,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
     const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
-    const isSpied = currentUser?.spiedMatches?.includes(match.id);
     const showRivals = isSpied || isRealLifeLocked;
 
     const getContextLabel = () => {
@@ -334,7 +338,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         onChange={(v) => handleScoreChange('home', v)} 
                                         isLocked={isLocked} 
                                         onActivate={handleActivate} 
-                                        ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined} // <--- IDs APPLIED
+                                        ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined} 
                                     />
                                     <div className="flex flex-col items-center gap-1">
                                         <span className="font-black text-slate-300 text-lg">-</span>
@@ -345,7 +349,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         onChange={(v) => handleScoreChange('away', v)} 
                                         isLocked={isLocked} 
                                         onActivate={handleActivate}
-                                        ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined} // <--- IDs APPLIED
+                                        ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined} 
                                     />
                                     {isUnlockedBySub && isDirty && (
                                         <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
@@ -369,6 +373,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             )}
+                            {/* --- RESTORED SPY BUTTON --- */}
                             {canSpy && (
                                 <button onClick={handleSpyClick} disabled={userTokens < 1} className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}>
                                     <ScanEye size={10} />
@@ -377,7 +382,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )}
                         </div>
                     )}
-                    {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && <div className="mt-2 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1"><AlertCircle size={8} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}</div>}
+                    
+                    {/* --- RESTORED ADMIN ALERT --- */}
+                    {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
+                        <div className="mt-2 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1">
+                            <AlertCircle size={8} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
+                        </div>
+                    )}
                 </div>
 
                 {/* Away Team */}
