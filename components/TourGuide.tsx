@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TourStep } from '../types';
-import { X, ChevronRight, ChevronLeft, Volume2, VolumeX, Play, SkipForward } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, SkipForward } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 
 interface TourGuideProps {
   steps: TourStep[];
   isOpen: boolean;
   onComplete: () => void;
-  langCode: string; // 'EN', 'US', 'NO', 'SCO'
+  langCode: string; 
+  onStepChange?: (stepId: string) => void; // <--- NEW: Tells App to navigate
 }
 
-export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode }) => {
+export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [position, setPosition] = useState<{ top: number, left: number, width: number, height: number } | null>(null);
@@ -28,6 +29,14 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   const safeLang = getSafeLangKey(langCode);
 
+  // 1. Navigation Effect: Tell App.tsx to change views when step changes
+  useEffect(() => {
+      if (isOpen && onStepChange && hasStarted) {
+          onStepChange(currentStep.id);
+      }
+  }, [currentStepIdx, isOpen, hasStarted, onStepChange, currentStep.id]);
+
+  // 2. Spotlight Position Effect
   useEffect(() => {
     if (!isOpen) return;
     
@@ -56,7 +65,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     updatePosition();
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition);
-    const timer = setTimeout(updatePosition, 500);
+    
+    // Slight delay to allow UI to settle after navigation
+    const timer = setTimeout(updatePosition, 600); // Increased delay for tab switching
 
     return () => {
         window.removeEventListener('resize', updatePosition);
@@ -65,6 +76,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     };
   }, [currentStepIdx, isOpen, currentStep]);
 
+  // 3. Audio Effect
   useEffect(() => {
     if (!isOpen) return;
     
@@ -97,7 +109,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   };
 
-  // NEW: Handle Previous
   const handlePrev = () => {
       if (currentStepIdx > 1) {
           setCurrentStepIdx(prev => prev - 1);
@@ -108,9 +119,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   if (!isOpen) return null;
 
-  // Use the NEW 'display' content for UI text
   const content = currentStep.display?.[safeLang] || currentStep.display?.['en'];
-  const audioScript = currentStep.audioScript?.[safeLang] || currentStep.audioScript?.['en']; // Fallback for welcome screen text
+  const audioScript = currentStep.audioScript?.[safeLang] || currentStep.audioScript?.['en']; 
   const isWelcome = currentStep.id === 'welcome';
 
   // --- WELCOME MODAL ---
@@ -142,7 +152,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       );
   }
 
-  // --- TV GRAPHIC OVERLAY ---
+  // --- TV GRAPHIC OVERLAY (FIXED BOTTOM) ---
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden font-sans touch-none pointer-events-none">
       
@@ -158,22 +168,20 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           style={{ top: position.top, left: position.left, width: position.width, height: position.height }}></div>
       )}
 
-      {/* 3. BROADCAST LOWER-THIRD */}
-      <div className={`absolute left-0 right-0 px-4 flex justify-center transition-all duration-700 pointer-events-auto ${currentStep.position === 'top' || (position?.top && position.top > window.innerHeight / 2) ? 'top-20' : 'bottom-10'}`}>
-        
+      {/* 3. BROADCAST LOWER-THIRD (Fixed to Bottom) */}
+      <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-auto">
         <div className="relative w-full max-w-lg overflow-hidden rounded-xl shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-500">
             {/* Background */}
             <div className="absolute inset-0 bg-[#0f172a] border-t-4 border-yellow-400"></div>
             
             {/* Layout */}
             <div className="relative z-10 flex h-24">
-                
-                {/* Left: Host Avatar */}
+                {/* Host */}
                 <div className="w-20 bg-[#1e293b] flex items-end justify-center relative border-r border-white/10">
                     <AvatarDisplay avatar="/avatars/host.png" size="lg" className="translate-y-2 scale-110 drop-shadow-xl" />
                 </div>
 
-                {/* Middle: Content */}
+                {/* Content */}
                 <div className="flex-1 p-3 flex flex-col justify-center">
                     <div className="flex justify-between items-center mb-1">
                         <h3 className="text-sm font-black text-yellow-400 uppercase tracking-widest italic">{content?.title}</h3>
@@ -191,14 +199,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
                 </div>
 
-                {/* Right: Controls & Pundit */}
+                {/* Controls */}
                 <div className="w-24 bg-[#1e293b] flex flex-col items-center justify-between p-2 border-l border-white/10">
                      <div className="flex gap-1 w-full justify-center">
-                        {/* Prev Button */}
                         <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`p-1.5 rounded-lg transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'text-white hover:bg-white/10'}`}>
                             <ChevronLeft size={16} strokeWidth={3} />
                         </button>
-                        {/* Next Button */}
                         <button onClick={handleNext} className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-lg active:scale-95">
                             <ChevronRight size={16} strokeWidth={3} />
                         </button>

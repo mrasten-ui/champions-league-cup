@@ -327,6 +327,28 @@ const App: React.FC = () => {
       }
   };
 
+  // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
+  const handleTourNavigation = (stepId: string) => {
+      // Logic to auto-drive the app based on tour steps
+      if (stepId === 'match_card' || stepId === 'groups_nav' || stepId === 'magic_wand') {
+          if (activeTab !== 'groups') {
+              setActiveTab('groups');
+              setActiveGroup('A');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+      } 
+      else if (stepId === 'knockout_tab') {
+          if (activeTab !== 'knockout') {
+              setActiveTab('knockout');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+      }
+      else if (stepId === 'profile_menu') {
+          // Optional: Open profile menu if you really want to, but might be intrusive
+          // setIsProfileMenuOpen(true);
+      }
+  };
+
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => user ? allPredictions.filter(p => p.userId === user.email && groupStageMatches.some(gm => gm.id === p.matchId)).length : 0, [allPredictions, user, groupStageMatches]);
   const isGroupStageComplete = userGroupPredictionsCount === groupStageMatches.length && groupStageMatches.length > 0;
@@ -439,7 +461,7 @@ const App: React.FC = () => {
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
-        onStartTour={() => setShowTour(true)} // <--- NEW: REPLAY HANDLER
+        onStartTour={() => setShowTour(true)} // <--- CONNECTED: Replay Handler
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
@@ -493,7 +515,7 @@ const App: React.FC = () => {
                           {groupMatchesList.map((match, index) => (
                               <MatchCard 
                                 key={match.id} 
-                                cardId={index === 0 ? "tour-first-match" : undefined} // <--- NEW: ID FOR TOUR SPOTLIGHT
+                                cardId={index === 0 ? "tour-first-match" : undefined} // <--- ID FOR TOUR SPOTLIGHT
                                 match={match} 
                                 homeTeam={teamsData[match.homeTeamId]} 
                                 awayTeam={teamsData[match.awayTeamId]} 
@@ -596,6 +618,7 @@ const App: React.FC = () => {
         isOpen={showTour} 
         onComplete={handleTourComplete} 
         langCode={language} 
+        onStepChange={handleTourNavigation} // <--- CONNECTED HERE
       />
 
       {showAvatarEditor && (
