@@ -134,6 +134,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                  </div>
                               </div>
                               <div className="p-1">
+                                 {/* Restart Tour Button */}
                                  {props.tournamentPhase === 'PRE_LIVE' && (
                                      <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
                                  )}
@@ -166,7 +167,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
                      else label = (typeof val === 'string' ? val : tab) as string;
                      
-                     // We keep nav IDs if needed, but primary focus moves to sub-navs below
                      let tabId = undefined;
                      if (tab === 'groups') tabId = 'nav-groups';
                      else if (tab === 'knockout') tabId = 'nav-knockout'; 
