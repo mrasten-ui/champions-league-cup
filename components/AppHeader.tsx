@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle } from 'lucide-react'; // <--- Added PlayCircle
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -24,7 +24,7 @@ interface AppHeaderProps {
   setShowRules: (b: boolean) => void;
   handleLogout: () => void;
   onReplayIntro: () => void;
-  onStartTour: () => void; // <--- NEW PROP for Tour Replay
+  onStartTour: () => void;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -50,22 +50,12 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
-  // --- CLARITY: COMPLETION BAR LOGIC ---
   const completionStats = useMemo(() => {
-    // Only count Group Stage matches for the "Pre-Live" progress bar
     const groupMatches = matches.filter(m => m.groupId);
     const total = groupMatches.length;
-    
-    // Count predictions made by THIS user for GROUP matches
-    const myPreds = new Set(
-        allPredictions
-            .filter(p => p.userId === user.email)
-            .map(p => p.matchId)
-    );
-    
+    const myPreds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
     const completed = groupMatches.filter(m => myPreds.has(m.id)).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
     return { completed, total, percentage };
   }, [matches, allPredictions, user.email]);
 
@@ -75,7 +65,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* 1. TOP BAR */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
           
-          {/* --- COMPLETION BAR --- */}
+          {/* COMPLETION BAR */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
                 <div className="max-w-5xl mx-auto flex items-center gap-3 relative z-10">
@@ -98,7 +88,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                         </div>
                     )}
                 </div>
-                {/* Subtle glow effect when complete */}
                 {completionStats.percentage === 100 && <div className="absolute inset-0 bg-green-500/5 animate-pulse"></div>}
             </div>
           )}
@@ -125,7 +114,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
                   </button>
                   <div className="relative">
-                      {/* --- ID ADDED HERE: Profile Menu Button for Tour Targeting --- */}
                       <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
                           <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-0.5 rounded-full border border-white shadow-sm"><Edit3 size={8} /></div>
@@ -146,16 +134,13 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                  </div>
                               </div>
                               <div className="p-1">
-                                 {/* --- NEW: Replay Tour Button --- */}
                                  {props.tournamentPhase === 'PRE_LIVE' && (
                                      <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
                                  )}
                                  
                                  <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
                                  <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
-                                 
                                  <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-lg flex items-center gap-2 transition-colors border-t border-slate-100 mt-1"><Bot size={16} /> Admin Controls</button>
-                                 
                                  <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
                               </div>
                            </div>
@@ -181,7 +166,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
                      else label = (typeof val === 'string' ? val : tab) as string;
                      
-                     // --- ADDED: ID Logic for Tour Guide ---
+                     // We keep nav IDs if needed, but primary focus moves to sub-navs below
                      let tabId = undefined;
                      if (tab === 'groups') tabId = 'nav-groups';
                      else if (tab === 'knockout') tabId = 'nav-knockout'; 
@@ -190,7 +175,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      return (
                         <button 
                             key={tab} 
-                            id={tabId} // <--- ID Assigned Here
+                            id={tabId}
                             onClick={() => props.setActiveTab(tab as any)} 
                             className={`relative px-4 py-6 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`}
                         >
@@ -205,7 +190,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       
       {/* 3. GROUP NAV (Only for Groups Tab) */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
-          <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
+          <div id="subnav-groups" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> {/* <--- ADDED ID HERE */}
               <div className="flex gap-2 px-4 justify-start sm:justify-center">
                   {GROUP_CONFIG.map(g => {
                       const groupMatches = matches.filter(m => m.groupId === g.id);
@@ -235,7 +220,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
       {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
-          <div className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
+          <div id="subnav-knockout" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> {/* <--- ADDED ID HERE */}
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
                   {rounds.map(r => {
                       const isActive = props.activeKnockoutRound === r;
@@ -246,11 +231,32 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       const inProgress = predsCount > 0 && !isComplete;
 
                       return (
-                          <button key={r} onClick={() => props.setActiveKnockoutRound?.(r)} className={`relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'}`}>
-                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">{getRoundIcon(r)}</div>
+                          <button
+                              key={r}
+                              onClick={() => props.setActiveKnockoutRound?.(r)}
+                              className={`
+                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 
+                                  ${isActive 
+                                      ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
+                                      : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
+                                  }
+                              `}
+                          >
+                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">
+                                  {getRoundIcon(r)}
+                              </div>
                               <div className="absolute inset-0 bg-black/30"></div>
-                              <div className="absolute inset-0 flex items-center justify-center"><span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>{r === 'FIN' ? 'FINAL' : r}</span></div>
-                              <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>
+                                      {r === 'FIN' ? 'FINAL' : r}
+                                  </span>
+                              </div>
+                              <div className={`
+                                  absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
+                                  ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' 
+                                    : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' 
+                                    : 'bg-slate-500'}
+                              `}></div>
                           </button>
                       );
                   })}

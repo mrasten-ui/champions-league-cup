@@ -48,10 +48,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 3: GROUP NAVIGATION
+  // STOP 3: GROUP NAVIGATION (Target Updated)
   {
     id: 'groups_nav',
-    targetId: 'nav-groups',
+    targetId: 'subnav-groups', // <--- CHANGED FROM nav-groups
     position: 'bottom',
     audioFiles: { 
         en: '/audio/tour_pre_en_03.mp3', 'en-US': '/audio/tour_pre_us_03.mp3',
@@ -94,10 +94,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: KNOCKOUTS (UPDATED TEXT)
+  // STOP 5: KNOCKOUTS (Target Updated)
   {
     id: 'knockout_tab',
-    targetId: 'nav-knockout',
+    targetId: 'subnav-knockout', // <--- CHANGED FROM nav-knockout
     position: 'bottom',
     audioFiles: { 
         en: '/audio/tour_pre_en_05.mp3', 'en-US': '/audio/tour_pre_us_05.mp3',
@@ -111,7 +111,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     },
     audioScript: {
       en: { host: "Finally, go to the Knockout tab. Here you just pick who advances, you don't need to guess the score.", pundit: "If you don't pick a Champion, you can't win the league. Get it done!" },
-      'en-US': { host: "Head to the Bracket tab next. Just pick the winners here, no scores needed.", pundit: "You gotta pick a Champion to win the game. Don't leave this empty!" },
+      'en-US': { host: "Head to the Bracket tab next. Just pick the winners here, no scores needed.", pundit: "You gotta pick a Champion to win. Don't leave this empty!" },
       no: { host: "Til slutt, gå til Sluttspill-fanen. Her velger du bare hvem som går videre, ikke resultatet.", pundit: "Du må kåre en mester for å vinne. Få det gjort!" },
       sco: { host: "Last thing, go tae the Knockouts. Just pick who wins, nae scores needed.", pundit: "Ye cannae win if ye don't pick a winner. Get it filled in!" }
     }

@@ -7,9 +7,10 @@ interface MagicWandProps {
   onClear?: () => void;
   showClear?: boolean;
   lang: Translation;
+  isTourActive?: boolean; // <--- NEW PROP
 }
 
-export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear, lang }) => {
+export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear, lang, isTourActive = false }) => {
   const [isActive, setIsActive] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteBtnRef = useRef<HTMLButtonElement>(null);
@@ -49,8 +50,13 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
     }
   };
 
+  // Dynamic Position Class: Lifts up when Tour is active
+  const positionClass = isTourActive 
+    ? 'bottom-36 right-6 transition-all duration-500 ease-in-out' // Lifted position
+    : 'bottom-24 md:bottom-10 right-6 transition-all duration-500 ease-in-out'; // Standard position
+
   return (
-    <div className="fixed bottom-24 md:bottom-10 right-6 z-40 flex flex-col items-center gap-4 pointer-events-none">
+    <div className={`fixed z-40 flex flex-col items-center gap-4 pointer-events-none ${positionClass}`}>
       
       {/* Delete Button - 2-Step Confirmation */}
       {showClear && onClear && (
@@ -90,7 +96,7 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
       {/* Main Magic Wand */}
       <button
         type="button"
-        id="btn-magic-wand" // <--- ID ADDED HERE
+        id="btn-magic-wand" 
         onClick={(e) => {
             e.stopPropagation();
             onOpen();
