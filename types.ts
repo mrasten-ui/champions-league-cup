@@ -159,10 +159,10 @@ export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
 export interface CastMember {
   name: string;
   role: 'Host' | 'Pundit';
-  style: string; // e.g. "Posh", "Shock Jock"
+  style: string;
   backstory: string;
-  quote: string; // Signature catchphrase
-  image: string; // Path to avatar image
+  quote: string;
+  image: string;
 }
 
 export interface BroadcastTeam {
