@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye, Mic } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
@@ -38,10 +38,12 @@ import { PlayerProgress } from './components/PlayerProgress';
 // --- NEW IMPORTS FOR TOUR ---
 import { TourGuide } from './components/TourGuide';
 import { PRE_SEASON_TOUR } from './components/tourConfig';
-// Import StudioGenerator
 import { StudioGenerator } from './components/StudioGenerator';
 
-const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
+const STORAGE_KEYS = { 
+    CURRENT_USER: 'rasten_cup_active_user_v2',
+    TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' // New key prefix for local backup
+};
 
 const App: React.FC = () => {
   const { 
@@ -71,13 +73,9 @@ const App: React.FC = () => {
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
-  // --- NEW: Tour State ---
+  // --- NEW: Tour & Studio State ---
   const [showTour, setShowTour] = useState(false);
-
-  // --- NEW: Studio Mode State ---
-  // To enable the studio generator, you might want to set this to true temporarily or add a UI toggle
-  // For now, I'll keep it false by default so the normal app loads
-  const [showStudio, setShowStudio] = useState(false);
+  const [showStudio, setShowStudio] = useState(false); 
 
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
@@ -317,7 +315,10 @@ const App: React.FC = () => {
   // --- NEW: TRIGGER TOUR ---
   useEffect(() => {
       // Logic: If user exists, phase is PRE_LIVE, and user has NOT seen the tour
-      if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason) {
+      // UPDATED: Check both DB status AND Local Storage Backup
+      const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
+
+      if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason && !localTourCompleted) {
           const timer = setTimeout(() => setShowTour(true), 1500); // 1.5s Delay so UI loads
           return () => clearTimeout(timer);
       }
@@ -325,6 +326,13 @@ const App: React.FC = () => {
 
   const handleTourComplete = async () => {
       setShowTour(false);
+      
+      // 1. SAVE TO LOCAL STORAGE (Immediate Backup)
+      if (user?.email) {
+          localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email, 'true');
+      }
+
+      // 2. SAVE TO DATABASE
       if (user && supabase) {
           const newTours = { ...(user.toursCompleted || { liveSeason: false }), preSeason: true };
           // Update local state
@@ -473,9 +481,10 @@ const App: React.FC = () => {
 
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
-  // --- STUDIO MODE CHECK ---
-  // If you want to run the Studio Generator, uncomment the line below or use the state variable.
-  // if (showStudio) return <StudioGenerator />; 
+  // --- STUDIO MODE CHECK (Render StudioGenerator only if toggled) ---
+  if (showStudio) {
+      return <StudioGenerator />;
+  }
 
   if (!user || !session) {
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
@@ -486,13 +495,8 @@ const App: React.FC = () => {
       return <LoginScreen onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} currentLang={language} setLang={(l) => setLanguage(l)} isLoading={loading} onLogin={async () => {}} menPresets={getAvailable(menPresets).slice(0,5)} womenPresets={getAvailable(womenPresets).slice(0,5)} />;
   }
 
-  // --- STUDIO GENERATOR RENDER (Optional, enabled by state) ---
-  if (showStudio) {
-      return <StudioGenerator />;
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12 relative">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
@@ -753,6 +757,17 @@ const App: React.FC = () => {
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
       
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
+
+      {/* --- STUDIO TRIGGER (Bottom Left) --- */}
+      {/* Click this to open the Studio Generator without changing code */}
+      <button 
+        onClick={() => setShowStudio(true)}
+        className="fixed bottom-4 left-4 z-[9999] bg-slate-900/50 hover:bg-slate-900 text-white/50 hover:text-white p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
+        title="Open Audio Studio"
+      >
+        <Mic size={16} />
+      </button>
+
     </div>
   );
 };
