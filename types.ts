@@ -155,6 +155,23 @@ export interface TeamFormData {
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
 
+// --- NEW: Broadcast & Lore Types ---
+export interface CastMember {
+  name: string;
+  role: 'Host' | 'Pundit';
+  style: string; // e.g. "Posh", "Shock Jock"
+  backstory: string;
+  quote: string; // Signature catchphrase
+  image: string; // Path to avatar image
+}
+
+export interface BroadcastTeam {
+  id: LanguageCode;
+  region: string;
+  host: CastMember;
+  pundit: CastMember;
+}
+
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;

@@ -1,4 +1,4 @@
-import { Team, Match, Translation, LanguageCode, Prediction } from './types';
+import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } from './types';
 
 // HOST CONFIGURATION - UPDATED WITH THE WORKING KEY
 export const HOST_KEYS = [
@@ -19,6 +19,90 @@ export const LANGUAGES = [
   { code: 'SCO' as LanguageCode, name: 'Scots', flag: 'https://flagcdn.com/w160/gb-sct.png' },
   { code: 'US' as LanguageCode, name: 'English (US)', flag: 'https://flagcdn.com/w160/us.png' }
 ];
+
+// --- BROADCAST TEAMS (LORE) ---
+export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
+  'EN': {
+    id: 'EN',
+    region: 'United Kingdom',
+    host: {
+      name: 'Sarah',
+      role: 'Host',
+      style: 'Professional, Posh, Composed',
+      backstory: 'A veteran sports presenter who tries desperately to keep the broadcast standard high despite her co-host.',
+      quote: "Well, you heard it here first.",
+      image: '/avatars/host-en.png'
+    },
+    pundit: {
+      name: 'Gaz',
+      role: 'Pundit',
+      style: 'Scouse, Aggressive, Passionate',
+      backstory: 'Ex-Premier League midfielder known for hard tackles, zero goals, and hating "fancy" tactics like false nines.',
+      quote: "What are you on about?! Get stuck in!",
+      image: '/avatars/pundit-en.png'
+    }
+  },
+  'US': {
+    id: 'US',
+    region: 'USA',
+    host: {
+      name: 'Jessica',
+      role: 'Host',
+      style: 'High-Energy Anchor',
+      backstory: 'Professional radio anchor who keeps the pacing fast and constantly apologizes for Chuck\'s outbursts.',
+      quote: "We're live and the energy is electric!",
+      image: '/avatars/host-us.png'
+    },
+    pundit: {
+      name: 'Chuck',
+      role: 'Pundit',
+      style: 'Shock Jock, Ex-NFL',
+      backstory: 'Former American Football player who thinks soccer needs more timeouts. He hates draws and guarantees wins that never happen.',
+      quote: "Are you kidding me?! I GUARANTEE it!",
+      image: '/avatars/pundit-us.png'
+    }
+  },
+  'SCO': {
+    id: 'SCO',
+    region: 'Scotland',
+    host: {
+      name: 'Shona',
+      role: 'Host',
+      style: 'Professional but Grounded',
+      backstory: 'The only sensible person in the studio. She manages Rab like a toddler.',
+      quote: "Right, let's get back to the football.",
+      image: '/avatars/host-sco.png'
+    },
+    pundit: {
+      name: 'Rab',
+      role: 'Pundit',
+      style: 'Gritty, Blunt, Dialect-Heavy',
+      backstory: 'Played in the lower leagues for 20 years. Hates favorites, loves a 0-0 draw on a rainy Tuesday.',
+      quote: "That's absolute mince.",
+      image: '/avatars/pundit-sco.png'
+    }
+  },
+  'NO': {
+    id: 'NO',
+    region: 'Norway',
+    host: {
+      name: 'Silje',
+      role: 'Host',
+      style: 'Friendly, Efficient',
+      backstory: 'The bridge between the casual viewer and the tactical philosopher sitting next to her.',
+      quote: "La oss se på tallene.",
+      image: '/avatars/host-no.png'
+    },
+    pundit: {
+      name: 'Nils Arne',
+      role: 'Pundit',
+      style: 'Enthusiastic, Philosophical',
+      backstory: 'Legendary tactical philosopher. Believes in "Godfoten" (making others good) and uses metaphors about salmon fishing.',
+      quote: "Det handler om samhandling!",
+      image: '/avatars/pundit-no.png'
+    }
+  }
+};
 
 // --- REALISTIC 2026 TEAM LIST ---
 const BASE_TEAM_NAMES: Record<string, string> = {
@@ -112,7 +196,7 @@ const EN_TRANSLATION: Translation = {
     rank: "Rank", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Standings", bankedOnly: "Banked", scoringRulesInfo: "Scoring Rules:",
     lbBreakdown: "Point Breakdown", lbAccuracy: "Accuracy", lbExact: "Exact Scores", lbCorrect: "Correct Outcomes", lbGroupPts: "Group Stage", lbKoPts: "Knockout",
     lbGlobal: "Global", lbLeague: "League", liveToggle: "LIVE", bankedToggle: "BANKED", lbQualified: "Qualified", lbQualifiedDesc: "Knockout Correct", lbGroupRes: "Group Results",
-    journeyTitle: "Your Tournament Journey", journeyDesc: "Track your prediction progress.", picksMade: "Picks Made", completion: "Completion", searchPlaceholder: "Search teams...",
+    journeyTitle: "Your Tournament Journey", journeyDesc: "Track your prediction progress.", picksMade: "Picks", completion: "Completion", searchPlaceholder: "Search teams...",
     noMatches: "No matches found", noMatchesHint: "Try adjusting your filters or search terms.", groupStagePoints: "Group Stage Points",
     filterUpcoming: "Upcoming", filterLive: "Live", filterFinished: "Finished",
     simKnockoutTitle: "Simulate Knockout Stage", simGroupTitle: "Simulate Group Stage",
