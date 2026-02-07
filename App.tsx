@@ -38,6 +38,8 @@ import { PlayerProgress } from './components/PlayerProgress';
 // --- NEW IMPORTS FOR TOUR ---
 import { TourGuide } from './components/TourGuide';
 import { PRE_SEASON_TOUR } from './components/tourConfig';
+// Import StudioGenerator
+import { StudioGenerator } from './components/StudioGenerator';
 
 const STORAGE_KEYS = { CURRENT_USER: 'rasten_cup_active_user_v2' };
 
@@ -71,6 +73,11 @@ const App: React.FC = () => {
 
   // --- NEW: Tour State ---
   const [showTour, setShowTour] = useState(false);
+
+  // --- NEW: Studio Mode State ---
+  // To enable the studio generator, you might want to set this to true temporarily or add a UI toggle
+  // For now, I'll keep it false by default so the normal app loads
+  const [showStudio, setShowStudio] = useState(false);
 
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
@@ -330,13 +337,14 @@ const App: React.FC = () => {
   // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
   const handleTourNavigation = (stepId: string) => {
       
-      const scrollToId = (id: string) => {
+      const scrollToId = (id: string, block: ScrollLogicalPosition = 'center') => {
           setTimeout(() => {
               const el = document.getElementById(id);
               if (el) {
                   const rect = el.getBoundingClientRect();
                   // Center the element in the viewport (minus the 120px footer)
-                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 60;
+                  // Offset by +150 to push it UP towards top of screen, clearing the footer
+                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 150;
                   window.scrollTo({ top: offset, behavior: 'smooth' });
               } else {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -465,6 +473,10 @@ const App: React.FC = () => {
 
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
+  // --- STUDIO MODE CHECK ---
+  // If you want to run the Studio Generator, uncomment the line below or use the state variable.
+  // if (showStudio) return <StudioGenerator />; 
+
   if (!user || !session) {
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
       const getAvailable = (all: string[]) => {
@@ -472,6 +484,11 @@ const App: React.FC = () => {
           return unused.length > 0 ? unused : all;
       };
       return <LoginScreen onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} currentLang={language} setLang={(l) => setLanguage(l)} isLoading={loading} onLogin={async () => {}} menPresets={getAvailable(menPresets).slice(0,5)} womenPresets={getAvailable(womenPresets).slice(0,5)} />;
+  }
+
+  // --- STUDIO GENERATOR RENDER (Optional, enabled by state) ---
+  if (showStudio) {
+      return <StudioGenerator />;
   }
 
   return (
@@ -732,7 +749,9 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* --- MODIFIED: Pass 'isTourActive' to lift the wand --- */}
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
+      
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
     </div>
   );
