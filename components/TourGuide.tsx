@@ -27,13 +27,23 @@ interface TourGuideProps {
   onStepChange?: (stepId: string) => void;
 }
 
+// --- NEW: Strict Type for State to avoid TS build errors ---
+interface SpotlightState {
+  opacity: number;
+  top: string;
+  left: string;
+  width: string;
+  height: string;
+  borderRadius?: string;
+}
+
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
-  // Spotlight State (CSS positioning)
-  const [spotlightStyle, setSpotlightStyle] = useState<React.CSSProperties>({
+  // Spotlight State (Strictly Typed)
+  const [spotlightStyle, setSpotlightStyle] = useState<SpotlightState>({
     opacity: 0,
     top: '50%',
     left: '50%',
@@ -250,20 +260,23 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             className="absolute inset-0 bg-slate-900/80 transition-all duration-500 ease-in-out pointer-events-auto"
             style={{
                 // "Hole" Punch Logic
+                // Using parseInt to safely extract numbers from "50%" or "100px"
+                // The check `spotlightStyle.opacity > 0` ensures we only compute when visible
                 maskImage: spotlightStyle.opacity > 0 
-                    ? `radial-gradient(circle at ${parseInt(spotlightStyle.left as string) + parseInt(spotlightStyle.width as string)/2}px ${parseInt(spotlightStyle.top as string) + parseInt(spotlightStyle.height as string)/2}px, transparent ${parseInt(spotlightStyle.width as string)/1.8}px, black ${parseInt(spotlightStyle.width as string)/1.8 + 20}px)`
+                    ? `radial-gradient(circle at ${parseInt(spotlightStyle.left) + parseInt(spotlightStyle.width)/2}px ${parseInt(spotlightStyle.top) + parseInt(spotlightStyle.height)/2}px, transparent ${parseInt(spotlightStyle.width)/1.8}px, black ${parseInt(spotlightStyle.width)/1.8 + 20}px)`
                     : 'none',
-                // Alternate approach: Box Shadow if you want a rectangle hole (cleaner for cards)
-                // We use a massive box-shadow on a div instead of maskImage for better rounded rect support
+                WebkitMaskImage: spotlightStyle.opacity > 0 
+                    ? `radial-gradient(circle at ${parseInt(spotlightStyle.left) + parseInt(spotlightStyle.width)/2}px ${parseInt(spotlightStyle.top) + parseInt(spotlightStyle.height)/2}px, transparent ${parseInt(spotlightStyle.width)/1.8}px, black ${parseInt(spotlightStyle.width)/1.8 + 20}px)`
+                    : 'none',
                 backgroundColor: 'transparent' 
             }}
           >
-             {/* THE ACTUAL SPOTLIGHT DIV (Use Box Shadow Trick for Rectangles) */}
+             {/* THE ACTUAL SPOTLIGHT DIV (Using Box Shadow for the visual border) */}
              <div 
                 className="absolute transition-all duration-500 ease-out"
                 style={{
-                    ...spotlightStyle,
-                    boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85)', // The Darkness
+                    ...spotlightStyle as React.CSSProperties, // Cast back to CSSProperties for React style prop
+                    boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85)', // The Darkness (Visual fallback)
                 }}
              >
                 {/* Glowing Border around the target */}
