@@ -77,7 +77,7 @@ const App: React.FC = () => {
   // --- NEW: Studio Mode State ---
   // To enable the studio generator, you might want to set this to true temporarily or add a UI toggle
   // For now, I'll keep it false by default so the normal app loads
-  const [showStudio, setShowStudio] = useState(false);
+  const [showStudio, setShowStudio] = useState(true);
 
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
