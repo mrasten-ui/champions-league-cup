@@ -34,8 +34,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  // FIXED: Initialized with null to satisfy TypeScript strict checks
   const requestRef = useRef<number | null>(null); 
   
   const currentStep = steps[currentStepIdx];
@@ -52,61 +50,103 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
               audioRef.current.pause(); 
               audioRef.current.currentTime = 0; 
           }
-          // FIXED: Check for null before cancelling
           if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
       }
   }, [isOpen]);
 
-  // --- 2. THE "GLUED" FRAME OVERLAY (No Scrolling) ---
+  // --- 2. SMART SCROLL & HIGHLIGHT ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent (Tab switching only)
+    // A. Notify Parent (Tab switching)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // B. The Tracking Loop
+    // --- SMART SCROLL FUNCTION ---
+    // Only scrolls if the element is obscured by Header or Footer
+    const ensureVisible = (rect: DOMRect) => {
+        const HEADER_HEIGHT = 140; // Approx height of your top nav + banner
+        const FOOTER_HEIGHT = 160; // Approx height of the tour control bar
+
+        const isUnderHeader = rect.top < HEADER_HEIGHT;
+        const isBelowFooter = rect.bottom > (window.innerHeight - FOOTER_HEIGHT);
+
+        if (isUnderHeader) {
+            // Scroll UP just enough to show it, plus a little padding
+            window.scrollBy({ top: rect.top - HEADER_HEIGHT - 20, behavior: 'smooth' });
+        } 
+        else if (isBelowFooter) {
+            // Scroll DOWN just enough
+            window.scrollBy({ top: rect.bottom - (window.innerHeight - FOOTER_HEIGHT) + 20, behavior: 'smooth' });
+        }
+    };
+
+    let hasScrolledForStep = false;
+
+    // --- FRAME TRACKING LOOP ---
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
-        // Find the first valid target in the DOM
-        let targetEl: HTMLElement | null = null;
-        for (const id of targetIds) {
+        let minTop = Infinity;
+        let minLeft = Infinity;
+        let maxBottom = -Infinity;
+        let maxRight = -Infinity;
+        let foundAny = false;
+
+        // 1. Calculate Union Bounding Box of ALL targets
+        // This ensures Sub-headlines (A-F) AND Match Card are both included
+        targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                targetEl = el;
-                break; 
+                const rect = el.getBoundingClientRect();
+                if (rect.top < minTop) minTop = rect.top;
+                if (rect.left < minLeft) minLeft = rect.left;
+                if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+                if (rect.right > maxRight) maxRight = rect.right;
+                foundAny = true;
             }
-        }
+        });
 
-        if (targetEl) {
-            const rect = targetEl.getBoundingClientRect();
-            const computedStyle = window.getComputedStyle(targetEl);
-            
+        if (foundAny) {
+            // Create a rect object for our calculation
+            const unionRect = {
+                top: minTop,
+                left: minLeft,
+                width: maxRight - minLeft,
+                height: maxBottom - minTop,
+                bottom: maxBottom,
+                right: maxRight
+            } as DOMRect;
+
+            // 2. Apply Position
             setHighlightStyle({
-                top: rect.top,
-                left: rect.left,
-                width: rect.width,
-                height: rect.height,
-                // Match the rounded corners of the target, default to 12px
-                borderRadius: computedStyle.borderRadius !== '0px' ? computedStyle.borderRadius : '12px',
+                top: unionRect.top - 8,   // Add padding
+                left: unionRect.left - 8,
+                width: unionRect.width + 16,
+                height: unionRect.height + 16,
+                borderRadius: '16px',
                 opacity: 1
             });
+
+            // 3. Trigger Scroll ONLY ONCE per step
+            if (!hasScrolledForStep) {
+                ensureVisible(unionRect);
+                hasScrolledForStep = true;
+            }
+
         } else {
-            // Target not found (yet) or invalid
             setHighlightStyle({ opacity: 0 });
         }
 
-        // Keep running this function every frame to handle scrolling perfectly
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
-    // Start the loop
+    // Reset scroll flag when step changes
+    hasScrolledForStep = false;
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
-        // FIXED: Cleanup check
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
 
@@ -116,7 +156,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   useEffect(() => {
     if (!isOpen) return;
     
-    // Stop previous audio when changing steps
     if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -182,18 +221,15 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
       
-      {/* 0. GLOBAL STYLES FOR THE PULSING GOLDEN FRAME */}
+      {/* 0. PULSING FRAME STYLE */}
       <style>{`
         @keyframes tour-frame-pulse {
-            /* Layer 1: Solid Yellow Ring */
-            /* Layer 2: Soft Yellow Glow */
-            /* Layer 3: Giant Dark Backdrop */
             0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
         }
         .tour-frame-active {
-            animation: tour-frame-pulse 2s infinite ease-in-out;
+            animation: tour-frame-pulse 2.5s infinite ease-in-out;
         }
       `}</style>
 
@@ -247,15 +283,15 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         </div>
       )}
 
-      {/* 2. THE HIGHLIGHTER FRAME (With Pulsing Golden Border) */}
+      {/* 2. THE HIGHLIGHTER FRAME */}
       {!isWelcome && highlightStyle && (
           <div 
             className="fixed z-[9998] transition-opacity duration-300 ease-out pointer-events-none tour-frame-active"
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
-                // We do NOT transition top/left/width/height here to avoid lag. 
-                // requestAnimationFrame handles the smooth movement.
+                // Shadow handles the backdrop
+                boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
           />
       )}
