@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
-import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, X, RotateCcw } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { BROADCAST_TEAMS } from '../constants';
 
@@ -195,6 +195,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   const handleSkip = () => onComplete();
 
+  const handleReplay = () => {
+      if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play();
+      }
+  };
+
   if (!isOpen) return null;
 
   const content = currentStep.display?.[langCode] || currentStep.display?.['en'];
@@ -268,7 +275,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 WebkitMaskImage: spotlightStyle.opacity > 0 
                     ? `radial-gradient(circle at ${parseInt(spotlightStyle.left) + parseInt(spotlightStyle.width)/2}px ${parseInt(spotlightStyle.top) + parseInt(spotlightStyle.height)/2}px, transparent ${parseInt(spotlightStyle.width)/1.8}px, black ${parseInt(spotlightStyle.width)/1.8 + 20}px)`
                     : 'none',
-                backgroundColor: 'transparent' 
+                backgroundColor: 'rgba(15, 23, 42, 0.85)' 
             }}
           >
              {/* THE ACTUAL SPOTLIGHT DIV (Using Box Shadow for the visual border) */}
@@ -314,12 +321,17 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                 <div className="h-0.5 w-12 bg-blue-500 rounded-full"></div>
                             </div>
                             
-                            <button 
-                                onClick={() => setIsMuted(!isMuted)} 
-                                className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
-                            >
-                                {isMuted ? <VolumeX size={18}/> : <Volume2 size={18}/>}
-                            </button>
+                            <div className="flex gap-2">
+                                <button onClick={handleReplay} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full" title="Replay">
+                                    <RotateCcw size={18} />
+                                </button>
+                                <button 
+                                    onClick={() => setIsMuted(!isMuted)} 
+                                    className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                                >
+                                    {isMuted ? <VolumeX size={18}/> : <Volume2 size={18}/>}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex flex-wrap gap-x-4 gap-y-1">

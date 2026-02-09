@@ -42,7 +42,7 @@ import { StudioGenerator } from './components/StudioGenerator';
 
 const STORAGE_KEYS = { 
     CURRENT_USER: 'rasten_cup_active_user_v2',
-    TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' // New key prefix for local backup
+    TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' 
 };
 
 const App: React.FC = () => {
@@ -315,7 +315,7 @@ const App: React.FC = () => {
   // --- NEW: TRIGGER TOUR ---
   useEffect(() => {
       // Logic: If user exists, phase is PRE_LIVE, and user has NOT seen the tour
-      // UPDATED: Check both DB status AND Local Storage Backup
+      // Check both DB status AND Local Storage Backup
       const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
 
       if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason && !localTourCompleted) {
@@ -598,7 +598,25 @@ const App: React.FC = () => {
         {/* KNOCKOUT TAB */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
-                <KnockoutBracket matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} onSecondChance={handleUnlockSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} isGroupStageComplete={isGroupStageComplete} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} onTeamClick={(id) => setViewingTeamId(id)} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} />
+                <KnockoutBracket 
+                    matches={userMatches} 
+                    teams={teamsData} 
+                    onUpdate={handleScoreUpdate} 
+                    lang={t} 
+                    user={user} 
+                    onSecondChance={handleUnlockSecondChance} 
+                    rivals={rivalsList} 
+                    allPredictions={allPredictions} 
+                    phase={tournamentPhase} 
+                    // FIXED: Unlock Bracket during Tour
+                    isGroupStageComplete={isGroupStageComplete || showTour} 
+                    firstIncompleteGroup={firstIncompleteGroup} 
+                    onGoToGroup={handleGoToGroup} 
+                    onTeamClick={(id) => setViewingTeamId(id)} 
+                    onSpy={handleSpy} 
+                    revealedRivals={user?.spiedMatches || []} 
+                    activeRound={activeKnockoutRound} 
+                />
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
                         <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span></button>
