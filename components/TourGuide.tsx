@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
-import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, X, RotateCcw } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { BROADCAST_TEAMS } from '../constants';
 
 // --- HELPER: Avatar Wrapper ---
 const TourAvatar: React.FC<{ role: 'host' | 'pundit'; lang: LanguageCode; className?: string }> = ({ role, lang, className }) => {
-    // Get correct avatar from constants based on Language
-    // Default to EN if not found
     const team = BROADCAST_TEAMS[lang] || BROADCAST_TEAMS['EN'];
     const person = role === 'host' ? team.host : team.pundit;
     
@@ -27,30 +25,11 @@ interface TourGuideProps {
   onStepChange?: (stepId: string) => void;
 }
 
-// --- NEW: Strict Type for State to avoid TS build errors ---
-interface SpotlightState {
-  opacity: number;
-  top: string;
-  left: string;
-  width: string;
-  height: string;
-  borderRadius?: string;
-}
-
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
-  // Spotlight State (Strictly Typed)
-  const [spotlightStyle, setSpotlightStyle] = useState<SpotlightState>({
-    opacity: 0,
-    top: '50%',
-    left: '50%',
-    width: '0px',
-    height: '0px',
-  });
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentStep = steps[currentStepIdx];
 
@@ -60,7 +39,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setCurrentStepIdx(0);
           setHasStarted(false);
           setIsMuted(false);
-          setSpotlightStyle({ opacity: 0, top: '50%', left: '50%', width: '0px', height: '0px' });
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
@@ -69,72 +47,48 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 2. NAVIGATION & SPOTLIGHT CALCULATOR ---
+  // --- 2. CINEMA MODE HIGHLIGHTER ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent (App.tsx) to scroll/change tabs
+    // A. Notify Parent to scroll
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // B. Calculate Bounding Box for Spotlight
-    const calculateSpotlight = () => {
-        // Collect all target IDs for this step
-        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
-        
-        if (targetIds.length === 0 || currentStep.id === 'welcome') {
-            // No target = Spotlight fades out (or stays centered/hidden)
-            setSpotlightStyle(prev => ({ ...prev, opacity: 0 }));
-            return;
+    // B. Find Elements and Apply "Cinema Mode"
+    const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
+    const modifiedElements: HTMLElement[] = [];
+
+    // Helper to check if style is static
+    const isStatic = (el: HTMLElement) => window.getComputedStyle(el).position === 'static';
+
+    targetIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            // 1. Force Relative Positioning so Z-Index works
+            // We save the original state to restore it later
+            if (isStatic(el)) {
+                el.style.position = 'relative';
+                el.dataset.tourWasStatic = 'true';
+            }
+            
+            // 2. Add the Cinema Class (The Golden Ring + Dark Backdrop)
+            el.classList.add('tour-cinema-active');
+            
+            modifiedElements.push(el);
         }
+    });
 
-        let minTop = Infinity;
-        let minLeft = Infinity;
-        let maxBottom = -Infinity;
-        let maxRight = -Infinity;
-        let found = false;
-
-        targetIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                const rect = el.getBoundingClientRect();
-                if (rect.top < minTop) minTop = rect.top;
-                if (rect.left < minLeft) minLeft = rect.left;
-                if (rect.bottom > maxBottom) maxBottom = rect.bottom;
-                if (rect.right > maxRight) maxRight = rect.right;
-                found = true;
+    // Cleanup: Reset elements when step changes or tour closes
+    return () => {
+        modifiedElements.forEach(el => {
+            el.classList.remove('tour-cinema-active');
+            if (el.dataset.tourWasStatic) {
+                el.style.position = '';
+                delete el.dataset.tourWasStatic;
             }
         });
-
-        if (found) {
-            const padding = 12; 
-            const width = maxRight - minLeft + (padding * 2);
-            const height = maxBottom - minTop + (padding * 2);
-            const top = minTop - padding;
-            const left = minLeft - padding;
-
-            setSpotlightStyle({
-                opacity: 1,
-                top: `${top}px`,
-                left: `${left}px`,
-                width: `${width}px`,
-                height: `${height}px`,
-                borderRadius: '16px', // Rounded corners for the "hole"
-            });
-        }
-    };
-
-    // Delay slightly to let the DOM update (if tabs switched)
-    const timer = setTimeout(calculateSpotlight, 400);
-    const resizeListener = () => calculateSpotlight();
-    window.addEventListener('resize', resizeListener);
-    window.addEventListener('scroll', resizeListener);
-
-    return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', resizeListener);
-        window.removeEventListener('scroll', resizeListener);
     };
 
   }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange]);
@@ -143,10 +97,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   useEffect(() => {
     if (!isOpen) return;
     
-    // Stop previous
+    // Reset Audio
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
     }
 
     // Play new if started & not muted & valid file
@@ -157,7 +111,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           audioRef.current = audio;
           
           audio.onended = () => {
-              // Auto-advance after 2s delay
+              // Smooth auto-advance
               setTimeout(() => {
                   if (currentStepIdx < steps.length - 1) {
                       setCurrentStepIdx(prev => prev + 1);
@@ -176,7 +130,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const handleStart = () => {
       setHasStarted(true);
       setIsMuted(false);
-      setCurrentStepIdx(1); // Skip Welcome -> Go to Step 1
+      setCurrentStepIdx(1); 
   };
 
   const handleNext = () => {
@@ -209,11 +163,45 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const isWelcome = currentStep.id === 'welcome';
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none">
-      
+    <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
+      {/* pointer-events-none on the container allows clicks to pass through to the Highlighted Element.
+         We re-enable pointer-events on the Welcome Modal and the Footer below.
+      */}
+
+      {/* 0. THE CINEMA STYLE */}
+      <style>{`
+        .tour-cinema-active {
+            /* 1. Lift it above everything else */
+            z-index: 9998 !important; 
+            
+            /* 2. INHERIT Border Radius so the glow matches the card shape */
+            border-radius: inherit;
+
+            /* 3. The SHADOW MAGIC */
+            /* Layer 1: The Golden Ring (4px solid yellow) */
+            /* Layer 2: The Glow (20px soft yellow) */
+            /* Layer 3: The Dark Backdrop (9999px spread of dark slate) */
+            box-shadow: 
+                0 0 0 4px #fbbf24, 
+                0 0 20px 4px rgba(251, 191, 36, 0.6),
+                0 0 0 9999px rgba(15, 23, 42, 0.9) !important; 
+            
+            /* 4. Animation & Interaction */
+            transition: box-shadow 0.5s ease;
+            pointer-events: auto !important; 
+            animation: cinema-pulse 2s infinite;
+        }
+
+        @keyframes cinema-pulse {
+            0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
+            50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
+            100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
+        }
+      `}</style>
+
       {/* 1. WELCOME SCREEN (MODAL) */}
       {isWelcome && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 pointer-events-auto">
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                 <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
@@ -261,40 +249,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         </div>
       )}
 
-      {/* 2. SPOTLIGHT OVERLAY (THE "DARKROOM" EFFECT) */}
+      {/* 2. BROADCAST FOOTER UI */}
       {!isWelcome && (
-          <div 
-            className="absolute inset-0 bg-slate-900/80 transition-all duration-500 ease-in-out pointer-events-auto"
-            style={{
-                // "Hole" Punch Logic
-                // Using parseInt to safely extract numbers from "50%" or "100px"
-                // The check `spotlightStyle.opacity > 0` ensures we only compute when visible
-                maskImage: spotlightStyle.opacity > 0 
-                    ? `radial-gradient(circle at ${parseInt(spotlightStyle.left) + parseInt(spotlightStyle.width)/2}px ${parseInt(spotlightStyle.top) + parseInt(spotlightStyle.height)/2}px, transparent ${parseInt(spotlightStyle.width)/1.8}px, black ${parseInt(spotlightStyle.width)/1.8 + 20}px)`
-                    : 'none',
-                WebkitMaskImage: spotlightStyle.opacity > 0 
-                    ? `radial-gradient(circle at ${parseInt(spotlightStyle.left) + parseInt(spotlightStyle.width)/2}px ${parseInt(spotlightStyle.top) + parseInt(spotlightStyle.height)/2}px, transparent ${parseInt(spotlightStyle.width)/1.8}px, black ${parseInt(spotlightStyle.width)/1.8 + 20}px)`
-                    : 'none',
-                backgroundColor: 'rgba(15, 23, 42, 0.85)' 
-            }}
-          >
-             {/* THE ACTUAL SPOTLIGHT DIV (Using Box Shadow for the visual border) */}
-             <div 
-                className="absolute transition-all duration-500 ease-out"
-                style={{
-                    ...spotlightStyle as React.CSSProperties, // Cast back to CSSProperties for React style prop
-                    boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85)', // The Darkness (Visual fallback)
-                }}
-             >
-                {/* Glowing Border around the target */}
-                <div className="absolute inset-0 rounded-[inherit] ring-2 ring-white/50 shadow-[0_0_30px_rgba(255,255,255,0.3)] animate-pulse" />
-             </div>
-          </div>
-      )}
-
-      {/* 3. BROADCAST FOOTER (TV UI) */}
-      {!isWelcome && (
-          <div className="fixed bottom-0 left-0 right-0 z-[200] pointer-events-auto flex justify-center">
+          <div className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto flex justify-center">
             
             <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500">
                 
@@ -306,7 +263,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <TourAvatar role="host" lang={langCode} className="w-full h-full" />
                         </div>
                     </div>
-                    {/* Mobile Host Icon */}
                     <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
                           <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
                     </div>

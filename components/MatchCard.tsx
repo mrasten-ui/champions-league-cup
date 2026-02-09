@@ -31,10 +31,10 @@ interface MatchCardProps {
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
-  cardId?: string; 
+  cardId?: string; // <--- This prop is used for the Tour Guide ID
 }
 
-// --- SUB-COMPONENT: ScoreStepper with IDs ---
+// --- SUB-COMPONENT: ScoreStepper ---
 const ScoreStepper: React.FC<{ 
     value: number | null; 
     onChange: (val: number) => void; 
@@ -179,7 +179,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
 
-    // --- STATUS HELPERS (FIXED: Added missing definitions) ---
+    // --- STATUS HELPERS ---
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     const isStarted = isLive || isFinished; 
@@ -373,7 +373,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             )}
-                            {/* --- RESTORED SPY BUTTON --- */}
+                            {/* --- SPY BUTTON --- */}
                             {canSpy && (
                                 <button onClick={handleSpyClick} disabled={userTokens < 1} className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}>
                                     <ScanEye size={10} />
@@ -383,7 +383,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                     )}
                     
-                    {/* --- RESTORED ADMIN ALERT --- */}
+                    {/* --- ADMIN ALERT --- */}
                     {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
                         <div className="mt-2 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1">
                             <AlertCircle size={8} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
@@ -398,10 +398,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
                     </div>
                 </div>
-            </div>
+             </div>
 
-            {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
-            {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
+             {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
+             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
                     <div className="flex items-center justify-between mb-2 opacity-80 group-hover:opacity-100 transition-opacity"><div className="flex items-center gap-2"><History size={12} className="text-slate-400" /><span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{lang.headToHead}</span></div><ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} /></div>
                     <div className="flex flex-col gap-2">
@@ -411,18 +411,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {showHistoryDetails && h2hData.last5.length > 0 && <div className="mt-2 space-y-1 border-t border-slate-100 pt-2">{h2hData.last5.map((m, i) => (<div key={i} className="flex justify-between text-[9px] text-slate-500"><span>{m.year}</span><span className="font-bold">{m.homeScore}-{m.awayScore}</span></div>))}</div>}
                     </div>
                 </div>
-            )}
+             )}
 
-            {showRivals && rivals.length > 0 && (
+             {showRivals && rivals.length > 0 && (
                 <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
                     <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><LockIcon size={10} className="text-yellow-400" /><span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span></div>{prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span></span>}</div>
                     <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
                         {rivals.map(rival => { const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id); return (<div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors"><div className="flex items-center gap-3"><AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" /><span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span></div><span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span></div>); })}
                     </div>
                 </div>
-            )}
+             )}
 
-            {showStatusBadge && (
+             {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
@@ -439,9 +439,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                     <div className="flex items-center gap-3 justify-end w-1/3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
                 </div>
-            )}
+             )}
 
-            {match.round && match.round !== 'R32' && match.round !== '3RD' && <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-amber-300 to-amber-500 z-10" title="Elimination Match"></div>}
+             {match.round && match.round !== 'R32' && match.round !== '3RD' && <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-amber-300 to-amber-500 z-10" title="Elimination Match"></div>}
         </div>
     );
 };
