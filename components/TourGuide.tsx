@@ -58,48 +58,29 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent (Tab switching)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // --- SMART SCROLL FUNCTION ---
-    // Fixed: Prioritizes TOP visibility to prevent "jumping" up behind the header
+    // --- FIX: ONE-WAY SCROLL ONLY ---
+    // We ONLY scroll if the element is hidden above the top.
+    // We DO NOT scroll if the element is hidden below the bottom.
+    // This prevents the "Jump" that hides the header.
     const ensureVisible = (rect: DOMRect) => {
-        const HEADER_OFFSET = 150; // Height of Header + Padding
-        const FOOTER_OFFSET = 120; // Height of Tour Control Bar
-
-        const viewportHeight = window.innerHeight;
-        const availableHeight = viewportHeight - HEADER_OFFSET - FOOTER_OFFSET;
+        const HEADER_OFFSET = 140; // Approx height of Header + Padding
 
         // 1. Is the Top hidden behind the header?
         const isTopHidden = rect.top < HEADER_OFFSET;
 
-        // 2. Is the Bottom hidden behind the footer?
-        const isBottomHidden = rect.bottom > (viewportHeight - FOOTER_OFFSET);
-
-        // 3. LOGIC:
-        // Always prioritize showing the TOP of the element.
-        // Only scroll down for the bottom if the element is short enough to fit fully.
-        
         if (isTopHidden) {
             // SCROLL UP: Align top of element to HEADER_OFFSET
             const amountToScroll = rect.top - HEADER_OFFSET;
             window.scrollBy({ top: amountToScroll, behavior: 'smooth' });
         } 
-        else if (isBottomHidden) {
-            // Check if scrolling down would hide the top
-            const elementHeight = rect.height;
-            
-            if (elementHeight < availableHeight) {
-                // It fits! Scroll DOWN just enough to show bottom
-                const amountToScroll = rect.bottom - (viewportHeight - FOOTER_OFFSET) + 20;
-                window.scrollBy({ top: amountToScroll, behavior: 'smooth' });
-            } else {
-                // It's too tall. Do NOTHING (or align to top). 
-                // Currently, we leave it alone so the top stays visible.
-            }
-        }
+        
+        // DELETED: The "else if (isBottomHidden)" block. 
+        // We accept that the bottom might be cut off by the footer, 
+        // rather than risking the top being cut off by the header.
     };
 
     let hasScrolledForStep = false;
@@ -148,7 +129,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
             // 2. Trigger Scroll ONLY ONCE per step
             if (!hasScrolledForStep) {
-                // Small delay to ensure DOM is settled before scrolling
                 setTimeout(() => ensureVisible(unionRect), 50);
                 hasScrolledForStep = true;
             }
