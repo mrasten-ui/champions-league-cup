@@ -34,8 +34,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Ref to track the loop ID for cleanup
-  const requestRef = useRef<number>(); 
+  
+  // FIXED: Initialized with null to satisfy TypeScript strict checks
+  const requestRef = useRef<number | null>(null); 
   
   const currentStep = steps[currentStepIdx];
 
@@ -51,7 +52,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
               audioRef.current.pause(); 
               audioRef.current.currentTime = 0; 
           }
-          if (requestRef.current) cancelAnimationFrame(requestRef.current);
+          // FIXED: Check for null before cancelling
+          if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
       }
   }, [isOpen]);
 
@@ -104,7 +106,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
-        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        // FIXED: Cleanup check
+        if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
 
   }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange]);
