@@ -30,7 +30,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
+  // State for the "Frame" position
+  const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Ref to track the loop ID for cleanup
+  const requestRef = useRef<number>(); 
+  
   const currentStep = steps[currentStepIdx];
 
   // --- 1. RESET ON OPEN ---
@@ -39,56 +45,66 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setCurrentStepIdx(0);
           setHasStarted(false);
           setIsMuted(false);
+          setHighlightStyle(null);
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
               audioRef.current.currentTime = 0; 
           }
+          if (requestRef.current) cancelAnimationFrame(requestRef.current);
       }
   }, [isOpen]);
 
-  // --- 2. CINEMA MODE HIGHLIGHTER ---
+  // --- 2. THE "GLUED" FRAME OVERLAY (No Scrolling) ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent to scroll
+    // A. Notify Parent (Tab switching only)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // B. Find Elements and Apply "Cinema Mode"
-    const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
-    const modifiedElements: HTMLElement[] = [];
-
-    // Helper to check if style is static
-    const isStatic = (el: HTMLElement) => window.getComputedStyle(el).position === 'static';
-
-    targetIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            // 1. Force Relative Positioning so Z-Index works
-            // We save the original state to restore it later
-            if (isStatic(el)) {
-                el.style.position = 'relative';
-                el.dataset.tourWasStatic = 'true';
+    // B. The Tracking Loop
+    const updateHighlight = () => {
+        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
+        
+        // Find the first valid target in the DOM
+        let targetEl: HTMLElement | null = null;
+        for (const id of targetIds) {
+            const el = document.getElementById(id);
+            if (el) {
+                targetEl = el;
+                break; 
             }
-            
-            // 2. Add the Cinema Class (The Golden Ring + Dark Backdrop)
-            el.classList.add('tour-cinema-active');
-            
-            modifiedElements.push(el);
         }
-    });
 
-    // Cleanup: Reset elements when step changes or tour closes
+        if (targetEl) {
+            const rect = targetEl.getBoundingClientRect();
+            const computedStyle = window.getComputedStyle(targetEl);
+            
+            setHighlightStyle({
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+                // Match the rounded corners of the target, default to 12px
+                borderRadius: computedStyle.borderRadius !== '0px' ? computedStyle.borderRadius : '12px',
+                opacity: 1
+            });
+        } else {
+            // Target not found (yet) or invalid
+            setHighlightStyle({ opacity: 0 });
+        }
+
+        // Keep running this function every frame to handle scrolling perfectly
+        requestRef.current = requestAnimationFrame(updateHighlight);
+    };
+
+    // Start the loop
+    requestRef.current = requestAnimationFrame(updateHighlight);
+
     return () => {
-        modifiedElements.forEach(el => {
-            el.classList.remove('tour-cinema-active');
-            if (el.dataset.tourWasStatic) {
-                el.style.position = '';
-                delete el.dataset.tourWasStatic;
-            }
-        });
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
 
   }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange]);
@@ -97,13 +113,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   useEffect(() => {
     if (!isOpen) return;
     
-    // Reset Audio
+    // Stop previous audio when changing steps
     if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
     }
 
-    // Play new if started & not muted & valid file
     if (hasStarted && !isMuted) {
       const src = currentStep.audioFiles[langCode] || currentStep.audioFiles['en'];
       if (src) {
@@ -111,7 +126,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           audioRef.current = audio;
           
           audio.onended = () => {
-              // Smooth auto-advance
               setTimeout(() => {
                   if (currentStepIdx < steps.length - 1) {
                       setCurrentStepIdx(prev => prev + 1);
@@ -164,38 +178,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
-      {/* pointer-events-none on the container allows clicks to pass through to the Highlighted Element.
-         We re-enable pointer-events on the Welcome Modal and the Footer below.
-      */}
-
-      {/* 0. THE CINEMA STYLE */}
+      
+      {/* 0. GLOBAL STYLES FOR THE PULSING GOLDEN FRAME */}
       <style>{`
-        .tour-cinema-active {
-            /* 1. Lift it above everything else */
-            z-index: 9998 !important; 
-            
-            /* 2. INHERIT Border Radius so the glow matches the card shape */
-            border-radius: inherit;
-
-            /* 3. The SHADOW MAGIC */
-            /* Layer 1: The Golden Ring (4px solid yellow) */
-            /* Layer 2: The Glow (20px soft yellow) */
-            /* Layer 3: The Dark Backdrop (9999px spread of dark slate) */
-            box-shadow: 
-                0 0 0 4px #fbbf24, 
-                0 0 20px 4px rgba(251, 191, 36, 0.6),
-                0 0 0 9999px rgba(15, 23, 42, 0.9) !important; 
-            
-            /* 4. Animation & Interaction */
-            transition: box-shadow 0.5s ease;
-            pointer-events: auto !important; 
-            animation: cinema-pulse 2s infinite;
+        @keyframes tour-frame-pulse {
+            /* Layer 1: Solid Yellow Ring */
+            /* Layer 2: Soft Yellow Glow */
+            /* Layer 3: Giant Dark Backdrop */
+            0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
+            50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
+            100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
         }
-
-        @keyframes cinema-pulse {
-            0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
-            50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
-            100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.9); }
+        .tour-frame-active {
+            animation: tour-frame-pulse 2s infinite ease-in-out;
         }
       `}</style>
 
@@ -249,7 +244,20 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         </div>
       )}
 
-      {/* 2. BROADCAST FOOTER UI */}
+      {/* 2. THE HIGHLIGHTER FRAME (With Pulsing Golden Border) */}
+      {!isWelcome && highlightStyle && (
+          <div 
+            className="fixed z-[9998] transition-opacity duration-300 ease-out pointer-events-none tour-frame-active"
+            style={{
+                ...highlightStyle,
+                backgroundColor: 'transparent',
+                // We do NOT transition top/left/width/height here to avoid lag. 
+                // requestAnimationFrame handles the smooth movement.
+            }}
+          />
+      )}
+
+      {/* 3. BROADCAST FOOTER (TV UI) */}
       {!isWelcome && (
           <div className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto flex justify-center">
             
@@ -263,6 +271,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <TourAvatar role="host" lang={langCode} className="w-full h-full" />
                         </div>
                     </div>
+                    {/* Mobile Host Icon */}
                     <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
                           <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
                     </div>
