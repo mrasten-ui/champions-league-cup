@@ -64,21 +64,41 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     }
 
     // --- SMART SCROLL FUNCTION ---
-    // Only scrolls if the element is obscured by Header or Footer
+    // Fixed: Prioritizes TOP visibility to prevent "jumping" up behind the header
     const ensureVisible = (rect: DOMRect) => {
-        const HEADER_HEIGHT = 140; // Approx height of your top nav + banner
-        const FOOTER_HEIGHT = 160; // Approx height of the tour control bar
+        const HEADER_OFFSET = 150; // Height of Header + Padding
+        const FOOTER_OFFSET = 120; // Height of Tour Control Bar
 
-        const isUnderHeader = rect.top < HEADER_HEIGHT;
-        const isBelowFooter = rect.bottom > (window.innerHeight - FOOTER_HEIGHT);
+        const viewportHeight = window.innerHeight;
+        const availableHeight = viewportHeight - HEADER_OFFSET - FOOTER_OFFSET;
 
-        if (isUnderHeader) {
-            // Scroll UP just enough to show it, plus a little padding
-            window.scrollBy({ top: rect.top - HEADER_HEIGHT - 20, behavior: 'smooth' });
+        // 1. Is the Top hidden behind the header?
+        const isTopHidden = rect.top < HEADER_OFFSET;
+
+        // 2. Is the Bottom hidden behind the footer?
+        const isBottomHidden = rect.bottom > (viewportHeight - FOOTER_OFFSET);
+
+        // 3. LOGIC:
+        // Always prioritize showing the TOP of the element.
+        // Only scroll down for the bottom if the element is short enough to fit fully.
+        
+        if (isTopHidden) {
+            // SCROLL UP: Align top of element to HEADER_OFFSET
+            const amountToScroll = rect.top - HEADER_OFFSET;
+            window.scrollBy({ top: amountToScroll, behavior: 'smooth' });
         } 
-        else if (isBelowFooter) {
-            // Scroll DOWN just enough
-            window.scrollBy({ top: rect.bottom - (window.innerHeight - FOOTER_HEIGHT) + 20, behavior: 'smooth' });
+        else if (isBottomHidden) {
+            // Check if scrolling down would hide the top
+            const elementHeight = rect.height;
+            
+            if (elementHeight < availableHeight) {
+                // It fits! Scroll DOWN just enough to show bottom
+                const amountToScroll = rect.bottom - (viewportHeight - FOOTER_OFFSET) + 20;
+                window.scrollBy({ top: amountToScroll, behavior: 'smooth' });
+            } else {
+                // It's too tall. Do NOTHING (or align to top). 
+                // Currently, we leave it alone so the top stays visible.
+            }
         }
     };
 
@@ -94,8 +114,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // 1. Calculate Union Bounding Box of ALL targets
-        // This ensures Sub-headlines (A-F) AND Match Card are both included
+        // 1. Calculate Union Bounding Box
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -109,7 +128,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            // Create a rect object for our calculation
             const unionRect = {
                 top: minTop,
                 left: minLeft,
@@ -119,9 +137,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 right: maxRight
             } as DOMRect;
 
-            // 2. Apply Position
             setHighlightStyle({
-                top: unionRect.top - 8,   // Add padding
+                top: unionRect.top - 8,   
                 left: unionRect.left - 8,
                 width: unionRect.width + 16,
                 height: unionRect.height + 16,
@@ -129,9 +146,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 opacity: 1
             });
 
-            // 3. Trigger Scroll ONLY ONCE per step
+            // 2. Trigger Scroll ONLY ONCE per step
             if (!hasScrolledForStep) {
-                ensureVisible(unionRect);
+                // Small delay to ensure DOM is settled before scrolling
+                setTimeout(() => ensureVisible(unionRect), 50);
                 hasScrolledForStep = true;
             }
 
