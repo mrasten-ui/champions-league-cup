@@ -50,11 +50,15 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
+  // --- MODIFIED: Count ALL Matches (104 Total) ---
   const completionStats = useMemo(() => {
-    const groupMatches = matches.filter(m => m.groupId);
-    const total = groupMatches.length;
+    // Filter for any match that has a Group ID OR a Round (Knockout)
+    const tournamentMatches = matches.filter(m => m.groupId || m.round);
+    const total = tournamentMatches.length;
+    
     const myPreds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
-    const completed = groupMatches.filter(m => myPreds.has(m.id)).length;
+    const completed = tournamentMatches.filter(m => myPreds.has(m.id)).length;
+    
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { completed, total, percentage };
   }, [matches, allPredictions, user.email]);
@@ -111,7 +115,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
                 <div className="max-w-7xl mx-auto flex items-center gap-3 relative z-10">
                     <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                        <span className="opacity-50">{t.progressGroups || "Progress"}:</span> 
+                        {/* Changed label to generic "Progress" if key is missing, or fallback */}
+                        <span className="opacity-50">{t.progressGroups || "Tournament Progress"}:</span> 
                         <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
                             {completionStats.completed}/{completionStats.total}
                         </span>
@@ -172,25 +177,25 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                            <div className="fixed inset-0 z-10" onClick={() => props.setIsProfileMenuOpen(false)}></div>
                            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-20 animate-in slide-in-from-top-2">
                               <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col items-center">
-                                 <div className="relative mb-2 group cursor-pointer" onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }}>
-                                     <AvatarDisplay avatar={user?.avatar || ''} size="lg" />
-                                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 size={20} className="text-white drop-shadow-md" /></div>
-                                 </div>
-                                 <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
-                                 <div className="flex gap-2 mt-1">
-                                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{user?.tokens} Intel</div>
-                                     <div className="text-[9px] font-bold text-amber-500 uppercase tracking-wide">{user?.substitutions} Subs</div>
-                                 </div>
+                                  <div className="relative mb-2 group cursor-pointer" onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }}>
+                                      <AvatarDisplay avatar={user?.avatar || ''} size="lg" />
+                                      <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 size={20} className="text-white drop-shadow-md" /></div>
+                                  </div>
+                                  <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
+                                  <div className="flex gap-2 mt-1">
+                                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{user?.tokens} Intel</div>
+                                      <div className="text-[9px] font-bold text-amber-500 uppercase tracking-wide">{user?.substitutions} Subs</div>
+                                  </div>
                               </div>
                               <div className="p-1">
-                                 {props.tournamentPhase === 'PRE_LIVE' && (
-                                     <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
-                                 )}
-                                 
-                                 <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
-                                 <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
-                                 <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-lg flex items-center gap-2 transition-colors border-t border-slate-100 mt-1"><Bot size={16} /> Admin Controls</button>
-                                 <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
+                                  {props.tournamentPhase === 'PRE_LIVE' && (
+                                      <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
+                                  )}
+                                  
+                                  <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
+                                  <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
+                                  <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-lg flex items-center gap-2 transition-colors border-t border-slate-100 mt-1"><Bot size={16} /> Admin Controls</button>
+                                  <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
                               </div>
                            </div>
                         </>
@@ -256,8 +261,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                               className={`
                                   relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 
                                   ${isActive 
-                                      ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
-                                      : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
+                                    ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
+                                    : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
                                   }
                               `}
                           >
