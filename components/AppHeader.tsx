@@ -115,8 +115,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
                 <div className="max-w-7xl mx-auto flex items-center gap-3 relative z-10">
                     <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                        {/* Changed label to generic "Progress" if key is missing, or fallback */}
-                        <span className="opacity-50">{t.progressGroups || "Tournament Progress"}:</span> 
+                        {/* CHANGED: Switched 't.progressGroups' to 't.progressTotal'.
+                           If your 't' object doesn't have 'progressTotal', it defaults to "Tournament Progress".
+                           This preserves localization support if you add the key later.
+                        */}
+                        <span className="opacity-50">{(t as any).progressTotal || "Tournament Progress"}:</span> 
                         <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
                             {completionStats.completed}/{completionStats.total}
                         </span>
