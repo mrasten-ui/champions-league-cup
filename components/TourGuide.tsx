@@ -32,20 +32,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   
   // State for the "Frame" position
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
-  
-  // Track if we have performed the "Banner Scroll" for this step yet
-  const [hasScrolled, setHasScrolled] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number | null>(null); 
   
   const currentStep = steps[currentStepIdx];
 
-  // --- 1. RESET ON OPEN / STEP CHANGE ---
+  // --- 1. RESET ON OPEN ---
   useEffect(() => {
       if (isOpen) {
-          // Reset scroll tracking whenever the step changes
-          setHasScrolled(false);
+          setCurrentStepIdx(0);
+          setHasStarted(false);
+          setIsMuted(false);
+          setHighlightStyle(null);
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
@@ -53,9 +52,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           }
           if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
       }
-  }, [isOpen, currentStepIdx]); // Run when step index changes
+  }, [isOpen]);
 
-  // --- 2. FRAME TRACKING & BANNER ALIGNMENT ---
+  // --- 2. SCROLL LOGIC (RUNS ONCE PER STEP) ---
+  // This is separated from the highlight loop to prevent "Jumping"
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
@@ -64,7 +64,48 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         onStepChange(currentStep.id);
     }
 
-    // B. The Tracking Loop
+    // B. Scroll to Target (One-time event)
+    // We wait a tiny bit (100ms) to allow the new tab/content to render before we calculate position
+    const scrollTimer = setTimeout(() => {
+        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
+        
+        let minTop = Infinity;
+        let foundAny = false;
+
+        // Find the topmost element in the group
+        targetIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                // We use absolute page coordinates (scrollY + top)
+                const absoluteTop = window.scrollY + rect.top;
+                if (absoluteTop < minTop) minTop = absoluteTop;
+                foundAny = true;
+            }
+        });
+
+        if (foundAny) {
+            // SCROLL CONFIGURATION
+            // This 150px offset ensures the element is below your top banner
+            const HEADER_OFFSET = 150; 
+            const targetScrollY = Math.max(0, minTop - HEADER_OFFSET);
+
+            window.scrollTo({
+                top: targetScrollY,
+                behavior: 'smooth'
+            });
+        }
+    }, 100); // 100ms delay to let the DOM settle
+
+    return () => clearTimeout(scrollTimer);
+
+  }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange]);
+
+
+  // --- 3. FRAME TRACKING LOOP (KEEPS BOX ATTACHED) ---
+  useEffect(() => {
+    if (!isOpen || !hasStarted) return;
+
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -74,13 +115,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // 1. Calculate Union Bounding Box
+        // Calculate Union Bounding Box
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 const rect = el.getBoundingClientRect();
-                
-                // Expand box to fit this element
                 if (rect.top < minTop) minTop = rect.top;
                 if (rect.left < minLeft) minLeft = rect.left;
                 if (rect.bottom > maxBottom) maxBottom = rect.bottom;
@@ -90,40 +129,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            // Padding around the highlight box
-            const PADDING_Y = 12;
-            const PADDING_X = 8;
+            const PADDING = 12; // Breathing room inside the frame
 
-            // 2. Update the Visual Frame
             setHighlightStyle({
-                top: minTop - PADDING_Y,
-                left: minLeft - PADDING_X,
-                width: (maxRight - minLeft) + (PADDING_X * 2),
-                height: (maxBottom - minTop) + (PADDING_Y * 2),
-                borderRadius: '20px', 
+                top: minTop - PADDING,
+                left: minLeft - PADDING,
+                width: (maxRight - minLeft) + (PADDING * 2),
+                height: (maxBottom - minTop) + (PADDING * 2),
+                borderRadius: '16px',
                 opacity: 1
             });
-
-            // 3. THE "BANNER ALIGNMENT" SCROLL (Runs once per step)
-            if (!hasScrolled) {
-                // Define the exact height of your top banner/header
-                const BANNER_HEIGHT = 150; 
-
-                // Calculate the absolute position on the page
-                const absoluteTop = window.scrollY + minTop;
-                
-                // Calculate target position: Element Top minus Banner Height
-                // This aligns the top of the element to the bottom of the banner.
-                const targetScrollY = absoluteTop - BANNER_HEIGHT - PADDING_Y - 20; // 20px extra buffer
-
-                window.scrollTo({
-                    top: targetScrollY,
-                    behavior: 'smooth'
-                });
-
-                setHasScrolled(true); // Lock it so we don't keep scrolling
-            }
-
         } else {
             setHighlightStyle({ opacity: 0 });
         }
@@ -131,16 +146,15 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
-    // Start Loop
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
 
-  }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange, hasScrolled]); // Depend on hasScrolled
+  }, [currentStepIdx, isOpen, hasStarted, currentStep]); // Depend on step/open state
 
-  // --- 3. AUDIO PLAYER ---
+  // --- 4. AUDIO PLAYER ---
   useEffect(() => {
     if (!isOpen) return;
     
@@ -281,7 +295,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
-                // Shadow handles the backdrop
+                // This massive shadow creates the "Curtain" with a hole in the middle
                 boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
           />
