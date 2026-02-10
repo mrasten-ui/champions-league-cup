@@ -54,38 +54,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 2. SMART SCROLL & HIGHLIGHT ---
+  // --- 2. FRAME TRACKING (NO SCROLLING) ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
+    // A. Notify Parent (Tab switching)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // --- FIX: ONE-WAY SCROLL ONLY ---
-    // We ONLY scroll if the element is hidden above the top.
-    // We DO NOT scroll if the element is hidden below the bottom.
-    // This prevents the "Jump" that hides the header.
-    const ensureVisible = (rect: DOMRect) => {
-        const HEADER_OFFSET = 140; // Approx height of Header + Padding
-
-        // 1. Is the Top hidden behind the header?
-        const isTopHidden = rect.top < HEADER_OFFSET;
-
-        if (isTopHidden) {
-            // SCROLL UP: Align top of element to HEADER_OFFSET
-            const amountToScroll = rect.top - HEADER_OFFSET;
-            window.scrollBy({ top: amountToScroll, behavior: 'smooth' });
-        } 
-        
-        // DELETED: The "else if (isBottomHidden)" block. 
-        // We accept that the bottom might be cut off by the footer, 
-        // rather than risking the top being cut off by the header.
-    };
-
-    let hasScrolledForStep = false;
-
-    // --- FRAME TRACKING LOOP ---
+    // B. The Tracking Loop
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -95,11 +73,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // 1. Calculate Union Bounding Box
+        // 1. Calculate Union Bounding Box of ALL targets
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 const rect = el.getBoundingClientRect();
+                // We expand the box to encompass THIS element
                 if (rect.top < minTop) minTop = rect.top;
                 if (rect.left < minLeft) minLeft = rect.left;
                 if (rect.bottom > maxBottom) maxBottom = rect.bottom;
@@ -109,39 +88,29 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            const unionRect = {
-                top: minTop,
-                left: minLeft,
-                width: maxRight - minLeft,
-                height: maxBottom - minTop,
-                bottom: maxBottom,
-                right: maxRight
-            } as DOMRect;
+            const width = maxRight - minLeft;
+            const height = maxBottom - minTop;
 
+            // 2. Apply Position (With padding)
             setHighlightStyle({
-                top: unionRect.top - 8,   
-                left: unionRect.left - 8,
-                width: unionRect.width + 16,
-                height: unionRect.height + 16,
+                top: minTop - 8,
+                left: minLeft - 8,
+                width: width + 16,
+                height: height + 16,
                 borderRadius: '16px',
                 opacity: 1
             });
-
-            // 2. Trigger Scroll ONLY ONCE per step
-            if (!hasScrolledForStep) {
-                setTimeout(() => ensureVisible(unionRect), 50);
-                hasScrolledForStep = true;
-            }
-
         } else {
+            // If elements are missing (e.g. changing tabs), hide the frame momentarily
             setHighlightStyle({ opacity: 0 });
         }
 
+        // 3. Loop every frame
+        // This ensures if an element moves or loads in late, the box snaps to it instantly.
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
-    // Reset scroll flag when step changes
-    hasScrolledForStep = false;
+    // Start the loop
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
@@ -288,7 +257,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
-                // Shadow handles the backdrop
+                // This massive shadow creates the "Curtain" with a hole in the middle
                 boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
           />
@@ -296,7 +265,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
       {/* 3. BROADCAST FOOTER (TV UI) */}
       {!isWelcome && (
-          <div className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto flex justify-center">
+          <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center">
             
             <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500">
                 
