@@ -54,11 +54,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 2. FRAME TRACKING (NO SCROLLING) ---
+  // --- 2. FRAME TRACKING (ZERO SCROLLING) ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent (Tab switching)
+    // A. Notify Parent (Tab switching only)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
@@ -73,12 +73,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // 1. Calculate Union Bounding Box of ALL targets
+        // 1. Calculate Union Bounding Box
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 const rect = el.getBoundingClientRect();
-                // We expand the box to encompass THIS element
+                
+                // Expand box to fit this element
                 if (rect.top < minTop) minTop = rect.top;
                 if (rect.left < minLeft) minLeft = rect.left;
                 if (rect.bottom > maxBottom) maxBottom = rect.bottom;
@@ -88,29 +89,31 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            const width = maxRight - minLeft;
-            const height = maxBottom - minTop;
+            // INCREASE PADDING: 
+            // We add extra padding (12px top/bottom, 8px sides) to ensure we catch 
+            // the edges of headers (like R32 or Group Tabs) that might be tight.
+            const PADDING_Y = 12;
+            const PADDING_X = 8;
 
-            // 2. Apply Position (With padding)
             setHighlightStyle({
-                top: minTop - 8,
-                left: minLeft - 8,
-                width: width + 16,
-                height: height + 16,
-                borderRadius: '16px',
+                top: minTop - PADDING_Y,
+                left: minLeft - PADDING_X,
+                width: (maxRight - minLeft) + (PADDING_X * 2),
+                height: (maxBottom - minTop) + (PADDING_Y * 2),
+                borderRadius: '20px', // Softer corners for the group
                 opacity: 1
             });
         } else {
-            // If elements are missing (e.g. changing tabs), hide the frame momentarily
+            // If we are between tabs (element destroyed but new one not made yet),
+            // hide the frame momentarily to avoid it jumping to (0,0)
             setHighlightStyle({ opacity: 0 });
         }
 
-        // 3. Loop every frame
-        // This ensures if an element moves or loads in late, the box snaps to it instantly.
+        // Loop every frame to handle window resize or dynamic content changes
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
-    // Start the loop
+    // Start
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
@@ -191,6 +194,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       {/* 0. PULSING FRAME STYLE */}
       <style>{`
         @keyframes tour-frame-pulse {
+            /* 1. Yellow Ring */
+            /* 2. Soft Glow */
+            /* 3. The Curtain (9999px shadow) */
             0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
@@ -253,11 +259,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       {/* 2. THE HIGHLIGHTER FRAME */}
       {!isWelcome && highlightStyle && (
           <div 
-            className="fixed z-[9998] transition-opacity duration-300 ease-out pointer-events-none tour-frame-active"
+            className="fixed z-[9998] transition-all duration-300 ease-out pointer-events-none tour-frame-active"
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
-                // This massive shadow creates the "Curtain" with a hole in the middle
+                // Shadow handles the backdrop
                 boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
           />

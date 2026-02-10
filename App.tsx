@@ -343,49 +343,30 @@ const App: React.FC = () => {
   };
 
   // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
+  // MODIFIED: Removed all window.scrollTo calls to prevent conflicts with TourGuide
   const handleTourNavigation = (stepId: string) => {
       
-      const scrollToId = (id: string, block: ScrollLogicalPosition = 'center') => {
-          setTimeout(() => {
-              const el = document.getElementById(id);
-              if (el) {
-                  const rect = el.getBoundingClientRect();
-                  // Center the element in the viewport (minus the 120px footer)
-                  // Offset by +150 to push it UP towards top of screen, clearing the footer
-                  const offset = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) + 150;
-                  window.scrollTo({ top: offset, behavior: 'smooth' });
-              } else {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-          }, 500);
-      };
-
       if (stepId === 'match_card') {
           if (activeTab !== 'groups') {
               setActiveTab('groups');
               setActiveGroup('A');
           }
-          scrollToId('tour-first-match');
       } 
       else if (stepId === 'groups_nav') {
           if (activeTab !== 'groups') setActiveTab('groups');
-          scrollToId('subnav-groups');
       }
       else if (stepId === 'magic_wand') {
-          // Wand is fixed
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // No scroll needed, wand is sticky/fixed usually
       }
       else if (stepId === 'knockout_tab') {
           if (activeTab !== 'knockout') setActiveTab('knockout');
-          scrollToId('subnav-knockout');
       }
       else if (stepId === 'profile_menu') {
-          // RESET TO GROUP A FOR END OF TOUR
+          // Reset for end of tour
           if (activeTab !== 'groups') {
               setActiveTab('groups');
               setActiveGroup('A');
           }
-          window.scrollTo({ top: 0, behavior: 'smooth' });
       }
   };
 
