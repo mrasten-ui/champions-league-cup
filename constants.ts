@@ -31,7 +31,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Professional, Posh, Composed',
       backstory: 'A veteran sports presenter who tries desperately to keep the broadcast standard high despite her co-host.',
       quote: "Well, you heard it here first.",
-      image: '/avatars/host-en.png'
+      image: '/pundit/host-en.png'
     },
     pundit: {
       name: 'Gaz',
@@ -39,7 +39,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Scouse, Aggressive, Passionate',
       backstory: 'Ex-Premier League midfielder known for hard tackles, zero goals, and hating "fancy" tactics like false nines.',
       quote: "What are you on about?! Get stuck in!",
-      image: '/avatars/pundit-en.png'
+      image: '/pundit/pundit-en.png'
     }
   },
   'US': {
@@ -51,7 +51,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'High-Energy Anchor',
       backstory: 'Professional radio anchor who keeps the pacing fast and constantly apologizes for Chuck\'s outbursts.',
       quote: "We're live and the energy is electric!",
-      image: '/avatars/host-us.png'
+      image: '/pundit/host-us.png'
     },
     pundit: {
       name: 'Chuck',
@@ -59,7 +59,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Shock Jock, Ex-NFL',
       backstory: 'Former American Football player who thinks soccer needs more timeouts. He hates draws and guarantees wins that never happen.',
       quote: "Are you kidding me?! I GUARANTEE it!",
-      image: '/avatars/pundit-us.png'
+      image: '/pundit/pundit-us.png'
     }
   },
   'SCO': {
@@ -71,7 +71,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Professional but Grounded',
       backstory: 'The only sensible person in the studio. She manages Rab like a toddler.',
       quote: "Right, let's get back to the football.",
-      image: '/avatars/host-sco.png'
+      image: '/pundit/host-sco.png'
     },
     pundit: {
       name: 'Rab',
@@ -79,7 +79,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Gritty, Blunt, Dialect-Heavy',
       backstory: 'Played in the lower leagues for 20 years. Hates favorites, loves a 0-0 draw on a rainy Tuesday.',
       quote: "That's absolute mince.",
-      image: '/avatars/pundit-sco.png'
+      image: '/pundit/pundit-sco.png'
     }
   },
   'NO': {
@@ -91,7 +91,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Friendly, Efficient',
       backstory: 'The bridge between the casual viewer and the tactical philosopher sitting next to her.',
       quote: "La oss se på tallene.",
-      image: '/avatars/host-no.png'
+      image: '/pundit/host-no.png'
     },
     pundit: {
       name: 'Nils Arne',
@@ -99,7 +99,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       style: 'Enthusiastic, Philosophical',
       backstory: 'Legendary tactical philosopher. Believes in "Godfoten" (making others good) and uses metaphors about salmon fishing.',
       quote: "Det handler om samhandling!",
-      image: '/avatars/pundit-no.png'
+      image: '/pundit/pundit-no.png'
     }
   }
 };
@@ -475,7 +475,7 @@ const NO_TRANSLATION: Translation = {
     backToGroup: "Tilbake til Gruppe", backTo: "Tilbake til", goToBracket: "Gå til Sluttspill", prevGroup: "Forrige Gruppe", nextGroup: "Neste Gruppe",
     overviewBtn: "Oversikt", bracketBtn: "Sluttspill", allBtn: "Alle", tablesBtn: "Tabeller", confirmClear: "Er du sikker på at du vil slette tipsene dine?",
     finishGroupBtn: "Fullfør Gruppe {0}", revealBtn: "Avslør", tokensLeft: "Intel", spyCost: "1 Intel", rivalLive: "Rival Live Status",
-    rivalIntel: "Rival Etterretning", scenarioAnalysis: "Scenarioanalyse", now: "Nå", noPick: "Ingen Tips", myPick: "Mitt Tips", advanced: "Videre",
+    rivalIntel: "Rival Etterretning", scenarioAnalysis: "Scenarioanalyse", now: "Now", noPick: "Ingen Tips", myPick: "Mitt Tips", advanced: "Videre",
     live: "LIVE", ft: "SLUTT", substitutions: "Bytter", makeSub: "Gjør Bytte", subConfirm: "Bruk 1 bytte for å åpne?", subSuccess: "Kamp Åpnet!", unlocked: "ÅPEN",
     tabTournament: "Turneringen", tabManager: "Manager", subnavSchedule: "Terminliste", subnavTables: "Tabeller", subnavBracket: "Treet",
     rank: "Plass", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Tabell", bankedOnly: "Kun Bankede", scoringRulesInfo: "Poengregler:",
