@@ -285,27 +285,28 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     
                     {/* LEFT: THE STUDIO DESK (Unified Image) */}
                     <div className="w-48 relative hidden sm:block">
-                        {/* - bottom-0: Anchors it to the bottom of the screen.
-                           - h-52 (~208px): Tall enough to pop 96px above the 112px footer.
-                           - z-50: Ensures it sits ON TOP of the footer border.
-                        */}
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
-                                src={`/team-${langCode.toLowerCase()}.png`} // CHANGED TO PNG for transparency
-                                onError={(e) => { e.currentTarget.src = '/team-en.png'; }} // CHANGED TO PNG
+                                src={`/team-${langCode.toLowerCase()}.png`} 
+                                onError={(e) => { 
+                                    // FIXED: Anti-Loop Logic.
+                                    // If fallback fails, stop trying to prevent blinking.
+                                    const target = e.currentTarget;
+                                    target.onerror = null; 
+                                    target.src = '/team-en.png'; 
+                                }}
                                 alt="Studio Team" 
                                 className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
                             />
                         </div>
                     </div>
 
-                    {/* Mobile Host Icon (Reverted to simple icon to save space on phones) */}
+                    {/* Mobile Host Icon */}
                     <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
                           <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
                     </div>
 
                     {/* TEXT CONTENT (Middle) */}
-                    {/* Increased left padding (pl-56) to make room for the wider team image */}
                     <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-56">
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
