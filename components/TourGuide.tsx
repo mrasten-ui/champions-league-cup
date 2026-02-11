@@ -287,12 +287,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     <div className="w-48 relative hidden sm:block">
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
-                                // FIXED: Pointing to /pundit/ folder
-                                src={`/pundit/team-${langCode.toLowerCase()}.png`} 
+                                // FIXED: Maps 'SCO' to 'sc', otherwise lowercases the code (EN->en, US->us, NO->no)
+                                src={`/pundit/team-${langCode === 'SCO' ? 'sc' : langCode.toLowerCase()}.png`} 
                                 onError={(e) => { 
                                     const target = e.currentTarget;
-                                    target.onerror = null; // Stop infinite loop
-                                    target.src = '/pundit/team-en.png'; // Fallback to EN in pundit folder
+                                    target.onerror = null; 
+                                    target.src = '/pundit/team-en.png'; 
                                 }}
                                 alt="Studio Team" 
                                 className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
