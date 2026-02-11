@@ -11,7 +11,8 @@ const TourAvatar: React.FC<{ role: 'host' | 'pundit'; lang: LanguageCode; classN
     const person = role === 'host' ? team.host : team.pundit;
     
     return (
-        <div className={`rounded-full overflow-hidden border-2 border-white shadow-2xl bg-slate-800 flex items-center justify-center ${className}`}>
+        // CHANGED: Increased border to 4 and added a deeper shadow for 3D pop effect
+        <div className={`rounded-full overflow-hidden border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-slate-800 flex items-center justify-center ${className}`}>
             <AvatarDisplay avatar={person.image} size="lg" className="w-full h-full scale-110" />
         </div>
     );
@@ -32,6 +33,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   
   // State for the "Frame" position
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
+  
+  // Track if we have performed the "Banner Scroll" for this step yet
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number | null>(null); 
@@ -45,6 +49,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setHasStarted(false);
           setIsMuted(false);
           setHighlightStyle(null);
+          setHasScrolled(false);
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
@@ -54,8 +59,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 2. SCROLL LOGIC (RUNS ONCE PER STEP) ---
-  // This is separated from the highlight loop to prevent "Jumping"
+  // --- 2. FRAME TRACKING & SCROLL ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
@@ -64,48 +68,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         onStepChange(currentStep.id);
     }
 
-    // B. Scroll to Target (One-time event)
-    // We wait a tiny bit (100ms) to allow the new tab/content to render before we calculate position
-    const scrollTimer = setTimeout(() => {
-        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
-        
-        let minTop = Infinity;
-        let foundAny = false;
-
-        // Find the topmost element in the group
-        targetIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                const rect = el.getBoundingClientRect();
-                // We use absolute page coordinates (scrollY + top)
-                const absoluteTop = window.scrollY + rect.top;
-                if (absoluteTop < minTop) minTop = absoluteTop;
-                foundAny = true;
-            }
-        });
-
-        if (foundAny) {
-            // SCROLL CONFIGURATION
-            // This 150px offset ensures the element is below your top banner
-            const HEADER_OFFSET = 150; 
-            const targetScrollY = Math.max(0, minTop - HEADER_OFFSET);
-
-            window.scrollTo({
-                top: targetScrollY,
-                behavior: 'smooth'
-            });
-        }
-    }, 100); // 100ms delay to let the DOM settle
-
-    return () => clearTimeout(scrollTimer);
-
-  }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange]);
-
-
-  // --- 3. FRAME TRACKING LOOP (KEEPS BOX ATTACHED) ---
-  useEffect(() => {
-    if (!isOpen || !hasStarted) return;
-
+    // B. The Tracking Loop
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -115,7 +78,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // Calculate Union Bounding Box
+        // 1. Calculate Union Bounding Box
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -129,16 +92,34 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            const PADDING = 12; // Breathing room inside the frame
+            const PADDING_Y = 12;
+            const PADDING_X = 8;
 
             setHighlightStyle({
-                top: minTop - PADDING,
-                left: minLeft - PADDING,
-                width: (maxRight - minLeft) + (PADDING * 2),
-                height: (maxBottom - minTop) + (PADDING * 2),
-                borderRadius: '16px',
+                top: minTop - PADDING_Y,
+                left: minLeft - PADDING_X,
+                width: (maxRight - minLeft) + (PADDING_X * 2),
+                height: (maxBottom - minTop) + (PADDING_Y * 2),
+                borderRadius: '20px',
                 opacity: 1
             });
+
+            // 3. THE "BANNER ALIGNMENT" SCROLL
+            if (!hasScrolled) {
+                const BANNER_HEIGHT = 150; 
+                const absoluteTop = window.scrollY + minTop;
+                
+                // Calculate target: Align top of element to bottom of banner
+                const targetScrollY = Math.max(0, absoluteTop - BANNER_HEIGHT - PADDING_Y - 20);
+
+                window.scrollTo({
+                    top: targetScrollY,
+                    behavior: 'smooth'
+                });
+
+                setHasScrolled(true);
+            }
+
         } else {
             setHighlightStyle({ opacity: 0 });
         }
@@ -152,9 +133,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
 
-  }, [currentStepIdx, isOpen, hasStarted, currentStep]); // Depend on step/open state
+  }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange, hasScrolled]); 
 
-  // --- 4. AUDIO PLAYER ---
+  // --- 3. AUDIO PLAYER ---
   useEffect(() => {
     if (!isOpen) return;
     
@@ -226,9 +207,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       {/* 0. PULSING FRAME STYLE */}
       <style>{`
         @keyframes tour-frame-pulse {
-            /* 1. Yellow Ring */
-            /* 2. Soft Glow */
-            /* 3. The Curtain (9999px shadow) */
             0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
@@ -309,19 +287,25 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 
                 <div className="max-w-5xl mx-auto flex h-28 relative">
                     
-                    {/* HOST AVATAR (Left) */}
+                    {/* HOST AVATAR (Left) - THE POP OUT EFFECT */}
                     <div className="w-28 relative hidden sm:block">
-                        <div className="absolute bottom-0 left-4 w-32 h-32 z-20">
+                        {/* CHANGES FOR POP-OUT:
+                           1. w-40 h-40 (Larger than the h-28 container)
+                           2. -bottom-6 (Pulls it down, so top sticks out)
+                           3. z-50 (Ensures it sits ON TOP of the border)
+                        */}
+                        <div className="absolute -bottom-6 left-4 w-40 h-40 z-50 transition-transform hover:scale-105 duration-300">
                             <TourAvatar role="host" lang={langCode} className="w-full h-full" />
                         </div>
                     </div>
-                    {/* Mobile Host Icon */}
+                    {/* Mobile Host Icon (Standard size, no pop-out) */}
                     <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
                           <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
                     </div>
 
                     {/* TEXT CONTENT (Middle) */}
-                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
+                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-16">
+                        {/* Added sm:pl-16 to make room for the larger avatar shoulder */}
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
                                 <h3 className="text-yellow-400 text-sm font-black uppercase tracking-[0.2em] leading-none mb-1">
