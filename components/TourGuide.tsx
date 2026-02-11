@@ -5,13 +5,12 @@ import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lu
 import { AvatarDisplay } from './AvatarDisplay';
 import { BROADCAST_TEAMS } from '../constants';
 
-// --- HELPER: Avatar Wrapper ---
+// --- HELPER: Avatar Wrapper (Still used for Mobile & Welcome Screen) ---
 const TourAvatar: React.FC<{ role: 'host' | 'pundit'; lang: LanguageCode; className?: string }> = ({ role, lang, className }) => {
     const team = BROADCAST_TEAMS[lang] || BROADCAST_TEAMS['EN'];
     const person = role === 'host' ? team.host : team.pundit;
     
     return (
-        // CHANGED: Increased border to 4 and added a deeper shadow for 3D pop effect
         <div className={`rounded-full overflow-hidden border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-slate-800 flex items-center justify-center ${className}`}>
             <AvatarDisplay avatar={person.image} size="lg" className="w-full h-full scale-110" />
         </div>
@@ -63,12 +62,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
-    // A. Notify Parent (Tab switching)
     if (onStepChange) {
         onStepChange(currentStep.id);
     }
 
-    // B. The Tracking Loop
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -273,7 +270,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
-                // This massive shadow creates the "Curtain" with a hole in the middle
                 boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
           />
@@ -287,25 +283,30 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 
                 <div className="max-w-5xl mx-auto flex h-28 relative">
                     
-                    {/* HOST AVATAR (Left) - THE POP OUT EFFECT */}
-                    <div className="w-28 relative hidden sm:block">
-                        {/* CHANGES FOR POP-OUT:
-                           1. w-40 h-40 (Larger than the h-28 container)
-                           2. -bottom-6 (Pulls it down, so top sticks out)
-                           3. z-50 (Ensures it sits ON TOP of the border)
+                    {/* LEFT: THE STUDIO DESK (Unified Image) */}
+                    <div className="w-48 relative hidden sm:block">
+                        {/* - bottom-0: Anchors it to the bottom of the screen.
+                           - h-52 (~208px): Tall enough to pop 96px above the 112px footer.
+                           - z-50: Ensures it sits ON TOP of the footer border.
                         */}
-                        <div className="absolute -bottom-6 left-4 w-40 h-40 z-50 transition-transform hover:scale-105 duration-300">
-                            <TourAvatar role="host" lang={langCode} className="w-full h-full" />
+                        <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
+                            <img 
+                                src={`/team-${langCode.toLowerCase()}.png`} // CHANGED TO PNG for transparency
+                                onError={(e) => { e.currentTarget.src = '/team-en.png'; }} // CHANGED TO PNG
+                                alt="Studio Team" 
+                                className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
+                            />
                         </div>
                     </div>
-                    {/* Mobile Host Icon (Standard size, no pop-out) */}
+
+                    {/* Mobile Host Icon (Reverted to simple icon to save space on phones) */}
                     <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
                           <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
                     </div>
 
                     {/* TEXT CONTENT (Middle) */}
-                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-16">
-                        {/* Added sm:pl-16 to make room for the larger avatar shoulder */}
+                    {/* Increased left padding (pl-56) to make room for the wider team image */}
+                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-56">
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
                                 <h3 className="text-yellow-400 text-sm font-black uppercase tracking-[0.2em] leading-none mb-1">
@@ -353,11 +354,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <button onClick={handleSkip} className="flex-1 py-1.5 flex justify-center text-[9px] font-bold text-slate-500 hover:text-white uppercase tracking-widest rounded-md hover:bg-white/10 transition-colors">
                                 Skip
                             </button>
-                          </div>
-
-                          {/* Pundit Avatar (Background/Subtle) */}
-                          <div className="absolute -top-12 -right-4 w-20 h-20 opacity-30 pointer-events-none hidden sm:block grayscale mix-blend-screen">
-                            <TourAvatar role="pundit" lang={langCode} className="w-full h-full" />
                           </div>
                     </div>
                 </div>
