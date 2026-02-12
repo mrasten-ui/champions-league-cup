@@ -75,7 +75,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let maxRight = -Infinity;
         let foundAny = false;
 
-        // 1. Calculate Union Bounding Box
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -101,19 +100,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 opacity: 1
             });
 
-            // 3. THE "BANNER ALIGNMENT" SCROLL
             if (!hasScrolled) {
                 const BANNER_HEIGHT = 150; 
                 const absoluteTop = window.scrollY + minTop;
-                
-                // Calculate target: Align top of element to bottom of banner
                 const targetScrollY = Math.max(0, absoluteTop - BANNER_HEIGHT - PADDING_Y - 20);
 
-                window.scrollTo({
-                    top: targetScrollY,
-                    behavior: 'smooth'
-                });
-
+                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
                 setHasScrolled(true);
             }
 
@@ -198,10 +190,14 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const audioScript = currentStep.audioScript?.[langCode] || currentStep.audioScript?.['en'];
   const isWelcome = currentStep.id === 'welcome';
 
+  // --- DYNAMIC BACKGROUND LOGIC ---
+  const bannerLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
+  // Assuming JPG. If you prefer PNG, change .jpg to .png here.
+  const bannerUrl = `/pundit/banner-${bannerLang}.jpg`; 
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
       
-      {/* 0. PULSING FRAME STYLE */}
       <style>{`
         @keyframes tour-frame-pulse {
             0% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
@@ -219,7 +215,23 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                 <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('/pundit-banner.png')] bg-cover bg-center opacity-40"></div>
+                    {/* CHANGED: Dynamic Background Image with Fallback */}
+                    <div 
+                        className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
+                        style={{ backgroundImage: `url('${bannerUrl}')` }}
+                    >
+                        {/* Fallback (Hidden img to catch error and swap background if missing) */}
+                        <img 
+                            src={bannerUrl} 
+                            onError={(e) => { 
+                                const parent = e.currentTarget.parentElement;
+                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpg')"; // Fallback to EN
+                            }}
+                            className="hidden" 
+                            alt="" 
+                        />
+                    </div>
+                    
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f2545] to-transparent"></div>
                     <div className="relative z-10 text-center">
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
@@ -287,8 +299,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     <div className="w-48 relative hidden sm:block">
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
-                                // FIXED: Maps 'SCO' to 'sc', otherwise lowercases the code (EN->en, US->us, NO->no)
-                                src={`/pundit/team-${langCode === 'SCO' ? 'sc' : langCode.toLowerCase()}.png`} 
+                                src={`/pundit/team-${bannerLang}.png`} 
                                 onError={(e) => { 
                                     const target = e.currentTarget;
                                     target.onerror = null; 
