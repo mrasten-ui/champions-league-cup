@@ -192,8 +192,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   // --- DYNAMIC BACKGROUND LOGIC ---
   const bannerLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
-  // Assuming JPG. If you prefer PNG, change .jpg to .png here.
-  const bannerUrl = `/pundit/banner-${bannerLang}.jpg`; 
+  
+  // CHANGED: Now points to .jpeg
+  const bannerUrl = `/pundit/banner-${bannerLang}.jpeg`; 
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
@@ -215,17 +216,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                 <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
-                    {/* CHANGED: Dynamic Background Image with Fallback */}
                     <div 
                         className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
                         style={{ backgroundImage: `url('${bannerUrl}')` }}
                     >
-                        {/* Fallback (Hidden img to catch error and swap background if missing) */}
+                        {/* Fallback also updated to .jpeg */}
                         <img 
                             src={bannerUrl} 
                             onError={(e) => { 
                                 const parent = e.currentTarget.parentElement;
-                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpg')"; // Fallback to EN
+                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')"; 
                             }}
                             className="hidden" 
                             alt="" 
