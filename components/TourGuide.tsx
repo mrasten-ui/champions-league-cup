@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
 import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
-import { AvatarDisplay } from './AvatarDisplay';
-import { BROADCAST_TEAMS } from '../constants';
 
 interface TourGuideProps {
   steps: TourStep[];
@@ -13,36 +11,66 @@ interface TourGuideProps {
   onStepChange?: (stepId: string) => void;
 }
 
+// --- LOCALIZATION DICTIONARY ---
+const UI_STRINGS = {
+  EN: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
+  US: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
+  NO: { title: 'Omvisning', subtitle: 'Før-sesong Brief', assistant: 'Din Assistent', start: 'Start Tour (Med Lyd)', skip: 'Hopp over, jeg kan spillet', next: 'Neste', finish: 'Ferdig' },
+  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I ken the game', next: 'Next', finish: 'Finish' }, // 'Ken' = Know in Scots
+};
+
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
-  const [hasScrolled, setHasScrolled] = useState(false);
-
+  
+  // Audio & Frame Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number | null>(null); 
   
   const currentStep = steps[currentStepIdx];
+  const ui = UI_STRINGS[langCode] || UI_STRINGS['EN'];
 
-  // --- 1. SETUP ASSETS (Dynamic Paths) ---
-  // Normalize Language Code: 'SCO' -> 'sc', 'NO' -> 'no', etc.
+  // --- 1. SETUP ASSETS ---
   const normalizedLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
   
   // Images
   const bannerUrlJpeg = `/pundit/banner-${normalizedLang}.jpeg`;
   const bannerUrlJpg = `/pundit/banner-${normalizedLang}.jpg`; 
   const teamUrl = `/pundit/team-${normalizedLang}.png`;
+  const hostUrl = `/pundit/host-${normalizedLang}.png`;
 
-  // --- 2. RESET ON OPEN ---
+  // --- 2. WAKE LOCK (PREVENT SCREEN SLEEP) ---
+  useEffect(() => {
+    let wakeLock: any = null;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && isOpen) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          console.log('Screen Wake Lock acquired');
+        } catch (err) {
+          console.warn('Wake Lock error:', err);
+        }
+      }
+    };
+
+    if (isOpen) requestWakeLock();
+
+    return () => {
+      if (wakeLock) wakeLock.release();
+    };
+  }, [isOpen]);
+
+  // --- 3. RESET ON OPEN ---
   useEffect(() => {
       if (isOpen) {
           setCurrentStepIdx(0);
           setHasStarted(false);
           setIsMuted(false);
           setHighlightStyle(null);
-          setHasScrolled(false);
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
@@ -52,7 +80,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 3. FRAME TRACKING & SCROLL ---
+  // --- 4. FRAME TRACKING & SCROLL ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
@@ -60,6 +88,21 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         onStepChange(currentStep.id);
     }
 
+    // Scroll Logic: Run ONCE when step ID changes
+    // We use setTimeout to allow the DOM to render the new tab content first
+    const scrollTimer = setTimeout(() => {
+        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
+        if (targetIds.length > 0) {
+            const el = document.getElementById(targetIds[0]);
+            if (el) {
+                // block: 'center' is CRITICAL for mobile. 
+                // It forces the element to the middle of the viewport, avoiding the header/footer cut-off.
+                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+    }, 100);
+
+    // Frame Update Loop (Keeps the yellow box stuck to the element)
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -82,89 +125,91 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         });
 
         if (foundAny) {
-            const PADDING_Y = 12;
-            const PADDING_X = 8;
-
+            const PADDING = 12;
             setHighlightStyle({
-                top: minTop - PADDING_Y,
-                left: minLeft - PADDING_X,
-                width: (maxRight - minLeft) + (PADDING_X * 2),
-                height: (maxBottom - minTop) + (PADDING_Y * 2),
-                borderRadius: '20px',
+                top: minTop - PADDING,
+                left: minLeft - PADDING,
+                width: (maxRight - minLeft) + (PADDING * 2),
+                height: (maxBottom - minTop) + (PADDING * 2),
+                borderRadius: '16px',
                 opacity: 1
             });
-
-            if (!hasScrolled) {
-                const BANNER_HEIGHT = 150; 
-                const absoluteTop = window.scrollY + minTop;
-                const targetScrollY = Math.max(0, absoluteTop - BANNER_HEIGHT - PADDING_Y - 20);
-
-                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-                setHasScrolled(true);
-            }
-
         } else {
             setHighlightStyle({ opacity: 0 });
         }
-
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
     requestRef.current = requestAnimationFrame(updateHighlight);
 
     return () => {
+        clearTimeout(scrollTimer);
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
 
-  }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange, hasScrolled]); 
+  // DEPENDENCY FIX: Only re-run if step ID changes. 
+  // 'steps' or 'currentStep' objects change on every render, causing loops. 'currentStep.id' is stable.
+  }, [currentStep.id, isOpen, hasStarted]); 
 
-  // --- 4. AUDIO PLAYER (FIXED LANGUAGE LOOKUP) ---
+  // --- 5. AUDIO PLAYER (FIXED RESTART ISSUE) ---
+  const getAudioSource = () => {
+      const files = currentStep.audioFiles;
+      if (!files) return null;
+      if (files[normalizedLang]) return files[normalizedLang];
+      if (files[langCode]) return files[langCode];
+      if (files[langCode.toLowerCase()]) return files[langCode.toLowerCase()];
+      if (langCode === 'SCO' && files['sco']) return files['sco'];
+      if (langCode === 'US' && files['us']) return files['us'];
+      return files['en'];
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+    // Stop audio if tour closed or muted
+    if (!hasStarted || isMuted) {
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+        return;
     }
 
-    if (hasStarted && !isMuted) {
-      // FIXED: Use normalizedLang ('no', 'sc') to match tourConfig keys
-      // Fallback 1: Try normalized key (e.g. 'no')
-      // Fallback 2: Try original key (e.g. 'NO')
-      // Fallback 3: Default to 'en'
-      const src = 
-        currentStep.audioFiles[normalizedLang] || 
-        currentStep.audioFiles[langCode] || 
-        currentStep.audioFiles['en'];
-      
-      if (src) {
-          console.log(`TourGuide: Playing audio: ${src} for language: ${normalizedLang}`); // Debug log
-          const audio = new Audio(src);
-          audioRef.current = audio;
-          
-          audio.onended = () => {
-              setTimeout(() => {
-                  if (currentStepIdx < steps.length - 1) {
-                      setCurrentStepIdx(prev => prev + 1);
-                  } else {
-                      onComplete();
-                  }
-              }, 2000); 
-          };
+    const src = getAudioSource();
+    if (src) {
+        // PREVENT RESTART: Check if we are already playing this exact URL
+        if (audioRef.current && !audioRef.current.paused && audioRef.current.src.endsWith(src)) {
+            return; // Already playing correctly, do nothing.
+        }
 
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                  if (error.name !== 'AbortError') {
-                      console.error("Audio playback error:", error);
-                  }
-              });
-          }
-      } else {
-          console.warn(`TourGuide: No audio found for lang ${normalizedLang} or en.`);
-      }
+        // If different, load new audio
+        if (audioRef.current) {
+             audioRef.current.pause();
+             audioRef.current.currentTime = 0;
+        }
+
+        const audio = new Audio(src);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+            setTimeout(() => {
+                if (currentStepIdx < steps.length - 1) {
+                    setCurrentStepIdx(prev => prev + 1);
+                } else {
+                    onComplete();
+                }
+            }, 2000); 
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                if (error.name !== 'AbortError') {
+                    console.error("[TourGuide] Audio playback error:", error);
+                }
+            });
+        }
     }
-  }, [currentStepIdx, hasStarted, isMuted, isOpen, langCode, normalizedLang, steps.length, onComplete, currentStep]);
+  }, [currentStep.id, hasStarted, isMuted, isOpen, langCode]); // Depend on ID, not object
 
   // --- HANDLERS ---
   const handleStart = () => {
@@ -198,7 +243,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   if (!isOpen) return null;
 
-  // Use normalized lang for text content too, just in case
   const content = currentStep.display?.[langCode] || currentStep.display?.['en'];
   const audioScript = currentStep.audioScript?.[langCode] || currentStep.audioScript?.['en'];
   const isWelcome = currentStep.id === 'welcome';
@@ -248,29 +292,30 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f2545] to-transparent"></div>
                     <div className="relative z-10 text-center">
+                        {/* LOCALIZED INTRO TEXT */}
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
-                            The Tour
+                            {ui.title}
                         </h2>
-                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest mt-1">Pre-Season Briefing</p>
+                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest mt-1">{ui.subtitle}</p>
                     </div>
                 </div>
                 
                 <div className="px-6 py-8 text-center space-y-6">
-                    {/* TEAM AVATAR */}
+                    {/* HOST AVATAR (Welcome Screen Only) */}
                     <div className="flex justify-center -mt-16 mb-4 relative z-20">
-                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-end justify-center">
+                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
                              <img 
-                                src={teamUrl}
-                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                                className="w-full h-full object-contain scale-110"
-                                alt="Team"
+                                src={hostUrl}
+                                onError={(e) => { e.currentTarget.src = '/pundit/host-en.png'; }}
+                                className="w-full h-full object-cover scale-110" 
+                                alt="Host"
                              />
                         </div>
                     </div>
 
                     <div className="space-y-3">
                         <p className="text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 inline-block px-3 py-1 rounded-full">
-                            Your Assistants
+                            {ui.assistant}
                         </p>
                         <p className="text-slate-800 text-lg font-medium leading-relaxed italic">
                             "{audioScript?.host}"
@@ -283,13 +328,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                         >
                             <Play size={20} fill="currentColor" /> 
-                            <span>Start Tour (Audio On)</span>
+                            <span>{ui.start}</span>
                         </button>
                         <button 
                             onClick={handleSkip}
                             className="w-full py-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"
                         >
-                            Skip intro, I know the game
+                            {ui.skip}
                         </button>
                     </div>
                 </div>
@@ -317,7 +362,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 
                 <div className="max-w-5xl mx-auto flex h-28 relative">
                     
-                    {/* LEFT: THE STUDIO DESK (Unified Image) */}
+                    {/* LEFT: THE STUDIO DESK (Unified Team Image) */}
                     <div className="w-48 relative hidden sm:block">
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
@@ -382,7 +427,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             onClick={handleNext} 
                             className="w-full py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all z-20"
                           >
-                            {currentStepIdx === steps.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={14} strokeWidth={3} />
+                            {currentStepIdx === steps.length - 1 ? ui.finish : ui.next} <ChevronRight size={14} strokeWidth={3} />
                           </button>
                           
                           <div className="flex w-full gap-1 z-20">
@@ -398,9 +443,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             </div>
           </div>
       )}
-
-      {/* Hidden Audio Element */}
-      <audio ref={audioRef} className="hidden" />
     </div>
   , document.body);
 };
