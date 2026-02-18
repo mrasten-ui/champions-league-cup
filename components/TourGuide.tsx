@@ -5,7 +5,7 @@ import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lu
 import { AvatarDisplay } from './AvatarDisplay';
 import { BROADCAST_TEAMS } from '../constants';
 
-// --- HELPER: Avatar Wrapper (Still used for Mobile & Welcome Screen) ---
+// --- HELPER: Avatar Wrapper ---
 const TourAvatar: React.FC<{ role: 'host' | 'pundit'; lang: LanguageCode; className?: string }> = ({ role, lang, className }) => {
     const team = BROADCAST_TEAMS[lang] || BROADCAST_TEAMS['EN'];
     const person = role === 'host' ? team.host : team.pundit;
@@ -32,8 +32,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   
   // State for the "Frame" position
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
-  
-  // Track if we have performed the "Banner Scroll" for this step yet
   const [hasScrolled, setHasScrolled] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -190,11 +188,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const audioScript = currentStep.audioScript?.[langCode] || currentStep.audioScript?.['en'];
   const isWelcome = currentStep.id === 'welcome';
 
-  // --- DYNAMIC BACKGROUND LOGIC ---
+  // --- DYNAMIC BACKGROUND & TEAM LOGIC ---
   const bannerLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
   
-  // CHANGED: Now points to .jpeg
+  // NOTE: Banners are .jpeg, Teams are .png
   const bannerUrl = `/pundit/banner-${bannerLang}.jpeg`; 
+  const teamUrl = `/pundit/team-${bannerLang}.png`;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
@@ -216,17 +215,23 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                 <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
+                    
+                    {/* DYNAMIC BANNER BACKGROUND */}
                     <div 
                         className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
                         style={{ backgroundImage: `url('${bannerUrl}')` }}
                     >
-                        {/* Fallback also updated to .jpeg */}
+                        {/* Hidden img to handle errors (Fallback to EN if missing) */}
                         <img 
                             src={bannerUrl} 
                             onError={(e) => { 
-                                const parent = e.currentTarget.parentElement;
-                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')"; 
+                                console.log(`TourGuide: FAILED to load banner at ${bannerUrl}. Checking file existence...`);
+                                const target = e.currentTarget;
+                                const parent = target.parentElement;
+                                target.onerror = null; 
+                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')";
                             }}
+                            onLoad={() => console.log(`TourGuide: Successfully loaded banner: ${bannerUrl}`)}
                             className="hidden" 
                             alt="" 
                         />
@@ -299,8 +304,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     <div className="w-48 relative hidden sm:block">
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
-                                src={`/pundit/team-${bannerLang}.png`} 
+                                src={teamUrl} 
                                 onError={(e) => { 
+                                    console.log(`TourGuide: FAILED to load team at ${teamUrl}. Falling back to EN.`);
                                     const target = e.currentTarget;
                                     target.onerror = null; 
                                     target.src = '/pundit/team-en.png'; 
