@@ -5,18 +5,6 @@ import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lu
 import { AvatarDisplay } from './AvatarDisplay';
 import { BROADCAST_TEAMS } from '../constants';
 
-// --- HELPER: Avatar Wrapper ---
-const TourAvatar: React.FC<{ role: 'host' | 'pundit'; lang: LanguageCode; className?: string }> = ({ role, lang, className }) => {
-    const team = BROADCAST_TEAMS[lang] || BROADCAST_TEAMS['EN'];
-    const person = role === 'host' ? team.host : team.pundit;
-    
-    return (
-        <div className={`rounded-full overflow-hidden border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] bg-slate-800 flex items-center justify-center ${className}`}>
-            <AvatarDisplay avatar={person.image} size="lg" className="w-full h-full scale-110" />
-        </div>
-    );
-};
-
 interface TourGuideProps {
   steps: TourStep[];
   isOpen: boolean;
@@ -30,7 +18,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
-  // State for the "Frame" position
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
@@ -39,7 +26,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   
   const currentStep = steps[currentStepIdx];
 
-  // --- 1. RESET ON OPEN ---
+  // --- 1. SETUP ASSETS (Dynamic Paths) ---
+  // Normalize Language Code: 'SCO' -> 'sc', 'NO' -> 'no', etc.
+  const normalizedLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
+  
+  // Images
+  const bannerUrlJpeg = `/pundit/banner-${normalizedLang}.jpeg`;
+  const bannerUrlJpg = `/pundit/banner-${normalizedLang}.jpg`; 
+  const teamUrl = `/pundit/team-${normalizedLang}.png`;
+
+  // --- 2. RESET ON OPEN ---
   useEffect(() => {
       if (isOpen) {
           setCurrentStepIdx(0);
@@ -56,7 +52,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       }
   }, [isOpen]);
 
-  // --- 2. FRAME TRACKING & SCROLL ---
+  // --- 3. FRAME TRACKING & SCROLL ---
   useEffect(() => {
     if (!isOpen || !hasStarted) return;
 
@@ -122,7 +118,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   }, [currentStepIdx, isOpen, hasStarted, currentStep, onStepChange, hasScrolled]); 
 
-  // --- 3. AUDIO PLAYER ---
+  // --- 4. AUDIO PLAYER (FIXED LANGUAGE LOOKUP) ---
   useEffect(() => {
     if (!isOpen) return;
     
@@ -132,8 +128,17 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     }
 
     if (hasStarted && !isMuted) {
-      const src = currentStep.audioFiles[langCode] || currentStep.audioFiles['en'];
+      // FIXED: Use normalizedLang ('no', 'sc') to match tourConfig keys
+      // Fallback 1: Try normalized key (e.g. 'no')
+      // Fallback 2: Try original key (e.g. 'NO')
+      // Fallback 3: Default to 'en'
+      const src = 
+        currentStep.audioFiles[normalizedLang] || 
+        currentStep.audioFiles[langCode] || 
+        currentStep.audioFiles['en'];
+      
       if (src) {
+          console.log(`TourGuide: Playing audio: ${src} for language: ${normalizedLang}`); // Debug log
           const audio = new Audio(src);
           audioRef.current = audio;
           
@@ -147,10 +152,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
               }, 2000); 
           };
 
-          audio.play().catch(e => console.warn("Audio autoplay blocked", e));
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                  if (error.name !== 'AbortError') {
+                      console.error("Audio playback error:", error);
+                  }
+              });
+          }
+      } else {
+          console.warn(`TourGuide: No audio found for lang ${normalizedLang} or en.`);
       }
     }
-  }, [currentStepIdx, hasStarted, isMuted, isOpen, langCode, steps.length, onComplete, currentStep]);
+  }, [currentStepIdx, hasStarted, isMuted, isOpen, langCode, normalizedLang, steps.length, onComplete, currentStep]);
 
   // --- HANDLERS ---
   const handleStart = () => {
@@ -178,22 +192,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const handleReplay = () => {
       if (audioRef.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.play();
+          audioRef.current.play().catch(() => {});
       }
   };
 
   if (!isOpen) return null;
 
+  // Use normalized lang for text content too, just in case
   const content = currentStep.display?.[langCode] || currentStep.display?.['en'];
   const audioScript = currentStep.audioScript?.[langCode] || currentStep.audioScript?.['en'];
   const isWelcome = currentStep.id === 'welcome';
-
-  // --- DYNAMIC BACKGROUND & TEAM LOGIC ---
-  const bannerLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
-  
-  // NOTE: Banners are .jpeg, Teams are .png
-  const bannerUrl = `/pundit/banner-${bannerLang}.jpeg`; 
-  const teamUrl = `/pundit/team-${bannerLang}.png`;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
@@ -214,24 +222,25 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 pointer-events-auto">
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
-                <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden">
+                <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden transition-all duration-500">
                     
-                    {/* DYNAMIC BANNER BACKGROUND */}
+                    {/* BANNER (With Fallback) */}
                     <div 
                         className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
-                        style={{ backgroundImage: `url('${bannerUrl}')` }}
+                        style={{ backgroundImage: `url('${bannerUrlJpeg}')` }}
                     >
-                        {/* Hidden img to handle errors (Fallback to EN if missing) */}
                         <img 
-                            src={bannerUrl} 
+                            src={bannerUrlJpeg} 
                             onError={(e) => { 
-                                console.log(`TourGuide: FAILED to load banner at ${bannerUrl}. Checking file existence...`);
-                                const target = e.currentTarget;
-                                const parent = target.parentElement;
-                                target.onerror = null; 
-                                if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')";
+                                const parent = e.currentTarget.parentElement;
+                                e.currentTarget.onerror = null; 
+                                if (parent) {
+                                    const img = new Image();
+                                    img.src = bannerUrlJpg;
+                                    img.onload = () => { if(parent) parent.style.backgroundImage = `url('${bannerUrlJpg}')`; };
+                                    img.onerror = () => { if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')"; }; 
+                                }
                             }}
-                            onLoad={() => console.log(`TourGuide: Successfully loaded banner: ${bannerUrl}`)}
                             className="hidden" 
                             alt="" 
                         />
@@ -247,13 +256,21 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 </div>
                 
                 <div className="px-6 py-8 text-center space-y-6">
-                    <div className="flex justify-center -mt-16 mb-4">
-                        <TourAvatar role="host" lang={langCode} className="w-20 h-20" />
+                    {/* TEAM AVATAR */}
+                    <div className="flex justify-center -mt-16 mb-4 relative z-20">
+                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-end justify-center">
+                             <img 
+                                src={teamUrl}
+                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                                className="w-full h-full object-contain scale-110"
+                                alt="Team"
+                             />
+                        </div>
                     </div>
 
                     <div className="space-y-3">
                         <p className="text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 inline-block px-3 py-1 rounded-full">
-                            Your Assistant
+                            Your Assistants
                         </p>
                         <p className="text-slate-800 text-lg font-medium leading-relaxed italic">
                             "{audioScript?.host}"
@@ -306,7 +323,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <img 
                                 src={teamUrl} 
                                 onError={(e) => { 
-                                    console.log(`TourGuide: FAILED to load team at ${teamUrl}. Falling back to EN.`);
                                     const target = e.currentTarget;
                                     target.onerror = null; 
                                     target.src = '/pundit/team-en.png'; 
@@ -318,8 +334,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
 
                     {/* Mobile Host Icon */}
-                    <div className="w-16 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10">
-                          <TourAvatar role="host" lang={langCode} className="w-12 h-12" />
+                    <div className="w-20 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10 overflow-hidden relative">
+                          <img 
+                                src={teamUrl}
+                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                                className="w-24 h-24 object-contain mt-4" 
+                                alt="Hosts"
+                          />
                     </div>
 
                     {/* TEXT CONTENT (Middle) */}
