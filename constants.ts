@@ -1,4 +1,4 @@
-import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } from './types';
+import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam, TourStep } from './types';
 
 // HOST CONFIGURATION - UPDATED WITH THE WORKING KEY
 export const HOST_KEYS = [
@@ -694,3 +694,31 @@ rounds.forEach((round, idx) => {
 });
 
 export const MOCK_PREDICTIONS: Prediction[] = [];
+
+// --- THE TOUR SCRIPT ---
+// Added this at the bottom so the component knows what text to pull!
+export const TOUR_STEPS: TourStep[] = [
+  {
+    id: 'welcome',
+    targetId: 'welcome', // Target doesn't matter for the first modal
+    audioFiles: {
+      en: '/audio/tour-intro-en.mp3',
+      us: '/audio/tour-intro-us.mp3',
+      sc: '/audio/tour-intro-sc.mp3',
+      no: '/audio/tour-intro-no.mp3'
+    },
+    audioScript: {
+      en: { host: "Good evening and welcome to The Rasten Cup coverage. I'm Sarah, and joining me is Premier League veteran, Gaz." },
+      us: { host: "Good evening and welcome to The Rasten Cup coverage. I'm Jessica, and joining me is NFL veteran, Chuck." },
+      sc: { host: "Guid evenin' an' welcome tae The Rasten Cup coverage. I'm Shona, an' joinin' me is lower league veteran, Rab." },
+      no: { host: "God kveld og velkommen til Rasten Cup-dekningen. Jeg er Silje, og med meg har jeg fotballfilosofen, Nils Arne." }
+    },
+    display: {
+      en: { title: "Welcome", lines: ["Get ready for the tournament"] },
+      us: { title: "Welcome", lines: ["Get ready for the tournament"] },
+      sc: { title: "Welcome", lines: ["Get ready for the tournament"] },
+      no: { title: "Velkommen", lines: ["Gjør deg klar for turneringen"] }
+    }
+  },
+  // You can add your actual other steps (like pointing to the match cards) below this!
+];

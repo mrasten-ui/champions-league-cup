@@ -16,7 +16,7 @@ const UI_STRINGS = {
   EN: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
   US: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
   NO: { title: 'Omvisning', subtitle: 'Før-sesong Brief', assistant: 'Din Assistent', start: 'Start Tour (Med Lyd)', skip: 'Hopp over, jeg kan spillet', next: 'Neste', finish: 'Ferdig' },
-  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I ken the game', next: 'Next', finish: 'Finish' }, // 'Ken' = Know in Scots
+  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I ken the game', next: 'Next', finish: 'Finish' }, 
 };
 
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
@@ -33,14 +33,18 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const currentStep = steps[currentStepIdx];
   const ui = UI_STRINGS[langCode] || UI_STRINGS['EN'];
 
-  // --- 1. SETUP ASSETS ---
-  const normalizedLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
+  // --- 1. SMART MAPPING ---
+  // A: For Image Files (en, us, no, sc)
+  const assetLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
   
+  // B: For tourConfig.ts lookups (en, en-US, no, sco)
+  const configLang = langCode === 'US' ? 'en-US' : langCode === 'SCO' ? 'sco' : langCode.toLowerCase();
+
   // Images
-  const bannerUrlJpeg = `/pundit/banner-${normalizedLang}.jpeg`;
-  const bannerUrlJpg = `/pundit/banner-${normalizedLang}.jpg`; 
-  const teamUrl = `/pundit/team-${normalizedLang}.png`;
-  const hostUrl = `/pundit/host-${normalizedLang}.png`;
+  const bannerUrlJpeg = `/pundit/banner-${assetLang}.jpeg`;
+  const bannerUrlJpg = `/pundit/banner-${assetLang}.jpg`; 
+  const teamUrl = `/pundit/team-${assetLang}.png`;
+  const hostUrl = `/pundit/host-${assetLang}.png`;
 
   // --- 2. WAKE LOCK (PREVENT SCREEN SLEEP) ---
   useEffect(() => {
@@ -50,7 +54,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       if ('wakeLock' in navigator && isOpen) {
         try {
           wakeLock = await (navigator as any).wakeLock.request('screen');
-          console.log('Screen Wake Lock acquired');
         } catch (err) {
           console.warn('Wake Lock error:', err);
         }
@@ -88,21 +91,17 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         onStepChange(currentStep.id);
     }
 
-    // Scroll Logic: Run ONCE when step ID changes
-    // We use setTimeout to allow the DOM to render the new tab content first
     const scrollTimer = setTimeout(() => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         if (targetIds.length > 0) {
             const el = document.getElementById(targetIds[0]);
             if (el) {
-                // block: 'center' is CRITICAL for mobile. 
-                // It forces the element to the middle of the viewport, avoiding the header/footer cut-off.
+                // FIXED: Centers perfectly on mobile so it doesn't get hidden behind headers/footers
                 el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             }
         }
     }, 100);
 
-    // Frame Update Loop (Keeps the yellow box stuck to the element)
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
@@ -146,27 +145,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         clearTimeout(scrollTimer);
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
-
-  // DEPENDENCY FIX: Only re-run if step ID changes. 
-  // 'steps' or 'currentStep' objects change on every render, causing loops. 'currentStep.id' is stable.
   }, [currentStep.id, isOpen, hasStarted]); 
 
-  // --- 5. AUDIO PLAYER (FIXED RESTART ISSUE) ---
-  const getAudioSource = () => {
-      const files = currentStep.audioFiles;
-      if (!files) return null;
-      if (files[normalizedLang]) return files[normalizedLang];
-      if (files[langCode]) return files[langCode];
-      if (files[langCode.toLowerCase()]) return files[langCode.toLowerCase()];
-      if (langCode === 'SCO' && files['sco']) return files['sco'];
-      if (langCode === 'US' && files['us']) return files['us'];
-      return files['en'];
-  };
-
+  // --- 5. AUDIO PLAYER (FIXED RESTART & MAPPING) ---
   useEffect(() => {
     if (!isOpen) return;
     
-    // Stop audio if tour closed or muted
     if (!hasStarted || isMuted) {
         if (audioRef.current) {
             audioRef.current.pause();
@@ -174,14 +158,15 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         return;
     }
 
-    const src = getAudioSource();
+    // Maps directly to your tourConfig.ts keys (en-US, sco, no, en)
+    const src = currentStep.audioFiles[configLang as any] || currentStep.audioFiles['en'];
+    
     if (src) {
-        // PREVENT RESTART: Check if we are already playing this exact URL
+        // Prevent audio from restarting if it's already playing the correct file
         if (audioRef.current && !audioRef.current.paused && audioRef.current.src.endsWith(src)) {
-            return; // Already playing correctly, do nothing.
+            return; 
         }
 
-        // If different, load new audio
         if (audioRef.current) {
              audioRef.current.pause();
              audioRef.current.currentTime = 0;
@@ -209,7 +194,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             });
         }
     }
-  }, [currentStep.id, hasStarted, isMuted, isOpen, langCode]); // Depend on ID, not object
+  }, [currentStep.id, hasStarted, isMuted, isOpen, configLang]); 
 
   // --- HANDLERS ---
   const handleStart = () => {
@@ -243,8 +228,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   if (!isOpen) return null;
 
-  const content = currentStep.display?.[langCode] || currentStep.display?.['en'];
-  const audioScript = currentStep.audioScript?.[langCode] || currentStep.audioScript?.['en'];
+  // DIRECT MAPPING: Pulls exact data from tourConfig.ts using the mapped 'configLang'
+  const content = currentStep.display?.[configLang as any] || currentStep.display?.['en'];
+  const audioScript = currentStep.audioScript?.[configLang as any] || currentStep.audioScript?.['en'];
+    
   const isWelcome = currentStep.id === 'welcome';
 
   return createPortal(
@@ -268,7 +255,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                 <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden transition-all duration-500">
                     
-                    {/* BANNER (With Fallback) */}
                     <div 
                         className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
                         style={{ backgroundImage: `url('${bannerUrlJpeg}')` }}
@@ -292,7 +278,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f2545] to-transparent"></div>
                     <div className="relative z-10 text-center">
-                        {/* LOCALIZED INTRO TEXT */}
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
                             {ui.title}
                         </h2>
@@ -301,7 +286,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 </div>
                 
                 <div className="px-6 py-8 text-center space-y-6">
-                    {/* HOST AVATAR (Welcome Screen Only) */}
+                    {/* HOST AVATAR */}
                     <div className="flex justify-center -mt-16 mb-4 relative z-20">
                         <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
                              <img 
@@ -362,7 +347,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 
                 <div className="max-w-5xl mx-auto flex h-28 relative">
                     
-                    {/* LEFT: THE STUDIO DESK (Unified Team Image) */}
                     <div className="w-48 relative hidden sm:block">
                         <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
                             <img 
@@ -378,7 +362,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
                     </div>
 
-                    {/* Mobile Host Icon */}
                     <div className="w-20 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10 overflow-hidden relative">
                           <img 
                                 src={teamUrl}
@@ -388,7 +371,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           />
                     </div>
 
-                    {/* TEXT CONTENT (Middle) */}
                     <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-56">
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
@@ -421,7 +403,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
                     </div>
 
-                    {/* CONTROLS (Right) */}
                     <div className="w-32 bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-2 gap-2 relative">
                           <button 
                             onClick={handleNext} 
