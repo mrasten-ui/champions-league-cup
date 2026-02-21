@@ -26,7 +26,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
   
-  // Audio & Frame Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number | null>(null); 
   
@@ -34,10 +33,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const ui = UI_STRINGS[langCode] || UI_STRINGS['EN'];
 
   // --- 1. SMART MAPPING ---
-  // A: For Image Files (en, us, no, sc)
   const assetLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
-  
-  // B: For tourConfig.ts lookups (en, en-US, no, sco)
   const configLang = langCode === 'US' ? 'en-US' : langCode === 'SCO' ? 'sco' : langCode.toLowerCase();
 
   // Images
@@ -46,25 +42,17 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const teamUrl = `/pundit/team-${assetLang}.png`;
   const hostUrl = `/pundit/host-${assetLang}.png`;
 
-  // --- 2. WAKE LOCK (PREVENT SCREEN SLEEP) ---
+  // --- 2. WAKE LOCK ---
   useEffect(() => {
     let wakeLock: any = null;
-
     const requestWakeLock = async () => {
       if ('wakeLock' in navigator && isOpen) {
-        try {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
-        } catch (err) {
-          console.warn('Wake Lock error:', err);
-        }
+        try { wakeLock = await (navigator as any).wakeLock.request('screen'); } 
+        catch (err) { console.warn('Wake Lock error:', err); }
       }
     };
-
     if (isOpen) requestWakeLock();
-
-    return () => {
-      if (wakeLock) wakeLock.release();
-    };
+    return () => { if (wakeLock) wakeLock.release(); };
   }, [isOpen]);
 
   // --- 3. RESET ON OPEN ---
@@ -96,7 +84,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         if (targetIds.length > 0) {
             const el = document.getElementById(targetIds[0]);
             if (el) {
-                // FIXED: Centers perfectly on mobile so it doesn't get hidden behind headers/footers
                 el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             }
         }
@@ -105,10 +92,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
         
-        let minTop = Infinity;
-        let minLeft = Infinity;
-        let maxBottom = -Infinity;
-        let maxRight = -Infinity;
+        let minTop = Infinity; let minLeft = Infinity;
+        let maxBottom = -Infinity; let maxRight = -Infinity;
         let foundAny = false;
 
         targetIds.forEach(id => {
@@ -147,7 +132,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     };
   }, [currentStep.id, isOpen, hasStarted, onStepChange]); 
 
-  // --- 5. AUDIO PLAYER (FIXED RESTART & MAPPING) ---
+  // --- 5. AUDIO PLAYER ---
   useEffect(() => {
     if (!isOpen) return;
     
@@ -158,11 +143,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         return;
     }
 
-    // Maps directly to your tourConfig.ts keys (en-US, sco, no, en)
     const src = currentStep.audioFiles[configLang as any] || currentStep.audioFiles['en'];
     
     if (src) {
-        // Prevent audio from restarting if it's already playing the correct file
         if (audioRef.current && !audioRef.current.paused && audioRef.current.src.endsWith(src)) {
             return; 
         }
@@ -200,8 +183,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const handleStart = () => {
       setHasStarted(true);
       setIsMuted(false);
-      // FIXED: We DO NOT increment the step here anymore. 
-      // It stays on Step 0 so the intro audio can play!
   };
 
   const handleNext = () => {
@@ -213,7 +194,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   };
 
   const handlePrev = () => {
-      if (currentStepIdx > 1) { // Prevents going back to the Welcome Modal
+      if (currentStepIdx > 1) { 
           setCurrentStepIdx(prev => prev - 1);
       }
   };
@@ -229,11 +210,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
   if (!isOpen) return null;
 
-  // DIRECT MAPPING: Pulls exact data from tourConfig.ts using the mapped 'configLang'
   const content = currentStep.display?.[configLang as any] || currentStep.display?.['en'];
   const audioScript = currentStep.audioScript?.[configLang as any] || currentStep.audioScript?.['en'];
     
-  // FIXED: Hide the Welcome modal if the tour has started, so we can see the TV footer during the intro!
   const isWelcome = currentStep.id === 'welcome' && !hasStarted;
 
   return createPortal(
@@ -288,7 +267,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 </div>
                 
                 <div className="px-6 py-8 text-center space-y-6">
-                    {/* HOST AVATAR */}
                     <div className="flex justify-center -mt-16 mb-4 relative z-20">
                         <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
                              <img 
@@ -347,10 +325,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             
             <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500">
                 
-                <div className="max-w-5xl mx-auto flex h-28 relative">
+                <div className="max-w-5xl mx-auto flex h-28 sm:h-32 relative">
                     
-                    <div className="w-48 relative hidden sm:block">
-                        <div className="absolute bottom-0 left-0 w-64 h-52 z-50 flex items-end transition-transform hover:scale-105 duration-300 origin-bottom-left">
+                    {/* DESKTOP Image Container: 40% Bigger, bursts through the top border */}
+                    <div className="hidden sm:block w-[280px] shrink-0 relative">
+                        <div className="absolute bottom-0 left-4 w-[360px] h-[290px] z-[100] flex items-end transition-transform hover:scale-[1.02] duration-300 origin-bottom-left pointer-events-none">
                             <img 
                                 src={teamUrl} 
                                 onError={(e) => { 
@@ -359,21 +338,25 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     target.src = '/pundit/team-en.png'; 
                                 }}
                                 alt="Studio Team" 
-                                className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
+                                className="w-full h-full object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
                             />
                         </div>
                     </div>
 
-                    <div className="w-20 flex items-center justify-center sm:hidden bg-slate-800 border-r border-white/10 overflow-hidden relative">
-                          <img 
-                                src={teamUrl}
-                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                                className="w-24 h-24 object-contain mt-4" 
-                                alt="Hosts"
-                          />
+                    {/* MOBILE Image Container: Overlaps yellow line, much larger */}
+                    <div className="sm:hidden w-[120px] shrink-0 relative">
+                          <div className="absolute bottom-0 -left-2 w-[170px] h-[190px] z-[100] flex items-end pointer-events-none origin-bottom-left">
+                              <img 
+                                    src={teamUrl}
+                                    onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                                    className="w-full h-full object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]" 
+                                    alt="Hosts"
+                              />
+                          </div>
                     </div>
 
-                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0 pl-4 sm:pl-56">
+                    {/* TEXT CONTENT (Middle) */}
+                    <div className="flex-1 py-3 pr-2 pl-2 sm:pl-4 sm:py-4 flex flex-col justify-center min-w-0 z-[101] relative">
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
                                 <h3 className="text-yellow-400 text-sm font-black uppercase tracking-[0.2em] leading-none mb-1">
@@ -405,7 +388,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
                     </div>
 
-                    <div className="w-32 bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-2 gap-2 relative">
+                    {/* CONTROLS (Right) */}
+                    <div className="w-28 sm:w-32 bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-2 gap-2 relative z-[101]">
                           <button 
                             onClick={handleNext} 
                             className="w-full py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all z-20"
@@ -414,7 +398,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </button>
                           
                           <div className="flex w-full gap-1 z-20">
-                            {/* DISABLED GOING BACK TO WELCOME SCREEN */}
                             <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`flex-1 py-1.5 flex justify-center rounded-md transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'}`}>
                                 <ChevronLeft size={16} strokeWidth={3} />
                             </button>
