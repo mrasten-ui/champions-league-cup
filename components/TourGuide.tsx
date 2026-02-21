@@ -145,7 +145,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         clearTimeout(scrollTimer);
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
-  }, [currentStep.id, isOpen, hasStarted]); 
+  }, [currentStep.id, isOpen, hasStarted, onStepChange]); 
 
   // --- 5. AUDIO PLAYER (FIXED RESTART & MAPPING) ---
   useEffect(() => {
@@ -194,13 +194,14 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             });
         }
     }
-  }, [currentStep.id, hasStarted, isMuted, isOpen, configLang]); 
+  }, [currentStep.id, hasStarted, isMuted, isOpen, configLang, currentStepIdx, steps.length, onComplete]); 
 
   // --- HANDLERS ---
   const handleStart = () => {
       setHasStarted(true);
       setIsMuted(false);
-      setCurrentStepIdx(1); 
+      // FIXED: We DO NOT increment the step here anymore. 
+      // It stays on Step 0 so the intro audio can play!
   };
 
   const handleNext = () => {
@@ -212,7 +213,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   };
 
   const handlePrev = () => {
-      if (currentStepIdx > 1) {
+      if (currentStepIdx > 1) { // Prevents going back to the Welcome Modal
           setCurrentStepIdx(prev => prev - 1);
       }
   };
@@ -232,7 +233,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const content = currentStep.display?.[configLang as any] || currentStep.display?.['en'];
   const audioScript = currentStep.audioScript?.[configLang as any] || currentStep.audioScript?.['en'];
     
-  const isWelcome = currentStep.id === 'welcome';
+  // FIXED: Hide the Welcome modal if the tour has started, so we can see the TV footer during the intro!
+  const isWelcome = currentStep.id === 'welcome' && !hasStarted;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
@@ -394,7 +396,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
 
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
-                            {content?.lines?.map((line, i) => (
+                            {content?.lines?.map((line: string, i: number) => (
                                 <div key={i} className="flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></span>
                                     <span className="text-white text-xs sm:text-sm font-bold tracking-wide">{line}</span>
@@ -412,6 +414,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </button>
                           
                           <div className="flex w-full gap-1 z-20">
+                            {/* DISABLED GOING BACK TO WELCOME SCREEN */}
                             <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`flex-1 py-1.5 flex justify-center rounded-md transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'}`}>
                                 <ChevronLeft size={16} strokeWidth={3} />
                             </button>
