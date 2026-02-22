@@ -13,10 +13,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       sco: '/audio/tour_pre_sco_01.mp3'
     },
     display: {
-      en: { title: "ON AIR: SKY STUDIO", lines: ["Broadcast Live", "Turn on Sound 🎧"] },
-      'en-US': { title: "ON AIR: ESPN RADIO", lines: ["Hot Takes Live", "Volume UP 🎧"] },
-      no: { title: "DIREKTE: TV2 STUDIO", lines: ["Vi er på lufta", "Skru på lyd 🎧"] },
-      sco: { title: "ON AIR: SPORTSCENE", lines: ["Live fae Glasgow", "Sound on 🎧"] },
+      en: { title: "Welcome", lines: ["Welcome to the pre-season briefing.", "Follow this tour to learn how to play."] },
+      'en-US': { title: "Welcome", lines: ["Welcome to the pre-season briefing.", "Follow this tour to learn how to play."] },
+      sco: { title: "Welcome", lines: ["Welcome to the pre-season briefing.", "Follow this tour to learn how to play."] },
+      no: { title: "Velkommen", lines: ["Velkommen til før-sesong briefingen.", "Følg denne omvisningen for å lære spillet."] }
     },
     audioScript: {
       en: { 
@@ -49,10 +49,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_02.mp3', sco: '/audio/tour_pre_sco_02.mp3' 
     },
     display: {
-      en: { title: "PREDICTION TIME", lines: ["Predict the score", "Don't sit on the fence"] },
-      'en-US': { title: "PICK 'EM", lines: ["Pick a Winner", "No Ties Allowed!"] },
-      no: { title: "TIPP RESULTATET", lines: ["Hjemme vs Borte", "Bruk spion-knappen"] },
-      sco: { title: "PICK THE SCORE", lines: ["Home and Away", "Watch the 0-0"] },
+      en: { title: "Predictions", lines: ["Use the arrows to predict the exact final score.", "Click the Eye icon to peek at a rival's picks."] },
+      'en-US': { title: "Predictions", lines: ["Use the arrows to predict the exact final score.", "Click the Eye icon to peek at a rival's picks."] },
+      sco: { title: "Predictions", lines: ["Use the arrows to predict the exact final score.", "Click the Eye icon to peek at a rival's picks."] },
+      no: { title: "Tips", lines: ["Bruk pilene for å tippe nøyaktig sluttresultat.", "Klikk på Øye-ikonet for å se rivalens tips."] }
     },
     audioScript: {
       en: { 
@@ -85,10 +85,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_03.mp3', sco: '/audio/tour_pre_sco_03.mp3' 
     },
     display: {
-      en: { title: "12 GROUPS", lines: ["Group A to L", "Swipe to navigate"] },
-      'en-US': { title: "THE BRACKET", lines: ["12 Groups total", "Don't be lazy"] },
-      no: { title: "12 GRUPPER", lines: ["Gruppe A til L", "Sveip videre"] },
-      sco: { title: "THE GROUPS", lines: ["12 of them", "Keep scrolling"] },
+      en: { title: "Groups", lines: ["There are 12 groups in total.", "Swipe or click through all the tabs to complete your predictions."] },
+      'en-US': { title: "Groups", lines: ["There are 12 groups in total.", "Swipe or click through all the tabs to complete your predictions."] },
+      sco: { title: "Groups", lines: ["There are 12 groups in total.", "Swipe or click through all the tabs to complete your predictions."] },
+      no: { title: "Grupper", lines: ["Det er 12 grupper totalt.", "Sveip eller klikk deg gjennom alle fanene for å fullføre tipsene dine."] }
     },
     audioScript: {
       en: { 
@@ -121,10 +121,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_04.mp3', sco: '/audio/tour_pre_sco_04.mp3' 
     },
     display: {
-      en: { title: "MAGIC WAND", lines: ["Auto-fill predictions", "Based on Data"] },
-      'en-US': { title: "CHEAT CODE", lines: ["Auto-Pick", "For lazy people"] },
-      no: { title: "TRYLLESTAV", lines: ["Fyll ut automatisk", "Basert på Godfoten"] },
-      sco: { title: "MAGIC WAND", lines: ["Auto-fill", "Pure laziness"] },
+      en: { title: "Magic Wand", lines: ["Short on time?", "Use the Magic Wand to automatically fill remaining group scores based on stats."] },
+      'en-US': { title: "Auto-Pick", lines: ["Short on time?", "Use the Magic Wand to automatically fill remaining group scores based on stats."] },
+      sco: { title: "Magic Wand", lines: ["Short on time?", "Use the Magic Wand to automatically fill remaining group scores based on stats."] },
+      no: { title: "Tryllestav", lines: ["Dårlig tid?", "Bruk Tryllestaven for å automatisk fylle inn resten av resultatene basert på statistikk."] }
     },
     audioScript: {
       en: { 
@@ -157,10 +157,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_05.mp3', sco: '/audio/tour_pre_sco_05.mp3' 
     },
     display: {
-      en: { title: "KNOCKOUTS", lines: ["Pick WINNERS", "No Scores Needed"] },
-      'en-US': { title: "THE PLAYOFFS", lines: ["Who advances?", "Pick a Champ"] },
-      no: { title: "SLUTTSPILLET", lines: ["Velg vinner", "Kår en mester"] },
-      sco: { title: "THE BIG ONE", lines: ["Who goes through?", "Pick a winner"] },
+      en: { title: "Knockouts", lines: ["In the knockout stage, no exact scores are needed.", "Simply tap the team you predict will advance to the next round."] },
+      'en-US': { title: "Playoffs", lines: ["In the playoff stage, no exact scores are needed.", "Simply tap the team you predict will advance to the next round."] },
+      sco: { title: "Knockouts", lines: ["In the knockout stage, no exact scores are needed.", "Simply tap the team you predict will advance to the next round."] },
+      no: { title: "Sluttspill", lines: ["I sluttspillet trenger du ikke tippe resultat.", "Bare trykk på det laget du tror går videre til neste runde."] }
     },
     audioScript: {
       en: { 
@@ -193,10 +193,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3' 
     },
     display: {
-      en: { title: "GOOD LUCK", lines: ["Replay anytime", "Game On!"] },
-      'en-US': { title: "GAME TIME", lines: ["Replay in Menu", "Let's Go!"] },
-      no: { title: "LYKKE TIL", lines: ["Se igjen i menyen", "Heia!"] },
-      sco: { title: "GOOD LUCK", lines: ["Replay in menu", "Mon then!"] },
+      en: { title: "Ready", lines: ["The briefing is complete.", "You can replay this tour anytime from your Profile menu."] },
+      'en-US': { title: "Ready", lines: ["The briefing is complete.", "You can replay this tour anytime from your Profile menu."] },
+      sco: { title: "Ready", lines: ["The briefing is complete.", "You can replay this tour anytime from your Profile menu."] },
+      no: { title: "Klar", lines: ["Briefingen er ferdig.", "Du kan se denne omvisningen på nytt når som helst fra Profil-menyen."] }
     },
     audioScript: {
       en: { 
