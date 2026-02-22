@@ -323,41 +323,41 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       {!isWelcome && (
           <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto">
             
-            {/* THE CHARACTER LAYER: Floats entirely ABOVE the footer box and yellow line */}
-            <div className="absolute bottom-0 left-0 right-0 max-w-5xl mx-auto h-0 pointer-events-none z-[105]">
-                {/* Desktop Image */}
-                <div className="hidden sm:flex absolute bottom-0 left-4 w-[360px]">
-                    <img 
-                        src={teamUrl} 
-                        onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                        alt="Studio Team" 
-                        className="w-full h-auto max-h-[320px] object-contain object-bottom -mb-1 drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
-                    />
-                </div>
-
-                {/* Mobile Image */}
-                <div className="sm:hidden flex absolute bottom-0 -left-4 w-[160px]">
-                    <img 
-                        src={teamUrl}
-                        onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                        className="w-full h-auto max-h-[220px] object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]" 
-                        alt="Hosts"
-                    />
-                </div>
-            </div>
-
-            {/* THE BACKGROUND BOX LAYER */}
-            <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 relative z-[100]">
+            <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 relative">
                 
-                <div className="max-w-5xl mx-auto flex h-32 sm:h-36 relative">
+                {/* Max-width wrapper prevents ultra-wides from stretching too far, but acts as the 'screen edge' */}
+                <div className="max-w-[1600px] mx-auto w-full relative flex h-32 sm:h-36">
                     
-                    {/* Invisible Spacer to keep text from hiding behind Desktop Image */}
-                    <div className="hidden sm:block w-[280px] shrink-0"></div>
+                    {/* --- 3D POP-OUT IMAGES --- */}
+                    
+                    {/* Desktop: Anchored to far left, huge fixed height to burst out */}
+                    <div className="hidden sm:block absolute bottom-0 left-2 lg:left-8 z-[105] pointer-events-none origin-bottom-left transition-transform hover:scale-[1.02] duration-300">
+                        <img 
+                            src={teamUrl} 
+                            onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                            alt="Studio Team" 
+                            className="h-[360px] xl:h-[400px] w-auto max-w-[450px] object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+                        />
+                    </div>
 
-                    {/* Invisible Spacer to keep text from hiding behind Mobile Image */}
-                    <div className="sm:hidden w-[110px] shrink-0"></div>
+                    {/* Mobile: Anchored to far left. Forced 250px height absolutely guarantees it clears the 128px footer! */}
+                    <div className="sm:hidden absolute bottom-0 -left-6 z-[105] pointer-events-none origin-bottom-left">
+                        <img 
+                            src={teamUrl}
+                            onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                            className="h-[250px] w-auto max-w-[200px] object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]" 
+                            alt="Hosts"
+                        />
+                    </div>
 
-                    {/* TEXT CONTENT (Middle) - Cleaned up to be highly readable */}
+                    {/* --- SPACERS --- */}
+                    {/* Keeps the text container from overlapping the absolute-positioned images */}
+                    <div className="hidden xl:block w-[400px] shrink-0"></div>
+                    <div className="hidden lg:block xl:hidden w-[350px] shrink-0"></div>
+                    <div className="hidden sm:block lg:hidden w-[280px] shrink-0"></div>
+                    <div className="sm:hidden w-[130px] shrink-0"></div>
+
+                    {/* --- TEXT CONTENT --- */}
                     <div className="flex-1 py-3 pr-2 pl-0 sm:py-4 flex flex-col justify-center min-w-0 z-[101]">
                         <div className="flex justify-between items-start mb-2">
                             <div className="flex flex-col">
@@ -391,7 +391,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
                     </div>
 
-                    {/* CONTROLS (Right) */}
+                    {/* --- CONTROLS (Right Edge) --- */}
                     <div className="w-24 sm:w-32 bg-slate-900/80 border-l border-white/10 flex flex-col items-center justify-center p-2 sm:p-3 gap-2 relative z-[101]">
                           <button 
                             onClick={handleNext} 
@@ -401,18 +401,4 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </button>
                           
                           <div className="flex w-full gap-1">
-                            <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`flex-1 py-1.5 flex justify-center rounded-md transition-colors ${currentStepIdx <= 1 ? 'text-white/10 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                                <ChevronLeft size={14} strokeWidth={3} />
-                            </button>
-                            <button onClick={handleSkip} className="flex-1 py-1.5 flex justify-center text-[10px] sm:text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest rounded-md hover:bg-white/10 transition-colors">
-                                Skip
-                            </button>
-                          </div>
-                    </div>
-                </div>
-            </div>
-          </div>
-      )}
-    </div>
-  , document.body);
-};
+                            <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={`flex-1 py-1.5
