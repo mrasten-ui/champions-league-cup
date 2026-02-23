@@ -36,7 +36,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const assetLang = langCode === 'SCO' ? 'sc' : langCode.toLowerCase();
   const configLang = langCode === 'US' ? 'en-US' : langCode === 'SCO' ? 'sco' : langCode.toLowerCase();
 
-  // Images (Using standard string concatenation for Vercel TS build)
+  // Images (String concatenation prevents Vercel build errors)
   const bannerUrlJpeg = "/pundit/banner-" + assetLang + ".jpeg";
   const bannerUrlJpg = "/pundit/banner-" + assetLang + ".jpg"; 
   const teamUrl = "/pundit/team-" + assetLang + ".png";
@@ -321,90 +321,87 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
       {/* 3. BROADCAST FOOTER (TV UI) */}
       {!isWelcome && (
-          <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center">
+          <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center px-0 sm:px-4">
             
-            {/* --- THE CHARACTER LAYER: Scaled massively so it forces the images to burst over the yellow line --- */}
-            <div className="absolute bottom-0 left-0 sm:left-4 z-[105] pointer-events-none flex items-end">
-                
-                {/* Desktop Image: Scaled up to 1.2x its size, originating from bottom-left corner */}
-                <img 
-                    src={teamUrl} 
-                    onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                    alt="Studio Team" 
-                    className="hidden sm:block w-[300px] lg:w-[360px] h-auto object-contain object-bottom scale-[1.2] origin-bottom-left drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
-                />
+            <div className="w-full max-w-[1200px] relative">
+              
+              {/* THE CHARACTER LAYER: Anchored to the bottom-left of the max-width container */}
+              <div className="absolute bottom-0 left-0 z-[105] pointer-events-none flex items-end">
+                  {/* Desktop Image */}
+                  <img 
+                      src={teamUrl} 
+                      onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                      alt="Studio Team" 
+                      className="hidden sm:block w-[280px] lg:w-[320px] h-auto object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+                  />
+                  {/* Mobile Image */}
+                  <img 
+                      src={teamUrl}
+                      onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                      className="sm:hidden block w-[130px] h-auto object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)] -ml-2" 
+                      alt="Hosts"
+                  />
+              </div>
 
-                {/* Mobile Image: Scaled up 1.25x (125%). This guarantees they grow TALLER than the footer! */}
-                <img 
-                    src={teamUrl}
-                    onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                    className="sm:hidden block w-[170px] h-auto object-contain object-bottom -ml-2 scale-125 origin-bottom-left drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]" 
-                    alt="Hosts"
-                />
-            </div>
-
-            {/* --- THE BACKGROUND BOX LAYER (Z-100) --- */}
-            <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 relative z-[100]">
-                
-                {/* Max-width container only controls the text and buttons, NOT the image */}
-                <div className="w-full flex h-32 sm:h-40 relative max-w-[1400px] mx-auto">
-                    
-                    {/* --- INVISIBLE SPACERS: Force the text to never overlap the floating character image --- */}
-                    <div className="shrink-0 w-[140px] sm:w-[360px] lg:w-[440px]"></div>
-
-                    {/* --- TEXT CONTENT (Middle) --- */}
-                    <div className="flex-1 py-2 sm:py-5 pr-2 sm:pr-8 flex flex-col justify-center min-w-0 z-[101]">
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="flex flex-col">
-                                <h3 className="text-yellow-400 text-sm sm:text-base font-black uppercase tracking-[0.2em] leading-none mb-1">
-                                    {content?.title}
-                                </h3>
-                                <div className="h-0.5 w-12 bg-blue-500 rounded-full"></div>
-                            </div>
-                            
-                            <div className="flex gap-1 sm:gap-3">
-                                <button onClick={handleReplay} className="text-slate-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-white/10 rounded-full" title="Replay">
-                                    <RotateCcw size={16} />
-                                </button>
-                                <button 
-                                    onClick={() => setIsMuted(!isMuted)} 
-                                    className="text-slate-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-white/10 rounded-full"
-                                >
-                                    {isMuted ? <VolumeX size={16}/> : <Volume2 size={16}/>}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Factual Bullet Points */}
-                        <div className="flex flex-col gap-1 sm:gap-2 mt-1 overflow-y-auto pr-2" style={{ maxHeight: '70px' }}>
-                            {content?.lines?.map((line: string, i: number) => (
-                                <div key={i} className="flex items-start gap-2">
-                                    <span className="w-1.5 h-1.5 mt-1.5 bg-yellow-400 rounded-sm shrink-0"></span>
-                                    <span className="text-white text-[12px] sm:text-[15px] font-medium leading-snug">{line}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* --- CONTROLS (Right) --- */}
-                    <div className="w-24 sm:w-36 bg-slate-900/80 border-l border-white/10 flex flex-col items-center justify-center p-2 sm:p-4 gap-2 sm:gap-3 relative z-[101]">
-                          <button 
-                            onClick={handleNext} 
-                            className="w-full py-2 sm:py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-[10px] sm:text-sm font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all"
-                          >
-                            {currentStepIdx === steps.length - 1 ? ui.finish : ui.next} <ChevronRight size={14} strokeWidth={3} />
-                          </button>
-                          
-                          <div className="flex w-full gap-1 sm:gap-2">
-                            <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={"flex-1 py-1.5 sm:py-2 flex justify-center rounded-md transition-colors " + (currentStepIdx <= 1 ? "text-white/10 cursor-not-allowed" : "bg-white/10 text-white hover:bg-white/20")}>
-                                <ChevronLeft size={14} strokeWidth={3} />
-                            </button>
-                            <button onClick={handleSkip} className="flex-1 py-1.5 sm:py-2 flex justify-center text-[9px] sm:text-[11px] font-bold text-slate-400 hover:text-white uppercase tracking-widest rounded-md hover:bg-white/10 transition-colors">
-                                Skip
-                            </button>
+              {/* THE BACKGROUND BOX LAYER (Z-100) */}
+              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex h-32 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
+                  
+                  {/* TEXT CONTENT: Padding-left acts as a physical barrier preventing text from going behind the images */}
+                  <div className="flex-1 py-3 pr-2 pl-[135px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
+                      
+                      {/* Title Row */}
+                      <div className="flex justify-between items-start mb-2">
+                          <div className="flex flex-col">
+                              <h3 className="text-yellow-400 text-[13px] sm:text-base font-black uppercase tracking-[0.2em] leading-none mb-1">
+                                  {content?.title}
+                              </h3>
+                              <div className="h-0.5 w-12 bg-blue-500 rounded-full"></div>
                           </div>
-                    </div>
-                </div>
+                          
+                          <div className="flex gap-1 sm:gap-2">
+                              <button onClick={handleReplay} className="text-slate-400 hover:text-white transition-colors p-1 sm:p-2 hover:bg-white/10 rounded-full" title="Replay">
+                                  <RotateCcw size={16} />
+                              </button>
+                              <button 
+                                  onClick={() => setIsMuted(!isMuted)} 
+                                  className="text-slate-400 hover:text-white transition-colors p-1 sm:p-2 hover:bg-white/10 rounded-full"
+                              >
+                                  {isMuted ? <VolumeX size={16}/> : <Volume2 size={16}/>}
+                              </button>
+                          </div>
+                      </div>
+
+                      {/* Factual Bullet Points */}
+                      <div className="flex flex-col gap-1 sm:gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
+                          {content?.lines?.map((line: string, i: number) => (
+                              <div key={i} className="flex items-start gap-2">
+                                  <span className="w-1.5 h-1.5 mt-1.5 bg-yellow-400 rounded-sm shrink-0"></span>
+                                  <span className="text-white text-[12px] sm:text-sm font-medium leading-snug">{line}</span>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* CONTROLS (Right Edge) */}
+                  <div className="w-20 sm:w-32 bg-slate-900/80 border-l border-white/10 flex flex-col items-center justify-center p-2 sm:p-3 gap-2 relative z-[101] rounded-tr-none sm:rounded-tr-2xl">
+                        <button 
+                          onClick={handleNext} 
+                          className="w-full py-2 sm:py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-[10px] sm:text-sm font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-yellow-500/20 active:scale-95 transition-all"
+                        >
+                          {currentStepIdx === steps.length - 1 ? ui.finish : ui.next} <ChevronRight size={14} strokeWidth={3} />
+                        </button>
+                        
+                        <div className="flex w-full gap-1">
+                          <button onClick={handlePrev} disabled={currentStepIdx <= 1} className={"flex-1 py-1.5 sm:py-2 flex justify-center rounded-md transition-colors " + (currentStepIdx <= 1 ? "text-white/10 cursor-not-allowed" : "bg-white/10 text-white hover:bg-white/20")}>
+                              <ChevronLeft size={14} strokeWidth={3} />
+                          </button>
+                          <button onClick={handleSkip} className="flex-1 py-1.5 sm:py-2 flex justify-center text-[9px] sm:text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest rounded-md hover:bg-white/10 transition-colors">
+                              Skip
+                          </button>
+                        </div>
+                  </div>
+              </div>
+
             </div>
           </div>
       )}
