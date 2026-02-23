@@ -24,8 +24,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "Cheers Sarah. Look, let's cut the chat. Does this manager have a clue, or are they gonna bottle it like usual?" 
       },
       'en-US': { 
-        host: "We are LIVE! Jessica here with the legend, Chuck 'The Tank'. Chuck, is the stadium ready?", 
-        pundit: "The field looks good, Jess, but I'm looking at this rookie manager and I gotta ask... ARE YOU KIDDING ME?" 
+        host: "We are LIVE! Jessica here, alongside gridiron legend, Chuck. Are you ready for the World Series of Soccer?", 
+        pundit: "I am fired up, Jess! Let's see if this rookie manager has what it takes to get to the Super Bowl!" 
       },
       no: { 
         host: "Velkommen til studio! Jeg er Silje, og med meg har jeg legenden Nils Arne.", 
@@ -60,8 +60,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "And don't give me any of that 'low block' tactical nonsense. Just pick a winner! Use the Spy button if you need to copy someone better than you." 
       },
       'en-US': { 
-        host: "This is the main event. Use the arrows to pick the final score.", 
-        pundit: "And listen to me: NO TIES. In this sport you play to win! If you're scared, click that Spy eye to cheat off your neighbor." 
+        host: "First up, the Group Stage. Use the arrows to pick the final score.", 
+        pundit: "A DRAW?! What do you mean you can draw?! What kind of sport is this?!" 
       },
       no: { 
         host: "Dette er oppgaven din. Tipp resultatet i hver eneste kamp.", 
@@ -96,8 +96,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "Yeah, don't just do Group A and go to the pub. That's a Sunday League mentality. 12 groups, get moving!" 
       },
       'en-US': { 
-        host: "We have 12 groups to get through. Swipe to find them all.", 
-        pundit: "12 groups! That's a lot of games. Don't quit on me halfway through, rookie! I GUARANTEE you lose if you leave them blank." 
+        host: "Moving on... there are twelve groups in total. Make sure you swipe through all of them.", 
+        pundit: "Twelve divisions?! That's a massive schedule! Don't leave any blanks, rookie, or you're getting benched!" 
       },
       no: { 
         host: "Det er 12 grupper totalt. Bruk menyen for å finne alle.", 
@@ -132,8 +132,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "It's for people who don't know the game, Sarah. Press it if you want, but don't come crying to me when you lose." 
       },
       'en-US': { 
-        host: "In a rush? The Magic Wand analyzes the stats and picks for you.", 
-        pundit: "Stats? Percentages? It's a cheat code for people who don't watch tape! Use it if you're scared." 
+        host: "Short on time? The Magic Wand uses stats to auto-fill the rest of your bracket.", 
+        pundit: "Analytics?! A computer calling your plays?! Man, the game has gone completely soft." 
       },
       no: { 
         host: "Dårlig tid? Tryllestaven analyserer tallene og fyller ut for deg.", 
@@ -168,8 +168,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "No sitting on the fence here! You have to pick a winner. If you don't pick a Champion, what are you even doing here?" 
       },
       'en-US': { 
-        host: "Head to the Bracket tab. Just pick who moves on, no scores needed.", 
-        pundit: "This is the Playoffs! Win or go home! Pick a Champion or get out of the studio!" 
+        host: "Finally, the Knockout stage. No scores here, just tap who advances.", 
+        pundit: "Now we're talking! The Playoffs! Sudden death! Pick a Champion or go home!" 
       },
       no: { 
         host: "Gå til Sluttspill-fanen. Her velger du hvem som går videre.", 
@@ -204,8 +204,8 @@ export const PRE_SEASON_TOUR: TourStep[] = [
         pundit: "Right, stop listening to us and get your predictions in. Good luck, you'll need it!" 
       },
       'en-US': { 
-        host: "That's it! You can replay this anytime from the Profile menu.", 
-        pundit: "Showtime baby! Lock in those picks. I GUARANTEE this is gonna be wild!" 
+        host: "That wraps our briefing. You can replay this tour anytime from your Profile.", 
+        pundit: "Put your helmet on, strap up, and lock in those picks! Let's GO!" 
       },
       no: { 
         host: "Det var alt! Du kan se dette igjen via Profil-menyen.", 
