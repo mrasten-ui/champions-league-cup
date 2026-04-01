@@ -31,7 +31,7 @@ interface MatchCardProps {
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
-  cardId?: string; // <--- This prop is used for the Tour Guide ID
+  cardId?: string;
 }
 
 // --- SUB-COMPONENT: ScoreStepper ---
@@ -230,11 +230,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return match.venue || 'FRIENDLY';
     };
 
-    // Extracts the channel name purely as a string
+    // DEFENSIVE FIX: Always fallback to 'en-US' if locale is missing
     const getTvChannelName = () => {
         if (!match.channels) return null;
         let regionKey = 'US';
-        const loc = locale.toLowerCase();
+        const loc = (locale || 'en-US').toLowerCase();
         if (loc.includes('no')) regionKey = 'NO';
         else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
         else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
@@ -244,21 +244,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return channel ? String(channel) : null;
     };
 
-    // Helper function to map raw database venues to clean FIFA Host City strings
     const getShortVenue = (rawVenue: string | null) => {
         if (!rawVenue) return 'TBD';
         const v = rawVenue.toLowerCase();
-        
-        // Mexico (MX)
         if (v.includes('azteca') || v.includes('mexico city')) return 'Mexico City, MX';
         if (v.includes('guadalajara') || v.includes('akron') || v.includes('zapopan')) return 'Guadalajara, MX';
         if (v.includes('monterrey') || v.includes('guadalupe')) return 'Monterrey, MX';
-        
-        // Canada (CA)
         if (v.includes('toronto')) return 'Toronto, CA';
         if (v.includes('vancouver') || v.includes('bc place')) return 'Vancouver, CA';
-        
-        // United States (US)
         if (v.includes('atlanta')) return 'Atlanta, US';
         if (v.includes('boston') || v.includes('foxborough')) return 'Boston, US';
         if (v.includes('dallas') || v.includes('arlington')) return 'Dallas, US';
@@ -270,12 +263,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (v.includes('philadelphia')) return 'Philadelphia, US';
         if (v.includes('san francisco') || v.includes('santa clara')) return 'San Francisco, US';
         if (v.includes('seattle')) return 'Seattle, US';
-        
-        // Fallback just in case
         return rawVenue.includes(',') ? rawVenue.split(',')[1].trim() : rawVenue;
     };
 
-    // Stacks the Venue City and TV Channel in the top right
     const renderTopRight = () => {
         const channel = getTvChannelName();
         const cityString = getShortVenue(match.venue);
@@ -284,7 +274,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="flex flex-col items-end justify-center gap-0.5 text-right">
                 <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
                     <MapPin size={10} />
-                    {/* Increased max-width slightly to accommodate the country code */}
                     <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[90px] sm:max-w-[120px]">
                         {cityString}
                     </span>
@@ -301,6 +290,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
+    // DEFENSIVE FIX: Fallback to 'en-US' for time formatting
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
@@ -309,7 +299,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {new Date(match.date).toLocaleTimeString(locale, { 
+                    {new Date(match.date).toLocaleTimeString(locale || 'en-US', { 
                         hour: '2-digit', 
                         minute: '2-digit',
                         hour12: false,
@@ -354,7 +344,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {variant === 'prediction' ? (
                         (context === 'groups' || context === 'knockout') ? (
                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                                {new Date(match.date).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {/* DEFENSIVE FIX: Fallback to 'en-US' */}
+                                {new Date(match.date).toLocaleDateString(locale || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                              </span>
                         ) : (
                              <div className="h-6 opacity-80 flex items-center justify-center">
@@ -486,7 +477,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3">
-                         {/* Optional fallback here if you want it on the prediction page too, but I kept the existing truncate styling for you! */}
                         <MapPin size={10} className="shrink-0" />
                         <span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
                     </div>
