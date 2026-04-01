@@ -1,201 +1,74 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- DATABASE TYPES ---
-// (Paste your existing Database interface here - keep it exactly as it is)
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          email: string;
-          name: string;
-          avatar: string;
-          tokens: number;
-          substitutions: number;
-          unlocked_matches: string[] | null;
-          has_taken_second_chance: boolean;
-          spied_matches: string[] | null;
-          favorites: string[] | null;
-          leagues: string[] | null;
-          created_at?: string;
-        };
-        Insert: {
-          email: string;
-          name: string;
-          avatar?: string;
-          tokens?: number;
-          substitutions?: number;
-          unlocked_matches?: string[] | null;
-          has_taken_second_chance?: boolean;
-          spied_matches?: string[] | null;
-          favorites?: string[] | null;
-          leagues?: string[] | null;
-          created_at?: string;
-        };
-        Update: {
-          email?: string;
-          name?: string;
-          avatar?: string;
-          tokens?: number;
-          substitutions?: number;
-          unlocked_matches?: string[] | null;
-          has_taken_second_chance?: boolean;
-          spied_matches?: string[] | null;
-          favorites?: string[] | null;
-          leagues?: string[] | null;
-          created_at?: string;
-        };
-      };
-      predictions: {
-        Row: {
-          user_id: string;
-          match_id: string;
-          home: number;
-          away: number;
-          timestamp?: string;
-        };
-        Insert: {
-          user_id: string;
-          match_id: string;
-          home: number;
-          away: number;
-          timestamp?: string;
-        };
-        Update: {
-          user_id?: string;
-          match_id?: string;
-          home?: number;
-          away?: number;
-          timestamp?: string;
-        };
+      head_to_head: {
+        Row: { id: number; team_a: string | null; team_b: string | null; score_a: number | null; score_b: number | null; year: number | null; competition: string | null; created_at: string | null; };
+        Insert: { id?: number; team_a?: string | null; team_b?: string | null; score_a?: number | null; score_b?: number | null; year?: number | null; competition?: string | null; created_at?: string | null; };
+        Update: { id?: number; team_a?: string | null; team_b?: string | null; score_a?: number | null; score_b?: number | null; year?: number | null; competition?: string | null; created_at?: string | null; };
       };
       matches: {
-        Row: {
-          id: string;
-          home_score: number | null;
-          away_score: number | null;
-          status: string;
-          date?: string;
-          venue?: string;
-        };
-        Insert: {
-          id: string;
-          home_score?: number | null;
-          away_score?: number | null;
-          status?: string;
-          date?: string;
-          venue?: string;
-        };
-        Update: {
-          id?: string;
-          home_score?: number | null;
-          away_score?: number | null;
-          status?: string;
-          date?: string;
-          venue?: string;
-        };
+        Row: { id: string; date: string | null; venue: string | null; group_id: string | null; round: string | null; home_team_id: string | null; away_team_id: string | null; home_score: number | null; away_score: number | null; status: string | null; is_locked: boolean | null; api_id: string | null; next_match_id: string | null; channels: Json | null; };
+        Insert: { id: string; date?: string | null; venue?: string | null; group_id?: string | null; round?: string | null; home_team_id?: string | null; away_team_id?: string | null; home_score?: number | null; away_score?: number | null; status?: string | null; is_locked?: boolean | null; api_id?: string | null; next_match_id?: string | null; channels?: Json | null; };
+        Update: { id?: string; date?: string | null; venue?: string | null; group_id?: string | null; round?: string | null; home_team_id?: string | null; away_team_id?: string | null; home_score?: number | null; away_score?: number | null; status?: string | null; is_locked?: boolean | null; api_id?: string | null; next_match_id?: string | null; channels?: Json | null; };
       };
-      head_to_head: {
-        Row: {
-          id: number;
-          team_a: string;
-          team_b: string;
-          score_a: number;
-          score_b: number;
-          year: number;
-          competition?: string;
-        };
-        Insert: {
-          team_a: string;
-          team_b: string;
-          score_a: number;
-          score_b: number;
-          year: number;
-          competition?: string;
-        };
-        Update: {
-          id?: number;
-          team_a?: string;
-          team_b?: string;
-          score_a?: number;
-          score_b?: number;
-          year?: number;
-          competition?: string;
-        };
+      predictions: {
+        Row: { id: number; user_id: string | null; match_id: string | null; home: number | null; away: number | null; created_at: string | null; };
+        Insert: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; };
+        Update: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; };
+      };
+      profiles: {
+        Row: { email: string; name: string | null; avatar: string | null; tokens: number | null; favorites: string[] | null; leagues: string[] | null; spied_matches: string[] | null; has_taken_second_chance: boolean | null; created_at: string | null; id: string; substitutions: number | null; unlocked_matches: string[] | null; tours_completed: Json | null; };
+        Insert: { email: string; name?: string | null; avatar?: string | null; tokens?: number | null; favorites?: string[] | null; leagues?: string[] | null; spied_matches?: string[] | null; has_taken_second_chance?: boolean | null; created_at?: string | null; id?: string; substitutions?: number | null; unlocked_matches?: string[] | null; tours_completed?: Json | null; };
+        Update: { email?: string; name?: string | null; avatar?: string | null; tokens?: number | null; favorites?: string[] | null; leagues?: string[] | null; spied_matches?: string[] | null; has_taken_second_chance?: boolean | null; created_at?: string | null; id?: string; substitutions?: number | null; unlocked_matches?: string[] | null; tours_completed?: Json | null; };
+      };
+      scouting_overview: {
+        Row: { team_id: string | null; team_name: string | null; confederation: string | null; fifa_rank: number | null; star_player: string | null; strengths: string | null; weaknesses: string | null; scout_notes: string | null; recent_form: string | null; last_5_matches: string | null; created_at: string | null; id: number; };
+        Insert: { team_id?: string | null; team_name?: string | null; confederation?: string | null; fifa_rank?: number | null; star_player?: string | null; strengths?: string | null; weaknesses?: string | null; scout_notes?: string | null; recent_form?: string | null; last_5_matches?: string | null; created_at?: string | null; id?: number; };
+        Update: { team_id?: string | null; team_name?: string | null; confederation?: string | null; fifa_rank?: number | null; star_player?: string | null; strengths?: string | null; weaknesses?: string | null; scout_notes?: string | null; recent_form?: string | null; last_5_matches?: string | null; created_at?: string | null; id?: number; };
       };
       scouting_reports: {
-        Row: {
-          id: number;
-          team_id: string;
-          lang: string;
-          strengths: string;
-          weaknesses: string;
-          star_player: string;
-        };
-        Insert: {
-          team_id: string;
-          lang: string;
-          strengths: string;
-          weaknesses: string;
-          star_player: string;
-        };
-        Update: {
-          team_id?: string;
-          lang?: string;
-          strengths?: string;
-          weaknesses?: string;
-          star_player?: string;
-        };
+        Row: { team_id: string | null; lang: string | null; strengths: string | null; weaknesses: string | null; star_player: string | null; };
+        Insert: { team_id?: string | null; lang?: string | null; strengths?: string | null; weaknesses?: string | null; star_player?: string | null; };
+        Update: { team_id?: string | null; lang?: string | null; strengths?: string | null; weaknesses?: string | null; star_player?: string | null; };
       };
       team_form_data: {
-        Row: {
-          id: number;
-          team_id: string;
-          fifa_rank: number;
-          match_date: string;
-          opponent: string;
-          result: string;
-          score: string;
-        };
-        Insert: {
-          team_id: string;
-          fifa_rank: number;
-          match_date: string;
-          opponent: string;
-          result: string;
-          score: string;
-        };
-        Update: {
-          team_id?: string;
-          fifa_rank?: number;
-          match_date?: string;
-          opponent?: string;
-          result?: string;
-          score?: string;
-        };
+        Row: { id: number; team_id: string | null; team_name: string | null; fifa_rank: number | null; match_date: string | null; opponent: string | null; score: string | null; result: string | null; competition: string | null; last_updated: string | null; };
+        Insert: { id?: number; team_id?: string | null; team_name?: string | null; fifa_rank?: number | null; match_date?: string | null; opponent?: string | null; score?: string | null; result?: string | null; competition?: string | null; last_updated?: string | null; };
+        Update: { id?: number; team_id?: string | null; team_name?: string | null; fifa_rank?: number | null; match_date?: string | null; opponent?: string | null; score?: string | null; result?: string | null; competition?: string | null; last_updated?: string | null; };
+      };
+      team_tactics: {
+        Row: { team_id: string | null; style: string | null; att: number | null; mid: number | null; def: number | null; pace: number | null; phys: number | null; tech: number | null; key_player_role: string | null; narrative: Json | null; };
+        Insert: { team_id?: string | null; style?: string | null; att?: number | null; mid?: number | null; def?: number | null; pace?: number | null; phys?: number | null; tech?: number | null; key_player_role?: string | null; narrative?: Json | null; };
+        Update: { team_id?: string | null; style?: string | null; att?: number | null; mid?: number | null; def?: number | null; pace?: number | null; phys?: number | null; tech?: number | null; key_player_role?: string | null; narrative?: Json | null; };
+      };
+      teams: {
+        Row: { id: string; name: string | null; flag: string | null; rank: number | null; rating: number | null; att: number | null; mid: number | null; def: number | null; overview: string | null; group_letter: string | null; iso_code: string | null; region: string | null; };
+        Insert: { id: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; };
+        Update: { id?: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; };
+      };
+      worldcup2026_schedule: {
+        Row: { matchid: number | null; matchdate: string | null; time_uk: string | null; stage: string | null; hometeam: string | null; awayteam: string | null; channel_uk_england: string | null; channel_uk_scotland: string | null; channel_norway: string | null; channel_us: string | null; };
+        Insert: { matchid?: number | null; matchdate?: string | null; time_uk?: string | null; stage?: string | null; hometeam?: string | null; awayteam?: string | null; channel_uk_england?: string | null; channel_uk_scotland?: string | null; channel_norway?: string | null; channel_us?: string | null; };
+        Update: { matchid?: number | null; matchdate?: string | null; time_uk?: string | null; stage?: string | null; hometeam?: string | null; awayteam?: string | null; channel_uk_england?: string | null; channel_uk_scotland?: string | null; channel_norway?: string | null; channel_us?: string | null; };
       };
     };
   };
 }
 
-// --- CLIENT CONFIGURATION ---
 const env = (import.meta as any).env;
 
-// --- HARDCODED FALLBACKS (The Safety Net) ---
-// REPLACE THESE STRINGS WITH THE VALUES FROM YOUR SUPABASE DASHBOARD IF THEY ARE DIFFERENT
-const FALLBACK_URL = "https://xxlfbpykiyncoifpzzvx.supabase.co";
-const FALLBACK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE";
+// NO HARDCODED FALLBACKS. If env vars fail, we fail loud and clear.
+const supabaseUrl = env.VITE_SUPABASE_URL;
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
-// 1. Logic: Try Vercel Env Vars first. If missing, use Fallback.
-const supabaseUrl = env.VITE_SUPABASE_URL || FALLBACK_URL;
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || FALLBACK_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("CRITICAL ERROR: Supabase Environment Variables are missing!");
+}
 
-// 2. Debugging (Check your browser console to see which one it used)
-console.log("Supabase Init:", supabaseUrl === FALLBACK_URL ? "Using Fallback (Hardcoded)" : "Using Vercel Env Vars");
-
-// 3. Initialize Client
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured 

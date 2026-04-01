@@ -117,9 +117,7 @@ export const getManagerStats = (
   return { form: form.reverse(), streak };
 };
 
-// --- CRITICAL FIX APPLIED BELOW ---
 export const calculateGroupStandings = (groupId: string, matches: Match[], teams: Record<string, Team>): GroupStanding[] => {
-  // Safety Check 1: If teams is undefined/null, stop immediately
   if (!teams) return [];
 
   const groupMatches = matches.filter(m => m.groupId === groupId);
@@ -141,14 +139,12 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
 
   if (groupConfig) {
       groupConfig.teams.forEach((tId: string) => {
-        // Safety Check 2: Only initialize if the team exists in the loaded data
         if (teams[tId]) {
             standingsMap[tId] = initTeam(tId);
         }
       });
   } else {
       groupMatches.forEach(m => {
-          // Safety Check 3: Only initialize derived teams if they exist
           if (teams[m.homeTeamId] && !standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = initTeam(m.homeTeamId);
           if (teams[m.awayTeamId] && !standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = initTeam(m.awayTeamId);
       });
@@ -161,7 +157,6 @@ export const calculateGroupStandings = (groupId: string, matches: Match[], teams
       const home = standingsMap[match.homeTeamId];
       const away = standingsMap[match.awayTeamId];
       
-      // Safety Check 4: Ensure both teams are in our standings map before updating
       if (!home || !away) return;
 
       const hScore = Number(match.homeScore);
@@ -618,8 +613,8 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
 
                     relevantMatches.forEach(match => {
                         const isHomeTeamA = match.team_a === homeTeam.id;
-                        const homeScore = isHomeTeamA ? match.score_a : match.score_b;
-                        const awayScore = isHomeTeamA ? match.score_b : match.score_a;
+                        const homeScore = isHomeTeamA ? (match.score_a ?? 0) : (match.score_b ?? 0);
+                        const awayScore = isHomeTeamA ? (match.score_b ?? 0) : (match.score_a ?? 0);
                         
                         let winnerId: string | 'DRAW' = 'DRAW';
                         if (homeScore > awayScore) {
@@ -633,7 +628,7 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
                         }
 
                         history.push({
-                            year: match.year,
+                            year: match.year ?? new Date().getFullYear(),
                             homeTeamId: homeTeam.id, 
                             awayTeamId: awayTeam.id,
                             homeScore: homeScore,
@@ -673,18 +668,18 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
             return data.map(m => {
                 const isHome = m.team_a === teamId;
                 const opponentId = isHome ? m.team_b : m.team_a;
-                const myScore = isHome ? m.score_a : m.score_b;
-                const opScore = isHome ? m.score_b : m.score_a;
+                const myScore = isHome ? (m.score_a ?? 0) : (m.score_b ?? 0);
+                const opScore = isHome ? (m.score_b ?? 0) : (m.score_a ?? 0);
                 
                 let result: 'W' | 'D' | 'L' = 'D';
                 if (myScore > opScore) result = 'W';
                 if (myScore < opScore) result = 'L';
 
                 return {
-                    opponent: opponentId,
+                    opponent: opponentId || 'Unknown',
                     result,
                     score: `${myScore}-${opScore}`,
-                    date: m.year.toString()
+                    date: (m.year ?? new Date().getFullYear()).toString()
                 };
             });
         }
@@ -696,7 +691,6 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
   return [];
 };
 
-// UPDATED: Now queries 'scouting_reports' with the LANGUAGE filter
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
     if (!supabase) {
         console.warn("Supabase not initialized");
@@ -705,32 +699,44 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 
     try {
         const safeId = teamId.trim();
+        
+        // 1. Fetch Localized Content from scouting_reports
         const { data: reportData, error: reportError } = await supabase
-            .from('scouting_reports') // Correct Table
+            .from('scouting_reports')
             .select('*')
             .eq('team_id', safeId)
-            .eq('lang', lang) // <--- CRITICAL FIX: Filter by language
+            .eq('lang', lang)
+            .maybeSingle();
+
+        // 2. Fetch Analytical Content from scouting_overview
+        const { data: overviewData, error: overviewError } = await supabase
+            .from('scouting_overview')
+            .select('*')
+            .eq('team_id', safeId)
             .maybeSingle();
 
         if (reportError) {
-            console.warn("Supabase Scouting Error:", reportError);
-            return null;
+            console.warn("Supabase Scouting Report Error:", reportError);
+        }
+        if (overviewError) {
+             console.warn("Supabase Scouting Overview Error:", overviewError);
         }
 
-        if (reportData) {
+        // 3. Combine Data to satisfy the full ScoutingData type
+        if (reportData || overviewData) {
             return {
-                id: 0,
-                team_id: reportData.team_id,
-                team_name: safeId,
-                confederation: 'FIFA',
-                fifa_rank: 0,
-                star_player: reportData.star_player,
-                strengths: reportData.strengths,
-                weaknesses: reportData.weaknesses,
-                scout_notes: '',
-                recent_form: '',
-                last_5_matches: '',
-                lang: lang // Passes back the correct language
+                id: overviewData?.id ?? 0,
+                team_id: overviewData?.team_id || reportData?.team_id || safeId,
+                team_name: overviewData?.team_name || safeId,
+                confederation: overviewData?.confederation || 'FIFA',
+                fifa_rank: overviewData?.fifa_rank ?? 0,
+                star_player: reportData?.star_player || overviewData?.star_player || '',
+                strengths: reportData?.strengths || overviewData?.strengths || '',
+                weaknesses: reportData?.weaknesses || overviewData?.weaknesses || '',
+                scout_notes: overviewData?.scout_notes || '',
+                recent_form: overviewData?.recent_form || '',
+                last_5_matches: overviewData?.last_5_matches || '',
+                lang: lang 
             };
         }
         return null;
@@ -756,15 +762,15 @@ export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormDa
         }
 
         if (data && data.length > 0) {
-            const history: MatchHistoryItem[] = data.map((row: any) => ({
-                opponent: row.opponent,
-                result: row.result as 'W' | 'D' | 'L',
-                score: row.score,
-                date: row.match_date
+            const history: MatchHistoryItem[] = data.map(row => ({
+                opponent: row.opponent || 'Unknown',
+                result: (row.result as 'W' | 'D' | 'L') || 'D',
+                score: row.score || '0-0',
+                date: row.match_date || ''
             }));
             
-            const fifaRank = data[0].fifa_rank;
-            const recentForm = data.slice(0, 5).map((row: any) => row.result).join('-');
+            const fifaRank = data[0].fifa_rank ?? 0;
+            const recentForm = data.slice(0, 5).map(row => row.result).join('-');
 
             return { fifaRank, history, recentForm };
         }
@@ -780,8 +786,10 @@ export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
     const { data } = await supabase.from('team_form_data').select('team_id, fifa_rank');
     if (data) {
       const rankMap: Record<string, number> = {};
-      data.forEach((row: any) => {
-        rankMap[row.team_id] = row.fifa_rank;
+      data.forEach(row => {
+        if (row.team_id && row.fifa_rank !== null) {
+            rankMap[row.team_id] = row.fifa_rank;
+        }
       });
       return rankMap;
     }
@@ -862,12 +870,6 @@ export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
 };
 
 export const generateThirdPlaceStressTest = (initialMatches: Match[]): Match[] => {
-    // SCENARIO: 
-    // Groups A-D: 3rd Place gets 4 points (1W, 1D, 1L)
-    // Groups E-H: 3rd Place gets 3 points (1W, 0D, 2L) -> Tie breakers on GD
-    // Groups I-L: 3rd Place gets 1 or 2 points -> Eliminated
-    
-    // Helper to find matches for a group
     const getMatches = (gid: string) => initialMatches.filter(m => m.groupId === gid).sort((a,b) => a.id.localeCompare(b.id));
 
     let updated = [...initialMatches];
@@ -876,44 +878,34 @@ export const generateThirdPlaceStressTest = (initialMatches: Match[]): Match[] =
         if (idx !== -1) updated[idx] = { ...updated[idx], homeScore: h, awayScore: a, status: 'FINISHED', isLocked: true };
     };
 
-    // Apply patterns to groups based on index 0-11
     GROUP_CONFIG.forEach((group: any, idx) => {
         const gm = getMatches(group.id);
-        if (gm.length < 6) return; // Safety check
+        if (gm.length < 6) return; 
 
-        // Pattern 1: High Pts (4pts for 3rd)
-        // T1 wins 2, draws 1 (7)
-        // T2 wins 1, draws 2 (5)
-        // T3 wins 1, draws 1 (4) - The target
-        // T4 loses 3 (0)
         if (idx < 4) {
-            applyScore(gm[0], 2, 0); // T1 bt T2
-            applyScore(gm[1], 1, 0); // T3 bt T4
-            applyScore(gm[2], 2, 2); // T1 dw T3
-            applyScore(gm[3], 0, 1); // T4 lt T2
-            applyScore(gm[4], 0, 2); // T4 lt T1
-            applyScore(gm[5], 1, 1); // T2 dw T3
+            applyScore(gm[0], 2, 0); 
+            applyScore(gm[1], 1, 0); 
+            applyScore(gm[2], 2, 2); 
+            applyScore(gm[3], 0, 1); 
+            applyScore(gm[4], 0, 2); 
+            applyScore(gm[5], 1, 1); 
         }
-        // Pattern 2: Competitive (3pts for 3rd) - Varying GD
-        // T1 (9), T2 (6), T3 (3), T4 (0)
         else if (idx < 8) {
-            const margin = idx - 4; // 0, 1, 2, 3 (creates diff GDs)
-            applyScore(gm[0], 3, 0); // T1 bt T2
-            applyScore(gm[1], 1, 0); // T3 bt T4 (Win by 1)
-            applyScore(gm[2], 2, 0); // T1 bt T3
-            applyScore(gm[3], 0, 2); // T4 lt T2
-            applyScore(gm[4], 0, 1 + margin); // T4 lt T1
-            applyScore(gm[5], 2 + margin, 0); // T2 bt T3 (Loss by varying margin)
+            const margin = idx - 4; 
+            applyScore(gm[0], 3, 0); 
+            applyScore(gm[1], 1, 0); 
+            applyScore(gm[2], 2, 0); 
+            applyScore(gm[3], 0, 2); 
+            applyScore(gm[4], 0, 1 + margin); 
+            applyScore(gm[5], 2 + margin, 0); 
         }
-        // Pattern 3: Low Pts (1pt or 2pts for 3rd) -> Eliminated
-        // T1 (7), T2 (7), T3 (1), T4 (1)
         else {
-            applyScore(gm[0], 1, 1); // T1 dw T2
-            applyScore(gm[1], 0, 0); // T3 dw T4
-            applyScore(gm[2], 3, 0); // T1 bt T3
-            applyScore(gm[3], 0, 3); // T4 lt T2
-            applyScore(gm[4], 0, 4); // T4 lt T1
-            applyScore(gm[5], 4, 0); // T2 bt T3
+            applyScore(gm[0], 1, 1); 
+            applyScore(gm[1], 0, 0); 
+            applyScore(gm[2], 3, 0); 
+            applyScore(gm[3], 0, 3); 
+            applyScore(gm[4], 0, 4); 
+            applyScore(gm[5], 4, 0); 
         }
     });
 
