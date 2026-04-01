@@ -59,8 +59,9 @@ export const useAppData = () => {
               id: m.id,
               date: m.date,
               venue: m.venue,
-              homeTeamId: m.home_team_id || 'TBD',
-              awayTeamId: m.away_team_id || 'TBD',
+              // UPPERCASE FIX: Translates DB 'mex' to UI 'MEX'
+              homeTeamId: m.home_team_id ? m.home_team_id.toUpperCase() : 'TBD',
+              awayTeamId: m.away_team_id ? m.away_team_id.toUpperCase() : 'TBD',
               homeScore: m.home_score,
               awayScore: m.away_score,
               status: m.status,
@@ -133,19 +134,23 @@ export const useAppData = () => {
               const formMap: Record<string, string[]> = {};
               if (scoutingData.data) {
                   scoutingData.data.forEach((row: any) => {
-                      if (row.recent_form) {
-                          formMap[row.team_id] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c);
+                      if (row.recent_form && row.team_id) {
+                          // UPPERCASE FIX: Translates DB 'mex' to 'MEX' for the formMap
+                          formMap[row.team_id.toUpperCase()] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c);
                       }
                   });
               }
 
               Object.keys(next).forEach(tid => {
+                  // LOWERCASE FIX: 'MEX' becomes 'mex' to lookup in the database results
+                  const dbId = tid.toLowerCase();
+
                   if (next[tid]) {
-                      if (rankMap[tid]) {
-                          next[tid].rank = rankMap[tid];
+                      if (rankMap[dbId]) {
+                          next[tid].rank = rankMap[dbId];
                       }
-                      if (tacticsMap[tid]) {
-                          const t = tacticsMap[tid];
+                      if (tacticsMap[dbId]) {
+                          const t = tacticsMap[dbId];
                           next[tid].att = t.att;
                           next[tid].mid = t.mid;
                           next[tid].def = t.def;
