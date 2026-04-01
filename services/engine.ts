@@ -51,7 +51,7 @@ export const calculatePoints = (
     }
   }
 
-  const penaltyRounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'];
+  const penaltyRounds: Round[] = ['R16', 'QF', 'SF', 'FIN', '3RD'];
   let finalMultiplier = 1.0;
   if (userHasPenalty && round && penaltyRounds.includes(round)) {
     finalMultiplier = 0.5;
@@ -73,7 +73,7 @@ export const calculateMaxPotentialPoints = (matches: Match[], predictions: Predi
         } else {
             if (m.round) {
                  const baseVal = (SCORING_RULES as any)[m.round] || 5;
-                 const penaltyRounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'];
+                 const penaltyRounds: Round[] = ['R16', 'QF', 'SF', 'FIN', '3RD'];
                  const mult = (user.hasTakenSecondChance && penaltyRounds.includes(m.round)) ? 0.5 : 1.0;
                  total += Math.floor(baseVal * mult);
             } else {
