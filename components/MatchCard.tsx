@@ -31,7 +31,7 @@ interface MatchCardProps {
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
-  cardId?: string; // <--- This prop is used for the Tour Guide ID
+  cardId?: string;
 }
 
 // --- SUB-COMPONENT: ScoreStepper ---
@@ -230,7 +230,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return match.venue || 'FRIENDLY';
     };
 
-    const getTvChannel = () => {
+    // Extracts the channel name purely as a string
+    const getTvChannelName = () => {
         if (!match.channels) return null;
         let regionKey = 'US';
         const loc = locale.toLowerCase();
@@ -238,9 +239,35 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
         else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
         if ((lang as any).isScotland && match.channels['SCO']) { regionKey = 'SCO'; }
-        let channel = match.channels[regionKey] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
-        if (!channel) return null;
-        return <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}><Tv size={12} /><span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[100px]">{channel}</span></div>;
+        
+        const channel = match.channels[regionKey] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
+        return channel ? String(channel) : null;
+    };
+
+    // Stacks the Venue City and TV Channel in the top right
+    const renderTopRight = () => {
+        const channel = getTvChannelName();
+        // Safely extract just the city if there is a comma (e.g. "Estadio Azteca, Mexico City" -> "Mexico City")
+        const city = match.venue?.includes(',') ? match.venue.split(',')[1].trim() : match.venue || 'TBD';
+
+        return (
+            <div className="flex flex-col items-end justify-center gap-0.5 text-right">
+                <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
+                    <MapPin size={10} />
+                    <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[70px] sm:max-w-[100px]">
+                        {city}
+                    </span>
+                </div>
+                {channel && (
+                    <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${channel}`}>
+                        <Tv size={9} />
+                        <span className="text-[8px] font-bold uppercase tracking-wide truncate max-w-[70px] sm:max-w-[100px]">
+                            {channel}
+                        </span>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const getLeftStatus = () => {
@@ -290,7 +317,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div id={cardId} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
              {/* HEADER */}
-             <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center h-10 text-white">
+             <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center min-h-[44px] text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     {variant === 'prediction' ? (
@@ -310,7 +337,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                     )}
                 </div>
-                <div className="w-1/3 flex items-center justify-end">{getTvChannel()}</div>
+                <div className="w-1/3 flex items-center justify-end">
+                    {renderTopRight()}
+                </div>
              </div>
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
@@ -425,7 +454,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {showStatusBadge && (
                 <div className="bg-[#0f2545] py-2 px-3 flex justify-between items-center text-white/90 relative overflow-hidden h-8 border-t border-white/10">
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                    <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3"><MapPin size={10} className="shrink-0" /><span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span></div>
+                    <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3">
+                         {/* Optional fallback here if you want it on the prediction page too, but I kept the existing truncate styling for you! */}
+                        <MapPin size={10} className="shrink-0" />
+                        <span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
+                    </div>
                     
                     {/* CENTER: User Prediction (Brain icon removed) */}
                     <div className="w-1/3 flex justify-center">
