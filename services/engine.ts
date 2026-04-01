@@ -229,28 +229,82 @@ export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupSt
   });
 };
 
+// EXPLICIT FIFA KNOCKOUT PROGRESSION MAP (Article 12)
+// This ensures that regardless of DB next_match_id flaws, teams route perfectly.
+const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'away' }> = {
+    // Round of 32 to Round of 16
+    'R32_1': { nextId: 'R16_2', slot: 'home' }, 
+    'R32_2': { nextId: 'R16_1', slot: 'home' }, 
+    'R32_3': { nextId: 'R16_2', slot: 'away' }, 
+    'R32_4': { nextId: 'R16_3', slot: 'home' }, 
+    'R32_5': { nextId: 'R16_1', slot: 'away' }, 
+    'R32_6': { nextId: 'R16_3', slot: 'away' }, 
+    'R32_7': { nextId: 'R16_4', slot: 'home' }, 
+    'R32_8': { nextId: 'R16_4', slot: 'away' }, 
+    'R32_9': { nextId: 'R16_6', slot: 'home' }, 
+    'R32_10': { nextId: 'R16_6', slot: 'away' }, 
+    'R32_11': { nextId: 'R16_5', slot: 'home' }, 
+    'R32_12': { nextId: 'R16_5', slot: 'away' }, 
+    'R32_13': { nextId: 'R16_8', slot: 'home' }, 
+    'R32_14': { nextId: 'R16_7', slot: 'home' }, 
+    'R32_15': { nextId: 'R16_8', slot: 'away' }, 
+    'R32_16': { nextId: 'R16_7', slot: 'away' }, 
+    // Round of 16 to Quarter Finals
+    'R16_1': { nextId: 'QF_1', slot: 'home' }, 
+    'R16_2': { nextId: 'QF_1', slot: 'away' }, 
+    'R16_3': { nextId: 'QF_3', slot: 'home' }, 
+    'R16_4': { nextId: 'QF_3', slot: 'away' }, 
+    'R16_5': { nextId: 'QF_2', slot: 'home' }, 
+    'R16_6': { nextId: 'QF_2', slot: 'away' }, 
+    'R16_7': { nextId: 'QF_4', slot: 'home' }, 
+    'R16_8': { nextId: 'QF_4', slot: 'away' }, 
+    // Quarter Finals to Semi Finals
+    'QF_1': { nextId: 'SF_1', slot: 'home' }, 
+    'QF_2': { nextId: 'SF_1', slot: 'away' }, 
+    'QF_3': { nextId: 'SF_2', slot: 'home' }, 
+    'QF_4': { nextId: 'SF_2', slot: 'away' }, 
+    // Semi Finals to Final / 3rd Place
+    'SF_1': { nextId: 'FIN', slot: 'home' }, 
+    'SF_2': { nextId: 'FIN', slot: 'away' }, 
+};
+
 export const updateBracket = (matches: Match[], teams: Record<string, Team>): Match[] => {
     const groupResults = getAllGroupStandings(matches, teams);
     const getTeam = (gid: string, rank: number) => groupResults[gid]?.[rank - 1]?.teamId || 'TBD';
     
     const thirds = getThirdPlaceStandings(groupResults);
-    
     const qualifiedThirds = thirds.slice(0, 8);
-    const usedThirds = new Set<string>();
     
-    const get3rd = (allowedGroups: string[]) => {
-        let candidate = qualifiedThirds.find(t => allowedGroups.includes(t.groupId) && !usedThirds.has(t.teamId));
+    // FIFA ANNEXE C - Constraint Backtracking Solver
+    // 495 combinations exist. This recursively finds the single valid assignment
+    // where a 3rd place team NEVER plays a winner from its own group.
+    const thirdPlaceSlots = [
+        { matchId: 'R32_2', allowedGroups: ['A', 'B', 'C', 'D', 'F'], teamId: 'TBD' },
+        { matchId: 'R32_5', allowedGroups: ['C', 'D', 'F', 'G', 'H'], teamId: 'TBD' },
+        { matchId: 'R32_7', allowedGroups: ['C', 'E', 'F', 'H', 'I'], teamId: 'TBD' },
+        { matchId: 'R32_8', allowedGroups: ['E', 'H', 'I', 'J', 'K'], teamId: 'TBD' },
+        { matchId: 'R32_9', allowedGroups: ['B', 'E', 'F', 'I', 'J'], teamId: 'TBD' },
+        { matchId: 'R32_10', allowedGroups: ['A', 'E', 'H', 'I', 'J'], teamId: 'TBD' },
+        { matchId: 'R32_13', allowedGroups: ['E', 'F', 'G', 'I', 'J'], teamId: 'TBD' },
+        { matchId: 'R32_15', allowedGroups: ['D', 'E', 'I', 'J', 'L'], teamId: 'TBD' }
+    ];
+
+    const assignThirds = (idx: number): boolean => {
+        if (idx === qualifiedThirds.length) return true;
+        const team = qualifiedThirds[idx];
         
-        if (!candidate) {
-             candidate = qualifiedThirds.find(t => !usedThirds.has(t.teamId));
+        for (let i = 0; i < thirdPlaceSlots.length; i++) {
+            if (thirdPlaceSlots[i].teamId === 'TBD' && thirdPlaceSlots[i].allowedGroups.includes(team.groupId)) {
+                thirdPlaceSlots[i].teamId = team.teamId;
+                if (assignThirds(idx + 1)) return true;
+                thirdPlaceSlots[i].teamId = 'TBD'; // backtrack if dead end
+            }
         }
-        
-        if (candidate) {
-            usedThirds.add(candidate.teamId);
-            return candidate.teamId;
-        }
-        return 'TBD';
+        return false;
     };
+    
+    // Execute solver
+    assignThirds(0);
 
     const nextMatches = matches.map(m => ({ ...m }));
 
@@ -258,45 +312,47 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
         const match = nextMatches.find(m => m.id === matchId);
         if (!match) return;
 
-        const oldHome = match.homeTeamId;
-        const oldAway = match.awayTeamId;
         let changed = false;
+        if (match.homeTeamId !== home) { match.homeTeamId = home; changed = true; }
+        if (match.awayTeamId !== away) { match.awayTeamId = away; changed = true; }
 
-        if (oldHome !== home) { match.homeTeamId = home; changed = true; }
-        if (oldAway !== away) { match.awayTeamId = away; changed = true; }
-
-        if (changed) {
-            if (!match.isLocked) {
-                match.homeScore = null;
-                match.awayScore = null;
-            }
+        if (changed && !match.isLocked) {
+            match.homeScore = null;
+            match.awayScore = null;
         }
     };
 
+    // Round of 32 Base Assignments
     setMatchup('R32_1', getTeam('A', 2), getTeam('B', 2));
-    setMatchup('R32_2', getTeam('E', 1), get3rd(['A', 'B', 'C', 'D', 'F']));
     setMatchup('R32_3', getTeam('F', 1), getTeam('C', 2));
     setMatchup('R32_4', getTeam('C', 1), getTeam('F', 2));
-    setMatchup('R32_5', getTeam('I', 1), get3rd(['C', 'D', 'F', 'G', 'H']));
     setMatchup('R32_6', getTeam('E', 2), getTeam('I', 2));
-    setMatchup('R32_7', getTeam('A', 1), get3rd(['C', 'E', 'F', 'H', 'I']));
-    setMatchup('R32_8', getTeam('L', 1), get3rd(['E', 'H', 'I', 'J', 'K']));
-    setMatchup('R32_9', getTeam('D', 1), get3rd(['B', 'E', 'F', 'I', 'J']));
-    setMatchup('R32_10', getTeam('G', 1), get3rd(['A', 'E', 'H', 'I', 'J']));
     setMatchup('R32_11', getTeam('K', 2), getTeam('L', 2));
     setMatchup('R32_12', getTeam('H', 1), getTeam('J', 2));
-    setMatchup('R32_13', getTeam('B', 1), get3rd(['E', 'F', 'G', 'I', 'J']));
     setMatchup('R32_14', getTeam('J', 1), getTeam('H', 2));
-    setMatchup('R32_15', getTeam('K', 1), get3rd(['D', 'E', 'I', 'J', 'L']));
     setMatchup('R32_16', getTeam('D', 2), getTeam('G', 2));
 
+    // Round of 32 Solved 3rd Place Assignments
+    setMatchup('R32_2', getTeam('E', 1), thirdPlaceSlots[0].teamId);
+    setMatchup('R32_5', getTeam('I', 1), thirdPlaceSlots[1].teamId);
+    setMatchup('R32_7', getTeam('A', 1), thirdPlaceSlots[2].teamId);
+    setMatchup('R32_8', getTeam('L', 1), thirdPlaceSlots[3].teamId);
+    setMatchup('R32_9', getTeam('D', 1), thirdPlaceSlots[4].teamId);
+    setMatchup('R32_10', getTeam('G', 1), thirdPlaceSlots[5].teamId);
+    setMatchup('R32_13', getTeam('B', 1), thirdPlaceSlots[6].teamId);
+    setMatchup('R32_15', getTeam('K', 1), thirdPlaceSlots[7].teamId);
+
+    // Cascading Knockout Progression
     const rounds: Round[] = ['R32', 'R16', 'QF', 'SF'];
     
     rounds.forEach(round => {
         const roundMatches = nextMatches.filter(m => m.round === round);
         
         roundMatches.forEach(match => {
-            if (!match.nextMatchId) return;
+            const progression = KNOCKOUT_PROGRESSION[match.id];
+            // Fallback to nextMatchId if not in our strict map
+            const targetNextId = progression ? progression.nextId : match.nextMatchId;
+            if (!targetNextId) return;
 
             let winnerId = 'TBD';
             let loserId = 'TBD';
@@ -313,12 +369,12 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
                 }
             }
 
-            const nextMatch = nextMatches.find(m => m.id === match.nextMatchId);
+            const nextMatch = nextMatches.find(m => m.id === targetNextId);
             if (nextMatch) {
-                const currentIdNum = parseInt(match.id.split('_')[1] || '0');
-                const isOdd = currentIdNum % 2 !== 0;
+                // Determine slot via strict map, or infer via odd/even ID splitting
+                const slot = progression ? progression.slot : (parseInt(match.id.split('_')[1] || '0') % 2 !== 0 ? 'home' : 'away');
 
-                if (isOdd) {
+                if (slot === 'home') {
                     if (nextMatch.homeTeamId !== winnerId) {
                         nextMatch.homeTeamId = winnerId;
                         if (!nextMatch.isLocked) nextMatch.homeScore = null;
@@ -331,11 +387,12 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
                 }
             }
 
+            // Handle 3rd Place Match routing from Semi Finals
             if (round === 'SF') {
                 const thirdPlaceMatch = nextMatches.find(m => m.round === '3RD');
                 if (thirdPlaceMatch) {
-                    const currentIdNum = parseInt(match.id.split('_')[1] || '0');
-                    if (currentIdNum === 1) { 
+                    const slot = match.id === 'SF_1' ? 'home' : 'away';
+                    if (slot === 'home') { 
                         if (thirdPlaceMatch.homeTeamId !== loserId) {
                             thirdPlaceMatch.homeTeamId = loserId;
                             if (!thirdPlaceMatch.isLocked) thirdPlaceMatch.homeScore = null;
@@ -579,13 +636,7 @@ export const getLiveScenarios = (
 };
 
 export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Promise<HeadToHeadStats> => {
-    const emptyStats: HeadToHeadStats = {
-        totalMatches: 0,
-        homeWins: 0,
-        awayWins: 0,
-        draws: 0,
-        last5: []
-    };
+    const emptyStats: HeadToHeadStats = { totalMatches: 0, homeWins: 0, awayWins: 0, draws: 0, last5: [] };
 
     if (supabase) {
         try {
@@ -683,46 +734,19 @@ export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem
                 };
             });
         }
-      } catch (e) {
-          console.warn("Error fetching team history", e);
-      }
+      } catch (e) { console.warn("Error fetching team history", e); }
   }
-
   return [];
 };
 
 export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode): Promise<ScoutingData | null> => {
-    if (!supabase) {
-        console.warn("Supabase not initialized");
-        return null;
-    }
+    if (!supabase) return null;
 
     try {
         const safeId = teamId.trim();
-        
-        // 1. Fetch Localized Content from scouting_reports
-        const { data: reportData, error: reportError } = await supabase
-            .from('scouting_reports')
-            .select('*')
-            .eq('team_id', safeId)
-            .eq('lang', lang)
-            .maybeSingle();
+        const { data: reportData } = await supabase.from('scouting_reports').select('*').eq('team_id', safeId).eq('lang', lang).maybeSingle();
+        const { data: overviewData } = await supabase.from('scouting_overview').select('*').eq('team_id', safeId).maybeSingle();
 
-        // 2. Fetch Analytical Content from scouting_overview
-        const { data: overviewData, error: overviewError } = await supabase
-            .from('scouting_overview')
-            .select('*')
-            .eq('team_id', safeId)
-            .maybeSingle();
-
-        if (reportError) {
-            console.warn("Supabase Scouting Report Error:", reportError);
-        }
-        if (overviewError) {
-             console.warn("Supabase Scouting Overview Error:", overviewError);
-        }
-
-        // 3. Combine Data to satisfy the full ScoutingData type
         if (reportData || overviewData) {
             return {
                 id: overviewData?.id ?? 0,
@@ -748,18 +772,9 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
-    
     try {
-        const { data, error } = await supabase
-            .from('team_form_data')
-            .select('*')
-            .eq('team_id', teamId)
-            .order('match_date', { ascending: false });
-
-        if (error) {
-            console.warn("Extended stats fetch error:", error.message);
-            return null;
-        }
+        const { data, error } = await supabase.from('team_form_data').select('*').eq('team_id', teamId).order('match_date', { ascending: false });
+        if (error) return null;
 
         if (data && data.length > 0) {
             const history: MatchHistoryItem[] = data.map(row => ({
@@ -774,9 +789,7 @@ export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormDa
 
             return { fifaRank, history, recentForm };
         }
-    } catch(e) {
-        console.warn(e);
-    }
+    } catch(e) { console.warn(e); }
     return null;
 };
 
@@ -786,128 +799,9 @@ export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
     const { data } = await supabase.from('team_form_data').select('team_id, fifa_rank');
     if (data) {
       const rankMap: Record<string, number> = {};
-      data.forEach(row => {
-        if (row.team_id && row.fifa_rank !== null) {
-            rankMap[row.team_id] = row.fifa_rank;
-        }
-      });
+      data.forEach(row => { if (row.team_id && row.fifa_rank !== null) rankMap[row.team_id] = row.fifa_rank; });
       return rankMap;
     }
-  } catch (e) {
-    console.error("Rank Sync Error:", e);
-  }
+  } catch (e) { console.error("Rank Sync Error:", e); }
   return {};
-};
-
-export const seedMockHistoryToSupabase = async (teams: Record<string, Team>) => {
-  if (!supabase) return;
-
-  const teamIds = Object.keys(teams).filter(id => id !== 'TBD');
-  const records = [];
-
-  for (let i = 0; i < 50; i++) {
-    const idxA = Math.floor(Math.random() * teamIds.length);
-    let idxB = Math.floor(Math.random() * teamIds.length);
-    while (idxB === idxA) idxB = Math.floor(Math.random() * teamIds.length);
-
-    const teamA = teamIds[idxA];
-    const teamB = teamIds[idxB];
-    const scoreA = Math.floor(Math.random() * 4);
-    const scoreB = Math.floor(Math.random() * 4);
-    const year = 2020 + Math.floor(Math.random() * 5);
-
-    records.push({
-      team_a: teamA,
-      team_b: teamB,
-      score_a: scoreA,
-      score_b: scoreB,
-      year: year,
-      competition: 'Friendly Sim'
-    });
-  }
-
-  await supabase.from('head_to_head').insert(records);
-};
-
-export const seedScoutingReportsToSupabase = async (teams: Record<string, Team>) => {
-    // Deprecated in favor of manual CSV upload or admin script
-};
-
-export const seedTeamStatsToSupabase = async (teams: Record<string, Team>) => {
-    if (!supabase) return;
-
-    const teamIds = Object.keys(teams).filter(id => id !== 'TBD');
-    const records = [];
-
-    for (const teamId of teamIds) {
-        const team = teams[teamId];
-        for (let i = 0; i < 5; i++) {
-            let oppId = teamIds[Math.floor(Math.random() * teamIds.length)];
-            while (oppId === teamId) oppId = teamIds[Math.floor(Math.random() * teamIds.length)];
-            
-            const outcomes = ['W', 'D', 'L'];
-            const res = outcomes[Math.floor(Math.random() * outcomes.length)];
-            let score = '1-1';
-            if (res === 'W') score = `${Math.floor(Math.random() * 3) + 1}-${Math.floor(Math.random() * 1)}`;
-            if (res === 'L') score = `${Math.floor(Math.random() * 1)}-${Math.floor(Math.random() * 3) + 1}`;
-            
-            const rank = Math.round(100 - (team.rating * 0.8));
-
-            records.push({
-                team_id: teamId,
-                fifa_rank: rank > 0 ? rank : 50,
-                match_date: `2024-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1}`,
-                opponent: `vs ${oppId}`,
-                result: res,
-                score: score
-            });
-        }
-    }
-
-    await supabase.from('team_form_data').delete().neq('id', 0);
-    const { error } = await supabase.from('team_form_data').insert(records);
-    if (error) console.error("Stats Seed Error:", error);
-};
-
-export const generateThirdPlaceStressTest = (initialMatches: Match[]): Match[] => {
-    const getMatches = (gid: string) => initialMatches.filter(m => m.groupId === gid).sort((a,b) => a.id.localeCompare(b.id));
-
-    let updated = [...initialMatches];
-    const applyScore = (match: Match, h: number, a: number) => {
-        const idx = updated.findIndex(m => m.id === match.id);
-        if (idx !== -1) updated[idx] = { ...updated[idx], homeScore: h, awayScore: a, status: 'FINISHED', isLocked: true };
-    };
-
-    GROUP_CONFIG.forEach((group: any, idx) => {
-        const gm = getMatches(group.id);
-        if (gm.length < 6) return; 
-
-        if (idx < 4) {
-            applyScore(gm[0], 2, 0); 
-            applyScore(gm[1], 1, 0); 
-            applyScore(gm[2], 2, 2); 
-            applyScore(gm[3], 0, 1); 
-            applyScore(gm[4], 0, 2); 
-            applyScore(gm[5], 1, 1); 
-        }
-        else if (idx < 8) {
-            const margin = idx - 4; 
-            applyScore(gm[0], 3, 0); 
-            applyScore(gm[1], 1, 0); 
-            applyScore(gm[2], 2, 0); 
-            applyScore(gm[3], 0, 2); 
-            applyScore(gm[4], 0, 1 + margin); 
-            applyScore(gm[5], 2 + margin, 0); 
-        }
-        else {
-            applyScore(gm[0], 1, 1); 
-            applyScore(gm[1], 0, 0); 
-            applyScore(gm[2], 3, 0); 
-            applyScore(gm[3], 0, 3); 
-            applyScore(gm[4], 0, 4); 
-            applyScore(gm[5], 4, 0); 
-        }
-    });
-
-    return updated;
 };
