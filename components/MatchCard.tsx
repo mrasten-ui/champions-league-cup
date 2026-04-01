@@ -31,7 +31,7 @@ interface MatchCardProps {
   allTeams?: Record<string, Team>;
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
-  cardId?: string;
+  cardId?: string; // <--- This prop is used for the Tour Guide ID
 }
 
 // --- SUB-COMPONENT: ScoreStepper ---
@@ -244,18 +244,49 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return channel ? String(channel) : null;
     };
 
+    // Helper function to map raw database venues to clean FIFA Host City strings
+    const getShortVenue = (rawVenue: string | null) => {
+        if (!rawVenue) return 'TBD';
+        const v = rawVenue.toLowerCase();
+        
+        // Mexico (MX)
+        if (v.includes('azteca') || v.includes('mexico city')) return 'Mexico City, MX';
+        if (v.includes('guadalajara') || v.includes('akron') || v.includes('zapopan')) return 'Guadalajara, MX';
+        if (v.includes('monterrey') || v.includes('guadalupe')) return 'Monterrey, MX';
+        
+        // Canada (CA)
+        if (v.includes('toronto')) return 'Toronto, CA';
+        if (v.includes('vancouver') || v.includes('bc place')) return 'Vancouver, CA';
+        
+        // United States (US)
+        if (v.includes('atlanta')) return 'Atlanta, US';
+        if (v.includes('boston') || v.includes('foxborough')) return 'Boston, US';
+        if (v.includes('dallas') || v.includes('arlington')) return 'Dallas, US';
+        if (v.includes('houston')) return 'Houston, US';
+        if (v.includes('kansas city')) return 'Kansas City, US';
+        if (v.includes('los angeles') || v.includes('inglewood')) return 'Los Angeles, US';
+        if (v.includes('miami')) return 'Miami, US';
+        if (v.includes('new york') || v.includes('east rutherford')) return 'New York, US';
+        if (v.includes('philadelphia')) return 'Philadelphia, US';
+        if (v.includes('san francisco') || v.includes('santa clara')) return 'San Francisco, US';
+        if (v.includes('seattle')) return 'Seattle, US';
+        
+        // Fallback just in case
+        return rawVenue.includes(',') ? rawVenue.split(',')[1].trim() : rawVenue;
+    };
+
     // Stacks the Venue City and TV Channel in the top right
     const renderTopRight = () => {
         const channel = getTvChannelName();
-        // Safely extract just the city if there is a comma (e.g. "Estadio Azteca, Mexico City" -> "Mexico City")
-        const city = match.venue?.includes(',') ? match.venue.split(',')[1].trim() : match.venue || 'TBD';
+        const cityString = getShortVenue(match.venue);
 
         return (
             <div className="flex flex-col items-end justify-center gap-0.5 text-right">
                 <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
                     <MapPin size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[70px] sm:max-w-[100px]">
-                        {city}
+                    {/* Increased max-width slightly to accommodate the country code */}
+                    <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[90px] sm:max-w-[120px]">
+                        {cityString}
                     </span>
                 </div>
                 {channel && (
