@@ -22,6 +22,34 @@ const R32_SOURCES: Record<number, { home: string, away: string }> = {
     16: { home: '2D', away: '2G' }
 };
 
+// --- OFFICIAL FIFA KNOCKOUT PROGRESSION MAPPINGS ---
+// Maps the Match Index of the current round to the Match Indices of the previous round
+const KNOCKOUT_SOURCES: Record<string, Record<number, { home: number, away: number }>> = {
+    'R16': {
+        1: { home: 2, away: 5 },   // M89: Winner M74 (R32_2) vs Winner M77 (R32_5)
+        2: { home: 1, away: 3 },   // M90: Winner M73 (R32_1) vs Winner M75 (R32_3)
+        3: { home: 4, away: 6 },   // M91: Winner M76 (R32_4) vs Winner M78 (R32_6)
+        4: { home: 7, away: 8 },   // M92: Winner M79 (R32_7) vs Winner M80 (R32_8)
+        5: { home: 11, away: 12 }, // M93: Winner M83 (R32_11) vs Winner M84 (R32_12)
+        6: { home: 9, away: 10 },  // M94: Winner M81 (R32_9) vs Winner M82 (R32_10)
+        7: { home: 14, away: 16 }, // M95: Winner M86 (R32_14) vs Winner M88 (R32_16)
+        8: { home: 13, away: 15 }  // M96: Winner M85 (R32_13) vs Winner M87 (R32_15)
+    },
+    'QF': {
+        1: { home: 1, away: 2 },   // M97: Winner M89 (R16_1) vs Winner M90 (R16_2)
+        2: { home: 5, away: 6 },   // M98: Winner M93 (R16_5) vs Winner M94 (R16_6)
+        3: { home: 3, away: 4 },   // M99: Winner M91 (R16_3) vs Winner M92 (R16_4)
+        4: { home: 7, away: 8 }    // M100: Winner M95 (R16_7) vs Winner M96 (R16_8)
+    },
+    'SF': {
+        1: { home: 1, away: 2 },   // M101: Winner M97 (QF_1) vs Winner M98 (QF_2)
+        2: { home: 3, away: 4 }    // M102: Winner M99 (QF_3) vs Winner M100 (QF_4)
+    },
+    'FIN': {
+        1: { home: 1, away: 2 }    // M104: Winner M101 (SF_1) vs Winner M102 (SF_2)
+    }
+};
+
 // --- TYPES ---
 
 export type SlotSource = 
@@ -61,20 +89,22 @@ export const getSlotSource = (matchId: string, side: 'home' | 'away'): SlotSourc
         };
     }
 
-    // --- CASE B: Knockout Rounds (Match Feeders) ---
-    const prevIndex = side === 'home' ? (index * 2) - 1 : (index * 2);
-    
+    // --- CASE B: Third Place Play-off ---
+    if (round === '3RD') {
+        const sfMatchId = `SF_${side === 'home' ? 1 : 2}`;
+        return { type: 'MATCH_LOSER', matchId: sfMatchId, label: `Loser SF${side === 'home' ? 1 : 2}` };
+    }
+
+    // --- CASE C: Knockout Rounds (Match Feeders) ---
     let prevRound = '';
     if (round === 'R16') prevRound = 'R32';
     else if (round === 'QF') prevRound = 'R16';
     else if (round === 'SF') prevRound = 'QF';
     else if (round === 'FIN') prevRound = 'SF';
-    else if (round === '3RD') prevRound = 'SF';
 
-    if (round === '3RD') {
-        const sfMatchId = `SF_${side === 'home' ? 1 : 2}`;
-        return { type: 'MATCH_LOSER', matchId: sfMatchId, label: `Loser SF${side === 'home' ? 1 : 2}` };
-    }
+    const prevIndex = KNOCKOUT_SOURCES[round]?.[index]?.[side];
+    
+    if (!prevIndex) return { type: 'UNKNOWN', label: 'TBD' };
 
     const prevMatchId = `${prevRound}_${prevIndex}`;
     return { type: 'MATCH_WINNER', matchId: prevMatchId, label: `Winner ${prevMatchId}` };

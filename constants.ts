@@ -244,7 +244,6 @@ const EN_TRANSLATION: Translation = {
     thirdPlace: "3rd Place Play-off",
     final: "Final",
 
-    // FIX: ADDED THESE BACK
     teamNames: BASE_TEAM_NAMES, 
     teamOverviews: {}
 };
@@ -338,7 +337,10 @@ const SCO_TRANSLATION: Translation = {
     quarterFinal: "Quarter Final",
     semiFinal: "Semi Final",
     thirdPlace: "3rd Place Play-off",
-    final: "The Big Yin"
+    final: "The Big Yin",
+    
+    teamNames: BASE_TEAM_NAMES, 
+    teamOverviews: {}
 };
 
 const US_TRANSLATION: Translation = {
@@ -430,7 +432,10 @@ const US_TRANSLATION: Translation = {
     quarterFinal: "Quarterfinals",
     semiFinal: "Semifinals",
     thirdPlace: "Bronze Medal Match",
-    final: "Championship"
+    final: "Championship",
+
+    teamNames: BASE_TEAM_NAMES, 
+    teamOverviews: {}
 };
 
 const NO_TRANSLATION: Translation = {
@@ -527,7 +532,6 @@ const NO_TRANSLATION: Translation = {
     thirdPlace: "Bronsefinale",
     final: "Finale",
 
-    // FIX: ADDED THESE BACK FOR NORWEGIAN
     teamNames: TEAM_NAMES_NO,
     teamOverviews: {}
 };
@@ -676,10 +680,31 @@ rounds.forEach((round, idx) => {
   const count = counts[idx];
   for(let i=1; i<=count; i++) {
     let nextMatchId: string | undefined = undefined;
-    if (round === 'R32') nextMatchId = `R16_${Math.ceil(i/2)}`;
-    else if (round === 'R16') nextMatchId = `QF_${Math.ceil(i/2)}`;
-    else if (round === 'QF') nextMatchId = `SF_${Math.ceil(i/2)}`;
-    else if (round === 'SF') nextMatchId = `FIN_1`;
+    
+    // Official FIFA Mapping for Next Matches
+    if (round === 'R32') {
+        if (i === 2 || i === 5) nextMatchId = 'R16_1';
+        else if (i === 1 || i === 3) nextMatchId = 'R16_2';
+        else if (i === 4 || i === 6) nextMatchId = 'R16_3';
+        else if (i === 7 || i === 8) nextMatchId = 'R16_4';
+        else if (i === 11 || i === 12) nextMatchId = 'R16_5';
+        else if (i === 9 || i === 10) nextMatchId = 'R16_6';
+        else if (i === 14 || i === 16) nextMatchId = 'R16_7';
+        else if (i === 13 || i === 15) nextMatchId = 'R16_8';
+    }
+    else if (round === 'R16') {
+        if (i === 1 || i === 2) nextMatchId = 'QF_1';
+        else if (i === 5 || i === 6) nextMatchId = 'QF_2';
+        else if (i === 3 || i === 4) nextMatchId = 'QF_3';
+        else if (i === 7 || i === 8) nextMatchId = 'QF_4';
+    }
+    else if (round === 'QF') {
+        if (i === 1 || i === 2) nextMatchId = 'SF_1';
+        else if (i === 3 || i === 4) nextMatchId = 'SF_2';
+    }
+    else if (round === 'SF') {
+        nextMatchId = 'FIN_1'; // Note: Losers drop to 3RD_1 natively via the helper logic
+    }
 
     INITIAL_MATCHES.push({
       id: `${round}_${i}`,
