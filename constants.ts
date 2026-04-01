@@ -703,11 +703,15 @@ rounds.forEach((round, idx) => {
         else if (i === 3 || i === 4) nextMatchId = 'SF_2';
     }
     else if (round === 'SF') {
-        nextMatchId = 'FIN_1'; // Note: Losers drop to 3RD_1 natively via the helper logic
+        // FIXED: Maps losers natively via the engine helper, winners to 'FIN'
+        nextMatchId = 'FIN'; 
     }
 
+    // FIXED: Generate 'FIN' instead of 'FIN_1', and '3RD' instead of '3RD_1'
+    const matchId = count === 1 ? round : `${round}_${i}`;
+
     INITIAL_MATCHES.push({
-      id: `${round}_${i}`,
+      id: matchId,
       round: round as any,
       homeTeamId: 'TBD',
       awayTeamId: 'TBD',
