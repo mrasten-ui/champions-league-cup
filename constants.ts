@@ -242,7 +242,11 @@ const EN_TRANSLATION: Translation = {
     quarterFinal: "Quarter Final",
     semiFinal: "Semi Final",
     thirdPlace: "3rd Place Play-off",
-    final: "Final"
+    final: "Final",
+
+    // FIX: ADDED THESE BACK
+    teamNames: BASE_TEAM_NAMES, 
+    teamOverviews: {}
 };
 
 const SCO_TRANSLATION: Translation = {
@@ -487,8 +491,7 @@ const NO_TRANSLATION: Translation = {
     clearAll: "Slett Alt", openHand: "Åpne Hjelper", champion: "Mester", grandFinal: "Finale", thirdPlacePlayoff: "Bronsefinale",
     scrollHint: "Scroll horisontalt for å se hele treet →", nextRound: "Neste Runde", prevRound: "Forrige Runde", lockedBracketTitle: "Sluttspill Låst",
     lockedBracketDesc: "Du må tippe alle gruppekampene før du får tilgang til sluttspillet.", allGroupTables: "Alle Gruppetabeller", bestThirdPlace: "Beste 3. Plasser",
-    top8Advance: "Topp 8 går til R32", eliminationLine: "Eliminasjonslinje", teamCol: "Team", grpCol: "Grp", teamNames: TEAM_NAMES_NO, teamOverviews: {},
-    headToHead: "Innbyrdes oppgjør", wins: "Seire", draws: "Uavgjort", totalMeetings: "møter", firstMeeting: "Første møte noensinne!",
+    top8Advance: "Topp 8 går til R32", eliminationLine: "Eliminasjonslinje", teamCol: "Team", grpCol: "Grp", headToHead: "Innbyrdes oppgjør", wins: "Seire", draws: "Uavgjort", totalMeetings: "møter", firstMeeting: "Første møte noensinne!",
     firstMeetingDesc: "Vi fant ingen tidligere kamper mellom disse lagene. Historien starter nå!", showingLast5: "Viser siste 5 av {0} møter",
     noHistory: "Ingen historikk funnet.", loadingHistory: "Laster historikk...", days: "Dager", hours: "Timer", minutes: "Min", seconds: "Sek",
     myPickShort: "Tips", watchOn: "Se på",
@@ -522,7 +525,11 @@ const NO_TRANSLATION: Translation = {
     quarterFinal: "Kvartfinale",
     semiFinal: "Semifinale",
     thirdPlace: "Bronsefinale",
-    final: "Finale"
+    final: "Finale",
+
+    // FIX: ADDED THESE BACK FOR NORWEGIAN
+    teamNames: TEAM_NAMES_NO,
+    teamOverviews: {}
 };
 
 // --- DATA EXPORTS ---
