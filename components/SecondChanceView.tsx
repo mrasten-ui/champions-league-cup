@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round } from '../types';
-import { ShieldCheck, Lock, Unlock, RefreshCw, AlertTriangle, Users, Shield, LayoutGrid, Columns, Crown } from 'lucide-react';
+import { ShieldCheck, Lock, Unlock, AlertTriangle, Users, Shield, LayoutGrid, Columns, Crown, Clock, Save } from 'lucide-react';
 import { KnockoutBracket } from './KnockoutBracket';
 
 interface SecondChanceViewProps {
@@ -9,30 +9,59 @@ interface SecondChanceViewProps {
   onUpdate: (id: string, h: number, a: number) => void;
   lang: Translation;
   user: UserProfile | null;
-  onUnlock: () => void;
-  onRefreshTeams: () => void;
+  onPledge: () => void;
+  onLockIn: () => void;
   rivals: UserProfile[];
   allPredictions: Prediction[];
   phase: TournamentPhase;
   onTeamClick?: (teamId: string) => void;
   onSpy: (matchId: string) => void;
   revealedRivals: string[];
+  groupStageEndTime: number;
+  knockoutStartTime: number;
 }
 
 export const SecondChanceView: React.FC<SecondChanceViewProps> = ({ 
-  matches, teams, onUpdate, lang, user, onUnlock, onRefreshTeams,
+  matches, teams, onUpdate, lang, user, onPledge, onLockIn,
   rivals, allPredictions, phase, onTeamClick,
-  onSpy, revealedRivals 
+  onSpy, revealedRivals, groupStageEndTime, knockoutStartTime
 }) => {
   const [isHovering, setIsHovering] = useState(false);
-  
-  // FIX: Manage local round state since KnockoutBracket requires it
   const [activeRound, setActiveRound] = useState<Round>('R32');
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
-  const hasUnlocked = user?.hasTakenSecondChance;
+  const status = user?.secondChanceStatus || 'NONE';
+  const now = Date.now();
+  
+  // Is it between the end of Groups and the start of R32?
+  const isDraftingWindow = now >= groupStageEndTime && now < knockoutStartTime;
+  // Is the group stage entirely in the future/ongoing?
+  const isWaitingForGroups = now < groupStageEndTime;
 
-  // Helper for Round Icons (matching AppHeader style)
+  // --- TIMER LOGIC ---
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number }>({ d: 0, h: 0, m: 0, s: 0 });
+
+  useEffect(() => {
+    const target = isWaitingForGroups ? groupStageEndTime : knockoutStartTime;
+    if (target === 0 || status === 'NONE' || status === 'ACTIVE') return;
+
+    const interval = setInterval(() => {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
+        clearInterval(interval);
+      } else {
+        setTimeLeft({
+          d: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          h: Math.floor((diff / (1000 * 60 * 60)) % 24),
+          m: Math.floor((diff / 1000 / 60) % 60),
+          s: Math.floor((diff / 1000) % 60)
+        });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [groupStageEndTime, knockoutStartTime, isWaitingForGroups, status]);
+
   const getRoundIcon = (r: Round) => {
       switch(r) {
           case 'R32': return <Users size={32} className="text-white/20" />; 
@@ -44,132 +73,158 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
       }
   };
 
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                  <div className={`p-4 rounded-2xl ${hasUnlocked ? 'bg-green-500/20 text-green-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                      {hasUnlocked ? <ShieldCheck size={32} /> : <Lock size={32} />}
+  // ==========================================
+  // STAGE 1: THE PLEDGE (Not yet clicked)
+  // ==========================================
+  if (status === 'NONE') {
+      return (
+        <div className="animate-fade-in space-y-6">
+          <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden text-center">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col items-center justify-center gap-6">
+                  <div className="p-5 rounded-full bg-indigo-500/20 text-indigo-400 mb-2">
+                      <Lock size={48} />
                   </div>
                   <div>
-                      <h2 className="text-2xl font-black uppercase italic tracking-tighter">{lang.secondChanceTitle}</h2>
-                      <p className="text-indigo-200 text-sm font-medium mt-1 max-w-md leading-relaxed">
-                          {hasUnlocked ? lang.secondChanceActive : lang.secondChanceDesc}
+                      <h2 className="text-3xl font-black uppercase italic tracking-tighter">{lang.secondChanceTitle}</h2>
+                      <p className="text-indigo-200 text-base font-medium mt-3 max-w-lg mx-auto leading-relaxed">
+                          {lang.secondChanceDesc || "Are your group stage predictions completely ruined? Pledge now to unlock the real bracket when the group stages end."}
                       </p>
-                      {hasUnlocked && (
-                          <div className="mt-2 inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-lg">
-                              <AlertTriangle size={12} className="text-red-400" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-red-300">{lang.pointsReduced}</span>
-                          </div>
-                      )}
                   </div>
-              </div>
-
-              {!hasUnlocked ? (
                   <button 
-                      onClick={onUnlock}
+                      onClick={onPledge}
                       onMouseEnter={() => setIsHovering(true)}
                       onMouseLeave={() => setIsHovering(false)}
-                      className={`relative px-8 py-4 rounded-xl font-black uppercase tracking-widest transition-all transform hover:scale-[1.02] shadow-lg flex items-center gap-3 ${isHovering ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white text-indigo-900'}`}
+                      className={`relative mt-4 px-10 py-5 rounded-xl font-black uppercase tracking-widest transition-all transform hover:scale-[1.02] shadow-xl flex items-center gap-3 text-lg ${isHovering ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30' : 'bg-white text-indigo-900'}`}
                   >
-                      {isHovering ? (
-                          <>
-                             <AlertTriangle size={18} />
-                             {lang.secondChanceBtn}
-                          </>
-                      ) : (
-                          <>
-                             <Unlock size={18} />
-                             Unlock Now
-                          </>
-                      )}
+                      {isHovering ? <><AlertTriangle size={24} /> Pledge Second Chance</> : <><Unlock size={24} /> Activate Lifeline</>}
                   </button>
-              ) : (
-                  <div className="flex gap-3">
-                      <button 
-                          onClick={onRefreshTeams}
-                          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg flex items-center gap-2 transition-all"
-                      >
-                          <RefreshCw size={16} /> {lang.refreshTeams}
-                      </button>
-                  </div>
-              )}
+              </div>
           </div>
-      </div>
-
-      {!hasUnlocked && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
               <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                  {lang.secondChanceUnlockWarn}
+              <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                  {lang.secondChanceUnlockWarn || "Warning: Activating Second Chance will reduce all future points by 50%."}
               </p>
           </div>
-      )}
+        </div>
+      );
+  }
 
-      {hasUnlocked ? (
-          <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-200">
-             {/* Local Round Selector for Second Chance */}
-             <div className="bg-slate-50 border-b border-slate-200 p-4 rounded-t-3xl overflow-x-auto no-scrollbar">
-                <div className="flex gap-2 justify-start sm:justify-center min-w-max">
-                    {rounds.map(r => {
-                        const isActive = activeRound === r;
-                        return (
-                            <button
-                                key={r}
-                                onClick={() => setActiveRound(r)}
-                                className={`
-                                    relative min-w-[64px] h-14 rounded-xl overflow-hidden transition-all duration-200 border-2
-                                    ${isActive 
-                                        ? 'border-indigo-500 shadow-md scale-105 z-10' 
-                                        : 'border-slate-200 bg-white hover:border-indigo-300'
-                                    }
-                                `}
-                            >
-                                <div className={`absolute inset-0 bg-gradient-to-br ${isActive ? 'from-indigo-600 to-indigo-800' : 'from-slate-100 to-slate-200'}`}></div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                                    {getRoundIcon(r)}
-                                </div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className={`text-sm font-black italic uppercase tracking-tighter ${isActive ? 'text-white' : 'text-slate-400'}`}>
-                                        {r === 'FIN' ? 'FINAL' : r}
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
+  // ==========================================
+  // STAGE 2A: THE WAITING ROOM (Pledged, waiting for groups to end)
+  // ==========================================
+  if (status === 'PENDING' && isWaitingForGroups) {
+      return (
+        <div className="animate-fade-in flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="bg-indigo-50 p-6 rounded-full mb-8 text-indigo-500 relative shadow-inner">
+                <Clock size={56} className="animate-pulse" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-4">Pledge Locked</h2>
+            <p className="text-slate-500 font-medium max-w-md mb-10 text-lg">
+                The real-world group stage is still ongoing. Return when the timer hits zero to draft your new Knockout Bracket.
+            </p>
+            
+            <div className="flex gap-4">
+                <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
+                    <span className="text-4xl font-black font-mono">{String(timeLeft.d).padStart(2, '0')}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Days</span>
                 </div>
-             </div>
+                <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
+                    <span className="text-4xl font-black font-mono">{String(timeLeft.h).padStart(2, '0')}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Hours</span>
+                </div>
+                <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
+                    <span className="text-4xl font-black font-mono">{String(timeLeft.m).padStart(2, '0')}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Mins</span>
+                </div>
+                <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
+                    <span className="text-4xl font-black font-mono text-indigo-400">{String(timeLeft.s).padStart(2, '0')}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Secs</span>
+                </div>
+            </div>
+        </div>
+      );
+  }
 
-             <KnockoutBracket 
-                matches={matches} 
-                teams={teams} 
-                onUpdate={onUpdate} 
-                lang={lang} 
-                user={user} 
-                onSecondChance={()=>{}}
-                rivals={rivals}
-                allPredictions={allPredictions}
-                phase={phase}
-                isGroupStageComplete={true}
-                firstIncompleteGroup={null}
-                onGoToGroup={() => {}}
-                onTeamClick={onTeamClick}
-                onSpy={onSpy} 
-                revealedRivals={revealedRivals}
-                // FIX: Pass the active round prop
-                activeRound={activeRound}
-             />
+  // ==========================================
+  // STAGE 2B & 3: THE SPRINT & ACTIVE BRACKET
+  // ==========================================
+  return (
+    <div className="animate-fade-in space-y-6">
+      
+      {/* HEADER BANNER */}
+      <div className={`rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 ${status === 'ACTIVE' ? 'bg-gradient-to-r from-green-600 to-emerald-800' : 'bg-gradient-to-r from-red-600 to-rose-800'}`}>
+          <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  {status === 'ACTIVE' ? <ShieldCheck size={28} /> : <AlertTriangle size={28} className="animate-pulse" />}
+              </div>
+              <div>
+                  <h2 className="text-xl font-black uppercase italic tracking-tighter">
+                      {status === 'ACTIVE' ? "Second Chance Active" : "Drafting Window Open"}
+                  </h2>
+                  <div className="mt-1 inline-flex items-center gap-2 bg-black/20 px-3 py-1 rounded-lg">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/90">50% Points Penalty Applies</span>
+                  </div>
+              </div>
           </div>
-      ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50 pointer-events-none grayscale select-none filter blur-[1px]">
-              {[1,2,3].map(i => (
-                  <div key={i} className="h-32 bg-slate-200 rounded-xl animate-pulse"></div>
-              ))}
-          </div>
-      )}
+
+          {/* SPRINT DRAFTING UI */}
+          {status === 'PENDING' && isDraftingWindow && (
+              <div className="flex items-center gap-6">
+                  <div className="text-right">
+                      <div className="text-[10px] uppercase tracking-widest text-red-200 font-bold mb-1">Time to lock-in</div>
+                      <div className="font-mono text-2xl font-black tabular-nums">
+                          {String(timeLeft.h).padStart(2, '0')}:{String(timeLeft.m).padStart(2, '0')}:{String(timeLeft.s).padStart(2, '0')}
+                      </div>
+                  </div>
+                  <button onClick={onLockIn} className="bg-white text-red-700 hover:bg-red-50 px-8 py-4 rounded-xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95">
+                      <Save size={18} /> Lock In Bracket
+                  </button>
+              </div>
+          )}
+      </div>
+
+      {/* THE BRACKET ENGINE */}
+      <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-200">
+         <div className="bg-slate-50 border-b border-slate-200 p-4 rounded-t-3xl overflow-x-auto no-scrollbar">
+            <div className="flex gap-2 justify-start sm:justify-center min-w-max">
+                {rounds.map(r => {
+                    const isActive = activeRound === r;
+                    return (
+                        <button
+                            key={r}
+                            onClick={() => setActiveRound(r)}
+                            className={`relative min-w-[64px] h-14 rounded-xl overflow-hidden transition-all duration-200 border-2 ${isActive ? 'border-indigo-500 shadow-md scale-105 z-10' : 'border-slate-200 bg-white hover:border-indigo-300'}`}
+                        >
+                            <div className={`absolute inset-0 bg-gradient-to-br ${isActive ? 'from-indigo-600 to-indigo-800' : 'from-slate-100 to-slate-200'}`}></div>
+                            <div className="absolute inset-0 flex items-center justify-center opacity-30">{getRoundIcon(r)}</div>
+                            <div className="absolute inset-0 flex items-center justify-center"><span className={`text-sm font-black italic uppercase tracking-tighter ${isActive ? 'text-white' : 'text-slate-400'}`}>{r === 'FIN' ? 'FINAL' : r}</span></div>
+                        </button>
+                    );
+                })}
+            </div>
+         </div>
+
+         <KnockoutBracket 
+            matches={matches} 
+            teams={teams} 
+            onUpdate={onUpdate} 
+            lang={lang} 
+            user={user} 
+            onSecondChance={()=>{}}
+            rivals={rivals}
+            allPredictions={allPredictions}
+            phase={phase}
+            isGroupStageComplete={true}
+            firstIncompleteGroup={null}
+            onGoToGroup={() => {}}
+            onTeamClick={onTeamClick}
+            onSpy={onSpy} 
+            revealedRivals={revealedRivals}
+            activeRound={activeRound}
+         />
+      </div>
     </div>
   );
 };

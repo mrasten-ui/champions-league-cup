@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { 
-  TEAMS as INITIAL_TEAMS, 
   INITIAL_MATCHES, 
   MOCK_PREDICTIONS 
 } from '../constants';
@@ -15,13 +14,16 @@ export const useAppData = () => {
   const [loading, setLoading] = useState(true);
   
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
-  
-  const [teamsData, setTeamsData] = useState<Record<string, Team>>(INITIAL_TEAMS);
+  const [teamsData, setTeamsData] = useState<Record<string, Team>>({});
   const [allPredictions, setAllPredictions] = useState<Prediction[]>(MOCK_PREDICTIONS);
   const [usersDb, setUsersDb] = useState<Record<string, UserProfile>>({});
   
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
+
+  // --- NEW: TIMERS FOR SECOND CHANCE ---
+  const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
+  const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
 
   // 1. Fetch Avatars
   const fetchPresetAvatars = async () => {
@@ -71,11 +73,24 @@ export const useAppData = () => {
               nextMatchId: m.next_match_id || undefined
             }));
 
-            // --- 1. GLOBAL TOURNAMENT LOCK CHECK ---
-            const sortedByDate = [...mappedMatches]
-                .filter(m => m.date && m.date !== 'TBD')
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            // --- CALCULATE TIMERS FOR SECOND CHANCE ---
+            const validMatches = mappedMatches.filter(m => m.date && m.date !== 'TBD');
             
+            // Group Stage End (Last group match + 120 mins buffer)
+            const groupMatches = validMatches.filter(m => m.groupId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            if (groupMatches.length > 0) {
+                setGroupStageEndTime(new Date(groupMatches[0].date).getTime() + (120 * 60 * 1000));
+            }
+
+            // Knockout Start (First R32 match)
+            const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            if (koMatches.length > 0) {
+                setKnockoutStartTime(new Date(koMatches[0].date).getTime());
+            }
+
+            // --- GLOBAL TOURNAMENT LOCK CHECK ---
+            // As requested, the entire board locks 15 mins before the first match of the tournament.
+            const sortedByDate = [...validMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             const firstMatch = sortedByDate[0];
 
             if (firstMatch) {
@@ -87,10 +102,11 @@ export const useAppData = () => {
                 if (now >= globalLockTime) {
                     mappedMatches = mappedMatches.map(m => ({
                         ...m,
-                        isLocked: true
+                        isLocked: true // Forces users to use "Subs" once the tournament begins
                     }));
                 }
             }
+            
             setMatches(mappedMatches);
           }
 
@@ -116,7 +132,8 @@ export const useAppData = () => {
                       tokens: p.tokens ?? 0, 
                       substitutions: p.substitutions ?? 0, 
                       avatar: p.avatar || '', 
-                      hasTakenSecondChance: !!p.has_taken_second_chance, 
+                      hasTakenSecondChance: p.second_chance_status === 'ACTIVE', 
+                      secondChanceStatus: (p.second_chance_status as any) || 'NONE',
                       leagues: p.leagues || [], 
                       favorites: p.favorites || [], 
                       spiedMatches: p.spied_matches || [], 
@@ -126,16 +143,38 @@ export const useAppData = () => {
               setUsersDb(pMap);
           }
 
-          // D. Fetch Team Data
-          // FIXED: Now querying 'scouting_overview' instead of 'scouting_reports' for 'recent_form'
-          const [rankMap, tacticsMap, scoutingData] = await Promise.all([
+          // D. Fetch DYNAMIC Team Data from Supabase
+          const [teamsResponse, rankMap, tacticsMap, scoutingData] = await Promise.all([
+              supabase.from('teams').select('*'), // The real teams!
               fetchAllTeamRanks(),
               fetchAllTeamTactics(),
               supabase.from('scouting_overview').select('team_id, recent_form')
           ]);
 
-          setTeamsData(prev => {
-              const next = { ...prev };
+          const baseTeamsMap: Record<string, Team> = {
+              'TBD': { id: 'TBD', name: 'TBD', flag: '', rank: 99, rating: 50, att: 50, mid: 50, def: 50, overview: '', starPlayer: '', form: [] }
+          };
+
+          if (teamsResponse.data) {
+              teamsResponse.data.forEach(t => {
+                  baseTeamsMap[t.id] = {
+                      id: t.id,
+                      name: t.name || t.id,
+                      flag: t.flag || '',
+                      rank: t.rank || 50,
+                      rating: t.rating || 50,
+                      att: t.att || 50,
+                      mid: t.mid || 50,
+                      def: t.def || 50,
+                      overview: t.overview || '',
+                      starPlayer: 'TBD',
+                      form: []
+                  };
+              });
+          }
+
+          setTeamsData(() => {
+              const next = { ...baseTeamsMap };
               
               const formMap: Record<string, string[]> = {};
               if (scoutingData.data) {
@@ -149,7 +188,7 @@ export const useAppData = () => {
               Object.keys(next).forEach(tid => {
                   const dbId = tid.toLowerCase();
 
-                  if (next[tid]) {
+                  if (next[tid] && tid !== 'TBD') {
                       if (rankMap[dbId]) {
                           next[tid].rank = rankMap[dbId];
                       }
@@ -183,7 +222,8 @@ export const useAppData = () => {
                   tokens: data.tokens ?? 0, 
                   substitutions: data.substitutions ?? 0,
                   unlockedMatches: data.unlocked_matches || [], 
-                  hasTakenSecondChance: !!data.has_taken_second_chance,
+                  hasTakenSecondChance: data.second_chance_status === 'ACTIVE', 
+                  secondChanceStatus: (data.second_chance_status as any) || 'NONE',
                   spiedMatches: data.spied_matches || [], 
                   favorites: data.favorites || [], 
                   avatar: data.avatar || '', 
@@ -193,7 +233,7 @@ export const useAppData = () => {
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
-                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5 };
+                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(fallback);
                   setUser(fallback as any);
               }
@@ -226,6 +266,7 @@ export const useAppData = () => {
 
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets
+    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
+    groupStageEndTime, knockoutStartTime
   };
 };

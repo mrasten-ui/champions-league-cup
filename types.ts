@@ -86,6 +86,7 @@ export interface UserProfile {
   spiedMatches: string[];
   unlockedMatches: string[];
   hasTakenSecondChance: boolean;
+  secondChanceStatus?: 'NONE' | 'PENDING' | 'ACTIVE'; // <--- NEW ADDITION
   
   // --- Tour Tracking ---
   toursCompleted?: {
