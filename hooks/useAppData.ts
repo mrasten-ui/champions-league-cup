@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { 
-  INITIAL_MATCHES, 
-  MOCK_PREDICTIONS 
-} from '../constants';
+import { INITIAL_MATCHES, MOCK_PREDICTIONS } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
@@ -21,187 +18,98 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
-  // --- NEW: TIMERS FOR SECOND CHANCE ---
-  const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
-  const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
-
-  // 1. Fetch Avatars
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
-    const getSafeUrl = (path: string) => {
-        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-        return data.publicUrl;
-    };
+    const getSafeUrl = (path: string) => supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
     try {
         const { data: menData } = await supabase.storage.from('avatars').list('men');
-        if (menData) {
-            const valid = menData.filter(f => !f.name.startsWith('.'));
-            setMenPresets(valid.map(f => getSafeUrl(`men/${f.name}`)));
-        }
+        if (menData) setMenPresets(menData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`men/${f.name}`)));
+        
         const { data: womenData } = await supabase.storage.from('avatars').list('women');
-        if (womenData) {
-            const valid = womenData.filter(f => !f.name.startsWith('.'));
-            setWomenPresets(valid.map(f => getSafeUrl(`women/${f.name}`)));
-        }
+        if (womenData) setWomenPresets(womenData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`women/${f.name}`)));
     } catch (e) { console.error("Avatar fetch error", e); }
   };
 
-  // 2. Load Game Data
   const loadGameData = async () => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
-          // A. Fetch Matches from Supabase
-          const { data: dbMatches } = await supabase
-            .from('matches')
-            .select('*')
-            .order('id', { ascending: true });
+          const { data: dbMatches } = await supabase.from('matches').select('*').order('id', { ascending: true });
 
           if (dbMatches && dbMatches.length > 0) {
             let mappedMatches: Match[] = dbMatches.map(m => ({
-              id: m.id,
-              date: m.date || 'TBD',
-              venue: m.venue || 'TBD',
+              id: m.id, date: m.date || 'TBD', venue: m.venue || 'TBD',
               homeTeamId: m.home_team_id ? m.home_team_id.toUpperCase() : 'TBD',
               awayTeamId: m.away_team_id ? m.away_team_id.toUpperCase() : 'TBD',
-              homeScore: m.home_score,
-              awayScore: m.away_score,
-              status: (m.status as any) || 'UPCOMING',
-              isLocked: !!m.is_locked,
-              groupId: m.group_id || undefined,
-              round: (m.round as any) || undefined,
-              channels: m.channels as Record<string, string> | undefined,
-              nextMatchId: m.next_match_id || undefined
+              homeScore: m.home_score, awayScore: m.away_score, status: (m.status as any) || 'UPCOMING',
+              isLocked: !!m.is_locked, groupId: m.group_id || undefined, round: (m.round as any) || undefined,
+              channels: m.channels as any, nextMatchId: m.next_match_id || undefined
             }));
 
-            // --- CALCULATE TIMERS FOR SECOND CHANCE ---
-            const validMatches = mappedMatches.filter(m => m.date && m.date !== 'TBD');
+            // --- CORE GLOBAL LOCK CHECK ---
+            const sortedByDate = [...mappedMatches]
+                .filter(m => m.date && m.date !== 'TBD')
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
-            // Group Stage End (Last group match + 120 mins buffer)
-            const groupMatches = validMatches.filter(m => m.groupId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            if (groupMatches.length > 0) {
-                setGroupStageEndTime(new Date(groupMatches[0].date).getTime() + (120 * 60 * 1000));
-            }
-
-            // Knockout Start (First R32 match)
-            const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            if (koMatches.length > 0) {
-                setKnockoutStartTime(new Date(koMatches[0].date).getTime());
-            }
-
-            // --- GLOBAL TOURNAMENT LOCK CHECK ---
-            // As requested, the entire board locks 15 mins before the first match of the tournament.
-            const sortedByDate = [...validMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             const firstMatch = sortedByDate[0];
-
             if (firstMatch) {
                 const firstKickoff = new Date(firstMatch.date).getTime();
-                const lockMargin = 15 * 60 * 1000; 
-                const globalLockTime = firstKickoff - lockMargin;
-                const now = Date.now();
-
-                if (now >= globalLockTime) {
-                    mappedMatches = mappedMatches.map(m => ({
-                        ...m,
-                        isLocked: true // Forces users to use "Subs" once the tournament begins
-                    }));
+                const globalLockTime = firstKickoff - (15 * 60 * 1000); 
+                
+                if (Date.now() >= globalLockTime) {
+                    mappedMatches = mappedMatches.map(m => ({ ...m, isLocked: true }));
                 }
             }
-            
             setMatches(mappedMatches);
           }
 
-          // B. Fetch Predictions
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) {
-            setAllPredictions(preds.map(p => ({ 
-              userId: p.user_id || '', 
-              matchId: p.match_id || '', 
-              home: p.home ?? 0, 
-              away: p.away ?? 0 
-            })));
+            setAllPredictions(preds.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
 
-          // C. Fetch Profiles
           const { data: profiles } = await supabase.from('profiles').select('*');
           if (profiles) {
               const pMap: Record<string, UserProfile> = {};
               profiles.forEach(p => {
                   pMap[p.email] = {
-                      name: p.name || '', 
-                      email: p.email, 
-                      tokens: p.tokens ?? 0, 
-                      substitutions: p.substitutions ?? 0, 
-                      avatar: p.avatar || '', 
-                      hasTakenSecondChance: p.second_chance_status === 'ACTIVE', 
-                      secondChanceStatus: (p.second_chance_status as any) || 'NONE',
-                      leagues: p.leagues || [], 
-                      favorites: p.favorites || [], 
-                      spiedMatches: p.spied_matches || [], 
-                      unlockedMatches: p.unlocked_matches || []
+                      name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0, 
+                      avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, 
+                      leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || []
                   };
               });
               setUsersDb(pMap);
           }
 
-          // D. Fetch DYNAMIC Team Data from Supabase
+          // DYNAMIC TEAM FETCHING
           const [teamsResponse, rankMap, tacticsMap, scoutingData] = await Promise.all([
-              supabase.from('teams').select('*'), // The real teams!
-              fetchAllTeamRanks(),
-              fetchAllTeamTactics(),
+              supabase.from('teams').select('*'),
+              fetchAllTeamRanks(), fetchAllTeamTactics(),
               supabase.from('scouting_overview').select('team_id, recent_form')
           ]);
 
-          const baseTeamsMap: Record<string, Team> = {
-              'TBD': { id: 'TBD', name: 'TBD', flag: '', rank: 99, rating: 50, att: 50, mid: 50, def: 50, overview: '', starPlayer: '', form: [] }
-          };
+          const baseTeamsMap: Record<string, Team> = { 'TBD': { id: 'TBD', name: 'TBD', flag: '', rank: 99, rating: 50, att: 50, mid: 50, def: 50, overview: '', starPlayer: '', form: [] } };
 
           if (teamsResponse.data) {
               teamsResponse.data.forEach(t => {
                   baseTeamsMap[t.id] = {
-                      id: t.id,
-                      name: t.name || t.id,
-                      flag: t.flag || '',
-                      rank: t.rank || 50,
-                      rating: t.rating || 50,
-                      att: t.att || 50,
-                      mid: t.mid || 50,
-                      def: t.def || 50,
-                      overview: t.overview || '',
-                      starPlayer: 'TBD',
-                      form: []
+                      id: t.id, name: t.name || t.id, flag: t.flag || '', rank: t.rank || 50, rating: t.rating || 50, att: t.att || 50, mid: t.mid || 50, def: t.def || 50, overview: t.overview || '', starPlayer: 'TBD', form: []
                   };
               });
           }
 
           setTeamsData(() => {
               const next = { ...baseTeamsMap };
-              
               const formMap: Record<string, string[]> = {};
               if (scoutingData.data) {
-                  scoutingData.data.forEach(row => {
-                      if (row.recent_form && row.team_id) {
-                          formMap[row.team_id.toUpperCase()] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c);
-                      }
-                  });
+                  scoutingData.data.forEach(row => { if (row.recent_form && row.team_id) formMap[row.team_id.toUpperCase()] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c); });
               }
 
               Object.keys(next).forEach(tid => {
                   const dbId = tid.toLowerCase();
-
                   if (next[tid] && tid !== 'TBD') {
-                      if (rankMap[dbId]) {
-                          next[tid].rank = rankMap[dbId];
-                      }
-                      if (tacticsMap[dbId]) {
-                          const t = tacticsMap[dbId];
-                          next[tid].att = t.att;
-                          next[tid].mid = t.mid;
-                          next[tid].def = t.def;
-                          next[tid].rating = Math.round((t.att + t.mid + t.def) / 3);
-                      }
-                      if (formMap[tid]) {
-                          next[tid].form = formMap[tid];
-                      }
+                      if (rankMap[dbId]) next[tid].rank = rankMap[dbId];
+                      if (tacticsMap[dbId]) { const t = tacticsMap[dbId]; next[tid].att = t.att; next[tid].mid = t.mid; next[tid].def = t.def; next[tid].rating = Math.round((t.att + t.mid + t.def) / 3); }
+                      if (formMap[tid]) next[tid].form = formMap[tid];
                   }
               });
               return next;
@@ -210,30 +118,20 @@ export const useAppData = () => {
       } catch (e) { console.error("Data Load Error", e); }
   };
 
-  // 3. Fetch User Profile
   const fetchUserProfile = async (email: string) => {
       if (!isSupabaseConfigured || !supabase) return;
       try {
           const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
-              const profile: UserProfile = {
-                  name: data.name || '', 
-                  email: data.email, 
-                  tokens: data.tokens ?? 0, 
-                  substitutions: data.substitutions ?? 0,
-                  unlockedMatches: data.unlocked_matches || [], 
-                  hasTakenSecondChance: data.second_chance_status === 'ACTIVE', 
-                  secondChanceStatus: (data.second_chance_status as any) || 'NONE',
-                  spiedMatches: data.spied_matches || [], 
-                  favorites: data.favorites || [], 
-                  avatar: data.avatar || '', 
-                  leagues: data.leagues || []
-              };
-              setUser(profile);
+              setUser({
+                  name: data.name || '', email: data.email, tokens: data.tokens ?? 0, substitutions: data.substitutions ?? 0,
+                  unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance,
+                  spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || []
+              });
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
-                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
+                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5 };
                   await supabase.from('profiles').upsert(fallback);
                   setUser(fallback as any);
               }
@@ -242,18 +140,13 @@ export const useAppData = () => {
       finally { setLoading(false); loadGameData(); }
   };
 
-  // 4. Initial Setup Effect
   useEffect(() => {
       if (isSupabaseConfigured && supabase) {
           fetchPresetAvatars();
-          
           supabase.auth.getSession().then(({ data: { session } }) => {
               setSession(session);
               if (session?.user?.email) fetchUserProfile(session.user.email);
-              else {
-                  setLoading(false);
-                  loadGameData();
-              }
+              else { setLoading(false); loadGameData(); }
           });
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
               setSession(session);
@@ -266,7 +159,6 @@ export const useAppData = () => {
 
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime
+    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets
   };
 };
