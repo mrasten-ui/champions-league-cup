@@ -91,8 +91,11 @@ export const useAppData = () => {
 
           if (teamsResponse.data) {
               teamsResponse.data.forEach(t => {
-                  baseTeamsMap[t.id] = {
-                      id: t.id, name: t.name || t.id, flag: t.flag || '', rank: t.rank || 50, rating: t.rating || 50, att: t.att || 50, mid: t.mid || 50, def: t.def || 50, overview: t.overview || '', starPlayer: 'TBD', form: []
+                  // THE MAGIC FIX: FORCE UPPERCASE
+                  const safeId = t.id.toUpperCase();
+                  
+                  baseTeamsMap[safeId] = {
+                      id: safeId, name: t.name || safeId, flag: t.flag || '', rank: t.rank || 50, rating: t.rating || 50, att: t.att || 50, mid: t.mid || 50, def: t.def || 50, overview: t.overview || '', starPlayer: 'TBD', form: []
                   };
               });
           }
