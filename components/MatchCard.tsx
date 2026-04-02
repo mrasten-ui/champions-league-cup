@@ -298,8 +298,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {match.date && match.date !== 'TBD' ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { 
-                        hour: '2-digit', 
+                    {match.date && match.date !== 'TBD' && !isNaN(new Date(match.date).getTime()) ? new Date(match.date).toLocaleTimeString(locale || 'en-US', {
+                        hour: '2-digit',
                         minute: '2-digit',
                         hour12: false,
                         timeZoneName: 'short'
@@ -343,8 +343,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {variant === 'prediction' ? (
                         (context === 'groups' || context === 'knockout') ? (
                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                                {/* DEFENSIVE FIX: Check for 'TBD' before parsing Date */}
-                                {match.date && match.date !== 'TBD' ? new Date(match.date).toLocaleDateString(locale || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}
+                                {match.date && match.date !== 'TBD' && !isNaN(new Date(match.date).getTime()) ? new Date(match.date).toLocaleDateString(locale || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}
                              </span>
                         ) : (
                              <div className="h-6 opacity-80 flex items-center justify-center">

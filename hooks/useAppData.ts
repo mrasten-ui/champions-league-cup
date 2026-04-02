@@ -136,9 +136,11 @@ export const useAppData = () => {
               Object.keys(next).forEach(tid => {
                   const dbId = tid.toLowerCase();
                   if (next[tid] && tid !== 'TBD') {
-                      if (rankMap[dbId]) next[tid].rank = rankMap[dbId];
-                      if (tacticsMap[dbId]) { const t = tacticsMap[dbId]; next[tid].att = t.att; next[tid].mid = t.mid; next[tid].def = t.def; next[tid].rating = Math.round((t.att + t.mid + t.def) / 3); }
-                      if (formMap[tid]) next[tid].form = formMap[tid];
+                      const updates: Partial<typeof next[string]> = {};
+                      if (rankMap[dbId]) updates.rank = rankMap[dbId];
+                      if (tacticsMap[dbId]) { const tc = tacticsMap[dbId]; updates.att = tc.att; updates.mid = tc.mid; updates.def = tc.def; updates.rating = Math.round((tc.att + tc.mid + tc.def) / 3); }
+                      if (formMap[tid]) updates.form = formMap[tid];
+                      if (Object.keys(updates).length > 0) next[tid] = { ...next[tid], ...updates };
                   }
               });
               return next;
@@ -160,9 +162,21 @@ export const useAppData = () => {
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
-                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
-                  await supabase.from('profiles').upsert(fallback);
-                  setUser(fallback as any);
+                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
+                  await supabase.from('profiles').upsert(dbRow);
+                  setUser({
+                      email,
+                      name: dbRow.name,
+                      avatar: '',
+                      tokens: 5,
+                      substitutions: 5,
+                      leagues: [],
+                      favorites: [],
+                      spiedMatches: [],
+                      unlockedMatches: [],
+                      hasTakenSecondChance: false,
+                      secondChanceStatus: 'NONE',
+                  });
               }
           }
       } catch (err) { console.error("Profile Error", err); } 

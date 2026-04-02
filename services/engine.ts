@@ -435,6 +435,7 @@ export const applyPredictionsToBracket = (
         });
         const nextState = updateBracket(currentMatches, teams);
         currentMatches = nextState;
+        if (!hasChanges) break;
     }
     return currentMatches;
 };

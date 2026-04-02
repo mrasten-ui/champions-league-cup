@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye, Mic } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
@@ -119,7 +119,7 @@ export const App = () => {
       if (!user) return matches;
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
 
-      const isDraftingWindow = user.secondChanceStatus === 'PENDING' && Date.now() >= groupStageEndTime;
+      const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
 
       // If they activated OR are currently drafting, ignore their group predictions
       if (user.hasTakenSecondChance || user.secondChanceStatus === 'ACTIVE' || isDraftingWindow) {
@@ -196,7 +196,8 @@ export const App = () => {
         return [...prev, newPred];
     });
 
-    await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
+    const { error: predError } = await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
+    if (predError) addToast('error', 'Save Failed', 'Prediction could not be saved.');
 
     if (isWhitelisted) {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
@@ -212,8 +213,9 @@ export const App = () => {
       const newSpied = [...(user.spiedMatches || []), matchId];
       const newTokens = user.tokens - 1;
       setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
-      await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
-      addToast('success', 'Rival Revealed', '-1 Intel used.');
+      const { error: spyError } = await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
+      if (spyError) addToast('error', 'Save Failed', 'Could not save spy action.');
+      else addToast('success', 'Rival Revealed', '-1 Intel used.');
   };
 
   const handleSubstitute = async (matchId: string) => {
@@ -232,8 +234,9 @@ export const App = () => {
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
       setUser({ ...user, substitutions: newSubs, unlockedMatches: newUnlocked });
-      await supabase.from('profiles').update({ substitutions: newSubs, unlocked_matches: newUnlocked } as any).eq('email', user.email);
-      addToast('success', (t as any).subSuccess || 'Substitution Successful', `${(t as any).substitutions || 'Substitutions'}: ${newSubs} left`);
+      const { error: subError } = await supabase.from('profiles').update({ substitutions: newSubs, unlocked_matches: newUnlocked } as any).eq('email', user.email);
+      if (subError) addToast('error', 'Save Failed', 'Substitution could not be saved.');
+      else addToast('success', (t as any).subSuccess || 'Substitution Successful', `${(t as any).substitutions || 'Substitutions'}: ${newSubs} left`);
   };
 
   // --- STAGE 1: PLEDGE ---
@@ -270,34 +273,35 @@ export const App = () => {
   const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
 
   // --- REFUND WATCHER ---
-  useEffect(() => {
-    if (!user || !matches || !user.unlockedMatches || user.unlockedMatches.length === 0) return;
+  // Tracks IDs already refunded this session to prevent double-processing if the
+  // effect fires twice before the state update has propagated.
+  const refundedMatchIds = useRef<Set<string>>(new Set());
 
-    const matchesToRefund: string[] = [];
-    user.unlockedMatches.forEach(unlockedId => {
-        const match = matches.find(m => m.id === unlockedId);
-        if (match && !['UPCOMING', 'NS'].includes(match.status)) {
-            matchesToRefund.push(unlockedId);
-        }
+  useEffect(() => {
+    if (!user?.email || !user.unlockedMatches?.length || !matches.length) return;
+
+    const matchesToRefund = user.unlockedMatches.filter(id => {
+        if (refundedMatchIds.current.has(id)) return false;
+        const match = matches.find(m => m.id === id);
+        return match && !['UPCOMING', 'NS'].includes(match.status);
     });
 
-    if (matchesToRefund.length > 0) {
-        const performRefund = async () => {
-            const newUnlocked = user.unlockedMatches!.filter(id => !matchesToRefund.includes(id));
-            const newSubs = user.substitutions + matchesToRefund.length;
-            
-            setUser(prev => prev ? { ...prev, unlockedMatches: newUnlocked, substitutions: newSubs } : null);
-            
-            if (supabase) {
-                await supabase.from('profiles')
-                    .update({ unlocked_matches: newUnlocked, substitutions: newSubs } as any)
-                    .eq('email', user.email);
-            }
+    if (matchesToRefund.length === 0) return;
 
-            addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
-        };
-        performRefund();
+    matchesToRefund.forEach(id => refundedMatchIds.current.add(id));
+
+    const newUnlocked = user.unlockedMatches.filter(id => !matchesToRefund.includes(id));
+    const newSubs = user.substitutions + matchesToRefund.length;
+
+    setUser(prev => prev ? { ...prev, unlockedMatches: newUnlocked, substitutions: newSubs } : null);
+
+    if (supabase) {
+        supabase.from('profiles')
+            .update({ unlocked_matches: newUnlocked, substitutions: newSubs } as any)
+            .eq('email', user.email);
     }
+
+    addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
   }, [matches, user?.unlockedMatches]);
 
   useEffect(() => {

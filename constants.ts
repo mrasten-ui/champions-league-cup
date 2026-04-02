@@ -1,9 +1,7 @@
 import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } from './types';
 
-// HOST CONFIGURATION - UPDATED WITH THE WORKING KEY
-export const HOST_KEYS = [
-  "AIzaSyBXlaMB4YaacEvtoUJ4rK8QIHE0fy0qKgw"
-];
+// API key must be set as VITE_GOOGLE_API_KEY in .env.local — never commit keys here
+export const HOST_KEYS: string[] = [];
 
 // --- INTRO VIDEOS ---
 export const INTRO_VIDEOS: Record<LanguageCode, string> = {

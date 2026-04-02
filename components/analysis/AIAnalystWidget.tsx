@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../../types'; 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { HOST_KEYS } from '../../constants';
 import { Sparkles, RefreshCw, BrainCircuit, Mic, Play, Pause, Radio, Volume2, AlertCircle, WifiOff } from 'lucide-react';
 import { supabase } from '../../supabase';
 
@@ -243,9 +242,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({ currentUser, combine
         };
 
         try {
-            const viteKey = import.meta.env?.VITE_GOOGLE_API_KEY;
-            const hostKey = HOST_KEYS[0];
-            const apiKey = viteKey || hostKey;
+            const apiKey = import.meta.env?.VITE_GEMINI_API_KEY;
             
             if (!apiKey) {
                 console.warn("[AI Widget] No API Key found. Using offline mode.");
