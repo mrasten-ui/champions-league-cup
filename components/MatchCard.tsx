@@ -230,7 +230,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return match.venue || 'FRIENDLY';
     };
 
-    // DEFENSIVE FIX: Always fallback to 'en-US' if locale is missing
     const getTvChannelName = () => {
         if (!match.channels) return null;
         let regionKey = 'US';
@@ -290,7 +289,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
-    // DEFENSIVE FIX: Fallback to 'en-US' for time formatting
+    // DEFENSIVE FIX: Check for 'TBD' before parsing Date
     const getLeftStatus = () => {
         if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
         if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
@@ -299,12 +298,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />
                 <span className="text-[10px] font-bold">
-                    {new Date(match.date).toLocaleTimeString(locale || 'en-US', { 
+                    {match.date && match.date !== 'TBD' ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { 
                         hour: '2-digit', 
                         minute: '2-digit',
                         hour12: false,
                         timeZoneName: 'short'
-                    })}
+                    }) : 'TBD'}
                 </span>
             </div>
         );
@@ -344,8 +343,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {variant === 'prediction' ? (
                         (context === 'groups' || context === 'knockout') ? (
                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                                {/* DEFENSIVE FIX: Fallback to 'en-US' */}
-                                {new Date(match.date).toLocaleDateString(locale || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {/* DEFENSIVE FIX: Check for 'TBD' before parsing Date */}
+                                {match.date && match.date !== 'TBD' ? new Date(match.date).toLocaleDateString(locale || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}
                              </span>
                         ) : (
                              <div className="h-6 opacity-80 flex items-center justify-center">
