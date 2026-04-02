@@ -18,6 +18,10 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
+  // --- SECOND CHANCE TIMERS ---
+  const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
+  const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
+
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     const getSafeUrl = (path: string) => supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
@@ -45,10 +49,21 @@ export const useAppData = () => {
               channels: m.channels as any, nextMatchId: m.next_match_id || undefined
             }));
 
-            const sortedByDate = [...mappedMatches]
-                .filter(m => m.date && m.date !== 'TBD')
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            // --- CALCULATE TIMERS ---
+            const validMatches = mappedMatches.filter(m => m.date && m.date !== 'TBD');
             
+            const groupMatches = validMatches.filter(m => m.groupId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            if (groupMatches.length > 0) {
+                setGroupStageEndTime(new Date(groupMatches[0].date).getTime() + (120 * 60 * 1000));
+            }
+
+            const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            if (koMatches.length > 0) {
+                setKnockoutStartTime(new Date(koMatches[0].date).getTime());
+            }
+
+            // --- CORE GLOBAL LOCK CHECK ---
+            const sortedByDate = [...validMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             const firstMatch = sortedByDate[0];
             if (firstMatch) {
                 const firstKickoff = new Date(firstMatch.date).getTime();
@@ -72,7 +87,7 @@ export const useAppData = () => {
               profiles.forEach(p => {
                   pMap[p.email] = {
                       name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0, 
-                      avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, 
+                      avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
                       leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || []
                   };
               });
@@ -92,9 +107,7 @@ export const useAppData = () => {
                   const safeId = t.id.toUpperCase();
                   const existingTeam = baseTeamsMap[safeId];
                   
-                  // THE BULLETPROOF FIX:
-                  // Only update the map if the new row has a flag, OR if we haven't saved a flag yet.
-                  // This prevents a ghost row with no flag from overwriting a good row with a flag.
+                  // BULLETPROOF FLAG FIX: Prevents empty ghost rows from overwriting valid flags
                   if (!existingTeam || !existingTeam.flag || t.flag) {
                       baseTeamsMap[safeId] = {
                           id: safeId, 
@@ -141,13 +154,13 @@ export const useAppData = () => {
           if (data) {
               setUser({
                   name: data.name || '', email: data.email, tokens: data.tokens ?? 0, substitutions: data.substitutions ?? 0,
-                  unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance,
+                  unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance, secondChanceStatus: (data.second_chance_status as any) || 'NONE',
                   spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || []
               });
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
-                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5 };
+                  const fallback = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(fallback);
                   setUser(fallback as any);
               }
@@ -175,6 +188,7 @@ export const useAppData = () => {
 
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets
+    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
+    groupStageEndTime, knockoutStartTime // <--- RE-ADDED: Fixes the Vercel crash!
   };
 };
