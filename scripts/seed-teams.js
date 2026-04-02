@@ -5,60 +5,97 @@ import path from 'path';
 
 // 1. Load Environment
 const envPath = path.resolve(process.cwd(), '.env');
-if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
-else dotenv.config({ path: '.env.local' });
+if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+} else {
+    dotenv.config({ path: '.env.local' });
+}
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-// 2. Data from constants.ts
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ Error: Missing Supabase credentials in .env file.");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 2. The Official 2026 Team List
 const TEAM_NAMES = {
   MEX: "Mexico", RSA: "South Africa", KOR: "Korea Republic", CZE: "Czechia",
   CAN: "Canada", BIH: "Bosnia", QAT: "Qatar", SUI: "Switzerland",
-  HAI: "Haiti", SCO: "Scotland", BRA: "Brazil", MAR: "Morocco",
-  USA: "USA", PAR: "Paraguay", AUS: "Australia", KOS: "Kosovo",
+  BRA: "Brazil", MAR: "Morocco", HAI: "Haiti", SCO: "Scotland",
+  USA: "USA", PAR: "Paraguay", AUS: "Australia", TUR: "Turkey",
   GER: "Germany", CUW: "Curacao", CIV: "Ivory Coast", ECU: "Ecuador",
-  NED: "Netherlands", JPN: "Japan", ALB: "Albania", TUN: "Tunisia",
+  NED: "Netherlands", JPN: "Japan", SWE: "Sweden", TUN: "Tunisia",
   BEL: "Belgium", EGY: "Egypt", IRN: "Iran", NZL: "New Zealand",
   ESP: "Spain", CPV: "Cabo Verde", KSA: "Saudi Arabia", URU: "Uruguay",
-  FRA: "France", SEN: "Senegal", BOL: "Bolivia", NOR: "Norway",
+  FRA: "France", SEN: "Senegal", IRQ: "Iraq", NOR: "Norway",
   ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
   POR: "Portugal", COD: "Congo DR", UZB: "Uzbekistan", COL: "Colombia",
   ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
   TBD: "TBD"
 };
 
+// Map to standard 2-letter ISO codes for flagcdn
 const FLAG_MAP = {
   MEX: "mx", RSA: "za", KOR: "kr", CZE: "cz",
   CAN: "ca", BIH: "ba", QAT: "qa", SUI: "ch",
-  HAI: "ht", SCO: "gb-sct", BRA: "br", MAR: "ma",
-  USA: "us", PAR: "py", AUS: "au", KOS: "xk",
+  BRA: "br", MAR: "ma", HAI: "ht", SCO: "gb-sct",
+  USA: "us", PAR: "py", AUS: "au", TUR: "tr",
   GER: "de", CUW: "cw", CIV: "ci", ECU: "ec",
-  NED: "nl", JPN: "jp", ALB: "al", TUN: "tn",
+  NED: "nl", JPN: "jp", SWE: "se", TUN: "tn",
   BEL: "be", EGY: "eg", IRN: "ir", NZL: "nz",
   ESP: "es", CPV: "cv", KSA: "sa", URU: "uy",
-  FRA: "fr", SEN: "sn", BOL: "bo", NOR: "no",
+  FRA: "fr", SEN: "sn", IRQ: "iq", NOR: "no",
   ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
   POR: "pt", COD: "cd", UZB: "uz", COL: "co",
-  ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa"
+  ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
+  TBD: ""
 };
 
 async function seedTeams() {
-  console.log('🌍 Seeding Teams Table...');
-  const rows = Object.entries(TEAM_NAMES).map(([id, name]) => ({
-    id,
-    name,
-    flag: FLAG_MAP[id] ? `https://flagcdn.com/w320/${FLAG_MAP[id]}.png` : '',
-    rank: 50, // Default, update later via SQL if needed
-    rating: 75
-  }));
+  console.log('🔍 Checking existing database to protect your scouting/tactics data...');
+  
+  // Fetch existing teams to map names to whatever IDs are already safely in the DB
+  const { data: existingTeams, error: fetchError } = await supabase.from('teams').select('id, name');
+  if (fetchError) {
+      console.error("❌ Failed to fetch existing teams:", fetchError);
+      return;
+  }
 
-  const { error } = await supabase.from('teams').upsert(rows);
+  const nameToIdMap = {};
+  if (existingTeams) {
+      existingTeams.forEach(t => {
+          nameToIdMap[t.name] = t.id;
+      });
+  }
 
-  if (error) console.error('❌ Error:', error);
-  else console.log(`✅ Successfully seeded ${rows.length} teams.`);
+  console.log('🌍 Updating Teams Table with flags...');
+  const rows = Object.entries(TEAM_NAMES).map(([defaultId, name]) => {
+      // Use the existing DB ID if it exists (e.g. 'mex'), otherwise use the default ('MEX')
+      const actualId = nameToIdMap[name] || defaultId;
+      return {
+          id: actualId,
+          name: name,
+          flag: FLAG_MAP[defaultId] ? `https://flagcdn.com/w320/${FLAG_MAP[defaultId]}.png` : '',
+          rank: 50, 
+          rating: 75,
+          att: 75,
+          mid: 75,
+          def: 75,
+          overview: 'Team Overview TBD'
+      };
+  });
+
+  const { error } = await supabase.from('teams').upsert(rows, { onConflict: 'id' });
+
+  if (error) {
+      console.error('❌ Insert Error:', error.message);
+  } else {
+      console.log(`✅ Successfully updated ${rows.length} teams with flags without breaking any constraints!`);
+  }
 }
 
 seedTeams();
