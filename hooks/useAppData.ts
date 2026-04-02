@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { INITIAL_MATCHES, MOCK_PREDICTIONS } from '../constants';
+import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
@@ -112,7 +112,7 @@ export const useAppData = () => {
                       baseTeamsMap[safeId] = {
                           id: safeId, 
                           name: t.name || safeId, 
-                          flag: t.flag || '', 
+                          flag: t.flag || TEAMS[safeId]?.flag || '',
                           rank: t.rank || 50, 
                           rating: t.rating || 50, 
                           att: t.att || 50, 
