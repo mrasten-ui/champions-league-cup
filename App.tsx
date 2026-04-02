@@ -35,20 +35,21 @@ import { useAppData } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
-// --- NEW IMPORTS FOR TOUR ---
 import { TourGuide } from './components/TourGuide';
 import { PRE_SEASON_TOUR } from './components/tourConfig';
 import { StudioGenerator } from './components/StudioGenerator';
+import { SecondChanceView } from './components/SecondChanceView';
 
 const STORAGE_KEYS = { 
-    CURRENT_USER: 'rasten_cup_active_user_v2',
-    TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' 
+  CURRENT_USER: 'rasten_cup_active_user_v2',
+  TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' 
 };
 
-const App: React.FC = () => {
+export const App = () => {
   const { 
     session, user, setUser, loading, matches, setMatches, teamsData, 
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets 
+    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
+    groupStageEndTime, knockoutStartTime
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
@@ -73,7 +74,6 @@ const App: React.FC = () => {
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
-  // --- NEW: Tour & Studio State ---
   const [showTour, setShowTour] = useState(false);
   const [showStudio, setShowStudio] = useState(false); 
 
@@ -88,7 +88,6 @@ const App: React.FC = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // Calculated stats for PlayerProgress
   const totalMatchesCount = useMemo(() => ({
       group: matches.filter(m => m.groupId).length,
       knockout: matches.filter(m => m.round).length
@@ -115,16 +114,20 @@ const App: React.FC = () => {
       setTimeout(() => setHighlightedMatchId(null), 2000);
   };
 
-  // --- CORE LOGIC ---
+  // --- CORE LOGIC WITH 3-STAGE SECOND CHANCE OVERRIDE ---
   const userMatches = useMemo(() => {
       if (!user) return matches;
       let userSpecificPreds = allPredictions.filter(p => p.userId === user.email);
-      if (user.hasTakenSecondChance) {
+
+      const isDraftingWindow = user.secondChanceStatus === 'PENDING' && Date.now() >= groupStageEndTime;
+
+      // If they activated OR are currently drafting, ignore their group predictions
+      if (user.hasTakenSecondChance || user.secondChanceStatus === 'ACTIVE' || isDraftingWindow) {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
       }
       return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
-  }, [matches, teamsData, allPredictions, user]);
+  }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
@@ -179,16 +182,13 @@ const App: React.FC = () => {
     addToast('success', 'Profile Updated', 'New avatar looks great!');
   };
 
-  // --- SCORE UPDATE & RELOCK ---
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
     
-    // Check if user is allowed to update (Global Lock OR Unlocked Whitelist)
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
     if (!match || (match.isLocked && !isWhitelisted)) return;
     
-    // 1. Save Prediction Locally & DB
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
     setAllPredictions(prev => {
         const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
@@ -198,7 +198,6 @@ const App: React.FC = () => {
 
     await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
 
-    // 2. AUTO-RELOCK (Remove from whitelist after save)
     if (isWhitelisted) {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
         setUser({ ...user, unlockedMatches: newUnlocked });
@@ -217,13 +216,10 @@ const App: React.FC = () => {
       addToast('success', 'Rival Revealed', '-1 Intel used.');
   };
 
-  // --- SUBSTITUTE WITH STATUS CHECKS ---
   const handleSubstitute = async (matchId: string) => {
       if (!user || !supabase) return;
       
       const match = matches.find(m => m.id === matchId);
-      
-      // Rule: Cannot sub finished or live games
       const isStarted = match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status);
       
       if (!match || isStarted) {
@@ -240,13 +236,24 @@ const App: React.FC = () => {
       addToast('success', (t as any).subSuccess || 'Substitution Successful', `${(t as any).substitutions || 'Substitutions'}: ${newSubs} left`);
   };
 
-  const handleUnlockSecondChance = async () => {
+  // --- STAGE 1: PLEDGE ---
+  const handlePledgeSecondChance = async () => {
       if (!user || !supabase) return;
-      if (window.confirm("Unlock Second Chance? This reduces future points by 50%.")) {
-          setUser({ ...user, hasTakenSecondChance: true });
-          await supabase.from('profiles').update({ has_taken_second_chance: true } as any).eq('email', user.email);
-          addToast('info', 'Second Chance Active', 'Good luck with the new bracket!');
+      if (window.confirm("Pledge your Second Chance? You will be able to draft your new bracket as soon as the Group Stage ends.")) {
+          setUser({ ...user, secondChanceStatus: 'PENDING' });
+          await supabase.from('profiles').update({ second_chance_status: 'PENDING' } as any).eq('email', user.email);
+          addToast('info', 'Pledge Locked', 'Check the Knockout tab for your countdown timer!');
           setActiveTab('knockout');
+      }
+  };
+
+  // --- STAGE 3: LOCK IN ---
+  const handleLockInSecondChance = async () => {
+      if (!user || !supabase) return;
+      if (window.confirm("Lock in this bracket? Your 50% penalty will now be permanently applied.")) {
+          setUser({ ...user, secondChanceStatus: 'ACTIVE', hasTakenSecondChance: true });
+          await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true } as any).eq('email', user.email);
+          addToast('success', 'Bracket Locked', 'Your Second Chance is now active!');
       }
   };
 
@@ -269,7 +276,6 @@ const App: React.FC = () => {
     const matchesToRefund: string[] = [];
     user.unlockedMatches.forEach(unlockedId => {
         const match = matches.find(m => m.id === unlockedId);
-        // If match exists AND it is no longer UPCOMING/NS
         if (match && !['UPCOMING', 'NS'].includes(match.status)) {
             matchesToRefund.push(unlockedId);
         }
@@ -280,10 +286,8 @@ const App: React.FC = () => {
             const newUnlocked = user.unlockedMatches!.filter(id => !matchesToRefund.includes(id));
             const newSubs = user.substitutions + matchesToRefund.length;
             
-            // Update State
             setUser(prev => prev ? { ...prev, unlockedMatches: newUnlocked, substitutions: newSubs } : null);
             
-            // Update DB
             if (supabase) {
                 await supabase.from('profiles')
                     .update({ unlocked_matches: newUnlocked, substitutions: newSubs } as any)
@@ -312,62 +316,30 @@ const App: React.FC = () => {
       checkPendingLeague();
   }, [user]);
 
-  // --- NEW: TRIGGER TOUR ---
+  // --- TOUR GUIDE CONTROLS ---
   useEffect(() => {
-      // Logic: If user exists, phase is PRE_LIVE, and user has NOT seen the tour
-      // Check both DB status AND Local Storage Backup
       const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
-
       if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason && !localTourCompleted) {
-          const timer = setTimeout(() => setShowTour(true), 1500); // 1.5s Delay so UI loads
+          const timer = setTimeout(() => setShowTour(true), 1500); 
           return () => clearTimeout(timer);
       }
   }, [user, tournamentPhase]);
 
   const handleTourComplete = async () => {
       setShowTour(false);
-      
-      // 1. SAVE TO LOCAL STORAGE (Immediate Backup)
-      if (user?.email) {
-          localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email, 'true');
-      }
-
-      // 2. SAVE TO DATABASE
+      if (user?.email) localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email, 'true');
       if (user && supabase) {
           const newTours = { ...(user.toursCompleted || { liveSeason: false }), preSeason: true };
-          // Update local state
           setUser({ ...user, toursCompleted: newTours });
-          // Update DB (Uses JSONB column in supabase usually, or we map it)
           await supabase.from('profiles').update({ tours_completed: newTours } as any).eq('email', user.email);
       }
   };
 
-  // --- NEW: Tour Navigation Handler (Auto-drives the app) ---
-  // MODIFIED: Removed all window.scrollTo calls to prevent conflicts with TourGuide
   const handleTourNavigation = (stepId: string) => {
-      
-      if (stepId === 'match_card') {
-          if (activeTab !== 'groups') {
-              setActiveTab('groups');
-              setActiveGroup('A');
-          }
-      } 
-      else if (stepId === 'groups_nav') {
-          if (activeTab !== 'groups') setActiveTab('groups');
-      }
-      else if (stepId === 'magic_wand') {
-          // No scroll needed, wand is sticky/fixed usually
-      }
-      else if (stepId === 'knockout_tab') {
-          if (activeTab !== 'knockout') setActiveTab('knockout');
-      }
-      else if (stepId === 'profile_menu') {
-          // Reset for end of tour
-          if (activeTab !== 'groups') {
-              setActiveTab('groups');
-              setActiveGroup('A');
-          }
-      }
+      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); } 
+      else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
+      else if (stepId === 'knockout_tab' && activeTab !== 'knockout') setActiveTab('knockout');
+      else if (stepId === 'profile_menu' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -413,9 +385,7 @@ const App: React.FC = () => {
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
   const navTabs = useMemo(() => {
-      if (tournamentPhase === 'PRE_LIVE') {
-          return ['groups', 'knockout', 'scouting', 'leaderboard'];
-      }
+      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'scouting', 'leaderboard'];
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
@@ -462,10 +432,7 @@ const App: React.FC = () => {
 
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
-  // --- STUDIO MODE CHECK (Render StudioGenerator only if toggled) ---
-  if (showStudio) {
-      return <StudioGenerator />;
-  }
+  if (showStudio) return <StudioGenerator />;
 
   if (!user || !session) {
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
@@ -487,7 +454,7 @@ const App: React.FC = () => {
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
-        onStartTour={() => setShowTour(true)} // <--- CONNECTED: Replay Handler
+        onStartTour={() => setShowTour(true)} 
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
@@ -531,7 +498,7 @@ const App: React.FC = () => {
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
-                   <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handleUnlockSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
+                   <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (
                    <>
                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
@@ -541,7 +508,7 @@ const App: React.FC = () => {
                           {groupMatchesList.map((match, index) => (
                               <MatchCard 
                                 key={match.id} 
-                                cardId={index === 0 ? "tour-first-match" : undefined} // <--- ID FOR TOUR SPOTLIGHT
+                                cardId={index === 0 ? "tour-first-match" : undefined} 
                                 match={match} 
                                 homeTeam={teamsData[match.homeTeamId]} 
                                 awayTeam={teamsData[match.awayTeamId]} 
@@ -576,28 +543,24 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* KNOCKOUT TAB */}
+        {/* KNOCKOUT TAB - WITH SECOND CHANCE OVERRIDE */}
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
-                <KnockoutBracket 
-                    matches={userMatches} 
-                    teams={teamsData} 
-                    onUpdate={handleScoreUpdate} 
-                    lang={t} 
-                    user={user} 
-                    onSecondChance={handleUnlockSecondChance} 
-                    rivals={rivalsList} 
-                    allPredictions={allPredictions} 
-                    phase={tournamentPhase} 
-                    // FIXED: Unlock Bracket during Tour
-                    isGroupStageComplete={isGroupStageComplete || showTour} 
-                    firstIncompleteGroup={firstIncompleteGroup} 
-                    onGoToGroup={handleGoToGroup} 
-                    onTeamClick={(id) => setViewingTeamId(id)} 
-                    onSpy={handleSpy} 
-                    revealedRivals={user?.spiedMatches || []} 
-                    activeRound={activeKnockoutRound} 
-                />
+                {(user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE') ? (
+                    <SecondChanceView 
+                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} 
+                        onPledge={handlePledgeSecondChance} onLockIn={handleLockInSecondChance} rivals={rivalsList} 
+                        allPredictions={allPredictions} phase={tournamentPhase} onTeamClick={setViewingTeamId} 
+                        onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime} 
+                    />
+                ) : (
+                    <KnockoutBracket 
+                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} 
+                        onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} 
+                        isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} 
+                        onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} 
+                    />
+                )}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
                         <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span></button>
@@ -611,35 +574,18 @@ const App: React.FC = () => {
             </div>
         )}
         
-        {/* LEADERBOARD (THE COMPETITION) - Shows PlayerProgress in PRE-LIVE */}
+        {/* LEADERBOARD */}
         {activeTab === 'leaderboard' && (
             <>
                 {tournamentPhase === 'PRE_LIVE' ? (
-                    // PRE-LIVE: Community Progress
-                    <PlayerProgress 
-                        users={Object.values(usersDb)} 
-                        allPredictions={allPredictions} 
-                        totalMatches={totalMatchesCount} 
-                        lang={t} 
-                        currentUserLeagues={user.leagues} 
-                    />
+                    <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={totalMatchesCount} lang={t} currentUserLeagues={user.leagues} />
                 ) : (
-                    // LIVE: The Real Leaderboard
-                    <Leaderboard 
-                        users={Object.values(usersDb)} 
-                        matches={matches} 
-                        allPredictions={allPredictions} 
-                        lang={t} 
-                        currentUserEmail={user?.email} 
-                        currentUserLeagues={user?.leagues} 
-                        teams={teamsData} 
-                        onTeamClick={(id) => setViewingTeamId(id)} 
-                    />
+                    <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />
                 )}
             </>
         )}
         
-        {/* MANAGER TAB (PERSONAL DASHBOARD) - LIVE ONLY */}
+        {/* MANAGER TAB */}
         {activeTab === 'manager' && (
             <ManagerHub 
                 matches={matches}      
@@ -649,21 +595,14 @@ const App: React.FC = () => {
                 currentUser={user} 
                 lang={t} 
                 onSubstitute={handleSubstitute}
-                onUnlockSecondChance={handleUnlockSecondChance}
+                onUnlockSecondChance={handlePledgeSecondChance}
                 onUpdate={handleScoreUpdate}
                 phase={tournamentPhase} 
             />
         )}
       </main>
 
-      {/* --- TOUR GUIDE OVERLAY --- */}
-      <TourGuide 
-        steps={PRE_SEASON_TOUR} 
-        isOpen={showTour} 
-        onComplete={handleTourComplete} 
-        langCode={language} 
-        onStepChange={handleTourNavigation} // <--- CONNECTED HERE
-      />
+      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -676,60 +615,20 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <DebugTools 
-        isOpen={isDebugOpen} 
-        onClose={() => setIsDebugOpen(false)} 
-        onSeed={() => {}} 
-        onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} 
-        onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} 
-        onClear={() => { localStorage.clear(); window.location.reload(); }} 
-        onTimeTravel={handleTimeTravel} 
-        
-        onStressTest={() => {
-            // Placeholder for engine update if needed
-            addToast('info', 'Stress Test', 'Functionality placeholder');
-        }}
-
-        isAdminMode={isAdminMode} 
-        onToggleAdmin={() => setIsAdminMode(!isAdminMode)} 
-        lang={t} 
-        users={Object.values(usersDb) as UserProfile[]} 
-        predictions={allPredictions} 
-        matches={matches} 
-    />
+      <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} onStressTest={() => { addToast('info', 'Stress Test', 'Functionality placeholder'); }} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
-            isOpen={isHelpingHandOpen} 
-            onClose={() => setIsHelpingHandOpen(false)} 
-            teams={teamsData} 
-            initialFavorites={user.favorites} 
-            mode={getSimMode()}
-            lang={t}
+            isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={teamsData} initialFavorites={user.favorites} mode={getSimMode()} lang={t}
             onGenerate={async (favs, scope) => {
-                if (user && supabase) {
-                    await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email);
-                    setUser({ ...user, favorites: favs });
-                }
+                if (user && supabase) { await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email); setUser({ ...user, favorites: favs }); }
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope);
-                const relevantMatches = simulatedMatches.filter(m => {
-                    if (safeScope === 'GROUPS') return !!m.groupId;
-                    if (safeScope === 'KNOCKOUT') return !!m.round;
-                    return true;
-                });
+                const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !!m.groupId; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
 
                 if (user && supabase) {
-                    const predictionsToSave = relevantMatches
-                        .filter(m => m.homeScore !== null && m.awayScore !== null)
-                        .map(m => ({
-                            user_id: user.email,
-                            match_id: m.id,
-                            home: m.homeScore,
-                            away: m.awayScore
-                        }));
-
+                    const predictionsToSave = relevantMatches.filter(m => m.homeScore !== null && m.awayScore !== null).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore, away: m.awayScore }));
                     if (predictionsToSave.length > 0) {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
@@ -737,14 +636,10 @@ const App: React.FC = () => {
                             setAllPredictions(prev => {
                                 const others = prev.filter(p => p.userId !== user.email);
                                 const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
-                                const myNewPreds = predictionsToSave.map(p => ({ 
-                                    userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away 
-                                }));
+                                const myNewPreds = predictionsToSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
                                 return [...others, ...myOldPreds, ...myNewPreds];
                             });
-                        } else {
-                            addToast('error', 'Save Failed', 'Could not save magic predictions.');
-                        }
+                        } else { addToast('error', 'Save Failed', 'Could not save magic predictions.'); }
                     }
                 }
                 setIsHelpingHandOpen(false);
@@ -752,20 +647,10 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* --- MODIFIED: Pass 'isTourActive' to lift the wand --- */}
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
-      
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
 
-      {/* --- STUDIO TRIGGER (Bottom Left) --- */}
-      {/* Click this to open the Studio Generator without changing code */}
-      <button 
-        onClick={() => setShowStudio(true)}
-        className="fixed bottom-4 left-4 z-[9999] bg-slate-900/50 hover:bg-slate-900 text-white/50 hover:text-white p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
-        title="Open Audio Studio"
-      >
-        <Mic size={16} />
-      </button>
+      <button onClick={() => setShowStudio(true)} className="fixed bottom-4 left-4 z-[9999] bg-slate-900/50 hover:bg-slate-900 text-white/50 hover:text-white p-2 rounded-full backdrop-blur-sm transition-all shadow-lg" title="Open Audio Studio"><Mic size={16} /></button>
 
     </div>
   );
