@@ -11,14 +11,14 @@ const cleanText = (text?: string) => text ? text.replace(/^"|"$/g, '').trim() : 
 // Helper to render text points
 const renderPoints = (text?: string) => {
     if (!text) return <span className="italic opacity-60">Data unavailable</span>;
-    const points = text.split(/\.\s+|\.$/).filter(p => p.trim().length > 0);
+    const points = text.split('•').map(p => p.trim()).filter(p => p.length > 0);
     if (points.length === 0) return <span>{text}</span>;
     return (
         <ul className="list-none space-y-2 mt-2">
             {points.map((p, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs leading-relaxed font-medium text-slate-700">
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-current shrink-0 opacity-40" />
-                    <span>{p.trim()}.</span>
+                    <span>{p}</span>
                 </li>
             ))}
         </ul>
