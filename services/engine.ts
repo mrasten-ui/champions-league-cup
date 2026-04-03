@@ -744,8 +744,8 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     if (!supabase) return null;
 
     try {
-        const safeId = teamId.trim();
-        const { data: reportData } = await supabase.from('scouting_reports').select('*').eq('team_id', safeId).eq('lang', lang).maybeSingle();
+        const safeId = teamId.trim().toLowerCase();
+        const { data: reportData } = await supabase.from('scouting_reports').select('*').eq('team_id', safeId).eq('lang', lang.toLowerCase()).maybeSingle();
         const { data: overviewData } = await supabase.from('scouting_overview').select('*').eq('team_id', safeId).maybeSingle();
 
         if (reportData || overviewData) {

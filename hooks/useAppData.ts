@@ -95,7 +95,7 @@ export const useAppData = () => {
           }
 
           const [teamsResponse, rankMap, tacticsMap, scoutingData] = await Promise.all([
-              supabase.from('teams').select('*'),
+              supabase.from('teams').select('*, team_content(*)').eq('team_content.language_code', 'EN').eq('team_content.voice_persona', 'neutral'),
               fetchAllTeamRanks(), fetchAllTeamTactics(),
               supabase.from('scouting_overview').select('team_id, recent_form')
           ]);
@@ -106,20 +106,25 @@ export const useAppData = () => {
               teamsResponse.data.forEach(t => {
                   const safeId = t.id.toUpperCase();
                   const existingTeam = baseTeamsMap[safeId];
-                  
+                  const content = t.team_content
+                      ? (t.team_content.find((tc: any) => tc.language_code === 'EN' && tc.voice_persona === 'neutral') ?? t.team_content[0] ?? null)
+                      : null;
+
                   // BULLETPROOF FLAG FIX: Prevents empty ghost rows from overwriting valid flags
                   if (!existingTeam || !existingTeam.flag || t.flag) {
                       baseTeamsMap[safeId] = {
-                          id: safeId, 
-                          name: t.name || safeId, 
+                          id: safeId,
+                          name: t.name || safeId,
                           flag: t.flag || TEAMS[safeId]?.flag || '',
-                          rank: t.rank || 50, 
-                          rating: t.rating || 50, 
-                          att: t.att || 50, 
-                          mid: t.mid || 50, 
-                          def: t.def || 50, 
-                          overview: t.overview || '', 
-                          starPlayer: 'TBD', 
+                          rank: t.rank || 50,
+                          rating: t.rating || 50,
+                          att: t.att || 50,
+                          mid: t.mid || 50,
+                          def: t.def || 50,
+                          overview: content?.overview || t.overview || '',
+                          starPlayer: content?.star_player || 'TBD',
+                          strengths: content?.strengths || '',
+                          weaknesses: content?.weaknesses || '',
                           form: []
                       };
                   }

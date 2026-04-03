@@ -64,8 +64,10 @@ export interface Team {
   def: number;
   overview?: string;
   starPlayer?: string;
+  strengths?: string;
+  weaknesses?: string;
   code?: string;
-  form?: string[]; 
+  form?: string[];
 }
 
 export interface Prediction {
