@@ -50,15 +50,13 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
             US: 'brutally_honest',
         };
         const persona = personaMap[currentLang] ?? 'neutral';
-        const teamIdLower = team.id.toLowerCase();
-        const langLower = currentLang.toLowerCase();
 
         const [dbHistory, dbScouting, dbExtended, contentResult] = await Promise.all([
             fetchTeamHistory(team.id),
             fetchScoutingOverview(team.id, currentLang),
             fetchTeamExtendedStats(team.id),
             supabase
-                ? supabase.from('team_content').select('*').eq('team_id', teamIdLower).eq('language_code', langLower).eq('voice_persona', persona).maybeSingle()
+                ? supabase.from('team_content').select('*').eq('team_id', team.id).eq('language_code', currentLang).eq('voice_persona', persona).maybeSingle()
                 : Promise.resolve({ data: null }),
         ]);
 
