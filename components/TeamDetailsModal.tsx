@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
+import { supabase } from '../supabase';
 import { X, TrendingUp, TrendingDown, Activity, Crown, RefreshCw, AlertCircle, Calendar, Minus } from 'lucide-react';
 
 // Helper to clean quotes
@@ -42,10 +43,23 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
     if (isOpen && team) {
       setLoading(true);
       const loadData = async () => {
-        const [dbHistory, dbScouting, dbExtended] = await Promise.all([
+        const personaMap: Record<LanguageCode, string> = {
+            EN: 'neutral',
+            NO: 'neutral',
+            SCO: 'scottish_pundit',
+            US: 'brutally_honest',
+        };
+        const persona = personaMap[currentLang] ?? 'neutral';
+        const teamIdLower = team.id.toLowerCase();
+        const langLower = currentLang.toLowerCase();
+
+        const [dbHistory, dbScouting, dbExtended, contentResult] = await Promise.all([
             fetchTeamHistory(team.id),
             fetchScoutingOverview(team.id, currentLang),
-            fetchTeamExtendedStats(team.id)
+            fetchTeamExtendedStats(team.id),
+            supabase
+                ? supabase.from('team_content').select('*').eq('team_id', teamIdLower).eq('language_code', langLower).eq('voice_persona', persona).maybeSingle()
+                : Promise.resolve({ data: null }),
         ]);
 
         if (dbExtended) {
@@ -55,10 +69,24 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
             setHistory(dbHistory);
         }
 
-        if (dbScouting) {
-            setScoutingData(dbScouting);
+        const contentData = contentResult.data;
+
+        if (contentData || dbScouting) {
+            setScoutingData({
+                id: dbScouting?.id ?? 0,
+                team_id: team.id,
+                team_name: dbScouting?.team_name || team.name,
+                confederation: dbScouting?.confederation || 'FIFA',
+                fifa_rank: dbScouting?.fifa_rank || team.rank || 99,
+                star_player: contentData?.star_player || dbScouting?.star_player || team.starPlayer || '',
+                strengths: contentData?.strengths || dbScouting?.strengths || '',
+                weaknesses: contentData?.weaknesses || dbScouting?.weaknesses || '',
+                scout_notes: contentData?.overview || dbScouting?.scout_notes || '',
+                recent_form: dbScouting?.recent_form || '',
+                last_5_matches: dbScouting?.last_5_matches || '',
+                lang: currentLang,
+            });
         } else {
-            // Fallback if DB is empty
             const localReport = getScoutingReport(team.id, currentLang);
             if (localReport) {
                 setScoutingData({
@@ -67,14 +95,13 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                     team_name: team.name,
                     confederation: localReport.confederation || 'FIFA',
                     fifa_rank: localReport.fifa_rank || team.rank || 99,
-                    star_player: localReport.star_player || 'Key Player',
+                    star_player: localReport.star_player || '',
                     strengths: localReport.strengths || '',
                     weaknesses: localReport.weaknesses || '',
                     scout_notes: localReport.scout_notes || '',
                     recent_form: localReport.recent_form || '',
                     last_5_matches: localReport.last_5_matches || '',
-                    created_at: new Date().toISOString(),
-                    lang: currentLang // <--- ADDED MISSING PROPERTY
+                    lang: currentLang,
                 });
             }
         }
