@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
 import { supabase } from '../supabase';
-import { X, TrendingUp, TrendingDown, Activity, Crown, RefreshCw, AlertCircle, Calendar, Minus } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, Activity, Crown, RefreshCw, AlertCircle, Minus } from 'lucide-react';
 
 // Helper to clean quotes
 const cleanText = (text?: string) => text ? text.replace(/^"|"$/g, '').trim() : '';
@@ -56,7 +56,7 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
             fetchScoutingOverview(team.id, currentLang),
             fetchTeamExtendedStats(team.id),
             supabase
-                ? supabase.from('team_content').select('*').eq('team_id', team.id).eq('language_code', currentLang).eq('voice_persona', persona).maybeSingle()
+                ? supabase.from('team_content').select('*').eq('team_id', team.id.toLowerCase()).eq('language_code', currentLang).eq('voice_persona', persona).maybeSingle()
                 : Promise.resolve({ data: null }),
         ]);
 
