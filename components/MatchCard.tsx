@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle, ScanEye } from 'lucide-react';
+import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
@@ -349,31 +349,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
              </div>
 
-             {/* SPY BANNER */}
-             {canSpy && (
-                <button
-                    onClick={handleSpyClick}
-                    disabled={userTokens < 1}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 transition-all ${userTokens < 1 ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:from-slate-700 hover:to-slate-800 active:brightness-90'}`}
-                >
-                    <div className="flex items-center gap-2">
-                        <ScanEye size={14} className="text-cyan-400 shrink-0" />
-                        {userTokens > 0 ? (
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-white uppercase tracking-wider">{lang.actionSpy || 'Reveal Rivals'}</span>
-                                <span className="text-[10px] font-bold text-slate-400 bg-slate-700 px-1.5 py-0.5 rounded">Cost: 1 Token</span>
-                            </div>
-                        ) : (
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Out of Spy Tokens</span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-1 text-slate-400">
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Balance:</span>
-                        <span className={`text-xs font-black ${userTokens > 0 ? 'text-cyan-400' : 'text-slate-500'}`}>{userTokens}</span>
-                    </div>
-                </button>
-             )}
-
              {/* SAVE STATUS BAR */}
              {!isLocked && !isKnockout && (isSaving || isSaved) && (
                 <div className="h-7 flex items-center justify-center gap-1.5 transition-all duration-300">
@@ -393,6 +368,24 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     expanded={showHistoryDetails}
                     onToggle={() => setShowHistoryDetails(!showHistoryDetails)}
                 />
+             )}
+
+             {canSpy && (
+                <div className="px-4 pb-4">
+                    <button
+                        onClick={handleSpyClick}
+                        disabled={userTokens < 1}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${userTokens > 0 ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 cursor-pointer' : 'bg-slate-50 border-slate-200 text-slate-400 opacity-50 grayscale cursor-not-allowed'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <LockIcon size={14} className="shrink-0" />
+                            <span className="text-xs font-black uppercase tracking-wider">Reveal Rival Picks</span>
+                        </div>
+                        <span className="text-[10px] font-bold opacity-70">
+                            {userTokens > 0 ? `Cost: 1 Token (${userTokens}/5 left)` : 'Out of Spy Tokens'}
+                        </span>
+                    </button>
+                </div>
              )}
 
              {showRivals && rivals.length > 0 && (
