@@ -641,8 +641,8 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
 
     if (supabase) {
         try {
-            const homeId = homeTeam.id.toLowerCase();
-            const awayId = awayTeam.id.toLowerCase();
+            const homeId = homeTeam.id.toUpperCase();
+            const awayId = awayTeam.id.toUpperCase();
             const { data, error } = await supabase
                 .from('head_to_head')
                 .select('*')
@@ -711,7 +711,7 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
 export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem[]> => {
   if (supabase) {
       try {
-        const safeId = teamId.toLowerCase();
+        const safeId = teamId.toUpperCase();
         const { data, error } = await supabase
           .from('head_to_head')
           .select('*')
@@ -747,8 +747,8 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
     if (!supabase) return null;
 
     try {
-        const safeId = teamId.trim().toLowerCase();
-        const { data: reportData } = await supabase.from('scouting_reports').select('*').eq('team_id', safeId).eq('lang', lang.toLowerCase()).maybeSingle();
+        const safeId = teamId.trim().toUpperCase();
+        const { data: reportData } = await supabase.from('scouting_reports').select('*').eq('team_id', safeId).eq('lang', lang.toUpperCase()).maybeSingle();
         const { data: overviewData } = await supabase.from('scouting_overview').select('*').eq('team_id', safeId).maybeSingle();
 
         if (reportData || overviewData) {
@@ -777,7 +777,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
     try {
-        const { data, error } = await supabase.from('team_form_data').select('*').eq('team_id', teamId.toLowerCase()).order('match_date', { ascending: false });
+        const { data, error } = await supabase.from('team_form_data').select('*').eq('team_id', teamId.toUpperCase()).order('match_date', { ascending: false });
         if (error) return null;
 
         if (data && data.length > 0) {
