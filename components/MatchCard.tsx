@@ -188,14 +188,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <div className="flex flex-col items-end justify-center gap-0.5 text-right">
                 <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
                     <MapPin size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[90px] sm:max-w-[120px]">
+                    <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px]">
                         {cityString}
                     </span>
                 </div>
                 {channel && (
                     <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${channel}`}>
-                        <Tv size={9} />
-                        <span className="text-[8px] font-bold uppercase tracking-wide truncate max-w-[70px] sm:max-w-[100px]">
+                        <Tv size={10} />
+                        <span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[70px] sm:max-w-[100px]">
                             {channel}
                         </span>
                     </div>
@@ -252,7 +252,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div id={cardId} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
              {/* HEADER */}
-             <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center min-h-[44px] text-white">
+             <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center min-h-[48px] text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
                     {variant === 'prediction' ? (
@@ -282,7 +282,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div onClick={() => { if (isHomeTBD) return; if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isHomeTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>{match.groupId && homeTeamPoints !== undefined && <span className="text-[9px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isHomeTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>{match.groupId && homeTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>}</>}
                     </div>
                 </div>
 
@@ -333,7 +333,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             {canSpy && (
                                 <button onClick={handleSpyClick} disabled={userTokens < 1} className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}>
                                     <ScanEye size={10} />
-                                    <span className="text-[9px] font-black uppercase tracking-wider">{lang.actionSpy || "Spy"} ({userTokens})</span>
+                                    <span className="text-[10px] font-black uppercase tracking-wider">{lang.actionSpy || "Spy"} ({userTokens})</span>
                                 </button>
                             )}
                         </div>
@@ -341,8 +341,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     
                     {/* --- ADMIN ALERT --- */}
                     {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
-                        <div className="mt-2 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1">
-                            <AlertCircle size={8} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
+                        <div className="mt-2 text-[10px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1 items-center">
+                            <AlertCircle size={10} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
                         </div>
                     )}
                 </div>
@@ -351,7 +351,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div onClick={() => { if (isAwayTBD) return; if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.awayTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[9px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
                     </div>
                 </div>
              </div>
@@ -379,9 +379,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              {showRivals && rivals.length > 0 && (
                 <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
-                    <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><LockIcon size={10} className="text-yellow-400" /><span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span></div>{prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span></span>}</div>
+                    <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><LockIcon size={10} className="text-yellow-400" /><span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span></div>{prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span></span>}</div>
                     <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
-                        {rivals.map(rival => { const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id); return (<div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors"><div className="flex items-center gap-3"><AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[9px]" /><span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span></div><span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span></div>); })}
+                        {rivals.map(rival => { const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id); return (<div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors"><div className="flex items-center gap-3"><AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[10px]" /><span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span></div><span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span></div>); })}
                     </div>
                 </div>
              )}
@@ -391,20 +391,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3">
                         <MapPin size={10} className="shrink-0" />
-                        <span className="text-[9px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
                     </div>
-                    
-                    {/* CENTER: User Prediction (Brain icon removed) */}
+
+                    {/* CENTER: User Prediction */}
                     <div className="w-1/3 flex justify-center">
                         {prediction && (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
-                                <span className="text-[9px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
+                                <span className="text-[10px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">{prediction.home} - {prediction.away}</span>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 justify-end w-1/3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
+                    <div className="flex items-center gap-3 justify-end w-1/3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
                 </div>
              )}
 
