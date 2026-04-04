@@ -167,9 +167,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     }, [localHome, localAway, isDirty, isUnlockedBySub, match.id, onUpdate]);
 
     useEffect(() => {
-        const hasScore = localHome !== null || localAway !== null;
         const isValidMatchup = homeTeam && awayTeam && homeTeam.id !== 'TBD' && awayTeam.id !== 'TBD';
-        const shouldFetch = isValidMatchup && hasScore && !h2hData && !loadingH2H && !match.isLocked;
+        const shouldFetch = isValidMatchup && !isKnockout && !h2hData && !loadingH2H;
 
         if (shouldFetch) {
             setLoadingH2H(true);
@@ -177,7 +176,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 .then(data => { setH2HData(data); setLoadingH2H(false); })
                 .catch(() => setLoadingH2H(false));
         }
-    }, [localHome, localAway, h2hData, loadingH2H, match.isLocked, homeTeam, awayTeam]);
+    }, [h2hData, loadingH2H, homeTeam, awayTeam, isKnockout]);
 
     // --- STATUS HELPERS ---
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
