@@ -641,20 +641,22 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
 
     if (supabase) {
         try {
+            const homeId = homeTeam.id.toLowerCase();
+            const awayId = awayTeam.id.toLowerCase();
             const { data, error } = await supabase
                 .from('head_to_head')
                 .select('*')
-                .in('team_a', [homeTeam.id, awayTeam.id])
-                .in('team_b', [homeTeam.id, awayTeam.id])
+                .in('team_a', [homeId, awayId])
+                .in('team_b', [homeId, awayId])
                 .order('year', { ascending: false });
 
             if (error) {
                 console.warn("Supabase H2H Fetch Error:", error.message);
                 return emptyStats;
             } else if (data && data.length > 0) {
-                const relevantMatches = data.filter(m => 
-                    (m.team_a === homeTeam.id && m.team_b === awayTeam.id) ||
-                    (m.team_a === awayTeam.id && m.team_b === homeTeam.id)
+                const relevantMatches = data.filter(m =>
+                    (m.team_a === homeId && m.team_b === awayId) ||
+                    (m.team_a === awayId && m.team_b === homeId)
                 );
 
                 if (relevantMatches.length > 0) {
@@ -664,7 +666,7 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
                     const history: HistoricalMatch[] = [];
 
                     relevantMatches.forEach(match => {
-                        const isHomeTeamA = match.team_a === homeTeam.id;
+                        const isHomeTeamA = match.team_a === homeId;
                         const homeScore = isHomeTeamA ? (match.score_a ?? 0) : (match.score_b ?? 0);
                         const awayScore = isHomeTeamA ? (match.score_b ?? 0) : (match.score_a ?? 0);
                         
@@ -709,16 +711,17 @@ export const fetchHeadToHeadStats = async (homeTeam: Team, awayTeam: Team): Prom
 export const fetchTeamHistory = async (teamId: string): Promise<MatchHistoryItem[]> => {
   if (supabase) {
       try {
+        const safeId = teamId.toLowerCase();
         const { data, error } = await supabase
           .from('head_to_head')
           .select('*')
-          .or(`team_a.eq.${teamId},team_b.eq.${teamId}`)
+          .or(`team_a.eq.${safeId},team_b.eq.${safeId}`)
           .order('year', { ascending: false })
           .limit(10);
 
         if (data && data.length > 0) {
             return data.map(m => {
-                const isHome = m.team_a === teamId;
+                const isHome = m.team_a === safeId;
                 const opponentId = isHome ? m.team_b : m.team_a;
                 const myScore = isHome ? (m.score_a ?? 0) : (m.score_b ?? 0);
                 const opScore = isHome ? (m.score_b ?? 0) : (m.score_a ?? 0);
@@ -774,7 +777,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
 export const fetchTeamExtendedStats = async (teamId: string): Promise<TeamFormData | null> => {
     if (!supabase) return null;
     try {
-        const { data, error } = await supabase.from('team_form_data').select('*').eq('team_id', teamId).order('match_date', { ascending: false });
+        const { data, error } = await supabase.from('team_form_data').select('*').eq('team_id', teamId.toLowerCase()).order('match_date', { ascending: false });
         if (error) return null;
 
         if (data && data.length > 0) {

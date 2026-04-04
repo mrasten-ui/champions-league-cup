@@ -33,7 +33,7 @@ export const fetchTeamTactics = async (teamId: string, lang: string = 'EN'): Pro
     const { data } = await supabase
         .from('team_tactics')
         .select('*')
-        .eq('team_id', teamId)
+        .eq('team_id', teamId.toLowerCase())
         .maybeSingle();
 
     if (data) {
