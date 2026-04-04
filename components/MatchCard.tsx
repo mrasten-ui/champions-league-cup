@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
-import { Clock, ChevronUp, ChevronDown, History, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle, ScanEye } from 'lucide-react';
+import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle, ScanEye } from 'lucide-react';
 import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
-import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers'; 
+import { ScoreStepper } from './ScoreStepper';
+import { TbdSlot } from './TbdSlot';
+import { HeadToHeadBar } from './HeadToHeadBar';
 
 interface MatchCardProps {
   match: Match;
@@ -34,99 +36,6 @@ interface MatchCardProps {
   cardId?: string;
 }
 
-// --- SUB-COMPONENT: ScoreStepper ---
-const ScoreStepper: React.FC<{ 
-    value: number | null; 
-    onChange: (val: number) => void; 
-    isLocked: boolean;
-    onActivate: () => void;
-    ids?: { up: string, down: string };
-}> = ({ value, onChange, isLocked, onActivate, ids }) => {
-  return (
-    <div className={`flex flex-col items-center justify-between w-12 h-24 sm:w-14 sm:h-28 bg-white border border-slate-200 rounded-2xl transition-all shadow-sm group ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'hover:border-blue-300 hover:shadow-md'}`}>
-      <button 
-        id={ids?.up}
-        disabled={isLocked} 
-        onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(value + 1); }} 
-        className="w-full flex-1 flex items-center justify-center text-slate-300 group-hover:text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-t-xl transition-colors active:bg-blue-50 focus:outline-none"
-      >
-        <ChevronUp size={20} strokeWidth={3} />
-      </button>
-      
-      <div className="h-10 flex items-center justify-center text-2xl sm:text-3xl font-black text-slate-800 leading-none select-none z-10">{value === null ? '-' : value}</div>
-      
-      <button 
-        id={ids?.down}
-        disabled={isLocked} 
-        onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(Math.max(0, value - 1)); }} 
-        className="w-full flex-1 flex items-center justify-center text-slate-300 group-hover:text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-b-xl transition-colors active:bg-blue-50 focus:outline-none"
-      >
-        <ChevronDown size={20} strokeWidth={3} />
-      </button>
-    </div>
-  );
-};
-
-// --- SUB-COMPONENT: TbdSlot ---
-const TbdSlot: React.FC<{ 
-    matchId: string;
-    side: 'home' | 'away';
-    allMatches?: Match[];
-    allTeams?: Record<string, Team>;
-    lang: Translation;
-}> = ({ matchId, side, allMatches, allTeams, lang }) => {
-    const source = useMemo(() => getSlotSource(matchId, side), [matchId, side]);
-    const potentialTeams = useMemo(() => {
-        if (!allMatches || !allTeams) return null;
-        return getPotentialTeams(source, allMatches, allTeams);
-    }, [source, allMatches, allTeams]);
-    const groupTeams = useMemo(() => {
-        if (source.type !== 'GROUP_RANK' || !allMatches || !allTeams) return [];
-        return getGroupTeams(source.groupId, allMatches, allTeams);
-    }, [source, allMatches, allTeams]);
-
-    if (source.type === 'GROUP_RANK') {
-        return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center relative overflow-hidden group/tbd">
-                {groupTeams.length > 0 ? (
-                    <div className="absolute inset-0 w-full h-full grid grid-cols-2 grid-rows-2">
-                        {groupTeams.slice(0, 4).map(team => (
-                            <div key={team.id} className="relative w-full h-full">
-                                <img src={team.flag} alt="" className="w-full h-full object-cover" />
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-repeat"></div>
-                )}
-                <div className="relative z-10 bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
-                    <span className="text-[8px] font-black text-slate-800 uppercase text-center leading-none block">{source.label}</span>
-                </div>
-            </div>
-        );
-    }
-    if (potentialTeams && potentialTeams.length === 2) {
-        return (
-            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-blue-200 bg-white flex flex-col items-center justify-center relative overflow-hidden group/tbd">
-                <div className="absolute inset-0 w-full h-full grid grid-cols-2">
-                    <div className="relative w-full h-full border-r border-white/20"><img src={potentialTeams[0].flag} alt="" className="w-full h-full object-cover" /></div>
-                    <div className="relative w-full h-full"><img src={potentialTeams[1].flag} alt="" className="w-full h-full object-cover" /></div>
-                </div>
-                <div className="relative z-10 bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
-                    <div className="flex gap-1 text-[7px] font-black text-slate-800 uppercase leading-none"><span>{potentialTeams[0].id}</span><span className="text-slate-400 font-normal">/</span><span>{potentialTeams[1].id}</span></div>
-                </div>
-            </div>
-        );
-    }
-    return (
-        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
-             <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
-             <div className="relative z-10 bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">TBD</span>
-             </div>
-        </div>
-    );
-};
 
 // --- MAIN COMPONENT ---
 
@@ -140,6 +49,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [localAway, setLocalAway] = useState<number | null>(prediction ? prediction.away : null);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     const [h2hData, setH2HData] = useState<HeadToHeadStats | null>(null);
     const [loadingH2H, setLoadingH2H] = useState(false);
@@ -159,8 +69,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
             const timer = setTimeout(() => {
                 setIsSaving(true);
+                setIsSaved(false);
                 onUpdate(match.id, localHome, localAway);
-                setTimeout(() => { setIsSaving(false); setIsDirty(false); }, 500); 
+                setTimeout(() => {
+                    setIsSaving(false);
+                    setIsDirty(false);
+                    setIsSaved(true);
+                    setTimeout(() => setIsSaved(false), 2000);
+                }, 500);
             }, 800);
             return () => clearTimeout(timer);
         }
@@ -313,7 +229,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
-            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30 animate-pulse"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">Save</span></button>;
+            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all hover:scale-105 active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">Save</span></button>;
         }
         if (isUnlockedBySub && !isDirty) {
             return <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 w-full"><Unlock size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.unlocked}</span></div>;
@@ -380,30 +296,22 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     ) : (
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
-                                <div className="flex items-center gap-2 relative">
-                                    <ScoreStepper 
-                                        value={localHome} 
-                                        onChange={(v) => handleScoreChange('home', v)} 
-                                        isLocked={isLocked} 
-                                        onActivate={handleActivate} 
-                                        ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined} 
-                                    />
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="font-black text-slate-300 text-lg">-</span>
-                                        {isSaving && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2"><span className="text-[9px] font-black text-green-500 uppercase animate-pulse">Saving</span></div>}
-                                    </div>
-                                    <ScoreStepper 
-                                        value={localAway} 
-                                        onChange={(v) => handleScoreChange('away', v)} 
-                                        isLocked={isLocked} 
+                                <div className="flex items-center gap-2">
+                                    <ScoreStepper
+                                        value={localHome}
+                                        onChange={(v) => handleScoreChange('home', v)}
+                                        isLocked={isLocked}
                                         onActivate={handleActivate}
-                                        ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined} 
+                                        ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined}
                                     />
-                                    {isUnlockedBySub && isDirty && (
-                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-30">
-                                            <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1 whitespace-nowrap animate-bounce"><Save size={10} /> Save</button>
-                                        </div>
-                                    )}
+                                    <span className="font-black text-slate-300 text-lg">-</span>
+                                    <ScoreStepper
+                                        value={localAway}
+                                        onChange={(v) => handleScoreChange('away', v)}
+                                        isLocked={isLocked}
+                                        onActivate={handleActivate}
+                                        ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined}
+                                    />
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
@@ -448,60 +356,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
              </div>
 
-             {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
-             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && (
-                <div className="px-4 pb-4 animate-in slide-in-from-top-2 cursor-pointer group" onClick={() => setShowHistoryDetails(!showHistoryDetails)}>
-                    <div className="flex items-center justify-between mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <div className="flex items-center gap-2"><History size={12} className="text-slate-400" /><span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{lang.headToHead}</span></div>
-                        <ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${showHistoryDetails ? 'rotate-180' : ''}`} />
-                    </div>
-                    {h2hData.totalMatches > 0 ? (
-                        <div className="flex flex-col gap-2">
-                            {/* Team labels + win counts */}
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1.5">
-                                    <img src={homeTeam?.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
-                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tight">{homeTeam?.id}</span>
-                                    <span className="text-lg font-black text-emerald-600 leading-none">{h2hData.homeWins}</span>
-                                </div>
-                                <div className="flex flex-col items-center">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">draws</span>
-                                    <span className="text-sm font-black text-slate-400 leading-none">{h2hData.draws}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-lg font-black text-blue-600 leading-none">{h2hData.awayWins}</span>
-                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">{awayTeam?.id}</span>
-                                    <img src={awayTeam?.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
-                                </div>
-                            </div>
-                            {/* Bar */}
-                            <div className="flex h-2.5 rounded-full overflow-hidden w-full shadow-inner bg-slate-100 gap-px">
-                                <div style={{ width: `${(h2hData.homeWins / h2hData.totalMatches) * 100}%` }} className="bg-emerald-500 transition-all duration-500" />
-                                <div style={{ width: `${(h2hData.draws / h2hData.totalMatches) * 100}%` }} className="bg-slate-300 transition-all duration-500" />
-                                <div style={{ width: `${(h2hData.awayWins / h2hData.totalMatches) * 100}%` }} className="bg-blue-500 transition-all duration-500" />
-                            </div>
-                            {/* Match history */}
-                            {showHistoryDetails && h2hData.last5.length > 0 && (
-                                <div className="mt-1 space-y-1 border-t border-slate-100 pt-2">
-                                    {h2hData.last5.map((m, i) => {
-                                        const homeWon = m.homeScore > m.awayScore;
-                                        const awayWon = m.awayScore > m.homeScore;
-                                        return (
-                                            <div key={i} className="flex justify-between items-center text-[10px]">
-                                                <span className={`font-black uppercase tracking-tight w-12 ${homeWon ? 'text-emerald-600' : 'text-slate-400'}`}>{homeTeam?.id}</span>
-                                                <span className="text-slate-400 font-medium">{m.year}</span>
-                                                <span className={`font-black tabular-nums ${homeWon ? 'text-emerald-600' : awayWon ? 'text-blue-600' : 'text-slate-500'}`}>{m.homeScore} – {m.awayScore}</span>
-                                                <span className={`font-black uppercase tracking-tight w-12 text-right ${awayWon ? 'text-blue-600' : 'text-slate-400'}`}>{awayTeam?.id}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="text-center text-[10px] text-slate-400 italic font-medium bg-slate-50 py-2 rounded-lg border border-slate-100">{lang.firstMeeting}</div>
-                    )}
+             {/* SAVE STATUS BAR */}
+             {!isLocked && !isKnockout && (isSaving || isSaved) && (
+                <div className="h-7 flex items-center justify-center gap-1.5 transition-all duration-300">
+                    {isSaving && <><RefreshCw size={11} className="animate-spin text-slate-400" /><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saving</span></>}
+                    {isSaved && !isSaving && <><Check size={11} className="text-green-500" /><span className="text-[10px] font-bold text-green-500 uppercase tracking-widest animate-in fade-in duration-300">Saved</span></>}
                 </div>
+             )}
+             {!isLocked && !isKnockout && !isSaving && !isSaved && <div className="h-7" />}
+
+             {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
+             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && homeTeam && awayTeam && (
+                <HeadToHeadBar
+                    h2hData={h2hData}
+                    homeTeam={homeTeam}
+                    awayTeam={awayTeam}
+                    lang={lang}
+                    expanded={showHistoryDetails}
+                    onToggle={() => setShowHistoryDetails(!showHistoryDetails)}
+                />
              )}
 
              {showRivals && rivals.length > 0 && (
