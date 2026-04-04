@@ -14,9 +14,10 @@
   "dependencies": {
     "@google/genai": "*",
     "@google/generative-ai": "^0.24.1",
-    "@supabase/supabase-js": "^2.90.1",
-    "dotenv": "^17.2.3",
+    "@supabase/supabase-js": "^2.101.1",
+    "dotenv": "^17.4.0",
     "lucide-react": "^0.562.0",
+    "openai": "^6.33.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "serve": "^14.2.1"
