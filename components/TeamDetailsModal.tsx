@@ -11,7 +11,24 @@ const cleanText = (text?: string) => text ? text.replace(/^"|"$/g, '').trim() : 
 // Helper to render text points
 const renderPoints = (text?: string) => {
     if (!text) return <span className="italic opacity-60">Data unavailable</span>;
-    const points = text.split('•').map(p => p.trim()).filter(p => p.length > 0);
+
+    let points: string[] = [];
+
+    // Handle JSON array format: ["point1", "point2"]
+    if (text.trim().startsWith('[')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                points = parsed.map((p: string) => p.replace(/^•\s*/, '').trim()).filter(p => p.length > 0);
+            }
+        } catch { /* fall through to bullet split */ }
+    }
+
+    // Handle bullet-separated format
+    if (points.length === 0) {
+        points = text.split('•').map(p => p.trim()).filter(p => p.length > 0);
+    }
+
     if (points.length === 0) return <span>{text}</span>;
     return (
         <ul className="list-none space-y-2 mt-2">
