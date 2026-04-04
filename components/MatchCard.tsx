@@ -123,8 +123,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (userTokens > 0) {
-             onSpy(match.id); 
+        if (userTokens > 0 && window.confirm(`Spend 1 token to reveal rival predictions? (You have ${userTokens} left)`)) {
+            onSpy(match.id);
         }
     };
 
@@ -329,13 +329,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     )}
                                 </div>
                             )}
-                            {/* --- SPY BUTTON --- */}
-                            {canSpy && (
-                                <button onClick={handleSpyClick} disabled={userTokens < 1} className={`mt-1.5 flex items-center justify-center gap-1 px-3 py-0.5 rounded-full border transition-all active:scale-95 ${userTokens > 0 ? 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 shadow-sm' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}>
-                                    <ScanEye size={10} />
-                                    <span className="text-[10px] font-black uppercase tracking-wider">{lang.actionSpy || "Spy"} ({userTokens})</span>
-                                </button>
-                            )}
                         </div>
                     )}
                     
@@ -355,6 +348,31 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
              </div>
+
+             {/* SPY BANNER */}
+             {canSpy && (
+                <button
+                    onClick={handleSpyClick}
+                    disabled={userTokens < 1}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 transition-all ${userTokens < 1 ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:from-slate-700 hover:to-slate-800 active:brightness-90'}`}
+                >
+                    <div className="flex items-center gap-2">
+                        <ScanEye size={14} className="text-cyan-400 shrink-0" />
+                        {userTokens > 0 ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-white uppercase tracking-wider">{lang.actionSpy || 'Reveal Rivals'}</span>
+                                <span className="text-[10px] font-bold text-slate-400 bg-slate-700 px-1.5 py-0.5 rounded">Cost: 1 Token</span>
+                            </div>
+                        ) : (
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Out of Spy Tokens</span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-400">
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Balance:</span>
+                        <span className={`text-xs font-black ${userTokens > 0 ? 'text-cyan-400' : 'text-slate-500'}`}>{userTokens}</span>
+                    </div>
+                </button>
+             )}
 
              {/* SAVE STATUS BAR */}
              {!isLocked && !isKnockout && (isSaving || isSaved) && (
