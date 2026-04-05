@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 serve(async (req) => {
-  // 1. Setup CORS so your website can talk to this function
+  // 1. Setup CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
@@ -13,35 +13,56 @@ serve(async (req) => {
   }
 
   try {
-    // 2. Get the prompt from your frontend
     const { prompt, gender } = await req.json()
 
-    // 3. Get the API Key securely from the server environment
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!apiKey) throw new Error("Missing OpenAI API Key")
+    const apiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!apiKey) throw new Error("Missing Gemini API Key")
 
-    // 4. Call OpenAI
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    // 2. Call the new unified Gemini Image Generation endpoint
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `A professional 3D stylized avatar of a ${gender} football manager. ${prompt}. STYLE: High-fidelity Pixar/Disney style.`,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
-        quality: "standard"
+        contents: [
+          {
+            parts: [
+              {
+                text: `A professional 3D stylized headshot avatar of a ${gender} football manager. ${prompt}. High-fidelity modern 3D animation studio style, Pixar Disney vibe. Clean solid background, soft studio lighting, sharp focus.`
+              }
+            ]
+          }
+        ]
       })
     })
 
     const data = await response.json()
-    if (data.error) throw new Error(data.error.message)
 
-    // 5. Send the image back to your website
-    return new Response(JSON.stringify(data), {
+    // 3. Handle API Rejections (Safety filters, bad keys, etc.)
+    if (!response.ok) {
+        console.error("Gemini API Error Response:", data);
+        throw new Error(data.error?.message || "Failed to generate image from Gemini");
+    }
+
+    // 4. Safely extract the Base64 string
+    if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.inlineData?.data) {
+        console.error("Unexpected Gemini response structure:", data);
+        throw new Error("No image generated. The prompt might have been blocked by safety filters.");
+    }
+
+    const geminiBase64 = data.candidates[0].content.parts[0].inlineData.data;
+
+    // 5. Mock the OpenAI response structure so your frontend doesn't break
+    const mockOpenAiResponse = {
+      data: [
+        {
+          b64_json: geminiBase64
+        }
+      ]
+    };
+
+    return new Response(JSON.stringify(mockOpenAiResponse), {
       headers: { 
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
@@ -49,6 +70,7 @@ serve(async (req) => {
     })
 
   } catch (error) {
+    console.error("Edge Function Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 
