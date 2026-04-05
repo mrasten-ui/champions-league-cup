@@ -105,7 +105,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute;
+    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute && !isKnockout;
 
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
@@ -375,13 +375,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <button
                         onClick={handleSpyClick}
                         disabled={userTokens < 1}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${userTokens > 0 ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 cursor-pointer' : 'bg-slate-50 border-slate-200 text-slate-400 opacity-50 grayscale cursor-not-allowed'}`}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border border-white/10 bg-[#0f2545] transition-colors ${userTokens > 0 ? 'hover:bg-[#1a3a6c] cursor-pointer' : 'opacity-50 grayscale cursor-not-allowed'}`}
                     >
                         <div className="flex items-center gap-2">
-                            <LockIcon size={14} className="shrink-0" />
-                            <span className="text-xs font-black uppercase tracking-wider">Reveal Rival Picks</span>
+                            <LockIcon size={14} className="text-yellow-400 shrink-0" />
+                            <span className="text-xs font-black text-yellow-400 uppercase tracking-wider">Reveal Rival Picks</span>
                         </div>
-                        <span className="text-[10px] font-bold opacity-70">
+                        <span className="text-xs font-medium text-white/60">
                             {userTokens > 0 ? `Cost: 1 Token (${userTokens}/5 left)` : 'Out of Spy Tokens'}
                         </span>
                     </button>
