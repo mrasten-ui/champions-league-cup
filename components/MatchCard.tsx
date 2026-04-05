@@ -17,7 +17,6 @@ interface MatchCardProps {
   userTokens: number;
   rivals: UserProfile[];
   onSpy: (id: string) => void;
-  revealedRivals: string[]; 
   currentUser: UserProfile | null;
   allPredictions: Prediction[];
   phase: TournamentPhase;
@@ -41,7 +40,7 @@ interface MatchCardProps {
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId 
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -229,7 +228,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
-            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all hover:scale-105 active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">Save</span></button>;
+            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all hover:scale-105 active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.saveBtn}</span></button>;
         }
         if (isUnlockedBySub && !isDirty) {
             return <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 w-full"><Unlock size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.unlocked}</span></div>;

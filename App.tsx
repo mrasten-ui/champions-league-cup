@@ -420,7 +420,7 @@ export const App = () => {
         setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
         await query;
     }
-    addToast('info', 'Cleared', 'Predictions reset.');
+    addToast('info', t.predictionsCleared, t.predictionsClearedMsg);
   }, [user, activeTab, matches]);
 
   const showMagicWand = (
@@ -474,7 +474,7 @@ export const App = () => {
                    <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
                       {(['schedule', 'tables', 'bracket'] as const).map(sub => (
                          <button key={sub} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
-                            {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{(t as any)[`subnav${sub.charAt(0).toUpperCase() + sub.slice(1)}`]}
+                            {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{sub === 'schedule' ? t.subnavSchedule : sub === 'tables' ? t.subnavTables : t.subnavBracket}
                          </button>
                       ))}
                    </div>
@@ -521,9 +521,8 @@ export const App = () => {
                                 locale={currentLocale} 
                                 userTokens={user?.tokens || 0} 
                                 rivals={rivalsList} 
-                                onSpy={handleSpy} 
-                                revealedRivals={user?.spiedMatches || []} 
-                                currentUser={user} 
+                                onSpy={handleSpy}
+                                currentUser={user}
                                 allPredictions={allPredictions} 
                                 phase={tournamentPhase} 
                                 isAdminMode={isAdminMode} 
@@ -538,8 +537,8 @@ export const App = () => {
                       </div>
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
-                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>Prev Group</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Group</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">Bracket <ChevronRight size={18} /></button></div>}
+                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
+                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
                           </div>
                       </div>
                    </>
@@ -567,11 +566,11 @@ export const App = () => {
                 )}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? 'Groups' : 'Prev Round'}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? t.groups : t.prevRound}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
-                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Next Round</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
+                            <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : (
-                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>Start Scouting</span><ScanEye size={18} /></button>
+                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.scoutBtn}</span><ScanEye size={18} /></button>
                         )}
                      </div>
                 </div>
@@ -612,9 +611,9 @@ export const App = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
             <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
-                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{(t as any).changeIdentity || "Change Identity"}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
+                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} />
-                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">Cancel</button>
+                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
             </div>
         </div>
       )}
@@ -636,14 +635,14 @@ export const App = () => {
                     if (predictionsToSave.length > 0) {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
-                            addToast('success', 'Magic Applied', `Generated scores for ${predictionsToSave.length} matches.`);
+                            addToast('success', t.magicApplied, `${predictionsToSave.length} matches.`);
                             setAllPredictions(prev => {
                                 const others = prev.filter(p => p.userId !== user.email);
                                 const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
                                 const myNewPreds = predictionsToSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
                                 return [...others, ...myOldPreds, ...myNewPreds];
                             });
-                        } else { addToast('error', 'Save Failed', 'Could not save magic predictions.'); }
+                        } else { addToast('error', t.saveFailed, t.saveFailedMsg); }
                     }
                 }
                 setIsHelpingHandOpen(false);
