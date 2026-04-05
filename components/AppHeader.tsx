@@ -97,22 +97,30 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
     const isCritical = remaining < 3600 * 1000;
     const isUrgent   = remaining < 24 * 3600 * 1000;
-    const numClass = isCritical
-      ? 'text-red-400 animate-pulse'
+    const numClass = isCritical ? 'text-red-400 animate-pulse' : isUrgent ? 'text-amber-400' : 'text-slate-300';
+    const labelClass = isCritical ? 'text-red-500/60' : isUrgent ? 'text-amber-500/60' : 'text-slate-500';
+
+    const d  = pad(Math.floor(total / 86400));
+    const h  = pad(Math.floor((total % 86400) / 3600));
+    const m  = pad(Math.floor((total % 3600) / 60));
+    const s  = pad(total % 60);
+
+    // Header: D/H/M normally; H/M/S when urgent; M/S when critical
+    const headerUnits = isCritical
+      ? [{ val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }, { val: s, label: t.seconds || 'Sec' }]
       : isUrgent
-      ? 'text-amber-400'
-      : 'text-slate-300';
-    const labelClass = isCritical ? 'text-red-500/60' : isUrgent ? 'text-amber-500/60' : 'text-slate-600';
-    const detailText = `${pad(Math.floor(total / 86400))}d ${pad(Math.floor((total % 86400) / 3600))}h ${pad(Math.floor((total % 3600) / 60))}m ${pad(total % 60)}s`;
-    return {
-      units: [
-        { val: pad(Math.floor(total / 86400)),          label: t.days    || 'D' },
-        { val: pad(Math.floor((total % 86400) / 3600)), label: t.hours   || 'H' },
-        { val: pad(Math.floor((total % 3600) / 60)),    label: t.minutes || 'M' },
-        { val: pad(total % 60),                         label: t.seconds || 'S' },
-      ],
-      numClass, labelClass, isCritical, isUrgent, detailText,
-    };
+      ? [{ val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }, { val: s, label: t.seconds || 'Sec' }]
+      : [{ val: d, label: t.days || 'Days' }, { val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }];
+
+    // Modal: always all four
+    const modalUnits = [
+      { val: d, label: t.days    || 'Days' },
+      { val: h, label: t.hours   || 'Hrs'  },
+      { val: m, label: t.minutes || 'Min'  },
+      { val: s, label: t.seconds || 'Sec'  },
+    ];
+
+    return { headerUnits, modalUnits, numClass, labelClass, isCritical, isUrgent };
   }, [remaining, deadline, t]);
 
   // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
@@ -218,16 +226,16 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       className="flex items-center gap-0.5 border-r border-white/10 pr-3 mr-1 hover:brightness-125 transition-all cursor-pointer"
                       title={t.deadlineLabel || 'Predictions Lock In'}
                     >
-                      {countdownUnits.units.map(({ val, label }, i) => (
+                      {countdownUnits.headerUnits.map(({ val, label }, i) => (
                         <React.Fragment key={label}>
                           <div className="flex flex-col items-center">
-                            <div className={`bg-black/40 border border-white/5 rounded px-1.5 py-0.5 font-mono font-black text-xs leading-none min-w-[1.6rem] text-center ${countdownUnits.numClass}`}>
+                            <span className={`text-[7px] font-black uppercase tracking-wide mb-0.5 ${countdownUnits.labelClass}`}>{label}</span>
+                            <div className={`bg-black/40 border border-white/5 rounded px-1.5 py-0.5 font-mono font-black text-sm leading-none min-w-[1.8rem] text-center ${countdownUnits.numClass}`}>
                               {val}
                             </div>
-                            <span className={`text-[7px] font-bold uppercase mt-0.5 ${countdownUnits.labelClass}`}>{label}</span>
                           </div>
-                          {i < countdownUnits.units.length - 1 && (
-                            <span className="text-slate-600 text-xs font-bold mb-3 mx-0.5">:</span>
+                          {i < countdownUnits.headerUnits.length - 1 && (
+                            <span className={`text-xs font-bold mt-3 mx-0.5 ${countdownUnits.labelClass}`}>:</span>
                           )}
                         </React.Fragment>
                       ))}
@@ -375,18 +383,18 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-300'}`}>
                 {t.deadlineTitle || '🚨 The Deadline'}
               </p>
-              {/* Large LED display inside modal */}
+              {/* Large LED display inside modal — label top, number below */}
               <div className="flex justify-center gap-1.5">
-                {countdownUnits.units.map(({ val, label }, i) => (
+                {countdownUnits.modalUnits.map(({ val, label }, i) => (
                   <React.Fragment key={label}>
                     <div className="flex flex-col items-center">
-                      <div className={`bg-black/50 border border-white/8 rounded-lg px-3 py-2 font-mono font-black text-3xl leading-none min-w-[3rem] text-center ${countdownUnits.numClass}`}>
+                      <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${countdownUnits.labelClass}`}>{label}</span>
+                      <div className={`bg-black/50 border border-white/5 rounded-lg px-3 py-2 font-mono font-black text-3xl leading-none min-w-[3rem] text-center ${countdownUnits.numClass}`}>
                         {val}
                       </div>
-                      <span className={`text-[8px] font-bold uppercase mt-1 ${countdownUnits.labelClass}`}>{label}</span>
                     </div>
-                    {i < countdownUnits.units.length - 1 && (
-                      <span className="text-slate-600 text-2xl font-bold mb-5">:</span>
+                    {i < countdownUnits.modalUnits.length - 1 && (
+                      <span className={`text-2xl font-bold mt-5 ${countdownUnits.labelClass}`}>:</span>
                     )}
                   </React.Fragment>
                 ))}
