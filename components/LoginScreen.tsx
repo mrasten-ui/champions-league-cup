@@ -92,6 +92,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 } catch (e) { console.warn("Avatar upload failed"); }
             }
             if (!finalAvatarUrl && menPresets.length > 0) finalAvatarUrl = menPresets[0];
+            if (finalAvatarUrl) sessionStorage.setItem('pending_avatar', finalAvatarUrl);
 
             if (authData.session) onSuccess();
             else setErrorMsg("Please check your email to confirm your account.");

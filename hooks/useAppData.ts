@@ -113,7 +113,7 @@ export const useAppData = () => {
                           id: safeId,
                           name: t.name || safeId,
                           flag: t.flag || TEAMS[safeId]?.flag || '',
-                          rank: t.rank || TEAMS[safeId]?.rank || 50,
+                          rank: (t.rank && t.rank !== 50) ? t.rank : (TEAMS[safeId]?.rank ?? 50),
                           rating: t.rating || TEAMS[safeId]?.rating || 50,
                           att: t.att || TEAMS[safeId]?.att || 50,
                           mid: t.mid || TEAMS[safeId]?.mid || 50,
@@ -139,7 +139,7 @@ export const useAppData = () => {
                   const dbId = tid.toLowerCase();
                   if (next[tid] && tid !== 'TBD') {
                       const updates: Partial<typeof next[string]> = {};
-                      if (rankMap[dbId]) updates.rank = rankMap[dbId];
+                      if (rankMap[dbId] != null) updates.rank = rankMap[dbId];
                       if (tacticsMap[dbId]) { const tc = tacticsMap[dbId]; updates.att = tc.att; updates.mid = tc.mid; updates.def = tc.def; updates.rating = Math.round((tc.att + tc.mid + tc.def) / 3); }
                       if (formMap[tid]) updates.form = formMap[tid];
                       if (Object.keys(updates).length > 0) next[tid] = { ...next[tid], ...updates };
@@ -164,12 +164,14 @@ export const useAppData = () => {
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {
-                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: "", tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
+                  const pendingAvatar = sessionStorage.getItem('pending_avatar') || '';
+                  sessionStorage.removeItem('pending_avatar');
+                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: pendingAvatar, tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
                       name: dbRow.name,
-                      avatar: '',
+                      avatar: pendingAvatar,
                       tokens: 5,
                       substitutions: 5,
                       leagues: [],
