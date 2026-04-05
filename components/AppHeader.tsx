@@ -81,16 +81,38 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return () => clearInterval(id);
   }, [deadline]);
 
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+
+  const deadlineFormatted = useMemo(() => {
+    if (!deadline) return '';
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: 'long', year: 'numeric', month: 'long',
+      day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).format(new Date(deadline));
+  }, [deadline]);
+
   const countdownUnits = useMemo(() => {
     if (!deadline || remaining <= 0) return null;
     const total = Math.floor(remaining / 1000);
     const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
-    return [
-      { val: pad(Math.floor(total / 86400)),            label: t.days    || 'D' },
-      { val: pad(Math.floor((total % 86400) / 3600)),   label: t.hours   || 'H' },
-      { val: pad(Math.floor((total % 3600) / 60)),      label: t.minutes || 'M' },
-      { val: pad(total % 60),                           label: t.seconds || 'S' },
-    ];
+    const isCritical = remaining < 3600 * 1000;
+    const isUrgent   = remaining < 24 * 3600 * 1000;
+    const numClass = isCritical
+      ? 'text-red-400 animate-pulse'
+      : isUrgent
+      ? 'text-amber-400'
+      : 'text-slate-300';
+    const labelClass = isCritical ? 'text-red-500/60' : isUrgent ? 'text-amber-500/60' : 'text-slate-600';
+    const detailText = `${pad(Math.floor(total / 86400))}d ${pad(Math.floor((total % 86400) / 3600))}h ${pad(Math.floor((total % 3600) / 60))}m ${pad(total % 60)}s`;
+    return {
+      units: [
+        { val: pad(Math.floor(total / 86400)),          label: t.days    || 'D' },
+        { val: pad(Math.floor((total % 86400) / 3600)), label: t.hours   || 'H' },
+        { val: pad(Math.floor((total % 3600) / 60)),    label: t.minutes || 'M' },
+        { val: pad(total % 60),                         label: t.seconds || 'S' },
+      ],
+      numClass, labelClass, isCritical, isUrgent, detailText,
+    };
   }, [remaining, deadline, t]);
 
   // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
@@ -191,21 +213,25 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               <div className="flex items-center gap-3 shrink-0">
                   {/* COUNTDOWN — LED blocks native to the dark header */}
                   {countdownUnits && (
-                    <div className="flex items-center gap-0.5 border-r border-white/10 pr-3 mr-1">
-                      {countdownUnits.map(({ val, label }, i) => (
+                    <button
+                      onClick={() => setShowDeadlineModal(true)}
+                      className="flex items-center gap-0.5 border-r border-white/10 pr-3 mr-1 hover:brightness-125 transition-all cursor-pointer"
+                      title={t.deadlineLabel || 'Predictions Lock In'}
+                    >
+                      {countdownUnits.units.map(({ val, label }, i) => (
                         <React.Fragment key={label}>
                           <div className="flex flex-col items-center">
-                            <div className="bg-black/40 border border-white/5 rounded px-1.5 py-0.5 font-mono font-black text-xs text-red-400 leading-none min-w-[1.6rem] text-center">
+                            <div className={`bg-black/40 border border-white/5 rounded px-1.5 py-0.5 font-mono font-black text-xs leading-none min-w-[1.6rem] text-center ${countdownUnits.numClass}`}>
                               {val}
                             </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase mt-0.5">{label}</span>
+                            <span className={`text-[7px] font-bold uppercase mt-0.5 ${countdownUnits.labelClass}`}>{label}</span>
                           </div>
-                          {i < countdownUnits.length - 1 && (
+                          {i < countdownUnits.units.length - 1 && (
                             <span className="text-slate-600 text-xs font-bold mb-3 mx-0.5">:</span>
                           )}
                         </React.Fragment>
                       ))}
-                    </div>
+                    </button>
                   )}
                   <div className="flex items-center gap-1.5 mr-2">
                       {LANGUAGES.map(l => (
@@ -340,6 +366,48 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       )}
 
 
+      {/* DEADLINE MODAL */}
+      {showDeadlineModal && countdownUnits && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowDeadlineModal(false)} />
+          <div className="relative w-full max-w-sm bg-[#0f2545] rounded-2xl shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-200">
+            <div className={`p-5 text-center border-b border-white/10 ${countdownUnits.isCritical ? 'bg-red-600/10' : countdownUnits.isUrgent ? 'bg-amber-500/10' : 'bg-white/5'}`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-300'}`}>
+                {t.deadlineTitle || '🚨 The Deadline'}
+              </p>
+              {/* Large LED display inside modal */}
+              <div className="flex justify-center gap-1.5">
+                {countdownUnits.units.map(({ val, label }, i) => (
+                  <React.Fragment key={label}>
+                    <div className="flex flex-col items-center">
+                      <div className={`bg-black/50 border border-white/8 rounded-lg px-3 py-2 font-mono font-black text-3xl leading-none min-w-[3rem] text-center ${countdownUnits.numClass}`}>
+                        {val}
+                      </div>
+                      <span className={`text-[8px] font-bold uppercase mt-1 ${countdownUnits.labelClass}`}>{label}</span>
+                    </div>
+                    {i < countdownUnits.units.length - 1 && (
+                      <span className="text-slate-600 text-2xl font-bold mb-5">:</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+            <div className="px-5 py-4 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{t.deadlineBodyPre || 'All predictions lock at'}</p>
+              <p className="text-white font-black text-sm leading-snug">{deadlineFormatted}</p>
+              <p className="text-[10px] text-slate-500 mt-2 font-medium">{t.deadlineBodyPost || ', 15 minutes before opening kick-off.'}</p>
+            </div>
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setShowDeadlineModal(false)}
+                className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+              >
+                {t.gotIt || 'Got It'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
