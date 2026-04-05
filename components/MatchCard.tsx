@@ -17,6 +17,7 @@ interface MatchCardProps {
   userTokens: number;
   rivals: UserProfile[];
   onSpy: (id: string) => void;
+  revealedRivals?: string[];
   currentUser: UserProfile | null;
   allPredictions: Prediction[];
   phase: TournamentPhase;
