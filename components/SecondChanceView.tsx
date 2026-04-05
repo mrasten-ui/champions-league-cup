@@ -120,27 +120,27 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
             <div className="bg-indigo-50 p-6 rounded-full mb-8 text-indigo-500 relative shadow-inner">
                 <Clock size={56} className="animate-pulse" />
             </div>
-            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-4">Pledge Locked</h2>
+            <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-4">{lang.pledgeLocked}</h2>
             <p className="text-slate-500 font-medium max-w-md mb-10 text-lg">
-                The real-world group stage is still ongoing. Return when the timer hits zero to draft your new Knockout Bracket.
+                {lang.pledgeLockedDesc}
             </p>
             
             <div className="flex gap-4">
                 <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
                     <span className="text-4xl font-black font-mono">{String(timeLeft.d).padStart(2, '0')}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Days</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">{lang.days}</span>
                 </div>
                 <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
                     <span className="text-4xl font-black font-mono">{String(timeLeft.h).padStart(2, '0')}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Hours</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">{lang.hours}</span>
                 </div>
                 <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
                     <span className="text-4xl font-black font-mono">{String(timeLeft.m).padStart(2, '0')}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Mins</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">{lang.minutes}</span>
                 </div>
                 <div className="bg-slate-800 text-white rounded-2xl w-24 h-24 flex flex-col items-center justify-center shadow-xl">
                     <span className="text-4xl font-black font-mono text-indigo-400">{String(timeLeft.s).padStart(2, '0')}</span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">Secs</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mt-1">{lang.seconds}</span>
                 </div>
             </div>
         </div>
@@ -161,10 +161,10 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
               </div>
               <div>
                   <h2 className="text-xl font-black uppercase italic tracking-tighter">
-                      {status === 'ACTIVE' ? "Second Chance Active" : "Drafting Window Open"}
+                      {status === 'ACTIVE' ? lang.secondChanceActive : lang.draftingWindowOpen || 'Drafting Window Open'}
                   </h2>
                   <div className="mt-1 inline-flex items-center gap-2 bg-black/20 px-3 py-1 rounded-lg">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/90">50% Points Penalty Applies</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/90">{lang.pointsReduced}</span>
                   </div>
               </div>
           </div>
@@ -173,7 +173,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
           {status === 'PENDING' && isDraftingWindow && (
               <div className="flex items-center gap-6">
                   <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-widest text-red-200 font-bold mb-1">Time to lock-in</div>
+                      <div className="text-[10px] uppercase tracking-widest text-red-200 font-bold mb-1">{lang.timeTolockIn || 'Time to lock-in'}</div>
                       <div className="font-mono text-2xl font-black tabular-nums">
                           {String(timeLeft.h).padStart(2, '0')}:{String(timeLeft.m).padStart(2, '0')}:{String(timeLeft.s).padStart(2, '0')}
                       </div>

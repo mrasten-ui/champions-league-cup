@@ -133,19 +133,19 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
       {/* Navigation */}
       <div className="mt-12 flex flex-col items-center gap-4">
           <div className="flex gap-3 w-full max-w-lg">
-              <button 
+              <button
                   onClick={() => onGoToGroup?.('L')}
-                  className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"
+                  className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center justify-center gap-2 group"
               >
                   <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                  <span>Back to L</span>
+                  <span>{lang.backToGroup || 'Back to Group'}</span>
               </button>
-              
-              <button 
+
+              <button
                   onClick={onGoToKnockout}
-                  className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                  className="flex-[2] px-6 py-4 bg-[#0f2545] text-white border border-white/10 rounded-2xl shadow-lg font-black uppercase tracking-widest hover:bg-[#153055] hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
               >
-                  <span>To Knockouts</span>
+                  <span>{lang.goToBracket || 'To Knockouts'}</span>
                   <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
           </div>

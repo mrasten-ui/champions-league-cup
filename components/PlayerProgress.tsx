@@ -11,7 +11,7 @@ interface PlayerProgressProps {
   currentUserLeagues?: string[];
 }
 
-export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, totalMatches, lang, currentUserLeagues = [] }) => {
+export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [] }) => {
   const [activeLeague, setActiveLeague] = useState<string>('global');
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
 
@@ -121,8 +121,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
         {/* 3. Managers List */}
         <div className="divide-y divide-slate-50">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                <span>Manager</span>
-                <span>Status</span>
+                <span>{lang.manager}</span>
+                <span>{lang.status}</span>
             </div>
 
             {sortedUsers.map(user => {

@@ -292,8 +292,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       {viewMode === 'knockout' && !hasKnockouts && (
           <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
               <CalendarClock size={64} className="text-slate-300 mb-4" />
-              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">Knockout Stage<br/>Not Yet Predicted</h3>
-              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">Predict the group stages first to unlock the bracket.</p>
+              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">{lang.knockoutNotYet}</h3>
+              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">{lang.knockoutUnlockHint}</p>
           </div>
       )}
 

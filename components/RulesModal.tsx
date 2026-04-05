@@ -135,19 +135,19 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, lang })
                 
                 <div className="grid grid-cols-1 gap-2">
                     <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex justify-between items-center hover:border-indigo-200 transition-colors">
-                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-tight">Round of 32</span>
+                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-tight">{lang.roundOf32}</span>
                         <span className="text-sm font-black text-indigo-600 bg-white px-2 py-1 rounded shadow-sm">8 Pts</span>
                     </div>
                     <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex justify-between items-center hover:border-indigo-200 transition-colors">
-                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-tight">Round of 16</span>
+                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-tight">{lang.roundOf16}</span>
                         <span className="text-sm font-black text-indigo-600 bg-white px-2 py-1 rounded shadow-sm">12 Pts</span>
                     </div>
                     <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 flex justify-between items-center hover:border-purple-200 transition-colors">
-                        <span className="text-xs font-bold text-purple-900 uppercase tracking-tight">Quarter Finals</span>
+                        <span className="text-xs font-bold text-purple-900 uppercase tracking-tight">{lang.quarterFinal}</span>
                         <span className="text-sm font-black text-purple-600 bg-white px-2 py-1 rounded shadow-sm">16 Pts</span>
                     </div>
                     <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 flex justify-between items-center hover:border-purple-200 transition-colors">
-                        <span className="text-xs font-bold text-purple-900 uppercase tracking-tight">Semi Finals</span>
+                        <span className="text-xs font-bold text-purple-900 uppercase tracking-tight">{lang.semiFinal}</span>
                         <span className="text-sm font-black text-purple-600 bg-white px-2 py-1 rounded shadow-sm">24 Pts</span>
                     </div>
                     <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3 flex justify-between items-center relative overflow-hidden group shadow-sm">

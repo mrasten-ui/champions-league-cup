@@ -352,8 +352,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {/* SAVE STATUS BAR */}
              {!isLocked && !isKnockout && (isSaving || isSaved) && (
                 <div className="h-7 flex items-center justify-center gap-1.5 transition-all duration-300">
-                    {isSaving && <><RefreshCw size={11} className="animate-spin text-slate-400" /><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saving</span></>}
-                    {isSaved && !isSaving && <><Check size={11} className="text-green-500" /><span className="text-[10px] font-bold text-green-500 uppercase tracking-widest animate-in fade-in duration-300">Saved</span></>}
+                    {isSaving && <><RefreshCw size={11} className="animate-spin text-slate-400" /><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang.saving || 'Saving'}</span></>}
+                    {isSaved && !isSaving && <><Check size={11} className="text-green-500" /><span className="text-[10px] font-bold text-green-500 uppercase tracking-widest animate-in fade-in duration-300">{lang.saved || 'Saved'}</span></>}
                 </div>
              )}
              {!isLocked && !isKnockout && !isSaving && !isSaved && <div className="h-7" />}
