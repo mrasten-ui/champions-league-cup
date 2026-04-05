@@ -22,7 +22,6 @@ import { ManagerHub } from './components/ManagerHub';
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesModal } from './components/RulesModal';
-import { DeadlineCountdown } from './components/DeadlineCountdown';
 import { ScoutingCenter } from './components/ScoutingCenter';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { useSwipe } from './hooks/useSwipe';
@@ -530,7 +529,6 @@ export const App = () => {
         {/* GROUPS TAB */}
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
-                <DeadlineCountdown matches={matches} lang={t} />
                 {showOverview ? (
                    <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (

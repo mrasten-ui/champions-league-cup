@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -62,6 +62,38 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { completed, total, percentage };
   }, [matches, allPredictions, user.email]);
+
+  // --- DEADLINE COUNTDOWN ---
+  const deadline = useMemo(() => {
+    if (props.tournamentPhase !== 'PRE_LIVE') return null;
+    const valid = matches.filter(m => m.date && m.date !== 'TBD');
+    if (!valid.length) return null;
+    const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
+    return new Date(earliest.date).getTime() - 15 * 60 * 1000;
+  }, [matches, props.tournamentPhase]);
+
+  const [remaining, setRemaining] = useState(() => deadline ? deadline - Date.now() : 0);
+  useEffect(() => {
+    if (!deadline) return;
+    setRemaining(deadline - Date.now());
+    const id = setInterval(() => setRemaining(deadline - Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+
+  const countdownDisplay = useMemo(() => {
+    if (!deadline || remaining <= 0) return null;
+    const total = Math.floor(remaining / 1000);
+    const d = Math.floor(total / 86400);
+    const h = Math.floor((total % 86400) / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const isUrgent = remaining < 24 * 3600 * 1000;
+    const isCritical = remaining < 3600 * 1000;
+    if (isCritical) return { text: `${pad(h)}:${pad(m)}:${pad(s)}`, style: 'critical' as const };
+    if (isUrgent)   return { text: `${pad(h)}:${pad(m)}:${pad(s)}`, style: 'urgent' as const };
+    return { text: `${d}d ${pad(h)}h`, style: 'normal' as const };
+  }, [remaining, deadline]);
 
   // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
   const renderNavTabs = (isDesktop: boolean) => (
@@ -159,6 +191,18 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
               {/* RIGHT: Controls & Profile */}
               <div className="flex items-center gap-3 shrink-0">
+                  {/* DEADLINE COUNTDOWN PILL */}
+                  {countdownDisplay && (
+                    <div className={`flex items-center rounded-lg px-2 py-1 font-black tabular-nums text-[11px] tracking-tight select-none transition-all ${
+                      countdownDisplay.style === 'critical'
+                        ? 'bg-red-600/20 text-red-400 border border-red-500/40 animate-pulse'
+                        : countdownDisplay.style === 'urgent'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
+                        : 'bg-white/8 text-blue-300 border border-white/10'
+                    }`}>
+                      {countdownDisplay.text}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 mr-2">
                       {LANGUAGES.map(l => (
                         <button key={l.code} onClick={() => props.setLanguage(l.code)} className={`w-6 h-4 sm:w-8 sm:h-5 rounded overflow-hidden transition-all duration-200 transform ${props.language === l.code ? 'ring-2 ring-yellow-400 scale-110 z-10 shadow-md grayscale-0' : 'opacity-60 grayscale hover:opacity-100 hover:scale-105'}`} title={l.name}>
