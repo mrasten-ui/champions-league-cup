@@ -80,6 +80,16 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return () => clearInterval(id);
   }, [deadline]);
 
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+
+  const deadlineFormatted = useMemo(() => {
+    if (!deadline) return '';
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).format(new Date(deadline));
+  }, [deadline]);
+
   const countdownDisplay = useMemo(() => {
     if (!deadline || remaining <= 0) return null;
     const total = Math.floor(remaining / 1000);
@@ -90,9 +100,10 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     const isUrgent = remaining < 24 * 3600 * 1000;
     const isCritical = remaining < 3600 * 1000;
-    if (isCritical) return { text: `${pad(h)}:${pad(m)}:${pad(s)}`, style: 'critical' as const };
-    if (isUrgent)   return { text: `${pad(h)}:${pad(m)}:${pad(s)}`, style: 'urgent' as const };
-    return { text: `${d}d ${pad(h)}h`, style: 'normal' as const };
+    const detail = `${d}d ${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+    if (isCritical) return { text: `${pad(h)}:${pad(m)}:${pad(s)}`, detail, style: 'critical' as const };
+    if (isUrgent)   return { text: `${pad(h)}h ${pad(m)}m ${pad(s)}s`, detail, style: 'urgent' as const };
+    return { text: `${d}d ${pad(h)}h ${pad(m)}m`, detail, style: 'normal' as const };
   }, [remaining, deadline]);
 
   // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
@@ -193,15 +204,18 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               <div className="flex items-center gap-3 shrink-0">
                   {/* DEADLINE COUNTDOWN PILL */}
                   {countdownDisplay && (
-                    <div className={`flex items-center rounded-lg px-2 py-1 font-black tabular-nums text-[11px] tracking-tight select-none transition-all ${
-                      countdownDisplay.style === 'critical'
-                        ? 'bg-red-600/20 text-red-400 border border-red-500/40 animate-pulse'
-                        : countdownDisplay.style === 'urgent'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
-                        : 'bg-white/8 text-blue-300 border border-white/10'
-                    }`}>
+                    <button
+                      onClick={() => setShowDeadlineModal(true)}
+                      className={`flex items-center rounded-lg px-2 py-1 font-black tabular-nums text-[11px] tracking-tight select-none transition-all cursor-pointer hover:brightness-125 ${
+                        countdownDisplay.style === 'critical'
+                          ? 'bg-red-600/20 text-red-400 border border-red-500/40 animate-pulse'
+                          : countdownDisplay.style === 'urgent'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
+                          : 'bg-white/10 text-blue-300 border border-white/10'
+                      }`}
+                    >
                       {countdownDisplay.text}
-                    </div>
+                    </button>
                   )}
                   <div className="flex items-center gap-1.5 mr-2">
                       {LANGUAGES.map(l => (
@@ -333,6 +347,41 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                   })}
               </div>
           </div>
+      )}
+
+      {/* DEADLINE MODAL */}
+      {showDeadlineModal && countdownDisplay && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowDeadlineModal(false)} />
+          <div className="relative w-full max-w-sm bg-[#0f2545] rounded-2xl shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className={`p-5 text-center ${
+              countdownDisplay.style === 'critical' ? 'bg-red-600/20' :
+              countdownDisplay.style === 'urgent'   ? 'bg-amber-500/20' : 'bg-white/5'
+            }`}>
+              <p className={`text-xs font-black uppercase tracking-widest mb-1 ${
+                countdownDisplay.style === 'critical' ? 'text-red-400' :
+                countdownDisplay.style === 'urgent'   ? 'text-amber-300' : 'text-blue-300'
+              }`}>{t.deadlineTitle || '🚨 The Deadline'}</p>
+              <p className="text-white font-black text-4xl tabular-nums tracking-tight">{countdownDisplay.detail}</p>
+            </div>
+            {/* Date */}
+            <div className="px-5 py-4 border-t border-white/10 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{t.deadlineBodyPre || 'All predictions lock at'}</p>
+              <p className="text-white font-black text-sm">{deadlineFormatted}</p>
+              <p className="text-[10px] text-slate-500 mt-2 font-medium">{t.deadlineBodyPost || ', exactly 15 minutes before the opening kick-off.'}</p>
+            </div>
+            {/* Close */}
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setShowDeadlineModal(false)}
+                className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+              >
+                {t.gotIt || 'Got It'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </header>
   );
