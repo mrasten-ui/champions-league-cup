@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Prediction, Translation } from '../types';
 import { Users, CheckCircle2, ChevronDown, Globe, Trophy } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
+import { LEAGUES } from '../constants';
 
 interface PlayerProgressProps {
   users: UserProfile[];
@@ -15,15 +16,10 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
   const [activeLeague, setActiveLeague] = useState<string>('global');
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
 
-  const getLeagueName = (slug: string) => {
-      switch(slug) {
-          case 'family': return 'The Rasten Family';
-          case 'beeline': return 'Beeline Colleagues';
-          case 'scotland': return 'Scotland & Friends';
-          case 'global': return lang.lbGlobal || "Global League";
-          default: return slug.charAt(0).toUpperCase() + slug.slice(1);
-      }
-  };
+  const getLeagueName = (slug: string) =>
+    slug === 'global'
+      ? (lang.lbGlobal || 'Global League')
+      : (LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1));
 
   // Filter users based on league selection
   const filteredUsers = useMemo(() => {

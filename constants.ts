@@ -587,6 +587,16 @@ const NO_TRANSLATION: Translation = {
     teamOverviews: {}
 };
 
+// --- LEAGUE CONFIG ---
+// Add new leagues here only. Slug = URL invite key. Name = display name.
+export const LEAGUES: Record<string, string> = {
+  family:   'The Rasten Family',
+  friends:  'Friends',
+  office:   'Office League',
+  beeline:  'Beeline Colleagues',
+  scotland: 'Scotland & Friends',
+};
+
 // --- DATA EXPORTS ---
 
 export const TRANSLATIONS: Record<LanguageCode, Translation> = {

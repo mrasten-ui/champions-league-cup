@@ -204,7 +204,7 @@ export const useAppData = () => {
 
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
+    allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
     groupStageEndTime, knockoutStartTime // <--- RE-ADDED: Fixes the Vercel crash!
   };
 };

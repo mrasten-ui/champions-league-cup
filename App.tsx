@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye, Mic } from 'lucide-react';
-import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS } from './constants';
+import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
   calculateGroupStandings, 
@@ -46,9 +46,9 @@ const STORAGE_KEYS = {
 };
 
 export const App = () => {
-  const { 
-    session, user, setUser, loading, matches, setMatches, teamsData, 
-    allPredictions, setAllPredictions, usersDb, menPresets, womenPresets,
+  const {
+    session, user, setUser, loading, matches, setMatches, teamsData,
+    allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
     groupStageEndTime, knockoutStartTime
   } = useAppData();
 
@@ -80,6 +80,18 @@ export const App = () => {
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
   const currentLocale = localeMap[language];
+
+  // --- INVITE LINK HANDLER ---
+  // Reads ?invite=slug from URL on first load and stores in sessionStorage.
+  // The league-join useEffect below picks it up once the user is authenticated.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get('invite');
+    if (invite) {
+      sessionStorage.setItem('pending_league_invite', invite);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // --- HELPERS ---
   const addToast = (type: ToastType, title: string, message?: string) => {
@@ -307,13 +319,29 @@ export const App = () => {
   useEffect(() => {
       const checkPendingLeague = async () => {
           if (user && supabase) {
-              const pendingLeague = sessionStorage.getItem('pending_league_invite');
-              if (pendingLeague && !user.leagues?.includes(pendingLeague)) {
-                  const newLeagues = [...(user.leagues || []), pendingLeague];
+              const existing = user.leagues || [];
+              const toAdd: string[] = [];
+
+              // Single invite link (?invite=slug)
+              const singleInvite = sessionStorage.getItem('pending_league_invite');
+              if (singleInvite && !existing.includes(singleInvite)) toAdd.push(singleInvite);
+
+              // Multi-league signup picker
+              const multiRaw = sessionStorage.getItem('pending_leagues_signup');
+              if (multiRaw) {
+                  try {
+                      const multi: string[] = JSON.parse(multiRaw);
+                      multi.forEach(slug => { if (!existing.includes(slug) && !toAdd.includes(slug)) toAdd.push(slug); });
+                  } catch { /* malformed JSON, ignore */ }
+              }
+
+              if (toAdd.length > 0) {
+                  const newLeagues = [...existing, ...toAdd];
                   await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', user.email);
                   setUser({ ...user, leagues: newLeagues });
-                  addToast('success', t.leagueJoined, `${pendingLeague.toUpperCase()}`);
+                  addToast('success', t.leagueJoined, toAdd.map(s => LEAGUES[s] || s).join(', '));
                   sessionStorage.removeItem('pending_league_invite');
+                  sessionStorage.removeItem('pending_leagues_signup');
               }
           }
       };
@@ -618,7 +646,22 @@ export const App = () => {
         </div>
       )}
 
-      <DebugTools isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}} onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }} onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }} onClear={() => { localStorage.clear(); window.location.reload(); }} onTimeTravel={handleTimeTravel} onStressTest={() => { addToast('info', 'Stress Test', 'Functionality placeholder'); }} isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)} lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches} />
+      <DebugTools
+        isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}}
+        onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }}
+        onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }}
+        onClear={() => { localStorage.clear(); window.location.reload(); }}
+        onTimeTravel={handleTimeTravel}
+        onStressTest={() => { addToast('info', 'Stress Test', 'Functionality placeholder'); }}
+        isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)}
+        lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}
+        onUpdateUserLeagues={async (email, leagues) => {
+          if (!supabase) return;
+          await supabase.from('profiles').update({ leagues } as any).eq('email', email);
+          setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], leagues } }));
+          if (user?.email === email) setUser(prev => prev ? { ...prev, leagues } : null);
+        }}
+      />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
       
       {isHelpingHandOpen && user && (

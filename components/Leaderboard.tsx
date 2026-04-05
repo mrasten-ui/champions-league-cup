@@ -4,7 +4,7 @@ import { UserProfile, Match, Prediction, Translation, Round, Team } from '../typ
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
 import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, PieChart, Users, Globe, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
-import { INITIAL_MATCHES } from '../constants';
+import { INITIAL_MATCHES, LEAGUES } from '../constants';
 
 interface LeaderboardProps {
   users: UserProfile[];
@@ -364,15 +364,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       setExpandedUser(expandedUser === email ? null : email);
   };
 
-  const getLeagueName = (slug: string) => {
-      switch(slug) {
-          case 'family': return 'The Rasten Family';
-          case 'beeline': return 'Beeline Colleagues';
-          case 'scotland': return 'Scotland & Friends';
-          case 'global': return lang.lbGlobal;
-          default: return slug.charAt(0).toUpperCase() + slug.slice(1);
-      }
-  };
+  const getLeagueName = (slug: string) =>
+    slug === 'global'
+      ? (lang.lbGlobal || 'Global League')
+      : (LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1));
 
   const openStatsModal = (user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED') => {
       const relevantMatches: {m: Match, p: Prediction, pts: number}[] = [];
