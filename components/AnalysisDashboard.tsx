@@ -266,7 +266,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
             />
         </div>
 
-        <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} />
+        <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} locale={({'EN':'en-GB','SCO':'en-GB','US':'en-US','NO':'no-NO'} as Record<string,string>)[currentLang] || 'en-GB'} />
 
         <SimulatedLeaderboardWidget 
             simulatedUsers={combinedStats} 

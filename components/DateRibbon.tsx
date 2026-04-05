@@ -7,9 +7,10 @@ interface DateRibbonProps {
   selectedDate: string;
   onDateSelect: (date: string) => void;
   lang: Translation;
+  locale?: string;
 }
 
-export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onDateSelect, lang }) => {
+export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onDateSelect, lang, locale = 'en-GB' }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayStr = new Date().toDateString();
 
@@ -44,7 +45,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
     
     return {
         main: dateObj.getDate(),
-        sub: dateObj.toLocaleDateString('en-GB', { weekday: 'short' })
+        sub: dateObj.toLocaleDateString(locale, { weekday: 'short' })
     };
   };
 

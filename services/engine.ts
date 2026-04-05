@@ -10,7 +10,7 @@ export const SCORING_RULES = {
   QF: 16,
   SF: 24,
   FIN: 40,
-  '3RD': 12
+  '3RD': 20
 };
 
 export const calculatePoints = (

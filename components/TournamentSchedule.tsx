@@ -199,11 +199,12 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   return (
     <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
-        <DateRibbon 
-            dates={uniqueDates} 
-            selectedDate={filterDate} 
-            onDateSelect={setFilterDate} 
-            lang={lang} 
+        <DateRibbon
+            dates={uniqueDates}
+            selectedDate={filterDate}
+            onDateSelect={setFilterDate}
+            lang={lang}
+            locale={activeLocale}
         />
         
         <div className="p-4 max-w-2xl mx-auto">

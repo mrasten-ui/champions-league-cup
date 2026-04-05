@@ -22,6 +22,7 @@ import { ManagerHub } from './components/ManagerHub';
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesModal } from './components/RulesModal';
+import { DeadlineCountdown } from './components/DeadlineCountdown';
 import { ScoutingCenter } from './components/ScoutingCenter';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { useSwipe } from './hooks/useSwipe';
@@ -529,6 +530,7 @@ export const App = () => {
         {/* GROUPS TAB */}
         {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
+                <DeadlineCountdown matches={matches} lang={t} />
                 {showOverview ? (
                    <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (
@@ -566,7 +568,7 @@ export const App = () => {
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
                               {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
+                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-[#0f2545] border border-white/10 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:bg-[#153055] hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
                           </div>
                       </div>
                    </>
@@ -662,7 +664,7 @@ export const App = () => {
           if (user?.email === email) setUser(prev => prev ? { ...prev, leagues } : null);
         }}
       />
-      <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} />
+      <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} matches={matches} currentLocale={currentLocale} />
       
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
