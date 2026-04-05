@@ -123,7 +123,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (userTokens > 0 && window.confirm(`Spend 1 token to reveal rival predictions? (You have ${userTokens} left)`)) {
+        if (userTokens > 0 && window.confirm(`${lang.spyConfirm} (${userTokens}/5 ${lang.tokensLeft})`)) {
             onSpy(match.id);
         }
     };
@@ -371,20 +371,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              )}
 
              {canSpy && (
-                <div className="px-4 pb-4">
-                    <button
-                        onClick={handleSpyClick}
-                        disabled={userTokens < 1}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border border-white/10 bg-[#0f2545] transition-colors ${userTokens > 0 ? 'hover:bg-[#1a3a6c] cursor-pointer' : 'opacity-50 grayscale cursor-not-allowed'}`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <LockIcon size={14} className="text-yellow-400 shrink-0" />
-                            <span className="text-xs font-black text-yellow-400 uppercase tracking-wider">Reveal Rival Picks</span>
-                        </div>
-                        <span className="text-xs font-medium text-white/60">
-                            {userTokens > 0 ? `Cost: 1 Token (${userTokens}/5 left)` : 'Out of Spy Tokens'}
-                        </span>
-                    </button>
+                <div
+                    onClick={userTokens > 0 ? handleSpyClick : undefined}
+                    className={`bg-[#0f2545] py-2 px-3 flex justify-between items-center border-t border-white/10 rounded-b-2xl group transition-colors ${userTokens > 0 ? 'cursor-pointer hover:bg-[#153055]' : 'opacity-50 grayscale cursor-not-allowed'}`}
+                >
+                    <div className="flex items-center gap-2">
+                        <LockIcon size={12} className="text-yellow-400 shrink-0" />
+                        <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.sendScouts || 'Send out the scouts'}</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-white/60 group-hover:text-white/80 transition-colors">
+                        {userTokens}/5 {lang.tokensLeft}
+                    </span>
                 </div>
              )}
 
