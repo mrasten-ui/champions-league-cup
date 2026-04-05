@@ -32,6 +32,25 @@ export interface Translation {
   changeIdentity: string;
   cancelBtn: string;
   noMatchesDate: string;
+  substitutions: string;
+  subSuccess: string;
+  subnavSchedule: string;
+  subnavTables: string;
+  subnavBracket: string;
+  lockInConfirm: string;
+  pledgeToastMsg: string;
+  bracketLockedIn: string;
+  bracketLockedInMsg: string;
+  leagueJoined: string;
+  predictionsCleared: string;
+  predictionsClearedMsg: string;
+  saveFailed: string;
+  saveFailedMsg: string;
+  tooLate: string;
+  tooLateMsg: string;
+  magicApplied: string;
+  noIntel: string;
+  noIntelMsg: string;
 }
 
 export type Round = 'R32' | 'R16' | 'QF' | 'SF' | 'FIN' | '3RD';

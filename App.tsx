@@ -158,7 +158,7 @@ export const App = () => {
       if (supabase) await supabase.auth.signOut();
       setUser(null); setIsProfileMenuOpen(false);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-      addToast('info', 'Logged Out', 'See you next match day.');
+      addToast('info', t.loggedOutTitle, t.loggedOutMsg);
   };
 
   const updateAvatar = async (newAvatar: string) => {
@@ -174,12 +174,12 @@ export const App = () => {
                 const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
                 finalUrl = data.publicUrl;
             }
-        } catch (e) { addToast('error', 'Error', 'Failed to process image.'); return; }
+        } catch (e) { addToast('error', t.saveFailed, t.saveFailedMsg); return; }
     }
     setUser({ ...user, avatar: finalUrl });
     await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
     setShowAvatarEditor(false);
-    addToast('success', 'Profile Updated', 'New avatar looks great!');
+    addToast('success', t.profileUpdated, t.profileMsg);
   };
 
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
@@ -197,25 +197,25 @@ export const App = () => {
     });
 
     const { error: predError } = await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
-    if (predError) addToast('error', 'Save Failed', 'Prediction could not be saved.');
+    if (predError) addToast('error', t.saveFailed, t.saveFailedMsg);
 
     if (isWhitelisted) {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
         setUser({ ...user, unlockedMatches: newUnlocked });
         await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
-        addToast('success', 'Prediction Saved', 'Match re-locked.');
+        addToast('success', t.predSaved, t.predLocked);
     }
   };
 
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
-      if (user.tokens < 1) { addToast('error', 'No Intel', 'You need more Intel to spy.'); return; }
+      if (user.tokens < 1) { addToast('error', t.noIntel, t.noIntelMsg); return; }
       const newSpied = [...(user.spiedMatches || []), matchId];
       const newTokens = user.tokens - 1;
       setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
       const { error: spyError } = await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
-      if (spyError) addToast('error', 'Save Failed', 'Could not save spy action.');
-      else addToast('success', 'Rival Revealed', '-1 Intel used.');
+      if (spyError) addToast('error', t.saveFailed, t.saveFailedMsg);
+      else addToast('success', t.rivalRevealed, t.intelUsed);
   };
 
   const handleSubstitute = async (matchId: string) => {
@@ -225,27 +225,27 @@ export const App = () => {
       const isStarted = match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status);
       
       if (!match || isStarted) {
-          addToast('error', 'Too Late', 'Can only substitute UPCOMING matches.');
+          addToast('error', t.tooLate, t.tooLateMsg);
           return;
       }
 
-      if (user.substitutions < 1) { addToast('error', 'No Subs Left', 'All substitutions used.'); return; }
-      
+      if (user.substitutions < 1) { addToast('error', t.noSubsTitle, t.noSubsMsg); return; }
+
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
       setUser({ ...user, substitutions: newSubs, unlockedMatches: newUnlocked });
       const { error: subError } = await supabase.from('profiles').update({ substitutions: newSubs, unlocked_matches: newUnlocked } as any).eq('email', user.email);
-      if (subError) addToast('error', 'Save Failed', 'Substitution could not be saved.');
-      else addToast('success', (t as any).subSuccess || 'Substitution Successful', `${(t as any).substitutions || 'Substitutions'}: ${newSubs} left`);
+      if (subError) addToast('error', t.saveFailed, t.saveFailedMsg);
+      else addToast('success', t.subSuccess, `${t.substitutions}: ${newSubs} left`);
   };
 
   // --- STAGE 1: PLEDGE ---
   const handlePledgeSecondChance = async () => {
       if (!user || !supabase) return;
-      if (window.confirm("Pledge your Second Chance? You will be able to draft your new bracket as soon as the Group Stage ends.")) {
+      if (window.confirm(t.secondChanceConfirm)) {
           setUser({ ...user, secondChanceStatus: 'PENDING' });
           await supabase.from('profiles').update({ second_chance_status: 'PENDING' } as any).eq('email', user.email);
-          addToast('info', 'Pledge Locked', 'Check the Knockout tab for your countdown timer!');
+          addToast('info', t.pledgeLocked, t.pledgeToastMsg);
           setActiveTab('knockout');
       }
   };
@@ -253,10 +253,10 @@ export const App = () => {
   // --- STAGE 3: LOCK IN ---
   const handleLockInSecondChance = async () => {
       if (!user || !supabase) return;
-      if (window.confirm("Lock in this bracket? Your 50% penalty will now be permanently applied.")) {
+      if (window.confirm(t.lockInConfirm)) {
           setUser({ ...user, secondChanceStatus: 'ACTIVE', hasTakenSecondChance: true });
           await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true } as any).eq('email', user.email);
-          addToast('success', 'Bracket Locked', 'Your Second Chance is now active!');
+          addToast('success', t.bracketLockedIn, t.bracketLockedInMsg);
       }
   };
 
@@ -301,7 +301,7 @@ export const App = () => {
             .eq('email', user.email);
     }
 
-    addToast('info', 'Sub Refunded', `${matchesToRefund.length} sub(s) returned. Match started before save.`);
+    addToast('info', t.subRefunded, t.subRefundedMsg);
   }, [matches, user?.unlockedMatches]);
 
   useEffect(() => {
@@ -312,7 +312,7 @@ export const App = () => {
                   const newLeagues = [...(user.leagues || []), pendingLeague];
                   await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', user.email);
                   setUser({ ...user, leagues: newLeagues });
-                  addToast('success', 'League Joined', `Welcome to ${pendingLeague.toUpperCase()}!`);
+                  addToast('success', t.leagueJoined, `${pendingLeague.toUpperCase()}`);
                   sessionStorage.removeItem('pending_league_invite');
               }
           }
