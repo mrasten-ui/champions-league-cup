@@ -372,6 +372,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              {canSpy && (
                 <div
+                    id="tour-spy-btn"
                     onClick={userTokens > 0 ? handleSpyClick : undefined}
                     className={`bg-[#0f2545] py-2 px-3 flex justify-between items-center border-t border-white/10 rounded-b-2xl group transition-colors ${userTokens > 0 ? 'cursor-pointer hover:bg-[#153055]' : 'opacity-50 grayscale cursor-not-allowed'}`}
                 >

@@ -77,7 +77,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
   // STOP 3: GROUP NAVIGATION
   {
     id: 'groups_nav',
-    targets: ['nav-groups', 'subnav-groups'], 
+    targets: ['nav-groups', 'nav-groups-desk', 'subnav-groups'],
     position: 'bottom',
     overlayType: 'swipe-hand',
     audioFiles: { 
@@ -149,7 +149,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
   // STOP 5: KNOCKOUTS
   {
     id: 'knockout_tab',
-    targets: ['nav-knockout', 'subnav-knockout', 'tour-first-knockout'],
+    targets: ['nav-knockout', 'nav-knockout-desk', 'subnav-knockout', 'tour-first-knockout'],
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: { 

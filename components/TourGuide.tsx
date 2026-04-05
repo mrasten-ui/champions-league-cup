@@ -13,16 +13,17 @@ interface TourGuideProps {
 
 // --- LOCALIZATION DICTIONARY ---
 const UI_STRINGS = {
-  EN: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
-  US: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I know the game', next: 'Next', finish: 'Finish' },
-  NO: { title: 'Omvisning', subtitle: 'Før-sesong Brief', assistant: 'Din Assistent', start: 'Start Tour (Med Lyd)', skip: 'Hopp over, jeg kan spillet', next: 'Neste', finish: 'Ferdig' },
-  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Start Tour (Audio On)', skip: 'Skip intro, I ken the game', next: 'Next', finish: 'Finish' }, 
+  EN:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  US:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  NO:  { title: 'Omvisning', subtitle: 'Før-sesong Brief', assistant: 'Din Assistent', start: 'Lydtur', startText: 'Tekstomvisning', skip: 'Jeg har spilt før', next: 'Neste', finish: 'Ferdig', host: 'Programleder', pundit: 'Ekspert' },
+  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [tourMode, setTourMode] = useState<'audio' | 'text'>('audio');
   
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
   
@@ -61,6 +62,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setCurrentStepIdx(0);
           setHasStarted(false);
           setIsMuted(false);
+          setTourMode('audio');
           setHighlightStyle(null);
       } else {
           if (audioRef.current) { 
@@ -183,6 +185,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const handleStart = () => {
       setHasStarted(true);
       setIsMuted(false);
+      setTourMode('audio');
+  };
+
+  const handleStartText = () => {
+      setHasStarted(true);
+      setIsMuted(true);
+      setTourMode('text');
   };
 
   const handleNext = () => {
@@ -224,9 +233,17 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             50% { box-shadow: 0 0 0 6px #f59e0b, 0 0 30px 8px rgba(251, 191, 36, 0.8), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
             100% { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px 4px rgba(251, 191, 36, 0.6), 0 0 0 9999px rgba(15, 23, 42, 0.85); }
         }
-        .tour-frame-active {
-            animation: tour-frame-pulse 2.5s infinite ease-in-out;
-        }
+        .tour-frame-active { animation: tour-frame-pulse 2.5s infinite ease-in-out; }
+        @keyframes tour-sparkle { 0%,100% { transform: scale(0) rotate(0deg); opacity:0; } 50% { transform: scale(1) rotate(180deg); opacity:1; } }
+        .tour-sparkle { animation: tour-sparkle 1.4s infinite ease-in-out; }
+        @keyframes tour-swipe { 0%,100% { transform: translateX(0); opacity:0.4; } 50% { transform: translateX(14px); opacity:1; } }
+        .tour-swipe { animation: tour-swipe 1.2s infinite ease-in-out; }
+        @keyframes tour-ripple { 0% { transform: scale(0.4); opacity:1; } 100% { transform: scale(2); opacity:0; } }
+        .tour-ripple { animation: tour-ripple 1.2s infinite ease-out; }
+        @keyframes tour-arrow-up { 0%,100% { transform: translateY(0); opacity:0.5; } 50% { transform: translateY(-6px); opacity:1; } }
+        @keyframes tour-arrow-down { 0%,100% { transform: translateY(0); opacity:0.5; } 50% { transform: translateY(6px); opacity:1; } }
+        .tour-arrow-up { animation: tour-arrow-up 1s infinite ease-in-out; }
+        .tour-arrow-down { animation: tour-arrow-down 1s infinite ease-in-out; }
       `}</style>
 
       {/* 1. WELCOME SCREEN (MODAL) */}
@@ -288,14 +305,21 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
 
                     <div className="flex flex-col gap-3 pt-2">
-                        <button 
+                        <button
                             onClick={handleStart}
                             className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                         >
-                            <Play size={20} fill="currentColor" /> 
+                            <Play size={20} fill="currentColor" />
                             <span>{ui.start}</span>
                         </button>
-                        <button 
+                        <button
+                            onClick={handleStartText}
+                            className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            <VolumeX size={16} />
+                            <span>{ui.startText}</span>
+                        </button>
+                        <button
                             onClick={handleSkip}
                             className="w-full py-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"
                         >
@@ -309,14 +333,42 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
       {/* 2. THE HIGHLIGHTER FRAME */}
       {!isWelcome && highlightStyle && (
-          <div 
+          <div
             className="fixed z-[9998] transition-opacity duration-300 ease-out pointer-events-none tour-frame-active"
             style={{
                 ...highlightStyle,
                 backgroundColor: 'transparent',
                 boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 0 4px #fbbf24, 0 0 30px 4px rgba(251, 191, 36, 0.5)',
             }}
-          />
+          >
+            {/* Overlay graphics driven by overlayType */}
+            {currentStep.overlayType === 'sparkles' && (
+                <div className="absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
+                    {[0, 0.3, 0.6].map((delay, i) => (
+                        <span key={i} className="tour-sparkle text-yellow-300 text-xl" style={{ animationDelay: `${delay}s` }}>✦</span>
+                    ))}
+                </div>
+            )}
+            {currentStep.overlayType === 'swipe-hand' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="tour-swipe text-3xl">👆</span>
+                </div>
+            )}
+            {currentStep.overlayType === 'tap-target' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="relative w-10 h-10">
+                        <div className="tour-ripple absolute inset-0 rounded-full border-2 border-yellow-400" />
+                        <div className="absolute inset-0 flex items-center justify-center text-lg">👆</div>
+                    </div>
+                </div>
+            )}
+            {currentStep.overlayType === 'score-arrows' && (
+                <div className="absolute inset-0 flex items-center justify-center gap-4 pointer-events-none">
+                    <span className="tour-arrow-up text-yellow-400 text-2xl font-black">▲</span>
+                    <span className="tour-arrow-down text-yellow-400 text-2xl font-black">▼</span>
+                </div>
+            )}
+          </div>
       )}
 
       {/* 3. BROADCAST FOOTER (TV UI) */}
@@ -371,15 +423,32 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </div>
                       </div>
 
-                      {/* Factual Bullet Points */}
-                      <div className="flex flex-col gap-1 sm:gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
-                          {content?.lines?.map((line: string, i: number) => (
-                              <div key={i} className="flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 mt-1.5 bg-yellow-400 rounded-sm shrink-0"></span>
-                                  <span className="text-white text-[12px] sm:text-sm font-medium leading-snug">{line}</span>
-                              </div>
-                          ))}
-                      </div>
+                      {/* Content: bullet points (audio mode) or dialogue (text mode) */}
+                      {tourMode === 'text' ? (
+                          <div className="flex flex-col gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
+                              {audioScript?.host && (
+                                  <div className="flex items-start gap-1.5">
+                                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-wider shrink-0 mt-0.5 w-8">{ui.host}:</span>
+                                      <span className="text-white text-[11px] sm:text-[12px] leading-snug italic">"{audioScript.host}"</span>
+                                  </div>
+                              )}
+                              {audioScript?.pundit && (
+                                  <div className="flex items-start gap-1.5">
+                                      <span className="text-[9px] font-black text-yellow-400 uppercase tracking-wider shrink-0 mt-0.5 w-8">{ui.pundit}:</span>
+                                      <span className="text-slate-300 text-[11px] sm:text-[12px] leading-snug italic">"{audioScript.pundit}"</span>
+                                  </div>
+                              )}
+                          </div>
+                      ) : (
+                          <div className="flex flex-col gap-1 sm:gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
+                              {content?.lines?.map((line: string, i: number) => (
+                                  <div key={i} className="flex items-start gap-2">
+                                      <span className="w-1.5 h-1.5 mt-1.5 bg-yellow-400 rounded-sm shrink-0"></span>
+                                      <span className="text-white text-[12px] sm:text-sm font-medium leading-snug">{line}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
                   </div>
 
                   {/* CONTROLS (Right Edge) */}

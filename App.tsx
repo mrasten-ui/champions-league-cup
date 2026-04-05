@@ -370,7 +370,7 @@ export const App = () => {
   const handleTourNavigation = (stepId: string) => {
       if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); } 
       else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
-      else if (stepId === 'knockout_tab' && activeTab !== 'knockout') setActiveTab('knockout');
+      else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
       else if (stepId === 'profile_menu' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
   };
 
