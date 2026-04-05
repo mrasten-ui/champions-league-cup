@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Prediction, Translation } from '../types';
-import { Users, CheckCircle2, ChevronDown, Globe, Trophy } from 'lucide-react';
+import { Users, CheckCircle2, ChevronDown, Trophy } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LEAGUES } from '../constants';
 
@@ -13,17 +13,15 @@ interface PlayerProgressProps {
 }
 
 export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [] }) => {
-  const [activeLeague, setActiveLeague] = useState<string>('global');
+  const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues[0] || '');
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
 
   const getLeagueName = (slug: string) =>
-    slug === 'global'
-      ? (lang.lbGlobal || 'Global League')
-      : (LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1));
+    LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 
-  // Filter users based on league selection
+  // Filter users to only those in the active league
   const filteredUsers = useMemo(() => {
-      if (activeLeague === 'global') return users;
+      if (!activeLeague) return users;
       return users.filter(u => u.leagues?.includes(activeLeague));
   }, [users, activeLeague]);
 
@@ -86,7 +84,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                     className="w-full flex items-center justify-between bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-blue-300 transition-colors"
                  >
                     <div className="flex items-center gap-2">
-                        {activeLeague === 'global' ? <Globe size={14} className="text-blue-500" /> : <Trophy size={14} className="text-purple-500" />}
+                        <Trophy size={14} className="text-purple-500" />
                         <span className="uppercase tracking-wide">{getLeagueName(activeLeague)}</span>
                     </div>
                     <ChevronDown size={14} className={`text-slate-400 transition-transform ${showLeagueMenu ? 'rotate-180' : ''}`} />
@@ -94,14 +92,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
 
                  {showLeagueMenu && (
                      <div className="absolute top-full left-2 right-2 mt-1 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 z-30">
-                         <button 
-                            onClick={() => { setActiveLeague('global'); setShowLeagueMenu(false); }}
-                            className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-slate-50 ${activeLeague === 'global' ? 'text-blue-600 bg-blue-50' : 'text-slate-600'}`}
-                         >
-                             <Globe size={14} /> {lang.lbGlobal || "Global League"}
-                         </button>
                          {currentUserLeagues.map(slug => (
-                             <button 
+                             <button
                                 key={slug}
                                 onClick={() => { setActiveLeague(slug); setShowLeagueMenu(false); }}
                                 className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-slate-50 ${activeLeague === slug ? 'text-purple-600 bg-purple-50' : 'text-slate-600'}`}
