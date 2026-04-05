@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -377,38 +377,68 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* DEADLINE MODAL */}
       {showDeadlineModal && countdownUnits && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowDeadlineModal(false)} />
-          <div className="relative w-full max-w-sm bg-[#0f2545] rounded-2xl shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-200">
-            <div className={`p-5 text-center border-b border-white/10 ${countdownUnits.isCritical ? 'bg-red-600/10' : countdownUnits.isUrgent ? 'bg-amber-500/10' : 'bg-white/5'}`}>
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-300'}`}>
-                {t.deadlineTitle || '🚨 The Deadline'}
-              </p>
-              {/* Large LED display inside modal — label top, number below */}
-              <div className="flex justify-center gap-1.5">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowDeadlineModal(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+
+            {/* Glowing top accent bar */}
+            <div className={`h-1.5 w-full ${countdownUnits.isCritical ? 'bg-gradient-to-r from-red-600 via-red-400 to-red-600' : countdownUnits.isUrgent ? 'bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600' : 'bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-600'}`} />
+
+            {/* Header banner */}
+            <div className={`px-6 pt-5 pb-4 text-center ${countdownUnits.isCritical ? 'bg-gradient-to-b from-red-950 to-[#0f2545]' : countdownUnits.isUrgent ? 'bg-gradient-to-b from-amber-950 to-[#0f2545]' : 'bg-gradient-to-b from-[#071a2e] to-[#0f2545]'}`}>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Lock size={12} className={countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'} />
+                <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'}`}>
+                  {t.deadlineLabel || 'Predictions Lock In'}
+                </span>
+                <Lock size={12} className={countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'} />
+              </div>
+
+              {/* Scoreboard blocks — label on top, big number below */}
+              <div className="flex justify-center items-end gap-2 mt-4">
                 {countdownUnits.modalUnits.map(({ val, label }, i) => (
                   <React.Fragment key={label}>
-                    <div className="flex flex-col items-center">
-                      <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${countdownUnits.labelClass}`}>{label}</span>
-                      <div className={`bg-black/50 border border-white/5 rounded-lg px-3 py-2 font-mono font-black text-3xl leading-none min-w-[3rem] text-center ${countdownUnits.numClass}`}>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={`text-[8px] font-black uppercase tracking-widest ${countdownUnits.labelClass}`}>{label}</span>
+                      <div className={`
+                        relative bg-black/60 border rounded-xl font-mono font-black text-4xl leading-none
+                        min-w-[3.5rem] py-3 text-center shadow-inner
+                        ${countdownUnits.isCritical
+                          ? 'border-red-500/30 text-red-400 shadow-red-900/40 animate-pulse'
+                          : countdownUnits.isUrgent
+                          ? 'border-amber-500/30 text-amber-400 shadow-amber-900/40'
+                          : 'border-white/8 text-white shadow-blue-900/20'}
+                      `}>
+                        {/* Subtle scan-line effect */}
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                         {val}
                       </div>
                     </div>
                     {i < countdownUnits.modalUnits.length - 1 && (
-                      <span className={`text-2xl font-bold mt-5 ${countdownUnits.labelClass}`}>:</span>
+                      <span className={`text-2xl font-black mb-3 ${countdownUnits.labelClass} opacity-60`}>:</span>
                     )}
                   </React.Fragment>
                 ))}
               </div>
             </div>
-            <div className="px-5 py-4 text-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{t.deadlineBodyPre || 'All predictions lock at'}</p>
-              <p className="text-white font-black text-sm leading-snug">{deadlineFormatted}</p>
-              <p className="text-[10px] text-slate-500 mt-2 font-medium">{t.deadlineBodyPost || ', 15 minutes before opening kick-off.'}</p>
+
+            {/* Date/info section */}
+            <div className="bg-[#0f2545] border-t border-white/5 px-6 py-4 text-center">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">{t.deadlineBodyPre || 'All predictions lock permanently at'}</p>
+              <p className={`font-black text-base ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-white'}`}>{deadlineFormatted}</p>
+              <p className="text-[9px] text-slate-600 mt-2 font-medium italic">15 min before opening kick-off</p>
             </div>
-            <div className="px-5 pb-5">
+
+            {/* CTA */}
+            <div className={`px-6 pb-6 pt-3 ${countdownUnits.isCritical ? 'bg-gradient-to-b from-[#0f2545] to-red-950/30' : countdownUnits.isUrgent ? 'bg-gradient-to-b from-[#0f2545] to-amber-950/20' : 'bg-[#0f2545]'}`}>
               <button
                 onClick={() => setShowDeadlineModal(false)}
-                className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+                className={`w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 ${
+                  countdownUnits.isCritical
+                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50'
+                    : countdownUnits.isUrgent
+                    ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-900/50'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-900/50'
+                }`}
               >
                 {t.gotIt || 'Got It'}
               </button>
