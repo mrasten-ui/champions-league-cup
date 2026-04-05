@@ -204,7 +204,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                       type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder={lang?.aiPlaceholder || "e.g. Wearing a suit, glasses..."}
+                      placeholder={lang?.genAvatarPlaceholder || "e.g. Wearing a yellow jersey, face paint, sunglasses..."}
                       className="w-full bg-[#05101c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all text-center"
                       onKeyDown={(e) => {
                           if (e.key === 'Enter') {

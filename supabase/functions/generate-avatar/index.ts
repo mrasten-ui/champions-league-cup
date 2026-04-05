@@ -29,7 +29,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `A professional 3D stylized headshot avatar of a ${gender} football manager. ${prompt}. High-fidelity modern 3D animation studio style, Pixar Disney vibe. Clean solid background, soft studio lighting, sharp focus.`
+                text: `A front-facing, close-up headshot avatar of a passionate ${gender} football fan attending the 2026 World Cup. The character is looking directly into the camera. ${prompt}. High-fidelity modern 3D animation studio style, expressive Pixar Disney vibe. Clean solid color background, soft studio lighting, sharp focus.`
               }
             ]
           }
