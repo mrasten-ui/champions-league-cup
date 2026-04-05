@@ -143,8 +143,9 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         totalPoints={0}
       />
 
-      <SecondChancePromo 
+      <SecondChancePromo
         hasTaken={currentUser.hasTakenSecondChance}
+        secondChanceStatus={currentUser.secondChanceStatus}
         onUnlock={onUnlockSecondChance}
         lang={lang}
       />
