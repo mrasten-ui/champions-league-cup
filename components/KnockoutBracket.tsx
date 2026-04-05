@@ -64,16 +64,16 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   return (
     <div className="pb-24 animate-in fade-in duration-500">
         <div className="flex flex-col gap-6">
-            {currentMatches.map(match => {
+            {currentMatches.map((match, index) => {
                 const home = teams[match.homeTeamId];
                 const away = teams[match.awayTeamId];
-                
+
                 return (
                     <div key={match.id} className="relative">
                         {/* Bracket Connector Line (Visual Flair) */}
                         <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-slate-200 hidden md:block"></div>
-                        
-                        <MatchCard 
+
+                        <MatchCard
                             match={match}
                             homeTeam={home}
                             awayTeam={away}
@@ -89,9 +89,9 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             phase={phase}
                             isAdminMode={false}
                             onTeamClick={onTeamClick}
-                            // DISABLE BADGE FOR PREDICTION BRACKET
                             showStatusBadge={false}
                             context="knockout"
+                            cardId={index === 0 ? 'tour-first-knockout' : undefined}
                         />
                     </div>
                 );
