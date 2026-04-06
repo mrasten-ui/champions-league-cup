@@ -10,36 +10,43 @@ interface KnockoutTreeViewProps {
   highlightedMatchId?: string | null;
 }
 
-// --- COMPACT BRACKET CARD ---
-// ~148px wide, ~45px tall (two team rows + divider). No full MatchCard — just what a bracket needs.
+// ── Layout constants ────────────────────────────────────────
+const CARD_W    = 148;  // card width px
+const CARD_H    = 46;   // card height px (2 rows × 22px + 1px divider + 1px)
+const BASE_SLOT = 62;   // vertical slot height per R32 match
+const COL_GAP   = 36;   // horizontal gap between columns (split evenly for stubs)
+const STUB      = COL_GAP / 2; // 18px each side of vertical bar
+const HDR_H     = 36;   // header row height above the bracket
+const LINE_C    = 'rgba(148,163,184,0.6)'; // slate-400 at 60%
+const LINE_W    = 2;
+
+// ── Compact bracket card ─────────────────────────────────────
 const BracketCard: React.FC<{
-  match: Match;
-  teams: Record<string, Team>;
-  preds: Prediction[];
-  highlighted: boolean;
+  match: Match; teams: Record<string, Team>; preds: Prediction[]; highlighted: boolean;
 }> = ({ match, teams, preds, highlighted }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const pred = preds.find(p => p.matchId === match.id);
 
-  const hs = match.homeScore ?? pred?.home;
+  const hs  = match.homeScore ?? pred?.home;
   const as_ = match.awayScore ?? pred?.away;
-  const fin  = match.status === 'FINISHED' || match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
-  const live = match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT';
+  const fin  = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
+  const live = ['LIVE', '1H', '2H', 'HT'].includes(match.status);
   const played = fin || live;
   const homeW = played && typeof hs === 'number' && typeof as_ === 'number' && hs > as_;
   const awayW = played && typeof hs === 'number' && typeof as_ === 'number' && as_ > hs;
 
   const Row = ({ team, score, win }: { team?: Team; score?: number | null; win: boolean }) => (
-    <div className={`flex items-center gap-1.5 px-2 py-[5px] ${win ? 'bg-white/5' : ''}`}>
+    <div className={`flex items-center gap-1.5 px-2 ${win ? 'bg-white/[0.06]' : ''}`} style={{ height: 22 }}>
       {team?.flag
         ? <img src={team.flag} className="w-[18px] h-[13px] object-cover rounded-sm shrink-0" alt="" />
         : <div className="w-[18px] h-[13px] bg-white/10 rounded-sm shrink-0 border border-dashed border-white/15" />
       }
-      <span className={`flex-1 text-[10px] truncate ${win ? 'font-black text-white' : 'font-medium text-slate-400'}`}>
+      <span className={`flex-1 text-[10px] truncate leading-none ${win ? 'font-black text-white' : 'font-medium text-slate-400'}`}>
         {team?.name ?? 'TBD'}
       </span>
-      <span className={`text-[10px] font-black ml-1 shrink-0 ${win ? 'text-yellow-400' : played ? 'text-slate-400' : 'text-slate-700'}`}>
+      <span className={`text-[10px] font-black ml-1 shrink-0 tabular-nums leading-none
+        ${win ? 'text-yellow-400' : played ? 'text-slate-400' : 'text-slate-700'}`}>
         {played ? (score ?? '–') : '–'}
       </span>
     </div>
@@ -48,196 +55,199 @@ const BracketCard: React.FC<{
   return (
     <div
       id={`bracket-match-${match.id}`}
-      className={`
-        bg-[#0f2545] rounded-lg border overflow-hidden w-[148px] shrink-0 transition-all duration-700
-        ${live      ? 'border-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.3)]' : 'border-white/10'}
-        ${highlighted ? 'ring-2 ring-yellow-400 scale-[1.04] z-10' : ''}
-      `}
+      className={`bg-[#0f2545] rounded-lg border overflow-hidden transition-all duration-700
+        ${live      ? 'border-red-500/70 shadow-[0_0_10px_rgba(239,68,68,0.35)]' : 'border-white/10'}
+        ${highlighted ? 'ring-2 ring-yellow-400 shadow-[0_0_16px_rgba(250,204,21,0.5)]' : ''}`}
+      style={{ width: CARD_W, height: CARD_H }}
     >
       <Row team={home} score={hs} win={homeW} />
-      <div className="h-px bg-white/5" />
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
       <Row team={away} score={as_} win={awayW} />
       {live && (
-        <div className="bg-red-600 text-white text-[7px] font-black uppercase tracking-[0.2em] text-center py-[2px]">
-          Live
+        <div className="bg-red-600 text-white text-[6px] font-black uppercase tracking-[0.2em] text-center" style={{ lineHeight: '10px' }}>
+          LIVE
         </div>
       )}
     </div>
   );
 };
 
-// --- MAIN COMPONENT ---
+// ── Main component ────────────────────────────────────────────
 export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   matches, teams, userPredictions, lang, highlightedMatchId,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Card geometry constants (must match BracketCard dimensions)
-  const CARD_W   = 148; // px  — w-[148px]
-  const CARD_H   = 45;  // px  — 2 rows × ~22px + 1px divider
-  const PAIR_PY  = 4;   // px  — py-[4px] on each pair wrapper
-  const PAIR_GAP = 6;   // px  — gap-[6px] between the two cards in a pair
-  const COL_GAP  = 16;  // px  — gap-4 between columns (must equal STUB_W)
-  const STUB_W   = 16;  // px  — w-4 horizontal stubs
+  const label = (r: string) =>
+    ({ R32: lang.roundOf32 ?? 'Round of 32', R16: lang.roundOf16 ?? 'Round of 16',
+       QF: lang.quarterFinal ?? 'Quarter Final', SF: lang.semiFinal ?? 'Semi Final',
+       '3RD': lang.thirdPlace ?? '3rd Place', FIN: lang.final ?? 'Final' }[r] ?? r);
 
-  // Midpoint of card 1 from top of pair wrapper: padding + half card
-  const C1_MID = PAIR_PY + CARD_H / 2;           // 4 + 22 = 26px
-  // Midpoint of card 2 from top of pair wrapper: padding + full card + gap + half card
-  const C2_MID = PAIR_PY + CARD_H + PAIR_GAP + CARD_H / 2; // 4 + 45 + 6 + 22 = 77px
-  // Vertical bar height (C1 mid → C2 mid)
-  const VBAR_H  = C2_MID - C1_MID;               // 51px
-  // Vertical bar left position (right edge of card + stub width – 1px)
-  const VBAR_L  = CARD_W + STUB_W - 1;            // 163px
-
-  const getRoundLabel = (r: string) =>
-    ({ R32: lang.roundOf32 ?? 'R32', R16: lang.roundOf16 ?? 'R16', QF: lang.quarterFinal ?? 'QF',
-       SF: lang.semiFinal ?? 'SF', FIN: lang.final ?? 'Final', '3RD': lang.thirdPlace ?? '3rd' }[r] ?? r);
-
-  const sorted = (round: string) =>
-    matches
-      .filter(m => m.round === round)
+  const sorted = (r: string) =>
+    matches.filter(m => m.round === r)
       .sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
 
-  // Which round is currently live or upcoming?
-  const activeRound = (() => {
-    for (const r of ['R32', 'R16', 'QF', 'SF', 'FIN']) {
-      if (matches.filter(m => m.round === r).some(
-        m => m.status === 'LIVE' || m.status === '1H' || m.status === '2H' || m.status === 'HT' || m.status === 'NS'
-      )) return r;
-    }
-    return 'FIN';
-  })();
+  const MAIN = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const present = MAIN.filter(r => matches.some(m => m.round === r));
+  const has3rd  = matches.some(m => m.round === '3RD');
 
-  // Auto-scroll so the active round is roughly centred
-  useEffect(() => {
-    if (!scrollRef.current) return;
-    const colTotalW = CARD_W + COL_GAP;
-    const roundOrder = ['R32', 'R16', 'QF', 'SF', 'FIN'];
-    const presentRounds = roundOrder.filter(r => matches.some(m => m.round === r));
-    const activeIdx = presentRounds.indexOf(activeRound);
-    if (activeIdx < 0) return;
-    const target = activeIdx * colTotalW - (scrollRef.current.clientWidth / 2) + colTotalW / 2;
-    scrollRef.current.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
-  }, [activeRound, matches]);
+  // Slot multiplier relative to R32
+  const mult: Record<string, number> = { R32: 1, R16: 2, QF: 4, SF: 8, FIN: 16 };
 
-  // Render a round column with compact bracket cards and connector lines
-  const renderColumn = (round: string, showConnectors: boolean) => {
-    const rMatches = sorted(round);
-    if (!rMatches.length) return null;
-    const isActive = round === activeRound;
-    const allDone = rMatches.every(m => m.status === 'FINISHED');
+  const r32Count = Math.max(sorted('R32').length, 2);
+  const totalH   = r32Count * BASE_SLOT;
 
-    // Group matches into pairs (each pair feeds one match in the next round)
-    const pairs: Match[][] = [];
-    for (let i = 0; i < rMatches.length; i += 2) pairs.push(rMatches.slice(i, i + 2));
+  // Column x starts (all measured from 0 inside the relative container)
+  const colX: Record<string, number> = {};
+  present.forEach((r, i) => { colX[r] = i * (CARD_W + COL_GAP); });
 
-    return (
-      <div key={round} className="flex flex-col" style={{ minWidth: `${CARD_W}px` }}>
-        {/* Column header */}
-        <div className={`text-center text-[9px] font-black uppercase tracking-widest mb-3 pb-1.5 border-b
-          ${isActive ? 'text-yellow-400 border-yellow-400/30' : allDone ? 'text-green-500 border-green-500/20' : 'text-slate-500 border-white/5'}`}>
-          {getRoundLabel(round)}
-        </div>
-
-        {/* Pairs */}
-        <div className="flex flex-col justify-around flex-1">
-          {pairs.map((pair, pIdx) => (
-            <div key={pIdx} className="relative flex flex-col items-start" style={{ paddingTop: `${PAIR_PY}px`, paddingBottom: `${PAIR_PY}px`, gap: `${PAIR_GAP}px` }}>
-
-              {/* Card 1 + right stub */}
-              <div className="relative">
-                <BracketCard match={pair[0]} teams={teams} preds={userPredictions} highlighted={pair[0].id === highlightedMatchId} />
-                {showConnectors && (
-                  <div className="absolute bg-slate-400" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '2px' }} />
-                )}
-              </div>
-
-              {/* Card 2 + right stub */}
-              {pair[1] && (
-                <div className="relative">
-                  <BracketCard match={pair[1]} teams={teams} preds={userPredictions} highlighted={pair[1].id === highlightedMatchId} />
-                  {showConnectors && (
-                    <div className="absolute bg-slate-400" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '2px' }} />
-                  )}
-                </div>
-              )}
-
-              {/* Vertical bar joining the two stubs */}
-              {showConnectors && pair[1] && (
-                <div className="absolute bg-slate-400" style={{ left: `${VBAR_L}px`, top: `${C1_MID}px`, width: '2px', height: `${VBAR_H}px` }} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  // Card top (y) for a match at index within its round
+  const cardTop = (r: string, idx: number): number => {
+    const slotH = (mult[r] ?? 1) * BASE_SLOT;
+    return idx * slotH + (slotH - CARD_H) / 2;
   };
 
-  const mainRounds = ['R32', 'R16', 'QF', 'SF'].filter(r => matches.some(m => m.round === r));
-  const hasFin = matches.some(m => m.round === 'FIN');
-  const has3rd = matches.some(m => m.round === '3RD');
+  // Card vertical midpoint
+  const midY = (r: string, idx: number) => cardTop(r, idx) + CARD_H / 2;
 
+  // Active round
+  const activeRound = (() => {
+    for (const r of present) {
+      if (sorted(r).some(m => ['LIVE', '1H', '2H', 'HT', 'NS'].includes(m.status))) return r;
+    }
+    return present[present.length - 1] ?? 'FIN';
+  })();
+
+  // Auto-scroll to active round
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const idx = present.indexOf(activeRound);
+    if (idx < 0) return;
+    const x = colX[activeRound] - scrollRef.current.clientWidth / 2 + CARD_W / 2;
+    scrollRef.current.scrollTo({ left: Math.max(0, x), behavior: 'smooth' });
+  }, [activeRound]);
+
+  const totalW = present.length * CARD_W + (present.length - 1) * COL_GAP;
+
+  // ── Connector lines ──────────────────────────────────────────
+  // Each line is: { x, y, w, h } in px relative to the bracket container (below headers)
+  const lines: { key: string; x: number; y: number; w: number; h: number }[] = [];
+
+  for (let ri = 0; ri < present.length - 1; ri++) {
+    const rA = present[ri];
+    const rB = present[ri + 1];
+    const rAMs = sorted(rA);
+
+    for (let i = 0; i < rAMs.length; i += 2) {
+      const y1     = midY(rA, i);
+      const y2     = i + 1 < rAMs.length ? midY(rA, i + 1) : y1;
+      const yMid   = (y1 + y2) / 2;
+      const rightX  = colX[rA] + CARD_W;   // right edge of card
+      const vbarX   = rightX + STUB;        // x of the vertical bar
+      const nextLX  = colX[rB];             // left edge of next column's card
+
+      // Stub right from card 1
+      lines.push({ key: `${rA}-${i}-s1`, x: rightX, y: y1 - 1, w: STUB, h: LINE_W });
+      // Stub right from card 2
+      if (i + 1 < rAMs.length) {
+        lines.push({ key: `${rA}-${i}-s2`, x: rightX, y: y2 - 1, w: STUB, h: LINE_W });
+      }
+      // Vertical bar connecting the two stubs
+      const barTop = Math.min(y1, y2) - 1;
+      const barH   = Math.abs(y2 - y1) + LINE_W;
+      lines.push({ key: `${rA}-${i}-v`, x: vbarX - 1, y: barTop, w: LINE_W, h: barH });
+      // Horizontal stub from bar midpoint into next card
+      lines.push({ key: `${rA}-${i}-l`, x: vbarX, y: yMid - 1, w: nextLX - vbarX, h: LINE_W });
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────
   return (
     <div className="pb-8 pt-2">
 
-      {/* ── Round progress strip ── */}
-      <div className="flex items-center justify-center mb-5 px-6">
+      {/* Round progress strip */}
+      <div className="flex items-center justify-center mb-4">
         {['R32', 'R16', 'QF', 'SF', 'FIN'].map((r, i, arr) => {
-          const rMatches = matches.filter(m => m.round === r);
-          const has = rMatches.length > 0;
-          const done = has && rMatches.every(m => m.status === 'FINISHED');
-          const act  = r === activeRound;
+          const ms   = matches.filter(m => m.round === r);
+          const done = ms.length > 0 && ms.every(m => ['FINISHED','FT','AET','PEN'].includes(m.status));
+          const act  = r === activeRound && ms.length > 0;
+          const has  = ms.length > 0;
           return (
             <React.Fragment key={r}>
               <div className="flex flex-col items-center gap-[3px]">
                 <div className={`w-2 h-2 rounded-full transition-colors
                   ${act ? 'bg-yellow-400' : done ? 'bg-green-500' : has ? 'bg-slate-600' : 'bg-slate-800'}`} />
-                <span className={`text-[8px] font-bold ${act ? 'text-yellow-400' : done ? 'text-green-500' : 'text-slate-600'}`}>
-                  {r}
-                </span>
+                <span className={`text-[8px] font-bold ${act ? 'text-yellow-400' : done ? 'text-green-500' : 'text-slate-600'}`}>{r}</span>
               </div>
               {i < arr.length - 1 && (
-                <div className={`h-px w-8 mx-1 ${done ? 'bg-green-500/40' : 'bg-slate-700'}`} />
+                <div className={`h-px w-6 mx-1 transition-colors ${done ? 'bg-green-500/50' : 'bg-slate-700'}`} />
               )}
             </React.Fragment>
           );
         })}
       </div>
 
-      {/* ── Bracket tree ── */}
-      <div ref={scrollRef} className="overflow-x-auto pb-4 cursor-grab active:cursor-grabbing" style={{ scrollbarWidth: 'thin' }}>
-        <div className="flex items-stretch px-4 min-w-max" style={{ gap: `${COL_GAP}px` }}>
+      {/* Bracket */}
+      <div ref={scrollRef} className="overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+        style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
 
-          {/* Main rounds: R32 → SF, all with right connectors */}
-          {mainRounds.map(r => renderColumn(r, true))}
+        {/* Sizing wrapper — gives the scrollable div something to measure */}
+        <div style={{ display: 'inline-block', paddingLeft: 16, paddingRight: 16 }}>
 
-          {/* Finals column: FIN on top, 3RD below — no connectors going right */}
-          {(hasFin || has3rd) && (
-            <div className="flex flex-col justify-around gap-4" style={{ minWidth: `${CARD_W}px` }}>
-              {hasFin && (
-                <div>
-                  <div className={`text-center text-[9px] font-black uppercase tracking-widest mb-3 pb-1.5 border-b
-                    ${'FIN' === activeRound ? 'text-yellow-400 border-yellow-400/30' : 'text-slate-500 border-white/5'}`}>
-                    {getRoundLabel('FIN')}
-                  </div>
-                  {sorted('FIN').map(m => (
-                    <BracketCard key={m.id} match={m} teams={teams} preds={userPredictions} highlighted={m.id === highlightedMatchId} />
-                  ))}
+          {/* Single coordinate system for headers + connectors + cards */}
+          <div className="relative" style={{ width: totalW, height: HDR_H + totalH + (has3rd ? 80 : 8) }}>
+
+            {/* ── Column headers ── */}
+            {present.map(r => {
+              const ms   = sorted(r);
+              const done = ms.length > 0 && ms.every(m => ['FINISHED','FT','AET','PEN'].includes(m.status));
+              const act  = r === activeRound;
+              return (
+                <div key={`hdr-${r}`} className="absolute flex items-end justify-center pb-2"
+                  style={{ left: colX[r], top: 0, width: CARD_W, height: HDR_H }}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest border-b pb-1
+                    ${act ? 'text-yellow-400 border-yellow-400/40' : done ? 'text-green-500 border-green-500/30' : 'text-slate-500 border-white/8'}`}>
+                    {label(r)}
+                  </span>
                 </div>
-              )}
-              {has3rd && (
-                <div>
-                  <div className="text-center text-[9px] font-black uppercase text-slate-500 tracking-widest mb-3 pb-1.5 border-b border-white/5">
-                    {getRoundLabel('3RD')}
-                  </div>
-                  {sorted('3RD').map(m => (
-                    <BracketCard key={m.id} match={m} teams={teams} preds={userPredictions} highlighted={m.id === highlightedMatchId} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+              );
+            })}
 
+            {/* ── Connector lines ── (positioned below header) */}
+            {lines.map(l => (
+              <div key={l.key} className="absolute pointer-events-none"
+                style={{ left: l.x, top: HDR_H + l.y, width: l.w, height: l.h, background: LINE_C }} />
+            ))}
+
+            {/* ── Cards ── */}
+            {present.flatMap(r =>
+              sorted(r).map((m, idx) => (
+                <div key={m.id} className="absolute"
+                  style={{ left: colX[r], top: HDR_H + cardTop(r, idx) }}>
+                  <BracketCard match={m} teams={teams} preds={userPredictions}
+                    highlighted={m.id === highlightedMatchId} />
+                </div>
+              ))
+            )}
+
+            {/* ── 3rd place ── (below FIN, no connectors) */}
+            {has3rd && (() => {
+              const finX = colX['FIN'] ?? colX[present[present.length - 1]] ?? 0;
+              return sorted('3RD').map(m => (
+                <div key={m.id}>
+                  <div className="absolute text-[9px] font-black uppercase tracking-widest text-slate-500 text-center"
+                    style={{ left: finX, top: HDR_H + totalH + 14, width: CARD_W }}>
+                    {label('3RD')}
+                  </div>
+                  <div className="absolute" style={{ left: finX, top: HDR_H + totalH + 34 }}>
+                    <BracketCard match={m} teams={teams} preds={userPredictions}
+                      highlighted={m.id === highlightedMatchId} />
+                  </div>
+                </div>
+              ));
+            })()}
+
+          </div>
         </div>
       </div>
     </div>
