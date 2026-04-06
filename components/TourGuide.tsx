@@ -221,7 +221,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const content = currentStep.display?.[configLang as any] || currentStep.display?.['en'];
   const audioScript = currentStep.audioScript?.[configLang as any] || currentStep.audioScript?.['en'];
     
-  const isWelcome = currentStep.id === 'welcome' && !hasStarted;
+  const isWelcome = currentStepIdx === 0 && !hasStarted;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] overflow-hidden font-sans touch-none select-none pointer-events-none">
