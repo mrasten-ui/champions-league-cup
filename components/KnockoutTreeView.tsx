@@ -22,10 +22,10 @@ const BracketCard: React.FC<{
   const away = teams[match.awayTeamId];
   const pred = preds.find(p => p.matchId === match.id);
 
-  const hs = match.homeScore ?? pred?.homeScore;
-  const as_ = match.awayScore ?? pred?.awayScore;
-  const fin  = match.status === 'FINISHED';
-  const live = match.status === 'LIVE';
+  const hs = match.homeScore ?? pred?.home;
+  const as_ = match.awayScore ?? pred?.away;
+  const fin  = match.status === 'FINISHED' || match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
+  const live = match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT';
   const played = fin || live;
   const homeW = played && typeof hs === 'number' && typeof as_ === 'number' && hs > as_;
   const awayW = played && typeof hs === 'number' && typeof as_ === 'number' && as_ > hs;
@@ -102,7 +102,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
   const activeRound = (() => {
     for (const r of ['R32', 'R16', 'QF', 'SF', 'FIN']) {
       if (matches.filter(m => m.round === r).some(
-        m => m.status === 'LIVE' || m.status === 'UPCOMING' || m.status === 'SCHEDULED'
+        m => m.status === 'LIVE' || m.status === '1H' || m.status === '2H' || m.status === 'HT' || m.status === 'NS'
       )) return r;
     }
     return 'FIN';
