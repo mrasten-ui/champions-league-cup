@@ -244,49 +244,91 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 2: LEADERBOARD  →  setActiveTab('leaderboard')
+  // STOP 2: LEADERBOARD NAV  →  setActiveTab('leaderboard')
   {
-    id: 'live_leaderboard',
-    targets: ['nav-leaderboard', 'nav-leaderboard-desk', 'tour-leaderboard-top'],
+    id: 'live_leaderboard_nav',
+    targets: ['nav-leaderboard', 'nav-leaderboard-desk'],
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {},
+    display: {
+      en:      { title: "Live Leaderboard", lines: ["This is your home during the tournament.", "Points update in real time after every match."] },
+      'en-US': { title: "Live Leaderboard", lines: ["Your new home base for the tournament.", "Points drop the moment a final whistle blows."] },
+      no:      { title: "Direkte Tabell",   lines: ["Dette er hjemmet ditt under turneringen.", "Poeng oppdateres i sanntid etter hver kamp."] },
+      sco:     { title: "Live Table",       lines: ["This is yer home for the tournament.", "Points update live after every result."] },
+    },
+    audioScript: {
+      en:      { host: "First stop: the Leaderboard tab. This is where you'll spend most of your time.", pundit: "Every correct prediction earns you points in real time. Watch that table move after every result. It's ruthless." },
+      'en-US': { host: "First stop: the Leaderboard. This is your new home base.", pundit: "Points drop the moment a final whistle blows. Is your name climbing or sinking?" },
+      no:      { host: "Første stopp: Poengtabellen. Her vil du tilbringe mesteparten av tiden din.", pundit: "Hvert riktige tips gir deg poeng i sanntid. Tabellen beveger seg etter hvert resultat." },
+      sco:     { host: "First up: the Leaderboard tab. This is where ye'll spend maist of yer time.", pundit: "Every right result nets ye points live. Is yer name going up or doon?" },
+    }
+  },
+
+  // STOP 3: LEADERBOARD CONTENT  (stays on leaderboard)
+  {
+    id: 'live_leaderboard_content',
+    targets: ['tour-leaderboard-top'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Live Leaderboard", lines: ["Points update in real time as matches finish.", "Your league ranking is all that matters now."] },
-      'en-US': { title: "Live Leaderboard", lines: ["Points drop the moment a final whistle blows.", "Watch your ranking climb — or sink."] },
-      no:      { title: "Direkte Tabell",   lines: ["Poeng oppdateres i sanntid etter kampene.", "Din ligaplacering er alt som teller nå."] },
-      sco:     { title: "Live Table",       lines: ["Points update as the results come in.", "Yer league ranking's the only one that matters."] },
+      en:      { title: "Your Rankings",    lines: ["See exactly where you stand in your league.", "Filter by Live points or Banked points using the toggle."] },
+      'en-US': { title: "Your Rankings",    lines: ["Track your standing against everyone in your league.", "Toggle between Live and Banked points at the top."] },
+      no:      { title: "Din Plassering",   lines: ["Se nøyaktig hvor du står i ligaen din.", "Bytt mellom Live og Bankede poeng med bryteren."] },
+      sco:     { title: "Yer Standings",    lines: ["See exactly where ye stand in yer league.", "Toggle between Live and Banked points up top."] },
     },
     audioScript: {
-      en:      { host: "First stop: the Leaderboard. Every correct prediction earns you points in real time.", pundit: "This is where reputations are made and destroyed. Watch that table move after every result. It's ruthless." },
-      'en-US': { host: "Step one: the Leaderboard. Points drop the moment a final whistle blows.", pundit: "Is your name climbing or sinking? Eyes on the prize." },
-      no:      { host: "Første stopp: Poengtabellen. Hvert riktige tips gir deg poeng i sanntid.", pundit: "Her skapes og ødelegges rykter. Tabellen beveger seg etter hvert resultat." },
-      sco:     { host: "First up, the Leaderboard. Every right result nets ye points live.", pundit: "Is yer name going up or doon? Dinnae look away." },
+      en:      { host: "Right here you can see exactly where you stand against everyone in your league.", pundit: "This is where reputations are made and destroyed. Every result shifts it. Keep watching." },
+      'en-US': { host: "Here's where you track your standing against everyone in your league.", pundit: "Every result moves the needle. Some weeks you're the hero, some weeks you're not. That's the game." },
+      no:      { host: "Her kan du se nøyaktig hvor du står mot alle i ligaen din.", pundit: "Her skapes og ødelegges rykter. Hvert resultat endrer det. Hold øye med det." },
+      sco:     { host: "Right here ye can see exactly where ye stand against everyone in yer league.", pundit: "This is where the banter starts. Every result moves it. Keep watching." },
     }
   },
 
-  // STOP 3: TOURNAMENT / SCHEDULE  →  setActiveTab('tournament') + setTournamentSubTab('schedule')
+  // STOP 4: TOURNAMENT NAV  →  setActiveTab('tournament') + setTournamentSubTab('schedule')
   {
     id: 'live_tournament',
-    targets: ['nav-tournament', 'nav-tournament-desk', 'tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
+    targets: ['nav-tournament', 'nav-tournament-desk'],
     position: 'bottom',
     overlayType: 'swipe-hand',
     audioFiles: {},
     display: {
-      en:      { title: "Tournament Hub", lines: ["Schedule shows live match times and results.", "Tables tracks the group standings, Bracket shows the knockout path."] },
-      'en-US': { title: "Tournament Hub", lines: ["Schedule for live scores, Tables for standings, Bracket for the playoff picture.", "All three views — one tab."] },
-      no:      { title: "Turneringsoversikt", lines: ["Kampplan viser live-kamptider og resultater.", "Tabeller følger gruppestillingene, Braketten viser sluttspillveien."] },
-      sco:     { title: "Tournament Hub", lines: ["Schedule's yer live match times and results.", "Tables for the groups, Bracket for the knockout draw."] },
+      en:      { title: "Tournament Hub",      lines: ["Follow all the live action here.", "Schedule, group tables, and the knockout bracket — one tab."] },
+      'en-US': { title: "Tournament Hub",      lines: ["Everything happening live, right here.", "Schedule, standings, and the playoff bracket — all in one."] },
+      no:      { title: "Turneringsoversikt",  lines: ["Følg all live-action her.", "Kampplan, gruppetabeller og sluttspillbraketten — én fane."] },
+      sco:     { title: "Tournament Hub",      lines: ["All the live action is in here.", "Schedule, group tables, and the knockout draw — wan tab."] },
     },
     audioScript: {
-      en:      { host: "The Tournament tab is your live match centre. Three views: Schedule for live updates, Tables for group standings, Bracket for the knockout picture.", pundit: "Keep an eye on the Bracket. That's where your predictions either shine or fall apart spectacularly." },
-      'en-US': { host: "Head to Tournament for everything live — Schedule, Tables, and the playoff Bracket all in one place.", pundit: "The bracket is everything. If your champion loses in the quarters, it's a long walk home." },
-      no:      { host: "Turnering-fanen er din live match-sentral. Tre visninger: Kampplan, Tabeller og Braketten.", pundit: "Hold øye med braketten. Der skinner dine tips — eller faller fra hverandre." },
-      sco:     { host: "The Tournament tab's yer live match centre. Schedule, Tables, Bracket — all in one.", pundit: "The bracket's the only thing that matters now. If yer champion's already oot, that's on you." },
+      en:      { host: "Next up: the Tournament tab. This is your live match centre for the whole competition.", pundit: "Schedule, Tables, Bracket — all in here. This is where you follow the actual football." },
+      'en-US': { host: "Next: the Tournament tab. Live scores, standings, and the playoff bracket all in one place.", pundit: "This is where you follow the actual games. Schedule, Tables, Bracket — everything's here." },
+      no:      { host: "Neste: Turnering-fanen. Dette er din live-kampsentral for hele turneringen.", pundit: "Kampplan, Tabeller, Braketten — alt her inne. Her følger du den faktiske fotballen." },
+      sco:     { host: "Next: the Tournament tab. Yer live match centre for the whole competition.", pundit: "Schedule, Tables, Bracket — it's aw in here. This is where ye follow the actual fitba." },
     }
   },
 
-  // STOP 4: BRACKET  →  setTournamentSubTab('bracket')  (stays on tournament tab)
+  // STOP 5: TOURNAMENT SUB-TABS  (stays on tournament)
+  {
+    id: 'live_tournament_subtabs',
+    targets: ['tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
+    position: 'bottom',
+    overlayType: 'swipe-hand',
+    audioFiles: {},
+    display: {
+      en:      { title: "Three Views",  lines: ["Schedule: live match times and results.", "Tables: group standings. Bracket: the knockout path."] },
+      'en-US': { title: "Three Views",  lines: ["Schedule for live scores and match times.", "Tables for group standings, Bracket for the playoff picture."] },
+      no:      { title: "Tre Visninger", lines: ["Kampplan: live-kamptider og resultater.", "Tabeller: gruppestillinger. Braketten: sluttspillveien."] },
+      sco:     { title: "Three Views",  lines: ["Schedule: live match times and results.", "Tables: group standings. Bracket: the knockout draw."] },
+    },
+    audioScript: {
+      en:      { host: "Three views inside this tab. Schedule shows you every match and result live. Tables tracks the group standings. And Bracket — that's the one to watch.", pundit: "Keep an eye on the Bracket. That's where your predictions either shine or fall apart spectacularly." },
+      'en-US': { host: "Three views here: Schedule for live scores, Tables for group standings, and Bracket for the full playoff picture.", pundit: "The bracket is everything. If your champion loses in the quarters, it's a long walk home." },
+      no:      { host: "Tre visninger i denne fanen. Kampplan viser alle kamper live. Tabeller følger gruppestillinger. Og Braketten — den er verdt å holde øye med.", pundit: "Hold øye med braketten. Der skinner dine tips — eller faller fra hverandre spektakulært." },
+      sco:     { host: "Three views in here. Schedule shows every match and result live. Tables tracks the groups. And Bracket — that's the wan tae watch.", pundit: "Keep an eye on the Bracket. That's where yer predictions either shine or fall apart." },
+    }
+  },
+
+  // STOP 6: BRACKET  →  setTournamentSubTab('bracket')
   {
     id: 'live_bracket',
     targets: ['tour-subnav-bracket'],
@@ -295,7 +337,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     audioFiles: {},
     display: {
       en:      { title: "The Bracket",  lines: ["The full knockout path from R32 to the Final.", "See which of your predictions are still alive."] },
-      'en-US': { title: "The Bracket",  lines: ["The full playoff bracket from Round of 32 to the Final.", "Find out which of your picks are still standing."] },
+      'en-US': { title: "The Bracket",  lines: ["Full playoff bracket from Round of 32 to the Final.", "Find out which of your picks are still standing."] },
       no:      { title: "Braketten",    lines: ["Den fullstendige sluttspillveien fra R32 til finalen.", "Se hvilke av tipsene dine som fortsatt er i live."] },
       sco:     { title: "The Bracket",  lines: ["Full knockout draw from R32 tae the Final.", "See which of yer picks are still breathin'."] },
     },
@@ -307,28 +349,49 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: MANAGER  →  setActiveTab('manager')
+  // STOP 7: MANAGER NAV  →  setActiveTab('manager')
   {
-    id: 'live_manager',
-    targets: ['nav-manager', 'nav-manager-desk', 'tour-manager-hub', 'tour-manager-viewmode'],
+    id: 'live_manager_nav',
+    targets: ['nav-manager', 'nav-manager-desk'],
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {},
+    display: {
+      en:      { title: "Manager Hub",  lines: ["You're still in the game as a manager.", "Use substitutions to change locked predictions."] },
+      'en-US': { title: "Manager Hub",  lines: ["You're still playing — as a manager.", "Substitutions let you update locked picks."] },
+      no:      { title: "Manager-hub",  lines: ["Du er fortsatt med som manager.", "Bruk bytter for å endre innlåste tips."] },
+      sco:     { title: "Manager Hub",  lines: ["Ye're still in the game as a manager.", "Subs let ye change locked predictions."] },
+    },
+    audioScript: {
+      en:      { host: "The Manager tab — because the game doesn't stop just because predictions are locked.", pundit: "You've still got tools. Substitutions let you swap out predictions that have already locked in." },
+      'en-US': { host: "Manager — because being locked in doesn't mean you're out of options.", pundit: "Substitutions let you change locked picks. Use them on the games that still matter." },
+      no:      { host: "Manager-fanen — fordi spillet ikke stopper selv om tipsene er låst.", pundit: "Du har fortsatt verktøy. Bytter lar deg bytte ut tips som allerede er låst." },
+      sco:     { host: "The Manager tab — because the game disnae stop when predictions lock.", pundit: "Ye've still got tools. Subs let ye swap oot locked predictions." },
+    }
+  },
+
+  // STOP 8: MANAGER CONTENT  (stays on manager)
+  {
+    id: 'live_manager_content',
+    targets: ['tour-manager-viewmode'],
     position: 'bottom',
     overlayType: 'swipe-hand',
     audioFiles: {},
     display: {
-      en:      { title: "Manager Hub",  lines: ["Substitutions let you update locked-in predictions.", "Switch between Group Stage and Knockout views to find the match you want to change."] },
-      'en-US': { title: "Manager Hub",  lines: ["Spend substitutions to change locked picks — use them wisely.", "Group Stage and Knockout views to find your target match."] },
-      no:      { title: "Manager-hub",  lines: ["Bytter lar deg oppdatere innlåste tips.", "Bytt mellom Gruppespill og Sluttspill for å finne kampen du vil endre."] },
-      sco:     { title: "Manager Hub",  lines: ["Substitutions let ye change locked predictions.", "Switch between Group Stage and Knockout views tae find yer match."] },
+      en:      { title: "Find Your Match",  lines: ["Switch between Group Stage and Knockout to browse your predictions.", "Tap a match to use a substitution on it."] },
+      'en-US': { title: "Find Your Match",  lines: ["Browse Group Stage or Knockout predictions here.", "Tap a match to spend a substitution on it."] },
+      no:      { title: "Finn Din Kamp",    lines: ["Bytt mellom Gruppespill og Sluttspill for å bla gjennom tipsene dine.", "Trykk på en kamp for å bruke et bytte på den."] },
+      sco:     { title: "Find Yer Match",   lines: ["Switch between Group Stage and Knockout tae browse yer predictions.", "Tap a match tae use a sub on it."] },
     },
     audioScript: {
-      en:      { host: "The Manager tab is your control room. Use substitutions to swap out predictions that have already locked in — group stage or knockout.", pundit: "Limited subs. Don't waste them on a dead rubber. Use them surgically on matches that can still move you up the table." },
-      'en-US': { host: "Manager is your control room. Substitutions let you change locked picks across both the group stage and knockout rounds.", pundit: "You only get so many subs. Save them for the crunch games that can shift the leaderboard." },
-      no:      { host: "Manager-fanen er kontrollrommet ditt. Bruk bytter for å bytte ut tips — i gruppespill eller sluttspill.", pundit: "Begrenset antall bytter. Ikke sløs dem på avgjorte kamper. Bruk dem kirurgisk." },
-      sco:     { host: "The Manager tab's yer dugout. Subs let ye swap oot predictions — groups or knockouts.", pundit: "Ye've got limited subs. Dinnae burn them on deid rubbers. Save them for the big games." },
+      en:      { host: "Switch between Group Stage and Knockout to find the prediction you want to change, then tap the match to use a substitution.", pundit: "Limited subs. Don't waste them on a dead rubber. Use them surgically on matches that can still move you up the table." },
+      'en-US': { host: "Toggle between Group Stage and Knockout to find your target match, then tap to spend a substitution.", pundit: "You only get so many. Save them for the crunch games that can shift the leaderboard." },
+      no:      { host: "Bytt mellom Gruppespill og Sluttspill for å finne tipset du vil endre, og trykk deretter på kampen for å bruke et bytte.", pundit: "Begrenset antall bytter. Ikke sløs dem på avgjorte kamper." },
+      sco:     { host: "Switch between Group Stage and Knockout tae find yer prediction, then tap the match tae use a sub.", pundit: "Limited subs. Dinnae waste them on deid rubbers. Use them on games that can shift the table." },
     }
   },
 
-  // STOP 6: PROFILE / WRAP-UP  (returns to leaderboard on complete)
+  // STOP 9: PROFILE / WRAP-UP  (returns to leaderboard on complete)
   {
     id: 'live_profile',
     targetId: 'btn-profile-menu',
@@ -343,7 +406,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     },
     audioScript: {
       en:      { host: "That's the full live season briefing. Good luck — may your predictions hold up under pressure.", pundit: "Right, enough chat. Get watching the matches and check that leaderboard obsessively. That's what I do." },
-      'en-US': { host: "That's a wrap on the live season briefing! Good luck — may your bracket survive.", pundit: "Time to watch the games and refresh that leaderboard. That's the only sport that matters now." },
+      'en-US': { host: "That's a wrap! Good luck — may your bracket survive.", pundit: "Time to watch the games and refresh that leaderboard. That's the only sport that matters now." },
       no:      { host: "Det var den fullstendige live-sesong-briefingen. Lykke til — håper tipsene holder seg.", pundit: "Nok snakk. Se kampene og sjekk tabellen manisk. Det er det jeg gjør." },
       sco:     { host: "That's yer live season briefing done. Good luck — hope yer predictions dinnae crumble.", pundit: "Right, stop listening tae us and watch the actual fitba. Check that leaderboard. Every five minutes." },
     }

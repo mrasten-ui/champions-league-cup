@@ -395,10 +395,11 @@ export const App = () => {
   };
 
   const handleLiveTourNavigation = (stepId: string) => {
-      if (stepId === 'live_leaderboard') setActiveTab('leaderboard');
+      if (stepId === 'live_leaderboard_nav') setActiveTab('leaderboard');
       else if (stepId === 'live_tournament') { setActiveTab('tournament'); setTournamentSubTab('schedule'); }
+      else if (stepId === 'live_tournament_subtabs') setTournamentSubTab('schedule');
       else if (stepId === 'live_bracket') setTournamentSubTab('bracket');
-      else if (stepId === 'live_manager') setActiveTab('manager');
+      else if (stepId === 'live_manager_nav') setActiveTab('manager');
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
