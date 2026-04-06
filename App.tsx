@@ -378,6 +378,7 @@ export const App = () => {
 
   const handleLiveTourComplete = async () => {
       setShowLiveTour(false);
+      setActiveTab('leaderboard');
       if (user?.email) localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live', 'true');
       if (user && supabase) {
           const newTours = { ...(user.toursCompleted || { preSeason: false }), liveSeason: true };
@@ -395,7 +396,8 @@ export const App = () => {
 
   const handleLiveTourNavigation = (stepId: string) => {
       if (stepId === 'live_leaderboard') setActiveTab('leaderboard');
-      else if (stepId === 'live_tournament') setActiveTab('tournament');
+      else if (stepId === 'live_tournament') { setActiveTab('tournament'); setTournamentSubTab('schedule'); }
+      else if (stepId === 'live_bracket') setTournamentSubTab('bracket');
       else if (stepId === 'live_manager') setActiveTab('manager');
   };
 
@@ -444,6 +446,13 @@ export const App = () => {
   const navTabs = useMemo(() => {
       if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'scouting', 'leaderboard'];
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
+  }, [tournamentPhase]);
+
+  useEffect(() => {
+      const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis'];
+      if (tournamentPhase === 'LIVE' && !liveTabs.includes(activeTab)) {
+          setActiveTab('tournament');
+      }
   }, [tournamentPhase]);
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
@@ -527,7 +536,7 @@ export const App = () => {
                 <div className="flex justify-center mb-6">
                    <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
                       {(['schedule', 'tables', 'bracket'] as const).map(sub => (
-                         <button key={sub} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
+                         <button key={sub} id={`tour-subnav-${sub}`} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
                             {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{sub === 'schedule' ? t.subnavSchedule : sub === 'tables' ? t.subnavTables : t.subnavBracket}
                          </button>
                       ))}

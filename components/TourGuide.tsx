@@ -82,19 +82,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         onStepChange(currentStep.id);
     }
 
-    const scrollTimer = setTimeout(() => {
-        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
-        if (targetIds.length > 0) {
-            const el = document.getElementById(targetIds[0]);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            }
-        }
-    }, 100);
-
     const updateHighlight = () => {
         const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
-        
+
         let minTop = Infinity; let minLeft = Infinity;
         let maxBottom = -Infinity; let maxRight = -Infinity;
         let foundAny = false;
@@ -127,10 +117,18 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
 
-    requestRef.current = requestAnimationFrame(updateHighlight);
+    // Delay start so React has time to re-render after any tab switch triggered by onStepChange
+    const highlightTimer = setTimeout(() => {
+        const targetIds = currentStep.targets || (currentStep.targetId ? [currentStep.targetId] : []);
+        if (targetIds.length > 0) {
+            const el = document.getElementById(targetIds[0]);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+        requestRef.current = requestAnimationFrame(updateHighlight);
+    }, 350);
 
     return () => {
-        clearTimeout(scrollTimer);
+        clearTimeout(highlightTimer);
         if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
     };
   }, [currentStep.id, isOpen, hasStarted, onStepChange]); 

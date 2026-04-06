@@ -150,7 +150,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         lang={lang}
       />
 
-      <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 flex gap-2">
+      <div id="tour-manager-viewmode" className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 flex gap-2">
           <button 
             onClick={() => setViewMode('groups')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
