@@ -148,7 +148,7 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
               <div className="relative">
                 <BracketCard match={pair[0]} teams={teams} preds={userPredictions} highlighted={pair[0].id === highlightedMatchId} />
                 {showConnectors && (
-                  <div className="absolute bg-slate-700" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '1px' }} />
+                  <div className="absolute bg-slate-400" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '2px' }} />
                 )}
               </div>
 
@@ -157,14 +157,14 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
                 <div className="relative">
                   <BracketCard match={pair[1]} teams={teams} preds={userPredictions} highlighted={pair[1].id === highlightedMatchId} />
                   {showConnectors && (
-                    <div className="absolute bg-slate-700" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '1px' }} />
+                    <div className="absolute bg-slate-400" style={{ left: `${CARD_W}px`, top: `${CARD_H / 2 - 1}px`, width: `${STUB_W}px`, height: '2px' }} />
                   )}
                 </div>
               )}
 
-              {/* Vertical bar joining the two stubs (at the stub endpoint) */}
+              {/* Vertical bar joining the two stubs */}
               {showConnectors && pair[1] && (
-                <div className="absolute bg-slate-700" style={{ left: `${VBAR_L}px`, top: `${C1_MID}px`, width: '1px', height: `${VBAR_H}px` }} />
+                <div className="absolute bg-slate-400" style={{ left: `${VBAR_L}px`, top: `${C1_MID}px`, width: '2px', height: `${VBAR_H}px` }} />
               )}
             </div>
           ))}
