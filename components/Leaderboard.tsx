@@ -404,7 +404,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       
       {/* HEADER WITH CONTROLS */}
       <div className="flex flex-col gap-4 px-1">
-         <div className="flex justify-between items-center bg-[#0f2545] p-4 rounded-2xl shadow-lg border border-white/10">
+         <div id="tour-leaderboard-top" className="flex justify-between items-center bg-[#0f2545] p-4 rounded-2xl shadow-lg border border-white/10">
              <div className="flex items-center gap-3">
                  <div className="bg-yellow-400 p-2 rounded-lg text-[#0f2545]">
                     <Trophy size={20} />

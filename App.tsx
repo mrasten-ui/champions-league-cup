@@ -36,7 +36,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
 import { TourGuide } from './components/TourGuide';
-import { PRE_SEASON_TOUR } from './components/tourConfig';
+import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { StudioGenerator } from './components/StudioGenerator';
 import { SecondChanceView } from './components/SecondChanceView';
 
@@ -75,6 +75,7 @@ export const App = () => {
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
   const [showTour, setShowTour] = useState(false);
+  const [showLiveTour, setShowLiveTour] = useState(false);
   const [showStudio, setShowStudio] = useState(false); 
 
   const t = TRANSLATIONS[language];
@@ -352,7 +353,15 @@ export const App = () => {
   useEffect(() => {
       const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
       if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason && !localTourCompleted) {
-          const timer = setTimeout(() => setShowTour(true), 1500); 
+          const timer = setTimeout(() => setShowTour(true), 1500);
+          return () => clearTimeout(timer);
+      }
+  }, [user, tournamentPhase]);
+
+  useEffect(() => {
+      const localLiveTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live') : null;
+      if (user && tournamentPhase === 'LIVE' && !user.toursCompleted?.liveSeason && !localLiveTourCompleted) {
+          const timer = setTimeout(() => setShowLiveTour(true), 1500);
           return () => clearTimeout(timer);
       }
   }, [user, tournamentPhase]);
@@ -367,11 +376,27 @@ export const App = () => {
       }
   };
 
+  const handleLiveTourComplete = async () => {
+      setShowLiveTour(false);
+      if (user?.email) localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live', 'true');
+      if (user && supabase) {
+          const newTours = { ...(user.toursCompleted || { preSeason: false }), liveSeason: true };
+          setUser({ ...user, toursCompleted: newTours });
+          await supabase.from('profiles').update({ tours_completed: newTours } as any).eq('email', user.email);
+      }
+  };
+
   const handleTourNavigation = (stepId: string) => {
-      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); } 
+      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
       else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
       else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
       else if (stepId === 'profile_menu' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
+  };
+
+  const handleLiveTourNavigation = (stepId: string) => {
+      if (stepId === 'live_leaderboard') setActiveTab('leaderboard');
+      else if (stepId === 'live_tournament') setActiveTab('tournament');
+      else if (stepId === 'live_manager') setActiveTab('manager');
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -486,7 +511,8 @@ export const App = () => {
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
-        onStartTour={() => setShowTour(true)} 
+        onStartTour={() => setShowTour(true)}
+        onStartLiveTour={() => setShowLiveTour(true)}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
@@ -634,6 +660,7 @@ export const App = () => {
       </main>
 
       <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
+      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

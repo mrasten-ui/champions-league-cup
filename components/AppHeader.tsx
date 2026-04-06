@@ -25,6 +25,7 @@ interface AppHeaderProps {
   handleLogout: () => void;
   onReplayIntro: () => void;
   onStartTour: () => void;
+  onStartLiveTour?: () => void;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -141,6 +142,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
              if (tab === 'groups') tabId = isDesktop ? 'nav-groups-desk' : 'nav-groups'; // Distinct IDs helps Tour Guide find correct element
              else if (tab === 'knockout') tabId = isDesktop ? 'nav-knockout-desk' : 'nav-knockout'; 
              else if (tab === 'leaderboard') tabId = isDesktop ? 'nav-leaderboard-desk' : 'nav-leaderboard';
+             else if (tab === 'tournament') tabId = isDesktop ? 'nav-tournament-desk' : 'nav-tournament';
+             else if (tab === 'manager')    tabId = isDesktop ? 'nav-manager-desk'    : 'nav-manager';
+             else if (tab === 'analysis')   tabId = isDesktop ? 'nav-analysis-desk'   : 'nav-analysis';
 
              return (
                 <button 
@@ -275,6 +279,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                               <div className="p-1">
                                   {props.tournamentPhase === 'PRE_LIVE' && (
                                       <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
+                                  )}
+                                  {props.tournamentPhase === 'LIVE' && props.onStartLiveTour && (
+                                      <button onClick={() => { props.onStartLiveTour!(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Live Tour</button>
                                   )}
                                   
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>

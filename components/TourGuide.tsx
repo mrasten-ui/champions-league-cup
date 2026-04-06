@@ -7,8 +7,9 @@ interface TourGuideProps {
   steps: TourStep[];
   isOpen: boolean;
   onComplete: () => void;
-  langCode: LanguageCode; 
+  langCode: LanguageCode;
   onStepChange?: (stepId: string) => void;
+  defaultMode?: 'audio' | 'text';
 }
 
 // --- LOCALIZATION DICTIONARY ---
@@ -19,7 +20,7 @@ const UI_STRINGS = {
   SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
-export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
+export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio' }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -62,7 +63,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setCurrentStepIdx(0);
           setHasStarted(false);
           setIsMuted(false);
-          setTourMode('audio');
+          setTourMode(defaultMode);
           setHighlightStyle(null);
       } else {
           if (audioRef.current) { 
@@ -305,20 +306,41 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
 
                     <div className="flex flex-col gap-3 pt-2">
-                        <button
-                            onClick={handleStart}
-                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
-                        >
-                            <Play size={20} fill="currentColor" />
-                            <span>{ui.start}</span>
-                        </button>
-                        <button
-                            onClick={handleStartText}
-                            className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
-                        >
-                            <VolumeX size={16} />
-                            <span>{ui.startText}</span>
-                        </button>
+                        {defaultMode === 'text' ? (
+                            <>
+                                <button
+                                    onClick={handleStartText}
+                                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                                >
+                                    <VolumeX size={20} />
+                                    <span>{ui.startText}</span>
+                                </button>
+                                <button
+                                    onClick={handleStart}
+                                    className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Play size={16} fill="currentColor" />
+                                    <span>{ui.start}</span>
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={handleStart}
+                                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                                >
+                                    <Play size={20} fill="currentColor" />
+                                    <span>{ui.start}</span>
+                                </button>
+                                <button
+                                    onClick={handleStartText}
+                                    className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <VolumeX size={16} />
+                                    <span>{ui.startText}</span>
+                                </button>
+                            </>
+                        )}
                         <button
                             onClick={handleSkip}
                             className="w-full py-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"

@@ -133,7 +133,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   };
 
   return (
-    <div className="pb-24 animate-fade-in space-y-8">
+    <div id="tour-manager-hub" className="pb-24 animate-fade-in space-y-8">
       
       <ResourceHeader 
         user={currentUser} 
