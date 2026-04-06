@@ -3,7 +3,7 @@ import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from 
 import { calculateGroupStandings } from '../services/engine';
 import { DateRibbon } from './DateRibbon';
 import { AvatarDisplay } from './AvatarDisplay';
-import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, Info, X } from 'lucide-react';
 
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
@@ -27,7 +27,8 @@ const TEXT: Record<string, any> = {
         simRank: "Simulated Rank",
         hideTable: "Hide Table",
         fullTable: "Full Table",
-        noMatches: "No matches on this date."
+        noMatches: "No matches on this date.",
+        simHint: "Adjust the match scores below to simulate different results — your leaderboard position updates live so you can see exactly what you need.",
     },
     'en-US': {
         analysisTitle: "Road to Victory",
@@ -36,7 +37,8 @@ const TEXT: Record<string, any> = {
         simRank: "Projected Rank",
         hideTable: "Hide Standings",
         fullTable: "Full Standings",
-        noMatches: "No matchups on this date."
+        noMatches: "No matchups on this date.",
+        simHint: "Drag scores up or down below to run different scenarios — watch your simulated rank change in real time.",
     },
     sco: {
         analysisTitle: "Road tae Glory",
@@ -45,7 +47,8 @@ const TEXT: Record<string, any> = {
         simRank: "Simulated Rank",
         hideTable: "Hide Table",
         fullTable: "Full Table",
-        noMatches: "Nae matches on this date."
+        noMatches: "Nae matches on this date.",
+        simHint: "Chynge the scores below an' see where ye'd end up — yer simulated rank updates as ye go.",
     },
     no: {
         analysisTitle: "Veien til Seier",
@@ -54,7 +57,8 @@ const TEXT: Record<string, any> = {
         simRank: "Simulert Rangering",
         hideTable: "Skjul Tabell",
         fullTable: "Full Tabell",
-        noMatches: "Ingen kamper på denne datoen."
+        noMatches: "Ingen kamper på denne datoen.",
+        simHint: "Juster kampresultatene nedenfor for å simulere ulike utfall — stillingen din oppdateres live.",
     }
 };
 
@@ -155,6 +159,9 @@ interface AnalysisDashboardProps {
   lang: Translation;
   currentLang: LanguageCode;
   onTeamClick?: (id: string) => void;
+  preloadedAnalysis?: string | null;
+  onRefreshBrief?: () => void;
+  briefRefreshing?: boolean;
 }
 
 export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
@@ -165,7 +172,10 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   teams,
   lang,
   currentLang,
-  onTeamClick
+  onTeamClick,
+  preloadedAnalysis,
+  onRefreshBrief,
+  briefRefreshing,
 }) => {
   // 1. CALCULATE "GAME TODAY" (Date of next match)
   // This ensures the dashboard opens on a relevant date
@@ -180,6 +190,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   }, [matches]);
 
   const [filterDate, setFilterDate] = useState<string>(defaultDate);
+  const [showSimHint, setShowSimHint] = useState(() => !localStorage.getItem(`rasten_sim_hint_${currentUser.email}`));
 
   // Sync state if defaultDate changes (e.g. data loaded or Time Travel used)
   useEffect(() => {
@@ -233,13 +244,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   // 3. INDEPENDENT LIST FOR AI ANALYST (Always Next Up)
   // CRITICAL FIX: This ignores 'filterDate' so the AI always sees the future schedule
-  const analysisMatches = useMemo(() => {
-    return matches
-        .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .slice(0, 3);
-  }, [matches]);
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
         
@@ -255,18 +259,25 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                 </div>
             </div>
 
-            <AIAnalystWidget 
-                currentUser={currentUser}
-                combinedStats={combinedStats}
-                nextMatches={analysisMatches} // <--- UPDATED: Uses the independent list
-                allPredictions={allPredictions}
-                lang={lang}
+            <AIAnalystWidget
                 currentLang={currentLang}
-                teams={teams}
+                preloadedAnalysis={preloadedAnalysis}
+                onRefresh={onRefreshBrief}
+                isRefreshing={briefRefreshing}
             />
         </div>
 
         <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} locale={({'EN':'en-GB','SCO':'en-GB','US':'en-US','NO':'no-NO'} as Record<string,string>)[currentLang] || 'en-GB'} />
+
+        {showSimHint && (
+          <div className="mx-4 mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
+            <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-blue-800 font-medium flex-1 leading-relaxed">{t.simHint}</p>
+            <button onClick={() => { localStorage.setItem(`rasten_sim_hint_${currentUser.email}`, '1'); setShowSimHint(false); }} className="text-blue-400 hover:text-blue-600 shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         <SimulatedLeaderboardWidget 
             simulatedUsers={combinedStats} 

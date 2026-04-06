@@ -3,13 +3,14 @@ import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRigh
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
-  calculateGroupStandings, 
-  simulateFullTournament, 
-  applyPredictionsToBracket, 
+  calculateGroupStandings,
+  simulateFullTournament,
+  applyPredictionsToBracket,
   simulateTournamentAtDate,
-  getAllGroupStandings, 
+  getAllGroupStandings,
   getThirdPlaceStandings,
-  updateBracket
+  updateBracket,
+  calculatePoints,
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -37,6 +38,7 @@ import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
 import { TourGuide } from './components/TourGuide';
 import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
+import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { StudioGenerator } from './components/StudioGenerator';
 import { SecondChanceView } from './components/SecondChanceView';
 
@@ -76,6 +78,8 @@ export const App = () => {
 
   const [showTour, setShowTour] = useState(false);
   const [showLiveTour, setShowLiveTour] = useState(false);
+  const [dailyBrief, setDailyBrief] = useState<string | null>(null);
+  const [briefRefreshing, setBriefRefreshing] = useState(false);
   const [showStudio, setShowStudio] = useState(false); 
 
   const t = TRANSLATIONS[language];
@@ -457,6 +461,47 @@ export const App = () => {
   }, [tournamentPhase]);
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
+
+  // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
+  const runBriefGeneration = async () => {
+      if (!user || !matches.length || !Object.keys(teamsData).length || !allPredictions) return;
+      const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) { setDailyBrief(cached); return; }
+      setBriefRefreshing(true);
+      try {
+          const allUsers = [user, ...rivalsList];
+          const finishedMatches = matches.filter(m =>
+              ['FINISHED', 'FT', 'AET', 'PEN'].includes(m.status) &&
+              m.homeScore !== null && m.awayScore !== null
+          );
+          const stats = allUsers.map(u => {
+              const score = finishedMatches.reduce((sum, m) => {
+                  const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+                  if (!pred) return sum;
+                  return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
+              }, 0);
+              return { user: u, score, rank: 0, diff: 0 };
+          }).sort((a, b) => b.score - a.score).map((s, i) => ({ ...s, rank: i + 1 }));
+          const upcoming = matches
+              .filter(m => m.status === 'UPCOMING' || m.status === 'NS')
+              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              .slice(0, 3);
+          const brief = await generateDailyBrief(user, stats, upcoming, allPredictions, teamsData, language);
+          localStorage.setItem(cacheKey, brief);
+          setDailyBrief(brief);
+      } catch (e) {
+          console.warn('[DailyBrief] Generation failed', e);
+      } finally {
+          setBriefRefreshing(false);
+      }
+  };
+
+  useEffect(() => {
+      if (user && matches.length > 0 && Object.keys(teamsData).length > 0) {
+          runBriefGeneration();
+      }
+  }, [user?.email, matches.length, Object.keys(teamsData).length]);
   const standings = useMemo(() => calculateGroupStandings(activeGroup, userMatches, teamsData), [activeGroup, userMatches, teamsData]);
   const groupMatchesList = userMatches.filter(m => m.groupId === activeGroup);
   
@@ -523,12 +568,13 @@ export const App = () => {
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => setShowLiveTour(true)}
+        showSecondChanceBadge={tournamentPhase === 'LIVE' && !user?.hasTakenSecondChance && user?.secondChanceStatus === 'NONE'}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
+        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} />}
         {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
         {/* TOURNAMENT HUB */}

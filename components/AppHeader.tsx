@@ -26,6 +26,7 @@ interface AppHeaderProps {
   onReplayIntro: () => void;
   onStartTour: () => void;
   onStartLiveTour?: () => void;
+  showSecondChanceBadge?: boolean;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -160,6 +161,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     `}
                 >
                    {label}
+                   {tab === 'manager' && props.showSecondChanceBadge && (
+                     <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
+                   )}
                    {/* Mobile underline indicator */}
                    {!isDesktop && isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
                 </button>
