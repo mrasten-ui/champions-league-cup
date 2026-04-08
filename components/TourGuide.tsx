@@ -247,10 +247,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
       {/* 1. WELCOME SCREEN (MODAL) */}
       {isWelcome && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 pointer-events-auto">
+        <div className="absolute inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto">
             <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm animate-in fade-in duration-300"></div>
-            <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
-                <div className="h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden transition-all duration-500">
+            <div className="relative w-full sm:max-w-sm bg-white sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 border-t-4 sm:border-4 border-yellow-400" style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - 8px)', overflowY: 'auto' }}>
+                <div className="h-32 sm:h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden transition-all duration-500">
                     
                     <div 
                         className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
@@ -282,9 +282,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
                 </div>
                 
-                <div className="px-6 py-8 text-center space-y-6">
-                    <div className="flex justify-center -mt-16 mb-4 relative z-20">
-                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
+                <div className="px-5 py-5 sm:py-8 text-center space-y-4 sm:space-y-6" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}>
+                    <div className="flex justify-center -mt-12 sm:-mt-16 mb-2 sm:mb-4 relative z-20">
+                        <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
                              <img 
                                 src={hostUrl}
                                 onError={(e) => { e.currentTarget.src = '/pundit/host-en.png'; }}
@@ -294,16 +294,16 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         <p className="text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 inline-block px-3 py-1 rounded-full">
                             {ui.assistant}
                         </p>
-                        <p className="text-slate-800 text-lg font-medium leading-relaxed italic">
+                        <p className="text-slate-800 text-sm sm:text-lg font-medium leading-relaxed italic">
                             "{audioScript?.host}"
                         </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 pt-2">
+                    <div className="flex flex-col gap-2 sm:gap-3 pt-1 sm:pt-2">
                         {defaultMode === 'text' ? (
                             <>
                                 <button
@@ -393,10 +393,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
       {/* 3. BROADCAST FOOTER (TV UI) */}
       {!isWelcome && (
-          <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center px-0 sm:px-4">
-            
+          <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center px-0 sm:px-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+
             <div className="w-full max-w-[1200px] relative">
-              
+
               {/* THE CHARACTER LAYER: Anchored to the bottom-left of the max-width container */}
               <div className="absolute bottom-0 left-0 z-[105] pointer-events-none flex items-end">
                   {/* Desktop Image */}
@@ -407,19 +407,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                       className="hidden sm:block w-[280px] lg:w-[320px] h-auto object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
                   />
                   {/* Mobile Image */}
-                  <img 
+                  <img
                       src={teamUrl}
                       onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
-                      className="sm:hidden block w-[130px] h-auto object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)] -ml-2" 
+                      className="sm:hidden block w-[110px] h-auto object-contain object-bottom drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)] -ml-2"
                       alt="Hosts"
                   />
               </div>
 
               {/* THE BACKGROUND BOX LAYER (Z-100) */}
-              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex h-32 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
+              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex h-28 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
                   
                   {/* TEXT CONTENT: Padding-left acts as a physical barrier preventing text from going behind the images */}
-                  <div className="flex-1 py-3 pr-2 pl-[135px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
+                  <div className="flex-1 py-2 sm:py-3 pr-2 pl-[120px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
                       
                       {/* Title Row */}
                       <div className="flex justify-between items-start mb-2">
