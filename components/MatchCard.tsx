@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, HeadToHeadStats } from '../types';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase } from '../types';
 import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
-import { calculatePoints, fetchHeadToHeadStats } from '../services/engine';
+import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
-import { HeadToHeadBar } from './HeadToHeadBar';
 
 interface MatchCardProps {
   match: Match;
@@ -51,9 +50,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
-    const [h2hData, setH2HData] = useState<HeadToHeadStats | null>(null);
-    const [loadingH2H, setLoadingH2H] = useState(false);
-    const [showHistoryDetails, setShowHistoryDetails] = useState(false);
 
     const isKnockout = !!match.round; 
 
@@ -82,17 +78,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     }, [localHome, localAway, isDirty, isUnlockedBySub, match.id, onUpdate]);
 
-    useEffect(() => {
-        const isValidMatchup = homeTeam && awayTeam && homeTeam.id !== 'TBD' && awayTeam.id !== 'TBD';
-        const shouldFetch = isValidMatchup && !isKnockout && !h2hData && !loadingH2H;
-
-        if (shouldFetch) {
-            setLoadingH2H(true);
-            fetchHeadToHeadStats(homeTeam, awayTeam)
-                .then(data => { setH2HData(data); setLoadingH2H(false); })
-                .catch(() => setLoadingH2H(false));
-        }
-    }, [h2hData, loadingH2H, homeTeam, awayTeam, isKnockout]);
 
     // --- STATUS HELPERS ---
     const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
@@ -303,6 +288,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         isLocked={isLocked}
                                         onActivate={handleActivate}
                                         ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined}
+                                        saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
                                     />
                                     <span className="font-black text-slate-300 text-lg">-</span>
                                     <ScoreStepper
@@ -311,6 +297,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         isLocked={isLocked}
                                         onActivate={handleActivate}
                                         ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined}
+                                        saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
                                     />
                                 </div>
                             ) : (
@@ -358,17 +345,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              )}
              {!isLocked && !isKnockout && !isSaving && !isSaved && <div className="h-7" />}
 
-             {/* EXPANDABLE SECTIONS (H2H, Rivals, Footer) */}
-             {h2hData && !isLocked && !isKnockout && !isHomeTBD && !isAwayTBD && homeTeam && awayTeam && (
-                <HeadToHeadBar
-                    h2hData={h2hData}
-                    homeTeam={homeTeam}
-                    awayTeam={awayTeam}
-                    lang={lang}
-                    expanded={showHistoryDetails}
-                    onToggle={() => setShowHistoryDetails(!showHistoryDetails)}
-                />
-             )}
 
              {canSpy && (
                 <div

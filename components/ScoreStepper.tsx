@@ -7,9 +7,14 @@ interface ScoreStepperProps {
     isLocked: boolean;
     onActivate: () => void;
     ids?: { up: string; down: string };
+    saveState?: 'idle' | 'syncing' | 'saved';
 }
 
-export const ScoreStepper: React.FC<ScoreStepperProps> = ({ value, onChange, isLocked, onActivate, ids }) => {
+export const ScoreStepper: React.FC<ScoreStepperProps> = ({ value, onChange, isLocked, onActivate, ids, saveState = 'idle' }) => {
+    const numColour =
+        saveState === 'syncing' ? 'text-amber-500' :
+        saveState === 'saved'   ? 'text-green-500' :
+        'text-slate-800';
     return (
         <div className={`flex flex-col items-center w-12 sm:w-14 rounded-3xl overflow-hidden transition-all ${isLocked ? 'opacity-50 cursor-not-allowed' : ''} bg-slate-100`}>
             <button
@@ -21,7 +26,7 @@ export const ScoreStepper: React.FC<ScoreStepperProps> = ({ value, onChange, isL
                 <ChevronUp size={18} strokeWidth={3} />
             </button>
 
-            <div className="w-full flex items-center justify-center text-2xl sm:text-3xl font-black text-slate-800 leading-none select-none py-1">
+            <div className={`w-full flex items-center justify-center text-2xl sm:text-3xl font-black leading-none select-none py-1 transition-colors duration-200 ${numColour}`}>
                 {value === null ? <span className="text-slate-300">–</span> : value}
             </div>
 

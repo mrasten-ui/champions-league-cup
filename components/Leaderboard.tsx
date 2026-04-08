@@ -457,6 +457,65 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
          )}
       </div>
 
+      {/* BATTLE STRIP — only in LIVE mode */}
+      {showLive && (() => {
+          const myEntry = displayList.find(u => u.email === currentUserEmail);
+          if (!myEntry) return null;
+          const leader = displayList[0];
+          const myIdx = displayList.findIndex(u => u.email === currentUserEmail);
+          const above = myIdx > 0 ? displayList[myIdx - 1] : null;
+          const gapToLeader = leader ? leader.totalPoints - myEntry.totalPoints : 0;
+          const gapAbove = above ? above.totalPoints - myEntry.totalPoints : 0;
+          const isLeader = myIdx === 0;
+
+          const todayStr = new Date().toDateString();
+          const todayMatches = matches.filter(m =>
+              new Date(m.date).toDateString() === todayStr &&
+              ['FT', 'FINISHED', 'AET', 'PEN'].includes(m.status)
+          );
+          const todayPoints = todayMatches.reduce((sum, m) => {
+              const pred = allPredictions.find(p => p.userId === currentUserEmail && p.matchId === m.id);
+              if (!pred || m.homeScore === null || m.awayScore === null) return sum;
+              return sum + calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!myEntry.hasTakenSecondChance, m.round);
+          }, 0);
+
+          return (
+              <div className="mx-1 p-3 rounded-2xl bg-gradient-to-r from-[#0f2545] to-slate-800 border border-white/10 flex items-center justify-around gap-2 text-white">
+                  <div className="text-center min-w-0">
+                      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Behind leader</div>
+                      <div className="text-xl font-black text-yellow-400">
+                          {isLeader ? '🏆' : `-${gapToLeader}`}
+                      </div>
+                      {!isLeader && <div className="text-[9px] text-slate-500 truncate max-w-[70px]">{leader.name}</div>}
+                  </div>
+
+                  <div className="w-px h-10 bg-white/10" />
+
+                  {above ? (
+                      <div className="text-center min-w-0 flex-1">
+                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Chasing</div>
+                          <div className="text-sm font-black text-white truncate">{above.name}</div>
+                          <div className="text-[10px] text-red-400 font-bold">-{gapAbove} pts</div>
+                      </div>
+                  ) : (
+                      <div className="text-center flex-1">
+                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Position</div>
+                          <div className="text-sm font-black text-green-400">Leading 🎯</div>
+                      </div>
+                  )}
+
+                  <div className="w-px h-10 bg-white/10" />
+
+                  <div className="text-center min-w-0">
+                      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
+                      <div className={`text-xl font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                          {todayPoints > 0 ? `+${todayPoints}` : '–'}
+                      </div>
+                  </div>
+              </div>
+          );
+      })()}
+
       {/* THE LIST */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">

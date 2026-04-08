@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { Match, Team, Translation, GroupStanding, Prediction } from '../types';
-import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain } from 'lucide-react';
+import { Match, Team, Translation, GroupStanding, Prediction, UserProfile } from '../types';
+import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain, Check } from 'lucide-react';
+import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
 interface MatchdayHeroProps {
@@ -12,6 +13,7 @@ interface MatchdayHeroProps {
   onTeamClick: (id: string) => void;
   allMatches?: Match[];
   userPrediction?: Prediction;
+  currentUser?: UserProfile | null;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -105,11 +107,15 @@ const TbdHeroSlot: React.FC<{
     );
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
+
+  const pointsEarned = isFinished && match.homeScore !== null && match.awayScore !== null && userPrediction
+      ? calculatePoints(userPrediction.home, userPrediction.away, match.homeScore, match.awayScore, !!currentUser?.hasTakenSecondChance, match.round)
+      : null;
 
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
@@ -303,8 +309,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Right: Empty spacer */}
-            <div className="w-1/3"></div>
+            {/* Right: Points earned */}
+            <div className="w-1/3 flex justify-end items-center gap-1">
+                {pointsEarned !== null && (
+                    <>
+                        {pointsEarned > 0 && <Check size={10} className="text-green-400" />}
+                        <span className={`font-black ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                            {pointsEarned > 0 ? `+${pointsEarned} PTS` : '+0 PTS'}
+                        </span>
+                    </>
+                )}
+            </div>
         </div>
       </div>
     </div>

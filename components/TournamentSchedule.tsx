@@ -231,15 +231,16 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
             {/* MATCH OF THE DAY HERO */}
             {heroMatch && !searchTerm && (
-                <MatchdayHero 
-                    match={heroMatch} 
-                    teams={teams} 
-                    groupStandings={heroStandings} 
+                <MatchdayHero
+                    match={heroMatch}
+                    teams={teams}
+                    groupStandings={heroStandings}
                     lang={lang}
-                    locale={activeLocale} // Pass the mapped locale
+                    locale={activeLocale}
                     allMatches={matches}
                     onTeamClick={createClickHandler(heroMatch)}
                     userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
+                    currentUser={user}
                 />
             )}
 

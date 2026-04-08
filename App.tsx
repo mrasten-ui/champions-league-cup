@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, ScanEye, Mic } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Mic } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
@@ -23,7 +23,6 @@ import { ManagerHub } from './components/ManagerHub';
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesModal } from './components/RulesModal';
-import { ScoutingCenter } from './components/ScoutingCenter';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
@@ -37,14 +36,16 @@ import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
 import { TourGuide } from './components/TourGuide';
+import { LiveSplashScreen } from './components/LiveSplashScreen';
 import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { StudioGenerator } from './components/StudioGenerator';
 import { SecondChanceView } from './components/SecondChanceView';
 
-const STORAGE_KEYS = { 
+const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
-  TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_' 
+  TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_',
+  AUTO_FILLED_PREFIX: 'rasten_autofill_v1_',
 };
 
 export const App = () => {
@@ -54,7 +55,7 @@ export const App = () => {
     groupStageEndTime, knockoutStartTime
   } = useAppData();
 
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'scouting'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
@@ -78,6 +79,7 @@ export const App = () => {
 
   const [showTour, setShowTour] = useState(false);
   const [showLiveTour, setShowLiveTour] = useState(false);
+  const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
   const [showStudio, setShowStudio] = useState(false); 
@@ -365,10 +367,49 @@ export const App = () => {
   useEffect(() => {
       const localLiveTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live') : null;
       if (user && tournamentPhase === 'LIVE' && !user.toursCompleted?.liveSeason && !localLiveTourCompleted) {
-          const timer = setTimeout(() => setShowLiveTour(true), 1500);
+          const timer = setTimeout(() => setShowLiveSplash(true), 1500);
           return () => clearTimeout(timer);
       }
   }, [user, tournamentPhase]);
+
+  const handleSplashDone = () => {
+      setShowLiveSplash(false);
+      setTimeout(() => setShowLiveTour(true), 300);
+  };
+
+  // Auto-fill predictions for late-joining users in LIVE phase
+  useEffect(() => {
+      if (!user || !supabase || tournamentPhase !== 'LIVE') return;
+      if (!matches.length || !Object.keys(teamsData).length) return;
+      const alreadyFilled = localStorage.getItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email);
+      if (alreadyFilled) return;
+
+      const groupMatches = matches.filter(m => m.groupId);
+      const userGroupPreds = allPredictions.filter(p => p.userId === user.email && groupMatches.some(m => m.id === p.matchId));
+
+      // Only auto-fill if fewer than 20% of group matches are predicted
+      if (userGroupPreds.length > groupMatches.length * 0.2) return;
+
+      const simulated = simulateFullTournament(matches, teamsData, user.favorites || [], 'GROUPS');
+      const toSave = simulated
+          .filter(m => m.groupId && m.homeScore !== null && m.awayScore !== null
+              && !userGroupPreds.some(p => p.matchId === m.id))
+          .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
+
+      if (toSave.length === 0) return;
+
+      supabase.from('predictions').upsert(toSave, { onConflict: 'user_id,match_id' }).then(({ error }) => {
+          if (!error) {
+              localStorage.setItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email, '1');
+              setAllPredictions(prev => {
+                  const others = prev.filter(p => p.userId !== user.email);
+                  const kept = prev.filter(p => p.userId === user.email && !toSave.some(s => s.match_id === p.matchId));
+                  return [...others, ...kept, ...toSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }))];
+              });
+              addToast('success', "You're in the game!", `We filled ${toSave.length} predictions so you can still compete.`);
+          }
+      });
+  }, [user?.email, tournamentPhase, matches.length, Object.keys(teamsData).length, allPredictions.length]);
 
   const handleTourComplete = async () => {
       setShowTour(false);
@@ -442,14 +483,14 @@ export const App = () => {
   const handleNextRound = () => {
       const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
       if (idx < ROUND_ORDER.length - 1) { setActiveKnockoutRound(ROUND_ORDER[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      else setActiveTab('scouting'); 
+      else setActiveTab('leaderboard');
   };
 
   const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
   const navTabs = useMemo(() => {
-      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'scouting', 'leaderboard'];
+      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard'];
       return ['leaderboard', 'tournament', 'manager', 'analysis'];
   }, [tournamentPhase]);
 
@@ -532,7 +573,7 @@ export const App = () => {
   }, [user, activeTab, matches]);
 
   const showMagicWand = (
-      (tournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'scouting' && activeTab !== 'analysis') ||
+      (tournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'analysis') ||
       (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout'))
   );
 
@@ -575,7 +616,6 @@ export const App = () => {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} />}
-        {activeTab === 'scouting' && <ScoutingCenter teams={teamsData} lang={t} currentLang={language} />}
         
         {/* TOURNAMENT HUB */}
         {activeTab === 'tournament' && (
@@ -680,7 +720,7 @@ export const App = () => {
                         {activeKnockoutRound !== 'FIN' ? (
                             <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : (
-                            <button onClick={() => setActiveTab('scouting')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.scoutBtn}</span><ScanEye size={18} /></button>
+                            <button onClick={() => setActiveTab('leaderboard')} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.leaderboard || 'Leaderboard'}</span><ChevronRight size={18} /></button>
                         )}
                      </div>
                 </div>
@@ -717,6 +757,7 @@ export const App = () => {
 
       <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
+      <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

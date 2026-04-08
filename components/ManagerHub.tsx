@@ -144,24 +144,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         totalPoints={0}
       />
 
-      {showMgrHint && (() => {
-        const MGR_HINTS: Record<string, string> = {
-          EN: "Here you can review all your predictions. Switch between Group Stage and Knockouts, or use a Substitution token to change a pick before a match kicks off.",
-          US: "Your predictions hub. Toggle between groups and bracket picks, and spend a Sub token to edit a locked-in pick before kick-off.",
-          SCO: "Here's aw yer picks. Swap between groups an' knockouts, an' use a sub token tae change a pick before the whistle.",
-          NO: "Her finner du alle dine tips. Bytt mellom gruppespill og sluttspill, og bruk et byttetoken for å endre et tips før kampstart.",
-        };
-        const hintText = MGR_HINTS[phase === 'LIVE' ? (lang as any).__lang || 'EN' : 'EN'] ?? MGR_HINTS.EN;
-        return (
-          <div className="mx-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
-            <Info size={16} className="text-indigo-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-indigo-800 font-medium flex-1 leading-relaxed">{hintText}</p>
-            <button onClick={() => { localStorage.setItem(`rasten_mgr_hint_${currentUser.email}`, '1'); setShowMgrHint(false); }} className="text-indigo-400 hover:text-indigo-600 shrink-0">
-              <X size={14} />
-            </button>
-          </div>
-        );
-      })()}
+      {showMgrHint && (
+        <div className="mx-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
+          <Info size={16} className="text-indigo-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-indigo-800 font-medium flex-1 leading-relaxed">{(lang as any).mgrHint}</p>
+          <button onClick={() => { localStorage.setItem(`rasten_mgr_hint_${currentUser.email}`, '1'); setShowMgrHint(false); }} className="text-indigo-400 hover:text-indigo-600 shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <SecondChancePromo
         hasTaken={currentUser.hasTakenSecondChance}
