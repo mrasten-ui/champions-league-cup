@@ -533,6 +533,7 @@ export const App = () => {
           setDailyBrief(brief);
       } catch (e) {
           console.warn('[DailyBrief] Generation failed', e);
+          setDailyBrief(''); // empty string → widget shows error state instead of infinite loading
       } finally {
           setBriefRefreshing(false);
       }
