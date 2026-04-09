@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, Match, Prediction, Team, LanguageCode } from '../../types';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from 'openai';
 import { Sparkles, RefreshCw, BrainCircuit, WifiOff } from 'lucide-react';
 
 export interface AIAnalystProps {
@@ -70,7 +70,7 @@ export const generateDailyBrief = async (
     const langKey = resolveLanguage(langCode);
     const t = PERSONAS[langKey];
 
-    const apiKey = import.meta.env?.VITE_GEMINI_API_KEY;
+    const apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
     if (!apiKey) throw new Error('No API key');
 
     const cleanName = (() => {
@@ -140,18 +140,14 @@ ${matchLines}
 
 Write 2–3 punchy sentences. Reference their actual rank battle and name the rival they're chasing or defending against. Mention at least one of their specific picks and whether the crowd agrees or not. Sound like a knowledgeable friend — direct, specific, a little sharp. No bullet points, no headers. Plain paragraph only. Max 100 words.`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const tryModel = async (name: string) => {
-        const model = genAI.getGenerativeModel({ model: name });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    };
-
-    try { return await tryModel('gemini-2.0-flash'); }
-    catch {
-        try { return await tryModel('gemini-1.5-flash'); }
-        catch { return await tryModel('gemini-pro'); }
-    }
+    const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+    const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 200,
+        temperature: 0.85,
+    });
+    return response.choices[0]?.message?.content?.trim() ?? t.noGames;
 };
 
 // ── Widget (display only — no self-triggering) ───────────────────────────────
