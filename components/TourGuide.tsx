@@ -421,54 +421,43 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                   {/* TEXT CONTENT: Padding-left acts as a physical barrier preventing text from going behind the images */}
                   <div className="flex-1 py-2 sm:py-3 pr-2 pl-[120px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
                       
-                      {/* Title Row */}
-                      <div className="flex justify-between items-start mb-2">
-                          <div className="flex flex-col">
-                              <h3 className="text-yellow-400 text-[13px] sm:text-base font-black uppercase tracking-[0.2em] leading-none mb-1">
+                      {/* Header row: tag + step counter + audio controls */}
+                      <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest border border-yellow-400/40 rounded px-1.5 py-0.5 leading-none">
                                   {content?.title}
-                              </h3>
-                              <div className="h-0.5 w-12 bg-blue-500 rounded-full"></div>
+                              </span>
+                              <span className="text-[9px] font-bold text-slate-600">
+                                  {currentStepIdx}/{steps.length - 1}
+                              </span>
                           </div>
-                          
-                          <div className="flex gap-1 sm:gap-2">
-                              <button onClick={handleReplay} className="text-slate-400 hover:text-white transition-colors p-1 sm:p-2 hover:bg-white/10 rounded-full" title="Replay">
-                                  <RotateCcw size={16} />
-                              </button>
-                              <button 
-                                  onClick={() => setIsMuted(!isMuted)} 
-                                  className="text-slate-400 hover:text-white transition-colors p-1 sm:p-2 hover:bg-white/10 rounded-full"
-                              >
-                                  {isMuted ? <VolumeX size={16}/> : <Volume2 size={16}/>}
+                          <div className="flex gap-1">
+                              {tourMode === 'audio' && (
+                                  <button onClick={handleReplay} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full" title="Replay">
+                                      <RotateCcw size={14} />
+                                  </button>
+                              )}
+                              <button onClick={() => setIsMuted(!isMuted)} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full">
+                                  {isMuted ? <VolumeX size={14}/> : <Volume2 size={14}/>}
                               </button>
                           </div>
                       </div>
 
-                      {/* Content: bullet points (audio mode) or dialogue (text mode) */}
-                      {tourMode === 'text' ? (
-                          <div className="flex flex-col gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
-                              {audioScript?.host && (
-                                  <div className="flex items-start gap-1.5">
-                                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-wider shrink-0 mt-0.5 w-8">{ui.host}:</span>
-                                      <span className="text-white text-[11px] sm:text-[12px] leading-snug italic">"{audioScript.host}"</span>
-                                  </div>
-                              )}
-                              {audioScript?.pundit && (
-                                  <div className="flex items-start gap-1.5">
-                                      <span className="text-[9px] font-black text-yellow-400 uppercase tracking-wider shrink-0 mt-0.5 w-8">{ui.pundit}:</span>
-                                      <span className="text-slate-300 text-[11px] sm:text-[12px] leading-snug italic">"{audioScript.pundit}"</span>
-                                  </div>
-                              )}
-                          </div>
-                      ) : (
-                          <div className="flex flex-col gap-1 sm:gap-1.5 mt-0.5 overflow-y-auto pr-1" style={{ maxHeight: '65px' }}>
-                              {content?.lines?.map((line: string, i: number) => (
-                                  <div key={i} className="flex items-start gap-2">
-                                      <span className="w-1.5 h-1.5 mt-1.5 bg-yellow-400 rounded-sm shrink-0"></span>
-                                      <span className="text-white text-[12px] sm:text-sm font-medium leading-snug">{line}</span>
-                                  </div>
-                              ))}
-                          </div>
-                      )}
+                      {/* Headline + quip — no scroll, always fits */}
+                      <div className="flex flex-col gap-1" style={{ maxHeight: '58px', overflow: 'hidden' }}>
+                          <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
+                              {tourMode === 'text'
+                                  ? (audioScript?.host || content?.lines?.[0])
+                                  : (content?.lines?.[0] || audioScript?.host)
+                              }
+                          </p>
+                          <p className="text-slate-400 text-[11px] sm:text-[12px] leading-snug italic">
+                              {tourMode === 'text'
+                                  ? (audioScript?.pundit || content?.lines?.[1])
+                                  : content?.lines?.[1]
+                              }
+                          </p>
+                      </div>
                   </div>
 
                   {/* CONTROLS (Right Edge) */}
