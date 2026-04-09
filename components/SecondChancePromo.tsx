@@ -1,6 +1,6 @@
 import React from 'react';
 import { Translation } from '../types';
-import { AlertTriangle, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface SecondChancePromoProps {
   hasTaken: boolean;
@@ -13,36 +13,30 @@ export const SecondChancePromo: React.FC<SecondChancePromoProps> = ({ hasTaken, 
   if (hasTaken || secondChanceStatus === 'PENDING' || secondChanceStatus === 'ACTIVE') return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Navy Header */}
-        <div className="bg-[#0f2545] px-4 py-3 flex items-center gap-2 border-b border-slate-700">
-            <ShieldCheck size={16} className="text-amber-400" />
-            <span className="text-sm font-black text-white uppercase tracking-widest">{lang.secondChanceTab}</span>
-        </div>
-
-        <div className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-600 p-6 text-white">
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 opacity-10">
-                <ShieldCheck size={140} />
+    <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3">
+            {/* Amber accent icon */}
+            <div className="shrink-0 w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                <ShieldCheck size={18} className="text-amber-400" />
             </div>
 
-            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-amber-100">
-                        <AlertTriangle size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{lang.secondChanceUnlockWarn}</span>
-                    </div>
-                    <p className="text-sm font-medium leading-relaxed opacity-95">
-                        {lang.secondChanceDesc}
-                    </p>
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest leading-none mb-0.5">
+                    {lang.secondChanceTab || "Second Chance"}
                 </div>
-
-                <button
-                    onClick={onUnlock}
-                    className="shrink-0 bg-white text-orange-600 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
-                >
-                    {lang.secondChanceBtn} <ArrowRight size={14} />
-                </button>
+                <div className="text-xs text-slate-300 font-medium leading-snug">
+                    {lang.secondChanceDesc || "Busted bracket? Buy back in for the playoffs."}
+                </div>
             </div>
+
+            {/* CTA */}
+            <button
+                onClick={onUnlock}
+                className="shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 text-black text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all"
+            >
+                {lang.secondChanceBtn || "Activate"} <ArrowRight size={11} />
+            </button>
         </div>
     </div>
   );
