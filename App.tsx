@@ -528,7 +528,7 @@ export const App = () => {
               .filter(m => m.status === 'UPCOMING' || m.status === 'NS')
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .slice(0, 3);
-          const brief = await generateDailyBrief(user, stats, upcoming, allPredictions, teamsData, language);
+          const brief = await generateDailyBrief(user, stats, upcoming, allPredictions, teamsData, language, supabase);
           localStorage.setItem(cacheKey, brief);
           setDailyBrief(brief);
       } catch (e) {
@@ -616,7 +616,7 @@ export const App = () => {
       />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} />}
+        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         
         {/* TOURNAMENT HUB */}
         {activeTab === 'tournament' && (
@@ -734,7 +734,7 @@ export const App = () => {
                 {tournamentPhase === 'PRE_LIVE' ? (
                     <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={totalMatchesCount} lang={t} currentUserLeagues={user.leagues} />
                 ) : (
-                    <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} />
+                    <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} currentLang={language} />
                 )}
             </>
         )}

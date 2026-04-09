@@ -1,6 +1,5 @@
 import React from 'react';
 import { UserProfile, Match, Prediction, Team, LanguageCode } from '../../types';
-import OpenAI from 'openai';
 import { Sparkles, RefreshCw, BrainCircuit, WifiOff } from 'lucide-react';
 
 export interface AIAnalystProps {
@@ -66,12 +65,10 @@ export const generateDailyBrief = async (
     allPredictions: Prediction[],
     teams: Record<string, Team>,
     langCode: LanguageCode,
+    supabaseClient: any,
 ): Promise<string> => {
     const langKey = resolveLanguage(langCode);
     const t = PERSONAS[langKey];
-
-    const apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
-    if (!apiKey) throw new Error('No API key');
 
     const cleanName = (() => {
         const n = currentUser?.name || 'Manager';
@@ -140,14 +137,9 @@ ${matchLines}
 
 Write 2–3 punchy sentences. Reference their actual rank battle and name the rival they're chasing or defending against. Mention at least one of their specific picks and whether the crowd agrees or not. Sound like a knowledgeable friend — direct, specific, a little sharp. No bullet points, no headers. Plain paragraph only. Max 100 words.`;
 
-    const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-    const response = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,
-        temperature: 0.85,
-    });
-    return response.choices[0]?.message?.content?.trim() ?? t.noGames;
+    const { data, error } = await supabaseClient.rpc('generate_daily_brief', { prompt });
+    if (error) throw error;
+    return data || t.noGames;
 };
 
 // ── Widget (display only — no self-triggering) ───────────────────────────────

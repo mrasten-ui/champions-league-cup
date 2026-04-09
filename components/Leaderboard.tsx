@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { UserProfile, Match, Prediction, Translation, Round, Team } from '../types';
+import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
+import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
 import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, PieChart, Users, Globe, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -15,6 +16,10 @@ interface LeaderboardProps {
   currentUserLeagues?: string[];
   teams: Record<string, Team>;
   onTeamClick?: (teamId: string) => void;
+  preloadedAnalysis?: string | null;
+  onRefreshBrief?: () => void;
+  briefRefreshing?: boolean;
+  currentLang?: LanguageCode;
 }
 
 const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: number, type: 'EXACT' | 'RESULT', teams: Record<string, Team>, onTeamClick?: (teamId: string) => void }> = ({ match, prediction, points, type, teams, onTeamClick }) => {
@@ -258,7 +263,7 @@ const QualifiedTeamsGrid: React.FC<{
     );
 };
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPredictions, lang, currentUserEmail, currentUserLeagues = [], teams, onTeamClick }) => {
+export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPredictions, lang, currentUserEmail, currentUserLeagues = [], teams, onTeamClick, preloadedAnalysis, onRefreshBrief, briefRefreshing, currentLang }) => {
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activeLeague, setActiveLeague] = useState<string>('global');
@@ -515,6 +520,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
               </div>
           );
       })()}
+
+      {/* AI COACH'S BRIEF */}
+      {currentLang && (
+          <div className="px-1">
+              <AIAnalystWidget
+                  currentLang={currentLang}
+                  preloadedAnalysis={preloadedAnalysis}
+                  onRefresh={onRefreshBrief}
+                  isRefreshing={briefRefreshing}
+              />
+          </div>
+      )}
 
       {/* THE LIST */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">

@@ -8,7 +8,6 @@ import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, 
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
 import { SimRow } from './analysis/SimRow';
-import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 
 // HELPER: Map App Language Code to Dictionary Key
 const getLocKey = (code: LanguageCode): string => {
@@ -159,9 +158,6 @@ interface AnalysisDashboardProps {
   lang: Translation;
   currentLang: LanguageCode;
   onTeamClick?: (id: string) => void;
-  preloadedAnalysis?: string | null;
-  onRefreshBrief?: () => void;
-  briefRefreshing?: boolean;
 }
 
 export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
@@ -173,9 +169,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   lang,
   currentLang,
   onTeamClick,
-  preloadedAnalysis,
-  onRefreshBrief,
-  briefRefreshing,
 }) => {
   // 1. CALCULATE "GAME TODAY" (Date of next match)
   // This ensures the dashboard opens on a relevant date
@@ -247,26 +240,6 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
         
-        {/* HEADER: AI Analyst Widget */}
-        <div className="p-4 pb-2 bg-gradient-to-r from-indigo-600 to-blue-700">
-            <div className="flex items-center gap-3 mb-4 text-white">
-                <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                    <TrendingUp size={20} className="text-white" />
-                </div>
-                <div>
-                    <h2 className="text-lg font-black uppercase tracking-tight leading-none">{t.analysisTitle}</h2>
-                    <p className="text-[10px] text-blue-100 font-medium opacity-80">{t.aiSubtitle}</p>
-                </div>
-            </div>
-
-            <AIAnalystWidget
-                currentLang={currentLang}
-                preloadedAnalysis={preloadedAnalysis}
-                onRefresh={onRefreshBrief}
-                isRefreshing={briefRefreshing}
-            />
-        </div>
-
         <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} locale={({'EN':'en-GB','SCO':'en-GB','US':'en-US','NO':'no-NO'} as Record<string,string>)[currentLang] || 'en-GB'} />
 
         {showSimHint && (
