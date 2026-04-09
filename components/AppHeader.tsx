@@ -148,15 +148,15 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
              else if (tab === 'analysis')   tabId = isDesktop ? 'nav-analysis-desk'   : 'nav-analysis';
 
              return (
-                <button 
-                    key={tab} 
+                <button
+                    key={tab}
                     id={tabId}
-                    onClick={() => props.setActiveTab(tab as any)} 
+                    onClick={() => props.setActiveTab(tab as any)}
                     className={`
                         relative font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center
-                        ${isDesktop 
-                            ? `h-10 px-4 rounded-lg text-[10px] ${isActive ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}` 
-                            : `px-4 py-6 text-[10px] md:text-xs ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`
+                        ${isDesktop
+                            ? `h-full px-5 text-[11px] ${isActive ? 'text-white' : 'text-slate-400 hover:text-white'}`
+                            : `px-4 py-7 text-xs ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`
                         }
                     `}
                 >
@@ -164,8 +164,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                    {tab === 'manager' && props.showSecondChanceBadge && (
                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
                    )}
-                   {/* Mobile underline indicator */}
-                   {!isDesktop && isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]"></span>}
+                   {/* Active underline — same treatment on both mobile and desktop */}
+                   {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]" />}
                 </button>
              );
           })}
