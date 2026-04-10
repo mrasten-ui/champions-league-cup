@@ -70,6 +70,9 @@ export const App = () => {
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminPasswordError, setAdminPasswordError] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
@@ -607,7 +610,7 @@ export const App = () => {
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
-        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowRules={setShowRules} handleLogout={handleLogout}
+        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin} setShowRules={setShowRules} handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => setShowLiveTour(true)}
@@ -784,13 +787,9 @@ export const App = () => {
       )}
 
       <DebugTools
-        isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} onSeed={() => {}}
-        onSimulateGroups={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'GROUPS'); setMatches(s); addToast('success', 'Groups Simulated'); }}
-        onSimulateKnockouts={() => { const s = simulateFullTournament(matches, teamsData, user?.favorites || [], 'KNOCKOUT'); setMatches(s); addToast('success', 'Knockouts Simulated'); }}
+        isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)}
         onClear={() => { localStorage.clear(); window.location.reload(); }}
         onTimeTravel={handleTimeTravel}
-        onStressTest={() => { addToast('info', 'Stress Test', 'Functionality placeholder'); }}
-        isAdminMode={isAdminMode} onToggleAdmin={() => setIsAdminMode(!isAdminMode)}
         lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}
         onUpdateUserLeagues={async (email, leagues) => {
           if (!supabase) return;
@@ -799,6 +798,55 @@ export const App = () => {
           if (user?.email === email) setUser(prev => prev ? { ...prev, leagues } : null);
         }}
       />
+
+      {/* Admin Password Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setShowAdminLogin(false); setAdminPasswordInput(''); setAdminPasswordError(false); }} />
+          <div className="relative w-full max-w-xs bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-[#0f2545] px-5 py-4 flex items-center gap-3 text-white">
+              <div className="bg-amber-500 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div>
+                <div className="font-black uppercase tracking-widest text-sm">Admin Login</div>
+                <div className="text-[10px] text-blue-200">Enter admin password to continue</div>
+              </div>
+            </div>
+            <form
+              className="p-5 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (adminPasswordInput === 'RC2026') {
+                  setIsAdminMode(true);
+                  setShowAdminLogin(false);
+                  setAdminPasswordInput('');
+                  setAdminPasswordError(false);
+                  addToast('success', 'Admin mode activated');
+                } else {
+                  setAdminPasswordError(true);
+                  setAdminPasswordInput('');
+                }
+              }}
+            >
+              <input
+                type="password"
+                autoFocus
+                placeholder="Password"
+                value={adminPasswordInput}
+                onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminPasswordError(false); }}
+                className={`w-full px-4 py-3 border rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 ${adminPasswordError ? 'border-red-400 ring-red-200 bg-red-50 text-red-700 placeholder-red-300' : 'border-slate-200 ring-blue-200 bg-slate-50 text-slate-800'}`}
+              />
+              {adminPasswordError && (
+                <p className="text-xs text-red-500 font-bold text-center">Incorrect password</p>
+              )}
+              <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black uppercase text-xs tracking-widest transition-colors">
+                Activate Admin Mode
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} matches={matches} currentLocale={currentLocale} />
       
       {isHelpingHandOpen && user && (

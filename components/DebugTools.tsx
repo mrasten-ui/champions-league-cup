@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
-import { X, Database, Play, Trash2, Calendar, ShieldAlert, Lock, Unlock, Link, Users } from 'lucide-react';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2 } from 'lucide-react';
 import { Match, UserProfile, Prediction, Translation } from '../types';
 import { LEAGUES } from '../constants';
 
 interface DebugToolsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSeed: () => void;
-  onSimulateGroups: () => void;
-  onSimulateKnockouts: () => void;
   onClear: () => void;
   onTimeTravel: (timestamp: number) => void;
-  onStressTest: () => void;
-  isAdminMode: boolean;
-  onToggleAdmin: () => void;
-  onForceLock?: (locked: boolean) => void;
   onUpdateUserLeagues: (email: string, leagues: string[]) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
@@ -23,15 +16,13 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onSeed, onSimulateGroups, onSimulateKnockouts, onClear, onTimeTravel, onStressTest, isAdminMode, onToggleAdmin, onForceLock, onUpdateUserLeagues, lang, users, predictions, matches
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, users
 }) => {
   if (!isOpen) return null;
 
   const [dateInput, setDateInput] = useState('2026-06-11T14:00');
-  const [isForceLocked, setIsForceLocked] = useState(false);
   const [savingLeague, setSavingLeague] = useState<string | null>(null);
 
-  // Range: 3 days before kickoff (June 11) to 2 days after final (July 19)
   const MIN_DATE = "2026-06-08T00:00";
   const MAX_DATE = "2026-07-21T23:59";
 
@@ -40,40 +31,34 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
       onTimeTravel(ts);
   };
 
-  const toggleForceLock = () => {
-      const newState = !isForceLocked;
-      setIsForceLocked(newState);
-      if (onForceLock) onForceLock(newState);
-  };
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
+
         {/* HEADER */}
         <div className="bg-[#0f2545] p-4 flex justify-between items-center text-white border-b border-white/10">
             <div className="flex items-center gap-3">
-                <div className="bg-red-500 p-2 rounded-lg"><ShieldAlert size={20} className="text-white" /></div>
+                <div className="bg-blue-500 p-2 rounded-lg"><ShieldAlert size={20} className="text-white" /></div>
                 <div>
-                    <h3 className="text-lg font-black uppercase tracking-widest">Management Controls</h3>
-                    <p className="text-[10px] text-blue-200 font-mono">Admin & Testing Suite</p>
+                    <h3 className="text-lg font-black uppercase tracking-widest">Management</h3>
+                    <p className="text-[10px] text-blue-200 font-mono">League & Tournament Controls</p>
                 </div>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} /></button>
         </div>
 
         <div className="p-6 overflow-y-auto space-y-8 bg-slate-50">
-            
-            {/* 1. TIME TRAVEL SECTION */}
+
+            {/* 1. TIME TRAVEL */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Calendar size={14} /> Temporal Controls
                 </h4>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                    <input 
-                        type="datetime-local" 
-                        value={dateInput} 
+                    <input
+                        type="datetime-local"
+                        value={dateInput}
                         min={MIN_DATE}
                         max={MAX_DATE}
                         onChange={(e) => setDateInput(e.target.value)}
@@ -84,82 +69,11 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                     </button>
                 </div>
                 <p className="text-[10px] text-slate-400 text-center italic">
-                    Range: Jun 8 - Jul 21, 2026
+                    Range: Jun 8 – Jul 21, 2026
                 </p>
             </div>
 
-            {/* 2. MATCH STATE & ADMIN TOGGLES */}
-            <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Lock size={14} /> Admin & Locks
-                </h4>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    
-                    {/* FORCE LOCK ROW */}
-                    <div className="p-4 flex items-center justify-between border-b border-slate-100">
-                        <div>
-                            <div className="font-bold text-slate-800 text-sm">Force Lock All Matches</div>
-                            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                Locks upcoming matches to test substitutions.
-                            </div>
-                        </div>
-                        <button 
-                            onClick={toggleForceLock}
-                            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isForceLocked ? 'bg-amber-500' : 'bg-slate-200'}`}
-                        >
-                            <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isForceLocked ? 'translate-x-6' : 'translate-x-0'}`}>
-                                {isForceLocked ? <Lock size={12} className="text-amber-500" /> : <Unlock size={12} className="text-slate-400" />}
-                            </div>
-                        </button>
-                    </div>
-
-                    {/* SUPER ADMIN ROW */}
-                    <div className="p-4 flex items-center justify-between bg-slate-50/50">
-                        <div>
-                            <div className="font-bold text-slate-800 text-sm">Super Admin Mode</div>
-                            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                Unlocks ALL cards & shows debug badges.
-                            </div>
-                        </div>
-                        <button 
-                            onClick={onToggleAdmin}
-                            className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isAdminMode ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                        >
-                            <div className={`absolute top-1 left-1 bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isAdminMode ? 'translate-x-6' : 'translate-x-0'}`}>
-                                {isAdminMode ? <ShieldAlert size={12} className="text-emerald-500" /> : <Lock size={12} className="text-slate-400" />}
-                            </div>
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-
-            {/* 3. DATA SIMULATION */}
-            <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Database size={14} /> Data Simulation
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                    <button onClick={onSeed} className="p-3 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 rounded-xl text-left transition-all group">
-                        <div className="text-blue-600 mb-1"><Database size={18} /></div>
-                        <div className="text-xs font-black text-slate-700 uppercase tracking-tight">Reset Database</div>
-                    </button>
-                    <button onClick={onSimulateGroups} className="p-3 bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 rounded-xl text-left transition-all group">
-                        <div className="text-emerald-600 mb-1"><Play size={18} /></div>
-                        <div className="text-xs font-black text-slate-700 uppercase tracking-tight">Simulate Groups</div>
-                    </button>
-                    <button onClick={onSimulateKnockouts} className="p-3 bg-white border border-slate-200 hover:border-amber-300 hover:bg-amber-50 rounded-xl text-left transition-all group">
-                        <div className="text-amber-600 mb-1"><Play size={18} /></div>
-                        <div className="text-xs font-black text-slate-700 uppercase tracking-tight">Simulate Knockouts</div>
-                    </button>
-                    <button onClick={onStressTest} className="p-3 bg-white border border-slate-200 hover:border-purple-300 hover:bg-purple-50 rounded-xl text-left transition-all group">
-                        <div className="text-purple-600 mb-1"><Play size={18} /></div>
-                        <div className="text-xs font-black text-slate-700 uppercase tracking-tight">Stress Test 3rd Place</div>
-                    </button>
-                </div>
-            </div>
-
-            {/* 4. LEAGUE INVITES */}
+            {/* 2. LEAGUE INVITE LINKS */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Link size={14} /> League Invite Links
@@ -182,10 +96,10 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 5. LEAGUE MEMBER MANAGER */}
+            {/* 3. LEAGUE MEMBER MANAGER */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Users size={14} /> League Member Manager
+                    <Users size={14} /> League Members
                 </h4>
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
                     {users.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
@@ -205,7 +119,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                                         await onUpdateUserLeagues(u.email, [...current, ...missing]);
                                         setSavingLeague(null);
                                     }}
-                                    disabled={Object.keys(LEAGUES).every(s => (u.leagues || []).includes(s))}
+                                    disabled={savingLeague === u.email + '_all' || Object.keys(LEAGUES).every(s => (u.leagues || []).includes(s))}
                                     className="shrink-0 px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     All Leagues
@@ -226,6 +140,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                                                 await onUpdateUserLeagues(u.email, updated);
                                                 setSavingLeague(null);
                                             }}
+                                            disabled={savingLeague === u.email + slug}
                                             className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${isMember ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300' : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300'}`}
                                             title={isMember ? `Remove from ${leagueName}` : `Add to ${leagueName}`}
                                         >
@@ -239,13 +154,13 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 6. DANGER ZONE */}
+            {/* 4. DANGER ZONE */}
             <div className="space-y-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
-                    Danger Zone
+                    <Database size={14} /> Danger Zone
                 </h4>
                 <button onClick={onClear} className="w-full py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl border border-red-200 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-colors">
-                    <Trash2 size={16} /> WIPE LOCAL DATA
+                    <Trash2 size={16} /> Wipe Local Data
                 </button>
             </div>
         </div>
