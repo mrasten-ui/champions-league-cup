@@ -395,7 +395,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       {!isWelcome && (
           <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-auto flex justify-center px-0 sm:px-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
 
-            <div className="w-full max-w-[1200px] relative">
+            {/* mb-16 md:mb-0: lifts the panel above the mobile bottom nav bar (64px) */}
+            <div className="w-full max-w-[1200px] relative mb-16 md:mb-0">
 
               {/* THE CHARACTER LAYER: Anchored to the bottom-left of the max-width container */}
               <div className="absolute bottom-0 left-0 z-[105] pointer-events-none flex items-end">

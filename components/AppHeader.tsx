@@ -173,7 +173,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     className={`
                         relative font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center
                         ${isDesktop
-                            ? `h-full px-5 text-[11px] ${isActive ? 'text-white' : 'text-slate-400 hover:text-white'}`
+                            ? `h-full px-5 text-[13px] ${isActive ? 'text-white' : 'text-slate-300 hover:text-white'}`
                             : `px-4 py-7 text-xs ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`
                         }
                     `}
@@ -183,7 +183,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
                    )}
                    {/* Active underline — same treatment on both mobile and desktop */}
-                   {isActive && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_-2px_10px_rgba(250,204,21,0.6)]" />}
+                   {isActive && <span className="absolute bottom-1 left-2 right-2 h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.7)]" />}
                 </button>
              );
           })}
@@ -482,6 +482,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             else if (tab === 'tournament') tabId = 'nav-tournament';
             else if (tab === 'manager')   tabId = 'nav-manager';
             else if (tab === 'analysis')  tabId = 'nav-analysis';
+            else if (tab === 'groups')    tabId = 'nav-groups';
+            else if (tab === 'knockout')  tabId = 'nav-knockout';
 
             return (
                 <button
