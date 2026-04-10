@@ -405,10 +405,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   const displayList = finalDisplayData;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20 relative">
+    <div className="space-y-3 animate-fade-in pb-20 relative">
       
       {/* HEADER WITH CONTROLS */}
-      <div className="flex flex-col gap-4 px-1">
+      <div className="flex flex-col gap-2 px-1">
          <div id="tour-leaderboard-top" className="flex justify-between items-center bg-[#0f2545] p-4 rounded-2xl shadow-lg border border-white/10">
              <div className="flex items-center gap-3">
                  <div className="bg-yellow-400 p-2 rounded-lg text-[#0f2545]">
@@ -462,7 +462,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
          )}
       </div>
 
-      {/* BATTLE STRIP — only in LIVE mode */}
+      {/* BATTLE STRIP + COACH'S REPORT — single merged card */}
       {showLive && (() => {
           const myEntry = displayList.find(u => u.email === currentUserEmail);
           if (!myEntry) return null;
@@ -485,53 +485,60 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           }, 0);
 
           return (
-              <div className="mx-1 p-3 rounded-2xl bg-gradient-to-r from-[#0f2545] to-slate-800 border border-white/10 flex items-center justify-around gap-2 text-white">
-                  <div className="text-center min-w-0">
-                      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Behind leader</div>
-                      <div className="text-xl font-black text-yellow-400">
-                          {isLeader ? '🏆' : `-${gapToLeader}`}
+              <div className="mx-1 rounded-2xl bg-gradient-to-br from-[#1e1b4b] to-[#0f2545] border border-white/10 shadow-lg overflow-hidden">
+                  {/* Stats row */}
+                  <div className="flex items-center justify-around gap-2 px-3 pt-3 pb-2 text-white">
+                      <div className="text-center min-w-0">
+                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Behind leader</div>
+                          <div className="text-lg font-black text-yellow-400">
+                              {isLeader ? '🏆' : `-${gapToLeader}`}
+                          </div>
+                          {!isLeader && <div className="text-[9px] text-slate-500 truncate max-w-[70px]">{leader.name}</div>}
                       </div>
-                      {!isLeader && <div className="text-[9px] text-slate-500 truncate max-w-[70px]">{leader.name}</div>}
+
+                      <div className="w-px h-8 bg-white/10" />
+
+                      {above ? (
+                          <div className="text-center min-w-0 flex-1">
+                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Chasing</div>
+                              <div className="text-sm font-black text-white truncate">{above.name}</div>
+                              <div className="text-[10px] text-red-400 font-bold">-{gapAbove} pts</div>
+                          </div>
+                      ) : (
+                          <div className="text-center flex-1">
+                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Position</div>
+                              <div className="text-sm font-black text-green-400">Leading 🎯</div>
+                          </div>
+                      )}
+
+                      <div className="w-px h-8 bg-white/10" />
+
+                      <div className="text-center min-w-0">
+                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
+                          <div className={`text-lg font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                              {todayPoints > 0 ? `+${todayPoints}` : '–'}
+                          </div>
+                      </div>
                   </div>
 
-                  <div className="w-px h-10 bg-white/10" />
+                  {/* Divider */}
+                  {currentLang && <div className="border-t border-white/10 mx-3" />}
 
-                  {above ? (
-                      <div className="text-center min-w-0 flex-1">
-                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Chasing</div>
-                          <div className="text-sm font-black text-white truncate">{above.name}</div>
-                          <div className="text-[10px] text-red-400 font-bold">-{gapAbove} pts</div>
-                      </div>
-                  ) : (
-                      <div className="text-center flex-1">
-                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Position</div>
-                          <div className="text-sm font-black text-green-400">Leading 🎯</div>
+                  {/* Coach's brief embedded */}
+                  {currentLang && (
+                      <div className="px-3 pb-3 pt-2">
+                          <AIAnalystWidget
+                              currentLang={currentLang}
+                              preloadedAnalysis={preloadedAnalysis}
+                              onRefresh={onRefreshBrief}
+                              isRefreshing={briefRefreshing}
+                              compact
+                          />
                       </div>
                   )}
-
-                  <div className="w-px h-10 bg-white/10" />
-
-                  <div className="text-center min-w-0">
-                      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
-                      <div className={`text-xl font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                          {todayPoints > 0 ? `+${todayPoints}` : '–'}
-                      </div>
-                  </div>
               </div>
           );
       })()}
-
-      {/* AI COACH'S BRIEF */}
-      {currentLang && (
-          <div className="px-1">
-              <AIAnalystWidget
-                  currentLang={currentLang}
-                  preloadedAnalysis={preloadedAnalysis}
-                  onRefresh={onRefreshBrief}
-                  isRefreshing={briefRefreshing}
-              />
-          </div>
-      )}
 
       {/* THE LIST */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">

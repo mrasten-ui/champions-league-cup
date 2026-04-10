@@ -8,6 +8,8 @@ export interface AIAnalystProps {
     preloadedAnalysis?: string | null;
     onRefresh?: () => void;
     isRefreshing?: boolean;
+    // compact: renders without the outer card shell — for embedding inside another card
+    compact?: boolean;
 }
 
 // --- PERSONA CONFIGURATION ---
@@ -144,26 +146,20 @@ Write 2–3 punchy sentences. Reference their actual rank battle and name the ri
 
 // ── Widget (display only — no self-triggering) ───────────────────────────────
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
-    currentLang, preloadedAnalysis, onRefresh, isRefreshing,
+    currentLang, preloadedAnalysis, onRefresh, isRefreshing, compact,
 }) => {
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
     const loading = isRefreshing || (!preloadedAnalysis && preloadedAnalysis !== '');
 
-    return (
-        <div className="relative overflow-hidden rounded-2xl p-5 mb-4 shadow-lg bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-                <BrainCircuit size={120} />
-            </div>
-
-            {/* Header */}
-            <div className="flex justify-between items-center relative z-10 mb-3">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-300">
-                        <Sparkles size={18} />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-widest text-indigo-200">
+    const inner = (
+        <>
+            {/* Header row */}
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-indigo-300" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
                         {t.title}
                     </span>
                 </div>
@@ -171,34 +167,43 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                     <button
                         onClick={onRefresh}
                         disabled={loading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
                     >
-                        <RefreshCw size={12} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
-                        <span className="text-[10px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
+                        <RefreshCw size={11} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+                        <span className="text-[9px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
                     </button>
                 )}
             </div>
 
             {/* Content */}
-            <div className="relative z-10 min-h-[80px] flex flex-col justify-center">
-                {loading ? (
-                    <div className="space-y-3 animate-pulse">
-                        <div className="text-center text-xs text-white/50">{t.loading}</div>
-                        <div className="h-2 bg-white/10 rounded w-3/4 mx-auto" />
-                        <div className="h-2 bg-white/10 rounded w-5/6 mx-auto" />
-                        <div className="h-2 bg-white/10 rounded w-1/2 mx-auto" />
-                    </div>
-                ) : preloadedAnalysis ? (
-                    <p className="text-sm font-medium text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line animate-in fade-in duration-500">
-                        {preloadedAnalysis}
-                    </p>
-                ) : (
-                    <div className="flex items-center gap-2 text-white/40 text-xs">
-                        <WifiOff size={14} />
-                        <span>{t.error}</span>
-                    </div>
-                )}
+            {loading ? (
+                <div className="space-y-2 animate-pulse">
+                    <div className="text-center text-[10px] text-white/40">{t.loading}</div>
+                    <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
+                    <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
+                    <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
+                </div>
+            ) : preloadedAnalysis ? (
+                <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
+                    {preloadedAnalysis}
+                </p>
+            ) : (
+                <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <WifiOff size={13} />
+                    <span>{t.error}</span>
+                </div>
+            )}
+        </>
+    );
+
+    if (compact) return <div className="relative z-10">{inner}</div>;
+
+    return (
+        <div className="relative overflow-hidden rounded-2xl px-4 py-3 shadow-lg bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700">
+            <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
+                <BrainCircuit size={80} />
             </div>
+            <div className="relative z-10">{inner}</div>
         </div>
     );
 };
