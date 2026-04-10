@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase } from '../types';
 import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
+import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
@@ -131,16 +132,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const getTvChannelName = () => {
-        if (!match.channels) return null;
         let regionKey = 'US';
         const loc = (locale || 'en-US').toLowerCase();
         if (loc.includes('no')) regionKey = 'NO';
         else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
-        else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
-        if ((lang as any).isScotland && match.channels['SCO']) { regionKey = 'SCO'; }
-        
-        const channel = match.channels[regionKey] || match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
-        return channel ? String(channel) : null;
+        else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN';
+        if ((lang as any).isScotland) regionKey = 'SCO';
+
+        // Per-match override first, then locale default
+        const specific = match.channels?.[regionKey] || match.channels?.['EN'] || match.channels?.['US'];
+        return specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || BROADCAST_CHANNELS['EN'] || null);
     };
 
     const getShortVenue = (rawVenue: string | null) => {

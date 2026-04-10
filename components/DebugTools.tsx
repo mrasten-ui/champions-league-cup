@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2 } from 'lucide-react';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check } from 'lucide-react';
 import { Match, UserProfile, Prediction, Translation } from '../types';
-import { LEAGUES } from '../constants';
+import { LEAGUES, BROADCAST_CHANNELS } from '../constants';
 
 interface DebugToolsProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ interface DebugToolsProps {
   onClear: () => void;
   onTimeTravel: (timestamp: number) => void;
   onUpdateUserLeagues: (email: string, leagues: string[]) => Promise<void>;
+  onUpdateMatchChannels: (matchId: string, channels: Record<string, string>) => Promise<void>;
+  onBulkUpdateChannels: (locale: string, scope: 'all' | 'groups' | 'knockout', channel: string) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -16,12 +18,57 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, users
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches
 }) => {
   if (!isOpen) return null;
 
   const [dateInput, setDateInput] = useState('2026-06-11T14:00');
   const [savingLeague, setSavingLeague] = useState<string | null>(null);
+
+  // Bulk channel state
+  const [bulkLocale, setBulkLocale] = useState('NO');
+  const [bulkScope, setBulkScope] = useState<'all' | 'groups' | 'knockout'>('groups');
+  const [bulkChannel, setBulkChannel] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkDone, setBulkDone] = useState(false);
+
+  // Per-match override state
+  const [selectedMatchId, setSelectedMatchId] = useState<string>('');
+  const [channelInputs, setChannelInputs] = useState<Record<string, string>>({ NO: '', EN: '', SCO: '', US: '' });
+  const [savingChannels, setSavingChannels] = useState(false);
+  const [channelsSaved, setChannelsSaved] = useState(false);
+
+  const allMatches = [...matches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const handleSelectMatch = (matchId: string) => {
+    setSelectedMatchId(matchId);
+    setChannelsSaved(false);
+    const m = matches.find(x => x.id === matchId);
+    setChannelInputs({
+      NO:  m?.channels?.['NO']  || '',
+      EN:  m?.channels?.['EN']  || '',
+      SCO: m?.channels?.['SCO'] || '',
+      US:  m?.channels?.['US']  || '',
+    });
+  };
+
+  const handleSaveChannels = async () => {
+    if (!selectedMatchId) return;
+    setSavingChannels(true);
+    const cleaned = Object.fromEntries(Object.entries(channelInputs).filter(([, v]) => v.trim()));
+    await onUpdateMatchChannels(selectedMatchId, cleaned);
+    setSavingChannels(false);
+    setChannelsSaved(true);
+  };
+
+  const handleBulkApply = async () => {
+    if (!bulkChannel.trim()) return;
+    setBulkSaving(true);
+    setBulkDone(false);
+    await onBulkUpdateChannels(bulkLocale, bulkScope, bulkChannel.trim());
+    setBulkSaving(false);
+    setBulkDone(true);
+  };
 
   const MIN_DATE = "2026-06-08T00:00";
   const MAX_DATE = "2026-07-21T23:59";
@@ -154,7 +201,93 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 4. DANGER ZONE */}
+            {/* 4. CHANNEL EDITOR */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Tv size={14} /> TV Channels
+                </h4>
+
+                {/* Bulk apply */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bulk Apply</div>
+                    <div className="flex gap-2">
+                        <select
+                            value={bulkLocale}
+                            onChange={(e) => { setBulkLocale(e.target.value); setBulkDone(false); }}
+                            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                            {['NO', 'EN', 'SCO', 'US'].map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                        <select
+                            value={bulkScope}
+                            onChange={(e) => { setBulkScope(e.target.value as any); setBulkDone(false); }}
+                            className="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                            <option value="groups">Group Stage only</option>
+                            <option value="knockout">Knockout only</option>
+                            <option value="all">All matches</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={bulkChannel}
+                            onChange={(e) => { setBulkChannel(e.target.value); setBulkDone(false); }}
+                            placeholder={`e.g. ${BROADCAST_CHANNELS[bulkLocale] || 'TV2'}`}
+                            className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        />
+                        <button
+                            onClick={handleBulkApply}
+                            disabled={bulkSaving || !bulkChannel.trim()}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-1 shrink-0 ${bulkDone ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40'}`}
+                        >
+                            {bulkDone ? <><Check size={11} /> Done</> : bulkSaving ? '...' : 'Apply'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Per-match override */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Override Specific Match</div>
+                    <select
+                        value={selectedMatchId}
+                        onChange={(e) => handleSelectMatch(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                        <option value="">— Select a match —</option>
+                        {allMatches.map(m => (
+                            <option key={m.id} value={m.id}>
+                                {m.homeTeamId} vs {m.awayTeamId} · {m.date}
+                            </option>
+                        ))}
+                    </select>
+                    {selectedMatchId && (
+                        <div className="space-y-2">
+                            {(['NO', 'EN', 'SCO', 'US'] as const).map(loc => (
+                                <div key={loc} className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-slate-500 w-8 shrink-0">{loc}</span>
+                                    <input
+                                        type="text"
+                                        value={channelInputs[loc]}
+                                        onChange={(e) => { setChannelInputs(prev => ({ ...prev, [loc]: e.target.value })); setChannelsSaved(false); }}
+                                        placeholder={BROADCAST_CHANNELS[loc] || 'e.g. TV2'}
+                                        className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                onClick={handleSaveChannels}
+                                disabled={savingChannels}
+                                className={`w-full py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${channelsSaved ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                            >
+                                {channelsSaved ? <><Check size={12} /> Saved</> : savingChannels ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 5. DANGER ZONE */}
             <div className="space-y-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
                     <Database size={14} /> Danger Zone

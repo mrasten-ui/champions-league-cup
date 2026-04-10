@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Mic } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
@@ -793,6 +793,26 @@ export const App = () => {
           await supabase.from('profiles').update({ leagues } as any).eq('email', email);
           setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], leagues } }));
           if (user?.email === email) setUser(prev => prev ? { ...prev, leagues } : null);
+        }}
+        onUpdateMatchChannels={async (matchId, channels) => {
+          if (!supabase) return;
+          await supabase.from('matches').update({ channels } as any).eq('id', matchId);
+          setMatches(prev => prev.map(m => m.id === matchId ? { ...m, channels } : m));
+        }}
+        onBulkUpdateChannels={async (locale, scope, channel) => {
+          if (!supabase) return;
+          const targets = matches.filter(m =>
+            scope === 'all' ? true : scope === 'groups' ? !!m.groupId : !!m.round
+          );
+          await Promise.all(targets.map(m => {
+            const updated = { ...(m.channels || {}), [locale]: channel };
+            return supabase.from('matches').update({ channels: updated } as any).eq('id', m.id);
+          }));
+          setMatches(prev => prev.map(m =>
+            targets.some(t => t.id === m.id)
+              ? { ...m, channels: { ...(m.channels || {}), [locale]: channel } }
+              : m
+          ));
         }}
       />
 

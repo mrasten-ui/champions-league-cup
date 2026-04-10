@@ -1,0 +1,29 @@
+name: Update TV Channels
+
+on:
+  schedule:
+    # Once a day at 07:00 UTC — picks up any newly confirmed channel assignments
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    # Manual "Run workflow" button for testing or immediate refresh
+
+jobs:
+  update-channels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Sync TV Channels
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-tv-channels.js
