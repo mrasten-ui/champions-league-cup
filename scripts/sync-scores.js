@@ -1,111 +1,164 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration
-// NOTE: Run this with: node scripts/sync-scores.js
-// Ensure you have a .env file or pass variables in command line
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY // Use Service Key to bypass RLS for writing
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 const API_KEY = process.env.API_FOOTBALL_KEY;
-const LEAGUE_ID = 1; // World Cup League ID in API-Football
-const SEASON = 2026;
+const LEAGUE_ID = 1;   // FIFA World Cup in API-Football
+const SEASON    = 2026;
 
-// --- ID MAPPING CONFIGURATION ---
-// This is the most important part: mapping real world data to our App's constants.
-// 
-// 1. Team Mapping: External Name/Code -> Internal 3-Letter Code
-// If the API returns "The Netherlands", we need to map it to "NED"
+// ── Full 48-team name map: API-Football team name → our internal 3-letter ID ──
+// Source: API-Football naming convention for World Cup 2026 teams
 const TEAM_NAME_TO_ID = {
-  "Netherlands": "NED",
-  "United States": "USA",
-  "England": "ENG",
-  "Argentina": "ARG",
-  "France": "FRA",
-  "Brazil": "BRA",
-  // ... Add all teams here based on your API's naming convention
+  // Group A
+  "Mexico":            "MEX",
+  "South Africa":      "RSA",
+  "Korea Republic":    "KOR",
+  "Korea DPR":         "KOR",  // fallback
+  "South Korea":       "KOR",  // fallback
+  "Czech Republic":    "CZE",
+  "Czechia":           "CZE",
+
+  // Group B
+  "Canada":            "CAN",
+  "Bosnia and Herzegovina": "BIH",
+  "Bosnia":            "BIH",
+  "Qatar":             "QAT",
+  "Switzerland":       "SUI",
+
+  // Group C
+  "Brazil":            "BRA",
+  "Morocco":           "MAR",
+  "Haiti":             "HAI",
+  "Scotland":          "SCO",
+
+  // Group D
+  "United States":     "USA",
+  "USA":               "USA",
+  "Paraguay":          "PAR",
+  "Australia":         "AUS",
+  "Turkey":            "TUR",
+  "Türkiye":           "TUR",
+
+  // Group E
+  "Germany":           "GER",
+  "Curacao":           "CUW",
+  "Curaçao":           "CUW",
+  "Ivory Coast":       "CIV",
+  "Cote d'Ivoire":     "CIV",
+  "Ecuador":           "ECU",
+
+  // Group F
+  "Netherlands":       "NED",
+  "Japan":             "JPN",
+  "Sweden":            "SWE",
+  "Tunisia":           "TUN",
+
+  // Group G
+  "Belgium":           "BEL",
+  "Egypt":             "EGY",
+  "Iran":              "IRN",
+  "IR Iran":           "IRN",
+  "New Zealand":       "NZL",
+
+  // Group H
+  "Spain":             "ESP",
+  "Cabo Verde":        "CPV",
+  "Cape Verde":        "CPV",
+  "Saudi Arabia":      "KSA",
+  "Uruguay":           "URU",
+
+  // Group I
+  "France":            "FRA",
+  "Senegal":           "SEN",
+  "Iraq":              "IRQ",
+  "Norway":            "NOR",
+
+  // Group J
+  "Argentina":         "ARG",
+  "Algeria":           "ALG",
+  "Austria":           "AUT",
+  "Jordan":            "JOR",
+
+  // Group K
+  "Portugal":          "POR",
+  "DR Congo":          "COD",
+  "Congo DR":          "COD",
+  "Uzbekistan":        "UZB",
+  "Colombia":          "COL",
+
+  // Group L
+  "England":           "ENG",
+  "Croatia":           "CRO",
+  "Ghana":             "GHA",
+  "Panama":            "PAN",
 };
 
-// 2. Match Mapping: External Match ID -> Internal Match ID (A1, R16_1, etc)
-// Ideally, you store the 'api_id' in your Supabase 'matches' table once manually 
-// or via a seeding script, so you don't need to hardcode this map every time.
-// However, if we rely on Round names, we can deduce it.
+// Status values from API-Football that mean the match is locked (started/finished)
+const LOCKED_STATUSES = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
 
 async function syncScores() {
-  console.log('Starting score sync...');
+  console.log(`[${new Date().toISOString()}] Starting score sync...`);
 
   try {
-    // 1. Fetch Fixtures from API-Football
-    const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`, {
-      method: 'GET',
-      headers: {
-        'x-apisports-key': API_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
+    // 1. Fetch all fixtures from API-Football
+    const response = await fetch(
+      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    );
 
     const data = await response.json();
 
     if (!data.response || data.response.length === 0) {
-      console.log('No fixtures found. Check League ID and Season.');
+      console.log('No fixtures returned. Check LEAGUE_ID and SEASON.');
       return;
     }
 
-    const updates = [];
+    console.log(`Fetched ${data.response.length} fixtures from API.`);
 
-    // 2. Process each match
+    let updated = 0;
+    let skipped = 0;
+
     for (const item of data.response) {
-      const fixture = item.fixture;
-      const goals = item.goals;
-      const teams = item.teams;
-      const league = item.league;
+      const { fixture, goals, teams } = item;
+      const apiId    = fixture.id.toString();
+      const status   = fixture.status.short;
+      const isLocked = LOCKED_STATUSES.includes(status);
 
-      // Extract Status
-      const statusShort = fixture.status.short; // 'NS', 'FT', '1H', etc.
-      
-      // Determine if Match is Locked (Started or Finished)
-      const isLocked = ['1H', '2H', 'HT', 'ET', 'P', 'FT', 'AET', 'PEN', 'LIVE', 'INT'].includes(statusShort);
-
-      // Construct Payload
       const payload = {
-        api_id: fixture.id.toString(), // Store external ID for reference
-        status: statusShort,
-        home_score: goals.home,
-        away_score: goals.away,
-        minute: fixture.status.elapsed, // For live display
-        updated_at: new Date().toISOString()
+        status,
+        home_score: goals.home ?? null,
+        away_score: goals.away ?? null,
+        is_locked:  isLocked,
+        updated_at: new Date().toISOString(),
       };
 
-      // Optional: Update teams if they were TBD and are now known (mostly for Knockouts)
-      // This requires your DB to allow writing team_ids
+      // Resolve team IDs (important for knockout TBD slots)
       const homeId = TEAM_NAME_TO_ID[teams.home.name];
       const awayId = TEAM_NAME_TO_ID[teams.away.name];
-      
       if (homeId) payload.home_team_id = homeId;
       if (awayId) payload.away_team_id = awayId;
 
-      // 3. Upsert Logic
-      // We match based on 'api_id' if your DB has it, otherwise we need a robust mapping strategy.
-      // For this script, we assume the DB 'matches' table has a column 'api_id' that matches this.
-      
+      // Match by api_id — populated by seed-api-ids.js
       const { error } = await supabase
         .from('matches')
         .update(payload)
-        .eq('api_id', fixture.id.toString()); // Update rows where API ID matches
+        .eq('api_id', apiId);
 
       if (error) {
-        console.error(`Error updating match ${fixture.id}:`, error.message);
+        console.error(`  ✗ api_id=${apiId} (${teams.home.name} vs ${teams.away.name}): ${error.message}`);
+        skipped++;
       } else {
-        updates.push(fixture.id);
+        updated++;
       }
     }
 
-    console.log(`Successfully synced ${updates.length} matches.`);
-    
+    console.log(`Done. Updated: ${updated}, Skipped/Errors: ${skipped}`);
+
   } catch (err) {
-    console.error('Critical Error:', err);
+    console.error('Critical error:', err);
     process.exit(1);
   }
 }

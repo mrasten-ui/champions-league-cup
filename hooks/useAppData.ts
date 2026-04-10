@@ -200,7 +200,36 @@ export const useAppData = () => {
               if (session?.user?.email) fetchUserProfile(session.user.email);
               else { setUser(null); setLoading(false); loadGameData(); }
           });
-          return () => subscription.unsubscribe();
+
+          // ── Realtime: push score/status updates to all connected clients ──
+          const channel = supabase
+              .channel('live-scores')
+              .on(
+                  'postgres_changes',
+                  { event: 'UPDATE', schema: 'public', table: 'matches' },
+                  (payload) => {
+                      const m = payload.new as any;
+                      setMatches(prev => prev.map(existing =>
+                          existing.id === m.id
+                              ? {
+                                  ...existing,
+                                  homeScore:   m.home_score,
+                                  awayScore:   m.away_score,
+                                  status:      m.status || existing.status,
+                                  isLocked:    !!m.is_locked,
+                                  homeTeamId:  m.home_team_id?.toUpperCase() || existing.homeTeamId,
+                                  awayTeamId:  m.away_team_id?.toUpperCase() || existing.awayTeamId,
+                              }
+                              : existing
+                      ));
+                  }
+              )
+              .subscribe();
+
+          return () => {
+              subscription.unsubscribe();
+              supabase.removeChannel(channel);
+          };
       } else { setLoading(false); }
   }, []);
 

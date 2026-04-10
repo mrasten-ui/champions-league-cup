@@ -1,112 +1,116 @@
 import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
 
-// --- CONFIGURATION ---
-const LEAGUE_ID = 1;      // Confirmed via your find-league script
-const SEASON = 2026;      // Confirmed via your find-league script
-
-// --- MAP ---
-const EXTERNAL_TEAM_ID_MAP = {
-  // South America (CONMEBOL)
-  26: "ARG", // Argentina
-  6: "BRA",  // Brazil
-  7: "URU",  // Uruguay
-  8: "COL",  // Colombia
-
-  // Europe (UEFA)
-  9: "FRA",  // France
-  1: "BEL",  // Belgium
-  10: "ENG", // England
-  25: "GER", // Germany
-  21: "ITA", // Italy
-  4: "POR",  // Portugal
-  11: "NED", // Netherlands
-  9: "ESP",  // Spain (Warning: Check ID if map fails)
-  3: "CRO",  // Croatia
-  
-  // North America (CONCACAF)
-  2255: "USA", // United States
-  2256: "MEX", // Mexico
-  2257: "CAN", // Canada
-};
+/**
+ * seed-api-ids.js — ONE-TIME SETUP (run ~1 week before kickoff)
+ *
+ * Fetches all WC2026 fixtures from API-Football and writes the external
+ * api_id into matching rows in your Supabase 'matches' table.
+ * Matching is done by: home_team_id + away_team_id + date (date portion only).
+ *
+ * Run:
+ *   SUPABASE_URL=... SUPABASE_SERVICE_KEY=... API_FOOTBALL_KEY=... node scripts/seed-api-ids.js
+ */
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-async function seedApiIds() {
-  const API_KEY = process.env.API_FOOTBALL_KEY;
-  console.log(`🌱 Starting API ID Seeding for League ${LEAGUE_ID}, Season ${SEASON}...`);
+const API_KEY   = process.env.API_FOOTBALL_KEY;
+const LEAGUE_ID = 1;
+const SEASON    = 2026;
 
-  if (!API_KEY) {
-    console.error('❌ Missing API_FOOTBALL_KEY');
+const TEAM_NAME_TO_ID = {
+  "Mexico": "MEX", "South Africa": "RSA", "Korea Republic": "KOR",
+  "South Korea": "KOR", "Czech Republic": "CZE", "Czechia": "CZE",
+  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia": "BIH",
+  "Qatar": "QAT", "Switzerland": "SUI",
+  "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
+  "United States": "USA", "USA": "USA", "Paraguay": "PAR",
+  "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",
+  "Germany": "GER", "Curacao": "CUW", "Curaçao": "CUW",
+  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Ecuador": "ECU",
+  "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
+  "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "IR Iran": "IRN",
+  "New Zealand": "NZL",
+  "Spain": "ESP", "Cabo Verde": "CPV", "Cape Verde": "CPV",
+  "Saudi Arabia": "KSA", "Uruguay": "URU",
+  "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
+  "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
+  "Portugal": "POR", "DR Congo": "COD", "Congo DR": "COD",
+  "Uzbekistan": "UZB", "Colombia": "COL",
+  "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
+};
+
+async function seedApiIds() {
+  console.log('Fetching fixtures from API-Football...');
+
+  const res  = await fetch(
+    `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`,
+    { headers: { 'x-apisports-key': API_KEY } }
+  );
+  const data = await res.json();
+
+  if (!data.response?.length) {
+    console.error('No fixtures returned. Verify API key, league ID, and season.');
     process.exit(1);
   }
 
-  try {
-    // 1. Fetch Fixtures
-    const url = `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`;
-    console.log(`Fetching: ${url}`);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'x-apisports-key': API_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
+  console.log(`Got ${data.response.length} fixtures. Fetching DB matches...`);
 
-    const data = await response.json();
+  const { data: dbMatches, error } = await supabase
+    .from('matches')
+    .select('id, home_team_id, away_team_id, date, api_id');
 
-    if (data.errors && Object.keys(data.errors).length > 0) {
-        console.error('❌ API Error:', data.errors);
-        return;
+  if (error) { console.error('DB fetch error:', error.message); process.exit(1); }
+
+  let linked = 0;
+  const unmatched = [];
+
+  for (const item of data.response) {
+    const { fixture, teams } = item;
+    const apiId   = fixture.id.toString();
+    const homeId  = TEAM_NAME_TO_ID[teams.home.name]?.toUpperCase();
+    const awayId  = TEAM_NAME_TO_ID[teams.away.name]?.toUpperCase();
+    const apiDate = fixture.date?.slice(0, 10);
+
+    if (!homeId || !awayId) {
+      unmatched.push(`UNMAPPED TEAM: "${teams.home.name}" vs "${teams.away.name}"`);
+      continue;
     }
 
-    const fixtures = data.response;
-    if (!fixtures || fixtures.length === 0) {
-      console.log('⚠️ No fixtures found. The API might have the season metadata but not the match schedule yet.');
-      return;
+    const match = dbMatches.find(m =>
+      m.home_team_id?.toUpperCase() === homeId &&
+      m.away_team_id?.toUpperCase() === awayId &&
+      m.date?.slice(0, 10) === apiDate
+    );
+
+    if (!match) {
+      unmatched.push(`NOT IN DB: ${homeId} vs ${awayId} on ${apiDate}`);
+      continue;
     }
 
-    console.log(`Processing ${fixtures.length} fixtures...`);
+    if (match.api_id === apiId) { linked++; continue; } // already set
 
-    let linkedCount = 0;
+    const { error: updateErr } = await supabase
+      .from('matches')
+      .update({ api_id: apiId })
+      .eq('id', match.id);
 
-    // 2. Loop and Link
-    for (const item of fixtures) {
-      const fixture = item.fixture;
-      const teams = item.teams;
-
-      const homeCode = EXTERNAL_TEAM_ID_MAP[teams.home.id];
-      const awayCode = EXTERNAL_TEAM_ID_MAP[teams.away.id];
-
-      // Only proceed if we know BOTH teams (skips TBD matches)
-      if (homeCode && awayCode) {
-        const { data: match } = await supabase
-            .from('matches')
-            .select('id')
-            .eq('home_team_id', homeCode)
-            .eq('away_team_id', awayCode)
-            .single();
-
-        if (match) {
-            await supabase
-            .from('matches')
-            .update({ api_id: fixture.id.toString() })
-            .eq('id', match.id);
-            
-            console.log(`✅ LINKED: ${homeCode} vs ${awayCode} -> API ID ${fixture.id}`);
-            linkedCount++;
-        }
-      }
+    if (updateErr) {
+      console.error(`  ✗ ${match.id}: ${updateErr.message}`);
+    } else {
+      console.log(`  ✓ ${homeId} vs ${awayId} (${apiDate}) → api_id=${apiId}`);
+      linked++;
     }
+  }
 
-    console.log(`🎉 Finished! Linked ${linkedCount} matches.`);
-
-  } catch (err) {
-    console.error('Critical Error:', err);
+  console.log(`\nLinked: ${linked} / ${data.response.length}`);
+  if (unmatched.length) {
+    console.warn(`\nUnmatched (${unmatched.length}) — add to TEAM_NAME_TO_ID or fix DB dates:`);
+    unmatched.forEach(u => console.warn('  •', u));
+  } else {
+    console.log('All group-stage fixtures linked successfully!');
   }
 }
 
