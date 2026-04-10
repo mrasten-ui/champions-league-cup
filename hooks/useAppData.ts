@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS } from '../constants';
+import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
@@ -166,14 +166,14 @@ export const useAppData = () => {
               if (authUser) {
                   const pendingAvatar = sessionStorage.getItem('pending_avatar') || '';
                   sessionStorage.removeItem('pending_avatar');
-                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: pendingAvatar, tokens: 5, substitutions: 5, second_chance_status: 'NONE' };
+                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
                       name: dbRow.name,
                       avatar: pendingAvatar,
-                      tokens: 5,
-                      substitutions: 5,
+                      tokens: MAX_SUBSTITUTIONS, // Scout tokens
+                      substitutions: MAX_SUBSTITUTIONS,
                       leagues: [],
                       favorites: [],
                       spiedMatches: [],

@@ -298,7 +298,28 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 8: MANAGER CONTENT
+  // STOP 8: ANALYSIS NAV
+  {
+    id: 'live_analysis_nav',
+    targets: ['nav-analysis', 'nav-analysis-desk'],
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {},
+    display: {
+      en:      { title: "Analysis",  lines: ["Deep dive into your rival battles.", "Swing matches and AI insights live here."] },
+      'en-US': { title: "Analysis",  lines: ["Your edge over rivals lives here.", "Swing matches, AI intel — all in one."] },
+      no:      { title: "Analyse",   lines: ["Dyk ned i rivaloppgjørene.", "Swing-kamper og AI-innsikt her."] },
+      sco:     { title: "Analysis",  lines: ["Yer tactical edge is right here.", "Swing matches and pundit insight."] },
+    },
+    audioScript: {
+      en:      { host: "Analysis tab — where you find your edge over rivals.", pundit: "Swing matches. That's where titles are won." },
+      'en-US': { host: "Analysis tab — AI intel and rival breakdowns.", pundit: "Ignore this and you're flying blind." },
+      no:      { host: "Analyse-fanen — din fordel over rivalene.", pundit: "Swing-kamper. Der titler vinnes." },
+      sco:     { host: "Analysis tab — where ye find yer edge.", pundit: "Swing matches. That's where it's won or lost." },
+    }
+  },
+
+  // STOP 9: MANAGER CONTENT
   {
     id: 'live_manager_content',
     targets: ['tour-manager-viewmode'],

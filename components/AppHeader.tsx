@@ -27,6 +27,7 @@ interface AppHeaderProps {
   onStartTour: () => void;
   onStartLiveTour?: () => void;
   showSecondChanceBadge?: boolean;
+  isAdminMode?: boolean;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -276,9 +277,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       ))}
                   </div>
 
-                  <button onClick={() => props.setTournamentPhase(props.tournamentPhase === 'PRE_LIVE' ? 'LIVE' : 'PRE_LIVE')} className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border transition-all ${props.tournamentPhase === 'LIVE' ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-green-600/20 border-green-500 text-green-500'}`}>
-                      {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
-                  </button>
+                  {props.isAdminMode && (
+                      <button onClick={() => props.setTournamentPhase(props.tournamentPhase === 'PRE_LIVE' ? 'LIVE' : 'PRE_LIVE')} className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border transition-all ${props.tournamentPhase === 'LIVE' ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-green-600/20 border-green-500 text-green-500'}`}>
+                          {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
+                      </button>
+                  )}
                   <div className="relative">
                       <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />

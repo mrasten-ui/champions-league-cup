@@ -601,6 +601,10 @@ const NO_TRANSLATION: Translation = {
     teamOverviews: {}
 };
 
+// --- GAME CONFIG CONSTANTS ---
+export const MAX_SUBSTITUTIONS = 5;  // Max subs per manager (also used for scout tokens)
+export const TOTAL_MATCHES = 104;    // 72 group stage + 32 knockout
+
 // --- LEAGUE CONFIG ---
 // Add new leagues here only. Slug = URL invite key. Name = display name.
 export const LEAGUES: Record<string, string> = {

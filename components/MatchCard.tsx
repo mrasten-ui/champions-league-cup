@@ -322,7 +322,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {/* --- ADMIN ALERT --- */}
                     {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
                         <div className="mt-2 text-[10px] bg-red-100 text-red-600 px-1 py-0.5 rounded flex gap-1 items-center">
-                            <AlertCircle size={10} /> Sub Hidden. OnSub?: {onSubstitute ? 'Yes' : 'No'}
+                            <AlertCircle size={10} /> Sub status: {onSubstitute ? 'Available' : 'Not wired'}
                         </div>
                     )}
                 </div>

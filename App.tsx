@@ -445,6 +445,7 @@ export const App = () => {
       else if (stepId === 'live_tournament_subtabs') setTournamentSubTab('schedule');
       else if (stepId === 'live_bracket') setTournamentSubTab('bracket');
       else if (stepId === 'live_manager_nav') setActiveTab('manager');
+      else if (stepId === 'live_analysis_nav') setActiveTab('analysis');
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -618,6 +619,7 @@ export const App = () => {
             Date.now() >= groupStageEndTime - 7 * 24 * 60 * 60 * 1000 &&
             Date.now() < groupStageEndTime
         }
+        isAdminMode={isAdminMode}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />

@@ -6,6 +6,7 @@ import { SubstitutionModal } from './SubstitutionModal';
 import { AvatarDisplay } from './AvatarDisplay';
 import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw } from 'lucide-react';
 import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings, calculatePoints } from '../services/engine';
+import { MAX_SUBSTITUTIONS } from '../constants';
 
 interface ManagerHubProps {
   matches: Match[];
@@ -244,7 +245,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                       <RefreshCw size={10} /> Subs
                                   </div>
                                   <div className={`text-base font-black ${currentUser.substitutions > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
-                                      {currentUser.substitutions}<span className="text-xs text-slate-300 ml-0.5 align-top">/5</span>
+                                      {currentUser.substitutions}<span className="text-xs text-slate-300 ml-0.5 align-top">/{MAX_SUBSTITUTIONS}</span>
                                   </div>
                               </div>
                           </>

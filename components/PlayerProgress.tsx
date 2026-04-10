@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Prediction, Translation } from '../types';
 import { Users, CheckCircle2, Globe } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
-import { LEAGUES } from '../constants';
+import { LEAGUES, TOTAL_MATCHES } from '../constants';
 
 interface PlayerProgressProps {
   users: UserProfile[];
@@ -32,7 +32,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
 
   // FIX: Force total matches to 104 (Full 2026 Tournament) instead of relying on loaded props
   // This ensures the progress bar tracks the complete journey (Group + Knockout)
-  const totalGameMatches = 104; 
+  const totalGameMatches = TOTAL_MATCHES;
 
   // Calculate Stats for Header
   const readyManagersCount = useMemo(() => {
