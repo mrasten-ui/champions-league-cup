@@ -39,7 +39,6 @@ import { TourGuide } from './components/TourGuide';
 import { LiveSplashScreen } from './components/LiveSplashScreen';
 import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
-import { StudioGenerator } from './components/StudioGenerator';
 import { SecondChanceView } from './components/SecondChanceView';
 
 const STORAGE_KEYS = {
@@ -85,7 +84,6 @@ export const App = () => {
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
-  const [showStudio, setShowStudio] = useState(false); 
 
   const t = TRANSLATIONS[language];
   const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
@@ -590,7 +588,6 @@ export const App = () => {
 
   if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
-  if (showStudio) return <StudioGenerator />;
 
   if (!user || !session) {
       const usedAvatarUrls = Object.values(usersDb).map(u => u.avatar);
@@ -881,7 +878,6 @@ export const App = () => {
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
 
-      <button onClick={() => setShowStudio(true)} className="fixed bottom-4 left-4 z-[9999] bg-slate-900/50 hover:bg-slate-900 text-white/50 hover:text-white p-2 rounded-full backdrop-blur-sm transition-all shadow-lg" title="Open Audio Studio"><Mic size={16} /></button>
 
     </div>
   );

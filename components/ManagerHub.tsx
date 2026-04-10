@@ -192,11 +192,11 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                   <User size={15} className="text-blue-400" />
                   <span className="text-xs font-black text-white uppercase tracking-widest">{lang.managerProfile || "Manager Profile"}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center bg-white/10 rounded-xl p-0.5">
                   <button
                       onClick={() => setViewMode('groups')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          viewMode === 'groups' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white'
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[11px] font-black uppercase tracking-widest transition-all ${
+                          viewMode === 'groups' ? 'bg-[#FFD700] text-[#0f2545]' : 'text-slate-400 hover:text-white'
                       }`}
                   >
                       <LayoutGrid size={11} /> {lang.groups || "Groups"}
@@ -204,8 +204,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                   <button
                       onClick={() => setViewMode('knockout')}
                       disabled={!hasKnockouts}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          viewMode === 'knockout' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white'
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[11px] font-black uppercase tracking-widest transition-all ${
+                          viewMode === 'knockout' ? 'bg-[#FFD700] text-[#0f2545]' : 'text-slate-400 hover:text-white'
                       } disabled:opacity-30 disabled:cursor-not-allowed`}
                   >
                       <Trophy size={11} /> {lang.knockouts || "Knockouts"}
