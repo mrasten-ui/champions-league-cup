@@ -15,7 +15,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const UK_URL = 'https://www.live-footballontv.com/live-world-cup-football-on-tv.html';
+const UK_URL = 'https://www.fanzo.com/en/tvguide/football/fifa-world-cup/10105';
 const US_URL = 'https://www.sportsmediawatch.com/tv-schedules/fifa-world-cup-tv-schedule/';
 
 // Website team name → our internal 3-letter ID
@@ -85,43 +85,28 @@ function toId(name, extraMap) {
   return (extraMap && extraMap[n]) ?? TEAM_NAME_TO_ID[n] ?? null;
 }
 
-// ─── UK scraper (live-footballontv.com) ──────────────────────────────────────
+// ─── UK scraper (fanzo.com) ───────────────────────────────────────────────────
 
-function stripHtml(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, '\n')
-    .replace(/&amp;/g, '&')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#\d+;/g, '');
-}
-
-function parseUKDate(str) {
-  const clean = str.replace(/(\d+)(st|nd|rd|th)/i, '$1');
-  const d = new Date(clean + ' UTC');
+// "Thu, 11th Jun." → UTC midnight Date for 2026
+function parseFanzoDate(str) {
+  const clean = str
+    .replace(/^[A-Za-z]+,\s*/, '')   // strip "Thu, "
+    .replace(/(\d+)(st|nd|rd|th)/i, '$1')  // strip ordinal
+    .replace(/\.$/, '');              // strip trailing dot
+  const d = new Date(clean + ' 2026 UTC');
   return isNaN(d.getTime()) ? null : d;
 }
 
+// "ITV 1" / "ITV 2" → ITV,  "BBC One" / "BBC Two" → BBC
+// SCO: ITV broadcasts as STV in Scotland
 function extractUKChannels(channelStr) {
   const c = channelStr.toLowerCase();
   const hasBBC = c.includes('bbc');
   const hasITV = c.includes('itv');
-  const hasSTV = c.includes('stv');
   return {
     EN:  hasBBC ? 'BBC' : hasITV ? 'ITV' : null,
-    SCO: hasBBC ? 'BBC' : hasSTV ? 'STV' : hasITV ? 'ITV' : null,
+    SCO: hasBBC ? 'BBC' : hasITV ? 'STV' : null,  // ITV1 = STV in Scotland
   };
-}
-
-const UK_DATE_RE = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d+/i;
-const UK_TIME_RE = /^\d{1,2}:\d{2}$/;
-
-function isUKChannelLine(line) {
-  const l = line.toLowerCase();
-  return l.includes('itv') || l.includes('bbc') || l.includes('stv') || l.includes('channel 4');
 }
 
 async function fetchUKListings() {
@@ -131,26 +116,31 @@ async function fetchUKListings() {
   });
   if (!res.ok) throw new Error(`UK fetch failed: HTTP ${res.status}`);
 
-  const lines = stripHtml(await res.text())
-    .split('\n').map(l => l.trim()).filter(Boolean);
-
+  const html = await res.text();
   const listings = [];
-  let date = null, teams = null, comp = null;
 
-  for (const line of lines) {
-    if (UK_DATE_RE.test(line)) {
-      date = parseUKDate(line); teams = null; comp = null;
-    } else if (UK_TIME_RE.test(line) && date) {
-      // time — keep current date context
-    } else if (line.includes(' v ') && date && !line.startsWith('FIFA') && !line.startsWith('UEFA')) {
-      const parts = line.split(' v ');
-      if (parts.length === 2) teams = [parts[0].trim(), parts[1].trim()];
-    } else if (line.startsWith('FIFA World Cup')) {
-      comp = line;
-    } else if (date && teams && comp && isUKChannelLine(line)) {
-      listings.push({ date, homeTeam: teams[0], awayTeam: teams[1], channelStr: line });
-      teams = null; comp = null;
-    }
+  // Split into fixture-item blocks
+  const fixtureBlocks = html.split(/<div[^>]*class="[^"]*fixture-item[^"]*"[^>]*>/);
+
+  for (const block of fixtureBlocks.slice(1)) {
+    // Date
+    const dateMatch = block.match(/<div[^>]*class="[^"]*match-date[^"]*"[^>]*>([^<]+)</);
+    if (!dateMatch) continue;
+    const date = parseFanzoDate(dateMatch[1].trim());
+    if (!date) continue;
+
+    // Teams — first two <span class="team-name"> occurrences
+    const teamMatches = [...block.matchAll(/<span[^>]*class="[^"]*team-name[^"]*"[^>]*>([^<]+)<\/span>/g)];
+    if (teamMatches.length < 2) continue;
+    const homeTeam = teamMatches[0][1].trim();
+    const awayTeam = teamMatches[1][1].trim();
+
+    // Channel — link text inside channel-info
+    const chanMatch = block.match(/<div[^>]*class="[^"]*channel-info[^"]*"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
+    if (!chanMatch) continue;
+    const channelStr = chanMatch[1].trim();
+
+    listings.push({ date, homeTeam, awayTeam, channelStr });
   }
 
   console.log(`   Parsed ${listings.length} listings`);
@@ -232,7 +222,7 @@ const NO_TEAM_NAME_TO_ID = {
   'Nigeria':'NGA', 'Ecuador':'ECU', 'Colombia':'COL', 'Panama':'PAN',
   'Ghana':'GHA', 'Tunisia':'TUN', 'Egypt':'EGY', 'Iran':'IRN',
   'Jordan':'JOR', 'Iraq':'IRQ', 'Qatar':'QAT', 'Uruguay':'URU',
-  'Honduras':'HON', 'Ghana':'GHA',
+  'Honduras':'HON',
   // Norwegian-specific spellings
   'Sør-Afrika':'RSA',    'Sør-Korea':'KOR',   'Korea':'KOR',
   'Frankrike':'FRA',     'Spania':'ESP',       'Nederland':'NED',
@@ -287,10 +277,10 @@ async function fetchNOListings() {
       const channel = isNrk ? 'NRK' : isTv2 ? 'TV2' : null;
       if (!channel) continue;
 
-      // Team names from match-name (strip nested venue div first)
-      const nameBlock = card.match(/<div[^>]*class="[^"]*match-name[^"]*"[^>]*>([\s\S]*?)<\/div>/);
-      if (!nameBlock) continue;
-      const teamsText = nameBlock[1].replace(/<[^>]+>[\s\S]*?<\/[^>]+>/g, '').replace(/<[^>]+>/g, '').trim();
+      // Team names: grab only the raw text node before any nested element (venue div etc.)
+      const nameMatch = card.match(/<div[^>]*class="[^"]*match-name[^"]*"[^>]*>\s*([^<]+)/);
+      if (!nameMatch) continue;
+      const teamsText = nameMatch[1].trim();
       if (!teamsText.includes(' - ')) continue;
 
       const parts = teamsText.split(' - ');
@@ -320,12 +310,7 @@ function sameDay(d1, d2) {
     && d1.getUTCDate()      === d2.getUTCDate();
 }
 
-async function applyListings(listings, extractFn, label, extraNameMap = null) {
-  const { data: dbMatches, error } = await supabase
-    .from('matches')
-    .select('id, home_team_id, away_team_id, date, channels');
-
-  if (error) throw new Error('Supabase fetch error: ' + error.message);
+async function applyListings(listings, extractFn, label, dbMatches, extraNameMap = null) {
 
   let updated = 0, skipped = 0, unmatched = 0;
 
@@ -378,6 +363,14 @@ async function applyListings(listings, extractFn, label, extraNameMap = null) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function run() {
+  // Load DB matches once — shared across all three scrapers
+  const { data: dbMatches, error } = await supabase
+    .from('matches')
+    .select('id, home_team_id, away_team_id, date, channels');
+  if (error) { console.error('Supabase fetch failed:', error.message); process.exit(1); }
+  console.log(`Loaded ${dbMatches.length} matches from Supabase`);
+
+  // Scrape all three sources in parallel
   const [ukListings, usListings, noListings] = await Promise.all([
     fetchUKListings().catch(err => { console.error('UK scrape failed:', err.message); return []; }),
     fetchUSListings().catch(err => { console.error('US scrape failed:', err.message); return []; }),
@@ -385,18 +378,13 @@ async function run() {
   ]);
 
   if (ukListings.length > 0) {
-    await applyListings(ukListings, extractUKChannels, 'UK (EN/SCO)');
+    await applyListings(ukListings, extractUKChannels, 'UK (EN/SCO)', dbMatches);
   }
   if (usListings.length > 0) {
-    await applyListings(usListings, ch => ({ US: extractUSChannel(ch) }), 'US');
+    await applyListings(usListings, ch => ({ US: extractUSChannel(ch) }), 'US', dbMatches);
   }
   if (noListings.length > 0) {
-    await applyListings(
-      noListings,
-      ch => ({ NO: ch }),
-      'NO (TV2 + NRK)',
-      NO_TEAM_NAME_TO_ID,
-    );
+    await applyListings(noListings, ch => ({ NO: ch }), 'NO (TV2 + NRK)', dbMatches, NO_TEAM_NAME_TO_ID);
   }
 
   console.log('\nAll done.');
