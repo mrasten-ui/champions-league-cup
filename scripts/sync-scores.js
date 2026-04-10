@@ -111,8 +111,25 @@ async function syncScores() {
 
     const data = await response.json();
 
+    // Diagnostics — always print so we can debug from GitHub Actions logs
+    console.log(`API HTTP status: ${response.status}`);
+    console.log(`API errors:`, JSON.stringify(data.errors));
+    console.log(`API results count: ${data.results ?? 'undefined'}`);
+    console.log(`API key present: ${!!API_KEY}`);
+
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      console.error('API returned errors:', JSON.stringify(data.errors));
+      // Common: { requests: "You have exceeded..." } = rate limit
+      //         { token: "Error/Missing" } = bad API key
+      return;
+    }
+
     if (!data.response || data.response.length === 0) {
-      console.log('No fixtures returned. Check LEAGUE_ID and SEASON.');
+      console.log('No fixtures returned. Possible reasons:');
+      console.log('  1. API_FOOTBALL_KEY secret is missing or wrong in GitHub');
+      console.log('  2. League ID 1 / Season 2026 not yet published on this plan');
+      console.log('  3. Free tier does not include future seasons');
+      console.log('Try visiting: https://v3.football.api-sports.io/leagues?id=1 with your key to confirm access.');
       return;
     }
 
