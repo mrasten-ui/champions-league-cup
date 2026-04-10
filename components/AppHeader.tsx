@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -125,19 +125,37 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return { headerUnits, modalUnits, numClass, labelClass, isCritical, isUrgent };
   }, [remaining, deadline, t]);
 
+  // --- HELPER: Tab icon for bottom nav ---
+  const getTabIcon = (tab: string) => {
+      switch (tab) {
+          case 'leaderboard': return <Trophy size={20} />;
+          case 'tournament':  return <Calendar size={20} />;
+          case 'manager':     return <User size={20} />;
+          case 'analysis':    return <TrendingUp size={20} />;
+          case 'groups':      return <LayoutGrid size={20} />;
+          case 'knockout':    return <Shield size={20} />;
+          case 'scouting':    return <Users size={20} />;
+          default:            return <LayoutGrid size={20} />;
+      }
+  };
+
+  // --- HELPER: Tab label (shared between bottom nav and desktop tabs) ---
+  const getTabLabel = (tab: string): string => {
+      if (tab === 'manager')     return (props.tournamentPhase === 'PRE_LIVE' ? props.t.managersTab : props.t.tabManager) as string;
+      if (tab === 'analysis')    return props.t.analysisTab as string;
+      if (tab === 'scouting')    return props.t.scoutingTab as string;
+      if (tab === 'tournament')  return props.t.tabTournament as string;
+      if (tab === 'leaderboard') return (props.tournamentPhase === 'PRE_LIVE' ? props.t.competition : props.t.leaderboard) as string;
+      const val = props.t[tab as keyof typeof props.t];
+      return typeof val === 'string' ? val : tab;
+  };
+
   // --- HELPER: Render Navigation Tabs (Reused for Mobile/Desktop) ---
   const renderNavTabs = (isDesktop: boolean) => (
       <nav className={`flex ${isDesktop ? 'items-center gap-1 h-full' : 'justify-center'}`}>
           {props.navTabs.map((tab) => {
              const isActive = props.activeTab === tab;
-             let label = '';
-             const val = t[tab as keyof typeof t];
-             if (tab === 'manager') label = (props.tournamentPhase === 'PRE_LIVE' ? t.managersTab : t.tabManager) as string; 
-             else if (tab === 'analysis') label = t.analysisTab as string;
-             else if (tab === 'scouting') label = t.scoutingTab as string;
-             else if (tab === 'tournament') label = t.tabTournament as string; 
-             else if (tab === 'leaderboard') label = (props.tournamentPhase === 'PRE_LIVE' ? t.competition : t.leaderboard) as string;
-             else label = (typeof val === 'string' ? val : tab) as string;
+             const label = getTabLabel(tab);
              
              let tabId = undefined;
              if (tab === 'groups') tabId = isDesktop ? 'nav-groups-desk' : 'nav-groups'; // Distinct IDs helps Tour Guide find correct element
@@ -173,6 +191,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   );
 
   return (
+    <>
     <header className="sticky top-0 z-50">
       
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
@@ -301,13 +320,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
 
-      {/* 2. MOBILE ONLY: SECONDARY TAB NAVIGATION */}
-      <div className="md:hidden bg-[#0f2545]/95 backdrop-blur-md border-b border-white/5 shadow-2xl relative z-10">
-          <div className="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar">
-              {renderNavTabs(false)}
-          </div>
-      </div>
-      
       {/* 3. GROUP NAV (Only for Groups Tab) */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
           <div id="subnav-groups" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
@@ -458,5 +470,42 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
         </div>
       )}
     </header>
+
+    {/* MOBILE BOTTOM NAV BAR */}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f2545] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {props.navTabs.map(tab => {
+            const isActive = props.activeTab === tab;
+            const label = getTabLabel(tab);
+
+            let tabId: string | undefined;
+            if (tab === 'leaderboard') tabId = 'nav-leaderboard';
+            else if (tab === 'tournament') tabId = 'nav-tournament';
+            else if (tab === 'manager')   tabId = 'nav-manager';
+            else if (tab === 'analysis')  tabId = 'nav-analysis';
+
+            return (
+                <button
+                    key={tab}
+                    id={tabId}
+                    onClick={() => props.setActiveTab(tab as any)}
+                    className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
+                        isActive ? 'text-yellow-400' : 'text-slate-500 active:text-slate-300'
+                    }`}
+                >
+                    {isActive && (
+                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-yellow-400 rounded-full shadow-[0_0_6px_rgba(250,204,21,0.8)]" />
+                    )}
+                    {getTabIcon(tab)}
+                    <span className="text-[8px] font-black uppercase tracking-wide leading-none">
+                        {label}
+                    </span>
+                    {tab === 'manager' && props.showSecondChanceBadge && (
+                        <span className="absolute top-1.5 right-[calc(50%-10px)] w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
+                    )}
+                </button>
+            );
+        })}
+    </nav>
+    </>
   );
 };
