@@ -751,7 +751,9 @@ export const App = () => {
                 onSubstitute={handleSubstitute}
                 onUnlockSecondChance={handlePledgeSecondChance}
                 onUpdate={handleScoreUpdate}
-                phase={tournamentPhase} 
+                phase={tournamentPhase}
+                groupStageEndTime={groupStageEndTime}
+                knockoutStartTime={knockoutStartTime}
             />
         )}
       </main>

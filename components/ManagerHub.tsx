@@ -4,7 +4,7 @@ import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid, CalendarClock, Info, X } from 'lucide-react';
+import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck } from 'lucide-react';
 import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 
 interface ManagerHubProps {
@@ -18,23 +18,47 @@ interface ManagerHubProps {
   onUnlockSecondChance: () => void;
   onUpdate: (matchId: string, h: number, a: number) => void;
   phase: TournamentPhase;
+  groupStageEndTime?: number;
+  knockoutStartTime?: number;
 }
 
 export const ManagerHub: React.FC<ManagerHubProps> = ({
-  matches, 
-  userMatches, 
-  teams, 
-  allPredictions, 
-  currentUser, 
-  lang, 
-  onSubstitute, 
-  onUnlockSecondChance, 
-  onUpdate, 
-  phase
+  matches,
+  userMatches,
+  teams,
+  allPredictions,
+  currentUser,
+  lang,
+  onSubstitute,
+  onUnlockSecondChance,
+  onUpdate,
+  phase,
+  groupStageEndTime,
+  knockoutStartTime,
 }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'groups' | 'knockout'>('groups');
+
+  const groupsOver = groupStageEndTime ? Date.now() >= groupStageEndTime : false;
+  const [viewMode, setViewMode] = useState<'groups' | 'knockout'>(groupsOver ? 'knockout' : 'groups');
+
   const [showMgrHint, setShowMgrHint] = useState(() => !localStorage.getItem(`rasten_mgr_hint_${currentUser.email}`));
+
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const inAlertWindow = groupStageEndTime
+      ? Date.now() >= groupStageEndTime - sevenDaysMs && Date.now() < groupStageEndTime
+      : false;
+  const alertDismissKey = `rasten_sc_alert_${currentUser.email}`;
+  const [showScAlert, setShowScAlert] = useState(
+      inAlertWindow &&
+      !currentUser.hasTakenSecondChance &&
+      currentUser.secondChanceStatus !== 'PENDING' &&
+      currentUser.secondChanceStatus !== 'ACTIVE' &&
+      !localStorage.getItem(alertDismissKey)
+  );
+  const dismissScAlert = () => {
+      localStorage.setItem(alertDismissKey, '1');
+      setShowScAlert(false);
+  };
 
   const userPredictions = useMemo(() => {
     return allPredictions.filter(p => p.userId === currentUser.email);
@@ -144,6 +168,24 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
         totalPoints={0}
       />
 
+      {/* 2nd Chance last-week alert */}
+      {showScAlert && (
+        <div className="px-1 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+          <ShieldCheck size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-0.5">
+              2nd Chance — Last chance to decide
+            </div>
+            <p className="text-xs text-amber-800 leading-snug">
+              Group stage ends soon. Switch to Knockouts to see your bracket and decide if you want to buy back in.
+            </p>
+          </div>
+          <button onClick={dismissScAlert} className="text-amber-400 hover:text-amber-600 shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {showMgrHint && (
         <div className="mx-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
           <Info size={16} className="text-indigo-500 mt-0.5 shrink-0" />
@@ -153,13 +195,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
         </div>
       )}
-
-      <SecondChancePromo
-        hasTaken={currentUser.hasTakenSecondChance}
-        secondChanceStatus={currentUser.secondChanceStatus}
-        onUnlock={onUnlockSecondChance}
-        lang={lang}
-      />
 
       <div id="tour-manager-viewmode" className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 flex gap-2">
           <button 
@@ -262,6 +297,12 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              <SecondChancePromo
+                hasTaken={currentUser.hasTakenSecondChance}
+                secondChanceStatus={currentUser.secondChanceStatus}
+                onUnlock={onUnlockSecondChance}
+                lang={lang}
+              />
               {Object.entries(groupedMatches.knockouts).map(([round, roundMatches]) => {
                   if (roundMatches.length === 0) return null;
                   const gridClass = getKnockoutGridClass(round, roundMatches.length);
