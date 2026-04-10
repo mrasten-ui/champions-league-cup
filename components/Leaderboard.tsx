@@ -267,7 +267,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activeLeague, setActiveLeague] = useState<string>('global');
-  const [showLeagueMenu, setShowLeagueMenu] = useState(false);
   
   // Stats Modal State
   const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
@@ -407,63 +406,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   return (
     <div className="space-y-3 animate-fade-in pb-20 relative">
       
-      {/* HEADER WITH CONTROLS */}
-      <div className="flex flex-col gap-2 px-1">
-         <div id="tour-leaderboard-top" className="flex justify-between items-center bg-[#0f2545] p-4 rounded-2xl shadow-lg border border-white/10">
-             <div className="flex items-center gap-3">
-                 <div className="bg-yellow-400 p-2 rounded-lg text-[#0f2545]">
-                    <Trophy size={20} />
-                 </div>
-                 <h2 className="font-black text-lg uppercase tracking-tighter text-white">{lang.leaderboard}</h2>
-             </div>
-             <button 
-                onClick={() => setShowLive(!showLive)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${showLive ? 'bg-red-600 text-white shadow-red-500/30 shadow-lg animate-pulse' : 'bg-slate-700 text-slate-400'}`}
-             >
-                <Activity size={12} />
-                <span>{showLive ? 'LIVE' : 'BANKED'}</span>
-             </button>
-         </div>
-
-         {/* LEAGUE SELECTOR */}
-         {currentUserLeagues.length > 0 && (
-             <div className="relative z-20">
-                 <button 
-                    onClick={() => setShowLeagueMenu(!showLeagueMenu)}
-                    className="w-full flex items-center justify-between bg-white border border-slate-200 shadow-sm rounded-xl px-4 py-3 text-sm font-bold text-slate-700 hover:border-blue-300 transition-colors"
-                 >
-                    <div className="flex items-center gap-2">
-                        {activeLeague === 'global' ? <Globe size={16} className="text-blue-500" /> : <Users size={16} className="text-purple-500" />}
-                        <span className="uppercase tracking-wide">{getLeagueName(activeLeague)}</span>
-                    </div>
-                    <ChevronDown size={16} className={`transition-transform ${showLeagueMenu ? 'rotate-180' : ''}`} />
-                 </button>
-
-                 {showLeagueMenu && (
-                     <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
-                         <button 
-                            onClick={() => { setActiveLeague('global'); setShowLeagueMenu(false); }}
-                            className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-slate-50 ${activeLeague === 'global' ? 'text-blue-600 bg-blue-50' : 'text-slate-600'}`}
-                         >
-                             <Globe size={14} /> {lang.lbGlobal}
-                         </button>
-                         {currentUserLeagues.map(slug => (
-                             <button 
-                                key={slug}
-                                onClick={() => { setActiveLeague(slug); setShowLeagueMenu(false); }}
-                                className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-slate-50 ${activeLeague === slug ? 'text-purple-600 bg-purple-50' : 'text-slate-600'}`}
-                             >
-                                 <Users size={14} /> {getLeagueName(slug)}
-                             </button>
-                         ))}
-                     </div>
-                 )}
-             </div>
-         )}
-      </div>
-
-      {/* BATTLE STRIP + COACH'S REPORT — single merged card */}
-      {showLive && (() => {
+      {/* BATTLE STRIP + COACH'S REPORT */}
+      {(() => {
           const myEntry = displayList.find(u => u.email === currentUserEmail);
           if (!myEntry) return null;
           const leader = displayList[0];
@@ -485,48 +429,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           }, 0);
 
           return (
-              <div className="mx-1 rounded-2xl bg-gradient-to-br from-[#1e1b4b] to-[#0f2545] border border-white/10 shadow-lg overflow-hidden">
-                  {/* Stats row */}
-                  <div className="flex items-center justify-around gap-2 px-3 pt-3 pb-2 text-white">
-                      <div className="text-center min-w-0">
-                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Behind leader</div>
-                          <div className="text-lg font-black text-yellow-400">
-                              {isLeader ? '🏆' : `-${gapToLeader}`}
-                          </div>
-                          {!isLeader && <div className="text-[9px] text-slate-500 truncate max-w-[70px]">{leader.name}</div>}
-                      </div>
-
-                      <div className="w-px h-8 bg-white/10" />
-
-                      {above ? (
-                          <div className="text-center min-w-0 flex-1">
-                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Chasing</div>
-                              <div className="text-sm font-black text-white truncate">{above.name}</div>
-                              <div className="text-[10px] text-red-400 font-bold">-{gapAbove} pts</div>
-                          </div>
-                      ) : (
-                          <div className="text-center flex-1">
-                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Position</div>
-                              <div className="text-sm font-black text-green-400">Leading 🎯</div>
-                          </div>
-                      )}
-
-                      <div className="w-px h-8 bg-white/10" />
-
-                      <div className="text-center min-w-0">
-                          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
-                          <div className={`text-lg font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                              {todayPoints > 0 ? `+${todayPoints}` : '–'}
-                          </div>
-                      </div>
-                  </div>
-
-                  {/* Divider */}
-                  {currentLang && <div className="border-t border-white/10 mx-3" />}
-
-                  {/* Coach's brief embedded */}
+              <div id="tour-leaderboard-top" className="rounded-2xl bg-gradient-to-br from-[#1e1b4b] to-[#0f2545] border border-white/10 shadow-lg overflow-hidden">
+                  {/* Coach's brief */}
                   {currentLang && (
-                      <div className="px-3 pb-3 pt-2">
+                      <div className="px-3 pt-3 pb-2">
                           <AIAnalystWidget
                               currentLang={currentLang}
                               preloadedAnalysis={preloadedAnalysis}
@@ -536,20 +442,100 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                           />
                       </div>
                   )}
+
+                  {/* Divider */}
+                  {showLive && <div className="border-t border-white/10 mx-3" />}
+
+                  {/* Stats row — only in LIVE mode */}
+                  {showLive && (
+                      <div className="flex items-center justify-around gap-2 px-3 pt-2 pb-3 text-white">
+                          <div className="text-center min-w-0">
+                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Behind leader</div>
+                              <div className="text-lg font-black text-yellow-400">
+                                  {isLeader ? '🏆' : `-${gapToLeader}`}
+                              </div>
+                              {!isLeader && <div className="text-[9px] text-slate-500 truncate max-w-[70px]">{leader.name}</div>}
+                          </div>
+
+                          <div className="w-px h-8 bg-white/10" />
+
+                          {above ? (
+                              <div className="text-center min-w-0 flex-1">
+                                  <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Chasing</div>
+                                  <div className="text-sm font-black text-white truncate">{above.name}</div>
+                                  <div className="text-[10px] text-red-400 font-bold">-{gapAbove} pts</div>
+                              </div>
+                          ) : (
+                              <div className="text-center flex-1">
+                                  <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Position</div>
+                                  <div className="text-sm font-black text-green-400">Leading 🎯</div>
+                              </div>
+                          )}
+
+                          <div className="w-px h-8 bg-white/10" />
+
+                          <div className="text-center min-w-0">
+                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
+                              <div className={`text-lg font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                                  {todayPoints > 0 ? `+${todayPoints}` : '–'}
+                              </div>
+                          </div>
+                      </div>
+                  )}
               </div>
           );
       })()}
 
       {/* THE LIST */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Navy table header — title + league tabs + LIVE toggle */}
+        <div className="bg-[#0f2545] px-4 pt-3 pb-0 border-b border-slate-700">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <div className="bg-yellow-400 p-1.5 rounded-md text-[#0f2545]">
+                        <Trophy size={14} />
+                    </div>
+                    <h2 className="font-black text-sm uppercase tracking-widest text-white">{lang.leaderboard}</h2>
+                </div>
+                <button
+                    onClick={() => setShowLive(!showLive)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${showLive ? 'bg-red-600 text-white shadow-red-500/30 shadow-md animate-pulse' : 'bg-white/10 text-slate-400'}`}
+                >
+                    <Activity size={11} />
+                    <span>{showLive ? 'LIVE' : 'BANKED'}</span>
+                </button>
+            </div>
+
+            {/* League tabs inline */}
+            {currentUserLeagues.length > 0 && (
+                <div className="flex overflow-x-auto no-scrollbar gap-1 relative z-20">
+                    <button
+                        onClick={() => setActiveLeague('global')}
+                        className={`shrink-0 px-3 py-1.5 rounded-t-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${activeLeague === 'global' ? 'bg-white/10 text-white border-yellow-400' : 'text-slate-400 border-transparent hover:text-white'}`}
+                    >
+                        <Globe size={10} className="inline mr-1 -mt-0.5" />{lang.lbGlobal || 'All'}
+                    </button>
+                    {currentUserLeagues.map(slug => (
+                        <button
+                            key={slug}
+                            onClick={() => setActiveLeague(slug)}
+                            className={`shrink-0 px-3 py-1.5 rounded-t-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${activeLeague === slug ? 'bg-white/10 text-white border-yellow-400' : 'text-slate-400 border-transparent hover:text-white'}`}
+                        >
+                            {getLeagueName(slug)}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left table-fixed">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="w-[15%] px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">#</th>
-                <th className="w-[50%] px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{lang.manager}</th>
-                <th className="w-[20%] px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden sm:table-cell text-center">Form</th>
-                <th className="w-[15%] px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Pts</th>
+                <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">#</th>
+                <th className="w-[50%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{lang.manager}</th>
+                <th className="w-[20%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden sm:table-cell text-center">Form</th>
+                <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Pts</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">

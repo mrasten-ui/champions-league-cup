@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Match, Team, Prediction, UserProfile, Translation, TournamentPhase } from '../types';
-import { ResourceHeader } from './ResourceHeader';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
-import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck } from 'lucide-react';
+import { AvatarDisplay } from './AvatarDisplay';
+import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw } from 'lucide-react';
 import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
 
 interface ManagerHubProps {
@@ -157,20 +157,87 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
   };
 
+  const rank = 99;
+  const totalPoints = 0;
+
   return (
-    <div id="tour-manager-hub" className="pb-24 animate-fade-in space-y-8">
-      
-      <ResourceHeader
-        user={currentUser}
-        lang={lang}
-        phase={phase}
-        rank={99}
-        totalPoints={0}
-      />
+    <div className="pb-24 animate-fade-in space-y-3">
+
+      {/* Merged profile + view-mode card */}
+      <div id="tour-manager-hub" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in slide-in-from-top-4 duration-500">
+
+          {/* Navy header: title left, tabs right */}
+          <div id="tour-manager-viewmode" className="bg-[#0f2545] px-4 py-2.5 flex items-center justify-between gap-2 border-b border-slate-700">
+              <div className="flex items-center gap-2">
+                  <User size={15} className="text-blue-400" />
+                  <span className="text-xs font-black text-white uppercase tracking-widest">{lang.managerProfile || "Manager Profile"}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                  <button
+                      onClick={() => setViewMode('groups')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          viewMode === 'groups' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white'
+                      }`}
+                  >
+                      <LayoutGrid size={11} /> {lang.groups || "Groups"}
+                  </button>
+                  <button
+                      onClick={() => setViewMode('knockout')}
+                      disabled={!hasKnockouts}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          viewMode === 'knockout' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white'
+                      } disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                      <Trophy size={11} /> {lang.knockouts || "Knockouts"}
+                  </button>
+              </div>
+          </div>
+
+          {/* Body: avatar left, name + stats right */}
+          <div className="flex flex-row items-center gap-4 px-4 py-3">
+              <div className="relative shrink-0">
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl" />
+                  <AvatarDisplay avatar={currentUser.avatar} size="lg" className="w-14 h-14 ring-4 ring-white shadow-xl relative z-10" />
+              </div>
+              <div className="flex flex-col flex-1 min-w-0">
+                  <h2 className="text-base font-black text-slate-800 uppercase tracking-tighter leading-none mb-2 truncate">
+                      {currentUser.name}
+                  </h2>
+                  <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                      <div className="flex-1 flex flex-col items-center">
+                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-0.5">
+                              <Hash size={10} /> Rank
+                          </div>
+                          <div className="text-base font-black text-blue-600">#{rank}</div>
+                      </div>
+                      <div className="w-px h-6 bg-slate-200" />
+                      <div className="flex-1 flex flex-col items-center">
+                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-0.5">
+                              <Trophy size={10} /> Pts
+                          </div>
+                          <div className="text-base font-black text-slate-800">{totalPoints}</div>
+                      </div>
+                      {phase === 'LIVE' && (
+                          <>
+                              <div className="w-px h-6 bg-slate-200" />
+                              <div className="flex-1 flex flex-col items-center">
+                                  <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 mb-0.5 ${currentUser.substitutions > 0 ? 'text-blue-500' : 'text-slate-400'}`}>
+                                      <RefreshCw size={10} /> Subs
+                                  </div>
+                                  <div className={`text-base font-black ${currentUser.substitutions > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                                      {currentUser.substitutions}<span className="text-xs text-slate-300 ml-0.5 align-top">/5</span>
+                                  </div>
+                              </div>
+                          </>
+                      )}
+                  </div>
+              </div>
+          </div>
+      </div>
 
       {/* 2nd Chance last-week alert */}
       {showScAlert && (
-        <div className="px-1 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+        <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
           <ShieldCheck size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-0.5">
@@ -187,7 +254,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       )}
 
       {showMgrHint && (
-        <div className="mx-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
+        <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
           <Info size={16} className="text-indigo-500 mt-0.5 shrink-0" />
           <p className="text-xs text-indigo-800 font-medium flex-1 leading-relaxed">{(lang as any).mgrHint}</p>
           <button onClick={() => { localStorage.setItem(`rasten_mgr_hint_${currentUser.email}`, '1'); setShowMgrHint(false); }} className="text-indigo-400 hover:text-indigo-600 shrink-0">
@@ -195,33 +262,6 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           </button>
         </div>
       )}
-
-      <div id="tour-manager-viewmode" className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 flex gap-2">
-          <button 
-            onClick={() => setViewMode('groups')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
-                viewMode === 'groups' 
-                ? 'bg-[#0f2545] text-white shadow-md transform scale-[1.02]' 
-                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-            }`}
-          >
-              <LayoutGrid size={16} />
-              {lang.groups || "Group Stage"}
-          </button>
-          
-          <button 
-            onClick={() => setViewMode('knockout')}
-            disabled={!hasKnockouts}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
-                viewMode === 'knockout' 
-                ? 'bg-[#0f2545] text-white shadow-md transform scale-[1.02]' 
-                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-            } ${!hasKnockouts ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-              <Trophy size={16} />
-              {lang.knockouts || "Knockouts"}
-          </button>
-      </div>
 
       {viewMode === 'groups' && (
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">

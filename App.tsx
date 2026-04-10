@@ -610,7 +610,14 @@ export const App = () => {
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => setShowLiveTour(true)}
-        showSecondChanceBadge={tournamentPhase === 'LIVE' && !user?.hasTakenSecondChance && user?.secondChanceStatus === 'NONE'}
+        showSecondChanceBadge={
+            tournamentPhase === 'LIVE' &&
+            !user?.hasTakenSecondChance &&
+            user?.secondChanceStatus === 'NONE' &&
+            groupStageEndTime > 0 &&
+            Date.now() >= groupStageEndTime - 7 * 24 * 60 * 60 * 1000 &&
+            Date.now() < groupStageEndTime
+        }
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
