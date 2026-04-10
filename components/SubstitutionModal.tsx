@@ -64,8 +64,8 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
                         onSubstitute={onSubstitute}
                         substitutionsLeft={currentUser.substitutions}
                         
-                        // Pass unlocked status so the card knows to show Inputs + Save button
-                        isUnlockedBySub={currentUser.unlockedMatches?.includes(match.id)}
+                        // Modal only opens after unlock confirmation — always treat as unlocked
+                        isUnlockedBySub={true}
                         showStatusBadge={false}
                     />
                 </div>

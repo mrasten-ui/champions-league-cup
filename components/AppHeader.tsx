@@ -183,7 +183,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
                    )}
                    {/* Active underline — same treatment on both mobile and desktop */}
-                   {isActive && <span className="absolute bottom-1 left-2 right-2 h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.7)]" />}
+                   {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_0_10px_rgba(250,204,21,0.7)]" />}
                 </button>
              );
           })}

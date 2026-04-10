@@ -748,13 +748,14 @@ export const App = () => {
         
         {/* MANAGER TAB */}
         {activeTab === 'manager' && (
-            <ManagerHub 
-                matches={matches}      
-                userMatches={userMatches} 
-                teams={teamsData} 
-                allPredictions={allPredictions} 
-                currentUser={user} 
-                lang={t} 
+            <ManagerHub
+                matches={matches}
+                userMatches={userMatches}
+                teams={teamsData}
+                allPredictions={allPredictions}
+                currentUser={user}
+                allUsers={Object.values(usersDb) as UserProfile[]}
+                lang={t}
                 onSubstitute={handleSubstitute}
                 onUnlockSecondChance={handlePledgeSecondChance}
                 onUpdate={handleScoreUpdate}

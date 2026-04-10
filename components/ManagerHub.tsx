@@ -5,14 +5,15 @@ import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
 import { AvatarDisplay } from './AvatarDisplay';
 import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw } from 'lucide-react';
-import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings } from '../services/engine';
+import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings, calculatePoints } from '../services/engine';
 
 interface ManagerHubProps {
-  matches: Match[];        
-  userMatches: Match[];    
+  matches: Match[];
+  userMatches: Match[];
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
+  allUsers: UserProfile[];
   lang: Translation;
   onSubstitute: (matchId: string) => void;
   onUnlockSecondChance: () => void;
@@ -28,6 +29,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   teams,
   allPredictions,
   currentUser,
+  allUsers,
   lang,
   onSubstitute,
   onUnlockSecondChance,
@@ -157,8 +159,25 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
   };
 
-  const rank = 99;
-  const totalPoints = 0;
+  const finishedMatches = matches.filter(m =>
+      ['FINISHED', 'FT', 'AET', 'PEN'].includes(m.status) &&
+      m.homeScore !== null && m.awayScore !== null
+  );
+
+  const { rank, totalPoints } = useMemo(() => {
+      const scores = allUsers.map(u => {
+          const score = finishedMatches.reduce((sum, m) => {
+              const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+              if (!pred) return sum;
+              return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
+          }, 0);
+          return { email: u.email, score };
+      }).sort((a, b) => b.score - a.score);
+
+      const myScore = scores.find(s => s.email === currentUser.email)?.score ?? 0;
+      const myRank  = scores.findIndex(s => s.email === currentUser.email) + 1 || scores.length;
+      return { rank: myRank, totalPoints: myScore };
+  }, [allUsers, allPredictions, finishedMatches, currentUser.email]);
 
   return (
     <div className="pb-24 animate-fade-in space-y-3">
