@@ -253,6 +253,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              </div>
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
+                {/* TV Channel badge — top-right of white body, pre-live only */}
+                {!isLive && !isFinished && (() => { const ch = getTvChannelName(); return ch ? (
+                  <div className="absolute top-2 right-3 flex items-center gap-1 text-slate-400">
+                    <Tv size={9} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">{ch}</span>
+                  </div>
+                ) : null; })()}
                 {/* Home Team */}
                 <div onClick={() => { if (isHomeTBD) return; if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
