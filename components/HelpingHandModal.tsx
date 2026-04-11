@@ -120,7 +120,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                   </span>
 
                   {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
+                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
                       <Check size={14} strokeWidth={4} />
                     </div>
                   )}
