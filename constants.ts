@@ -609,12 +609,7 @@ export const TOTAL_MATCHES = 104;    // 72 group stage + 32 knockout
 // --- BROADCAST DEFAULTS ---
 // Default TV channels per locale when no match-specific override is set.
 // Update individual matches in Management → Channel Editor when assignments are announced.
-export const BROADCAST_CHANNELS: Record<string, string> = {
-  NO:  'TV2',
-  EN:  'BBC / ITV',
-  SCO: 'BBC / ITV',
-  US:  'Fox Sports',
-};
+export const BROADCAST_CHANNELS: Record<string, string> = {};
 
 // --- LEAGUE CONFIG ---
 // Add new leagues here only. Slug = URL invite key. Name = display name.

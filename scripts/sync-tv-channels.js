@@ -1,10 +1,11 @@
 /**
  * sync-tv-channels.js
  * Scrapes two sources daily and updates channels in Supabase:
- *  - EN / SCO: live-footballontv.com (UK — BBC/ITV/STV)
- *  - US:       sportsmediawatch.com  (FOX/FS1)
+ *  - EN / SCO: fanzo.com (UK — BBC/ITV/STV)
+ *  - US:       sportsmediawatch.com (FOX/FS1)
  *
- * Norway (TV2 for all 64 matches) is set once via Management → Bulk Apply.
+ * Norway (TV2/NRK split per match) is set manually via Management → TV Channels,
+ * as norske-aviser.com uses JS rendering and cannot be plain-fetched.
  * Runs via GitHub Actions once a day.
  */
 
@@ -260,20 +261,21 @@ async function applyListings(listings, extractFn, label, dbMatches, extraNameMap
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
+// Note: Norwegian TV schedule (TV2/NRK split) is set manually via Management → TV Channels.
+// norske-aviser.com uses JS rendering and cannot be scraped with plain fetch.
 
 async function run() {
-  // Load DB matches once — shared across all three scrapers
+  // Load DB matches once — shared across both scrapers
   const { data: dbMatches, error } = await supabase
     .from('matches')
     .select('id, home_team_id, away_team_id, date, channels');
   if (error) { console.error('Supabase fetch failed:', error.message); process.exit(1); }
   console.log(`Loaded ${dbMatches.length} matches from Supabase`);
 
-  // Scrape all three sources in parallel
-  const [ukListings, usListings, noListings] = await Promise.all([
+  // Scrape UK and US sources in parallel
+  const [ukListings, usListings] = await Promise.all([
     fetchUKListings().catch(err => { console.error('UK scrape failed:', err.message); return []; }),
     fetchUSListings().catch(err => { console.error('US scrape failed:', err.message); return []; }),
-    fetchNOListings().catch(err => { console.error('NO scrape failed:', err.message); return []; }),
   ]);
 
   if (ukListings.length > 0) {
@@ -281,9 +283,6 @@ async function run() {
   }
   if (usListings.length > 0) {
     await applyListings(usListings, ch => ({ US: extractUSChannel(ch) }), 'US', dbMatches);
-  }
-  if (noListings.length > 0) {
-    await applyListings(noListings, ch => ({ NO: ch }), 'NO (TV2 + NRK)', dbMatches, NO_TEAM_NAME_TO_ID);
   }
 
   console.log('\nAll done.');
