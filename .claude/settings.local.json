@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.tsx$\")",
-      "WebFetch(domain:www.norske-aviser.com)"
+      "WebFetch(domain:www.norske-aviser.com)",
+      "WebSearch"
     ]
   }
 }

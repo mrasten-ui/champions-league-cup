@@ -1,11 +1,10 @@
 /**
  * sync-tv-channels.js
- * Scrapes two sources daily and updates channels in Supabase:
+ * Scrapes three sources daily and updates channels in Supabase:
  *  - EN / SCO: fanzo.com (UK — BBC/ITV/STV)
  *  - US:       sportsmediawatch.com (FOX/FS1)
+ *  - NO:       nrk.no article (TV2/NRK per match — server-side rendered <dl> list)
  *
- * Norway (TV2/NRK split per match) is set manually via Management → TV Channels,
- * as norske-aviser.com uses JS rendering and cannot be plain-fetched.
  * Runs via GitHub Actions once a day.
  */
 
@@ -18,6 +17,7 @@ const supabase = createClient(
 
 const UK_URL = 'https://www.fanzo.com/en/tvguide/football/fifa-world-cup/10105';
 const US_URL = 'https://www.sportsmediawatch.com/tv-schedules/fifa-world-cup-tv-schedule/';
+const NO_URL = 'https://www.nrk.no/sport/program-og-tv-guide-for-fotball-vm_-slik-ser-du-norges-kamper-pa-tv-1.17694535';
 
 // Website team name → our internal 3-letter ID
 const TEAM_NAME_TO_ID = {
@@ -202,6 +202,89 @@ async function fetchUSListings() {
   return listings;
 }
 
+// ─── NO scraper (nrk.no) ─────────────────────────────────────────────────────
+// Page uses a <dl> list: <dt> = date, then <dd> groups per match.
+// Each match has three <dd>s: "HH:MM CHANNEL", "Home – Away", "Venue".
+
+const NO_MONTHS = { januar:0, februar:1, mars:2, april:3, mai:4, juni:5, juli:6, august:7, september:8, oktober:9, november:10, desember:11 };
+
+const NO_TEAM_NAME_TO_ID = {
+  'Mexico': 'MEX', 'Sør-Afrika': 'RSA', 'Sør-Korea': 'KOR', 'Tsjekkia': 'CZE',
+  'Canada': 'CAN', 'Bosnia og Herzegovina': 'BIH', 'Qatar': 'QAT', 'Sveits': 'SUI',
+  'Brasil': 'BRA', 'Marokko': 'MAR', 'Haiti': 'HAI', 'Skottland': 'SCO',
+  'USA': 'USA', 'Paraguay': 'PAR', 'Australia': 'AUS', 'Tyrkia': 'TUR',
+  'Tyskland': 'GER', 'Curaçao': 'CUW', 'Elfenbeinkysten': 'CIV', 'Ecuador': 'ECU',
+  'Nederland': 'NED', 'Japan': 'JPN', 'Sverige': 'SWE', 'Tunisia': 'TUN',
+  'Belgia': 'BEL', 'Egypt': 'EGY', 'Iran': 'IRN', 'New Zealand': 'NZL',
+  'Spania': 'ESP', 'Kapp Verde': 'CPV', 'Saudi Arabia': 'KSA', 'Uruguay': 'URU',
+  'Frankrike': 'FRA', 'Senegal': 'SEN', 'Irak': 'IRQ', 'Norge': 'NOR',
+  'Argentina': 'ARG', 'Algerie': 'ALG', 'Østerrike': 'AUT', 'Østerrika': 'AUT',
+  'Jordan': 'JOR', 'Portugal': 'POR', 'DR Kongo': 'COD', 'Usbekistan': 'UZB',
+  'Colombia': 'COL', 'England': 'ENG', 'Kroatia': 'CRO', 'Ghana': 'GHA',
+  'Panama': 'PAN',
+};
+
+function parseNorwegianDate(str) {
+  // "17. juni" → UTC Date for 2026
+  const m = str.trim().match(/(\d+)\.\s*(\S+)/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const month = NO_MONTHS[m[2].toLowerCase()];
+  if (month === undefined) return null;
+  return new Date(Date.UTC(2026, month, day));
+}
+
+async function fetchNOListings() {
+  console.log('\n── NO: Fetching', NO_URL);
+  const res = await fetch(NO_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RastenCupBot/1.0)' },
+  });
+  if (!res.ok) throw new Error(`NO fetch failed: HTTP ${res.status}`);
+
+  const html = await res.text();
+  const listings = [];
+
+  // Extract all <dt> and <dd> tags in order
+  const tokens = [...html.matchAll(/<(dt|dd)[^>]*>([\s\S]*?)<\/\1>/g)];
+
+  let currentDate = null;
+  let ddBuffer = [];
+
+  const flushMatch = () => {
+    if (!currentDate || ddBuffer.length < 2) { ddBuffer = []; return; }
+    // First <dd>: "00:00 TV2" or "00:00 NRK"
+    const timeChannel = ddBuffer[0].replace(/<[^>]+>/g, '').trim();
+    const chanMatch = timeChannel.match(/\b(TV2|NRK)\b/i);
+    if (!chanMatch) { ddBuffer = []; return; }
+    const channel = chanMatch[1].toUpperCase(); // 'TV2' or 'NRK'
+
+    // Second <dd>: "Irak – Norge"
+    const teamsRaw = ddBuffer[1].replace(/<[^>]+>/g, '').trim();
+    const parts = teamsRaw.split(/\s*[–—-]\s*/u);
+    if (parts.length < 2) { ddBuffer = []; return; }
+    const homeTeam = parts[0].trim();
+    const awayTeam = parts[1].trim();
+
+    listings.push({ date: currentDate, homeTeam, awayTeam, channelStr: channel });
+    ddBuffer = [];
+  };
+
+  for (const [, tag, inner] of tokens) {
+    if (tag === 'dt') {
+      flushMatch();
+      currentDate = parseNorwegianDate(inner.replace(/<[^>]+>/g, ''));
+    } else {
+      ddBuffer.push(inner);
+      // After 3 <dd>s we have a complete match entry — flush early so next <dt> isn't needed
+      if (ddBuffer.length === 3) { flushMatch(); }
+    }
+  }
+  flushMatch(); // catch last entry
+
+  console.log(`   Parsed ${listings.length} listings`);
+  return listings;
+}
+
 // ─── Supabase updater ─────────────────────────────────────────────────────────
 
 function sameDay(d1, d2) {
@@ -261,21 +344,20 @@ async function applyListings(listings, extractFn, label, dbMatches, extraNameMap
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-// Note: Norwegian TV schedule (TV2/NRK split) is set manually via Management → TV Channels.
-// norske-aviser.com uses JS rendering and cannot be scraped with plain fetch.
 
 async function run() {
-  // Load DB matches once — shared across both scrapers
+  // Load DB matches once — shared across all scrapers
   const { data: dbMatches, error } = await supabase
     .from('matches')
     .select('id, home_team_id, away_team_id, date, channels');
   if (error) { console.error('Supabase fetch failed:', error.message); process.exit(1); }
   console.log(`Loaded ${dbMatches.length} matches from Supabase`);
 
-  // Scrape UK and US sources in parallel
-  const [ukListings, usListings] = await Promise.all([
+  // Scrape all three sources in parallel
+  const [ukListings, usListings, noListings] = await Promise.all([
     fetchUKListings().catch(err => { console.error('UK scrape failed:', err.message); return []; }),
     fetchUSListings().catch(err => { console.error('US scrape failed:', err.message); return []; }),
+    fetchNOListings().catch(err => { console.error('NO scrape failed:', err.message); return []; }),
   ]);
 
   if (ukListings.length > 0) {
@@ -283,6 +365,9 @@ async function run() {
   }
   if (usListings.length > 0) {
     await applyListings(usListings, ch => ({ US: extractUSChannel(ch) }), 'US', dbMatches);
+  }
+  if (noListings.length > 0) {
+    await applyListings(noListings, ch => ({ NO: ch }), 'NO (TV2/NRK)', dbMatches, NO_TEAM_NAME_TO_ID);
   }
 
   console.log('\nAll done.');
