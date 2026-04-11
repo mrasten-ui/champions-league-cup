@@ -82,6 +82,10 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             {getActionDescription()}
           </p>
         </div>
+        {/* FIFA rank label */}
+        <div className="bg-[#0f172a] px-8 pb-4 text-right">
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest"># = FIFA World Ranking (Apr 2026)</span>
+        </div>
 
         {/* Team Grid */}
         <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
@@ -106,7 +110,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                 >
                   {/* FIFA rank badge */}
                   {team.rank && team.rank < 99 && (
-                    <span className="absolute top-2 left-2 text-[9px] font-black text-slate-400 leading-none">#{team.rank}</span>
+                    <span className="absolute top-2 right-2 text-[9px] font-black text-slate-400 leading-none">#{team.rank}</span>
                   )}
                   <div className="w-12 h-8 mb-2 shadow-sm rounded overflow-hidden border border-slate-100">
                     <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
