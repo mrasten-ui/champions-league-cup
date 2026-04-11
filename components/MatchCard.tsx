@@ -167,25 +167,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const renderTopRight = () => {
-        const channel = getTvChannelName();
         const cityString = getShortVenue(match.venue);
 
         return (
-            <div className="flex flex-col items-end justify-center gap-0.5 text-right">
-                <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
-                    <MapPin size={10} />
-                    <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px]">
-                        {cityString}
-                    </span>
-                </div>
-                {channel && (
-                    <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${channel}`}>
-                        <Tv size={10} />
-                        <span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[70px] sm:max-w-[100px]">
-                            {channel}
-                        </span>
-                    </div>
-                )}
+            <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
+                <MapPin size={10} />
+                <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px]">
+                    {cityString}
+                </span>
             </div>
         );
     };
@@ -390,7 +379,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 justify-end w-1/3">{pointsEarned !== null && !isAdminMode && <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>}{match.isLocked && <LockIcon size={10} className="text-slate-400" />}</div>
+                    <div className="flex items-center gap-3 justify-end w-1/3">
+                        {pointsEarned !== null && !isAdminMode
+                            ? <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>
+                            : (() => { const ch = getTvChannelName(); return ch ? <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></div> : null; })()
+                        }
+                        {match.isLocked && <LockIcon size={10} className="text-slate-400" />}
+                    </div>
                 </div>
              )}
 

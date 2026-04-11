@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile } from '../types';
 import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain, Check } from 'lucide-react';
+import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 
@@ -168,22 +169,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   };
 
   const getTvChannel = () => {
-      if (!match.channels) return null;
       let regionKey = 'US';
       const loc = (locale || 'en-GB').toLowerCase();
 
       if (loc.includes('no')) regionKey = 'NO';
       else if (loc.includes('gb') || loc.includes('uk')) regionKey = 'EN';
-      else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN'; 
+      else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN';
+      if ((lang as any).isScotland) regionKey = 'SCO';
 
-      if ((lang as any).isScotland && match.channels['SCO']) {
-          regionKey = 'SCO';
-      }
-
-      let channel = match.channels[regionKey];
-      if (!channel) {
-          channel = match.channels['EN'] || match.channels['US'] || Object.values(match.channels)[0];
-      }
+      const specific = match.channels?.[regionKey] || match.channels?.['EN'] || match.channels?.['US'];
+      const channel = specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || BROADCAST_CHANNELS['EN'] || null);
 
       if (!channel) return null;
       return (
