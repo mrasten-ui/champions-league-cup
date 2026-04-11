@@ -26,7 +26,18 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
 
   if (!isOpen) return null;
 
-  const validTeams = (Object.values(teams) as Team[]).filter(t => !t.id.startsWith('TBD'));
+  // Participants' home nations pinned first, then the rest by FIFA rank
+  const PINNED = ['ENG', 'NOR', 'SCO', 'USA'];
+  const validTeams = (Object.values(teams) as Team[])
+    .filter(t => !t.id.startsWith('TBD'))
+    .sort((a, b) => {
+      const aPin = PINNED.indexOf(a.id);
+      const bPin = PINNED.indexOf(b.id);
+      if (aPin !== -1 && bPin !== -1) return aPin - bPin;
+      if (aPin !== -1) return -1;
+      if (bPin !== -1) return 1;
+      return (a.rank ?? 999) - (b.rank ?? 999);
+    });
 
   const toggleTeam = (teamId: string) => {
     if (selectedTeams.includes(teamId)) {
