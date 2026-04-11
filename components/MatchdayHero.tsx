@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile } from '../types';
-import { Activity, Clock, MapPin, Trophy, Star, Tv, Brain, Check } from 'lucide-react';
+import { Clock, MapPin, Trophy, Star, Tv, Check } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
@@ -177,8 +177,8 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
       else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN';
       if ((lang as any).isScotland) regionKey = 'SCO';
 
-      const specific = match.channels?.[regionKey] || match.channels?.['EN'] || match.channels?.['US'];
-      const channel = specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || BROADCAST_CHANNELS['EN'] || null);
+      const specific = match.channels?.[regionKey];
+      const channel = specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || null);
 
       if (!channel) return null;
       return (

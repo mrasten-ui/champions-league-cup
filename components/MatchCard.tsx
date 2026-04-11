@@ -139,9 +139,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         else if (loc.startsWith('en') && !loc.includes('us')) regionKey = 'EN';
         if ((lang as any).isScotland) regionKey = 'SCO';
 
-        // Per-match override first, then locale default
-        const specific = match.channels?.[regionKey] || match.channels?.['EN'] || match.channels?.['US'];
-        return specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || BROADCAST_CHANNELS['EN'] || null);
+        // Per-match data for this region only — no cross-locale fallback
+        const specific = match.channels?.[regionKey];
+        return specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || null);
     };
 
     const getShortVenue = (rawVenue: string | null) => {
