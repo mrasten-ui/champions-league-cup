@@ -96,23 +96,26 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                   key={team.id}
                   onClick={() => toggleTeam(team.id)}
                   disabled={isDisabled}
-                  className={`relative flex flex-col items-center p-4 rounded-3xl border-2 transition-all duration-300 ${
-                    isSelected 
-                      ? 'bg-white border-yellow-400 shadow-xl scale-105 z-10' // UPDATED: Gold Border
+                  className={`relative flex flex-col items-center p-3 rounded-3xl border-2 transition-all duration-300 ${
+                    isSelected
+                      ? 'bg-white border-yellow-400 shadow-xl scale-105 z-10'
                       : isDisabled
                         ? 'bg-slate-100 border-transparent opacity-30 grayscale cursor-not-allowed'
                         : 'bg-white border-transparent hover:border-slate-300 hover:shadow-lg'
                   }`}
                 >
-                  <div className="w-12 h-8 mb-3 shadow-sm rounded overflow-hidden border border-slate-100">
+                  {/* FIFA rank badge */}
+                  {team.rank && team.rank < 99 && (
+                    <span className="absolute top-2 left-2 text-[9px] font-black text-slate-400 leading-none">#{team.rank}</span>
+                  )}
+                  <div className="w-12 h-8 mb-2 shadow-sm rounded overflow-hidden border border-slate-100">
                     <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
                   </div>
-                  <span className={`text-[11px] font-black uppercase tracking-widest ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {team.id}
+                  <span className={`text-[10px] font-black uppercase tracking-widest leading-tight text-center ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>
+                    {teamName}
                   </span>
-                  
+
                   {isSelected && (
-                    /* UPDATED: Gold Badge */
                     <div className="absolute -top-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
                       <Check size={14} strokeWidth={4} />
                     </div>
@@ -125,8 +128,18 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
 
         {/* Footer - High Contrast Actions */}
         <div className="p-8 bg-white border-t border-slate-100 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-6">
-           <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
-              {selectedTeams.length} / 3 {lang.selected}
+           <div className="flex items-center gap-3">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                {selectedTeams.length} / 3 {lang.selected}
+              </span>
+              {selectedTeams.length > 0 && (
+                <button
+                  onClick={() => setSelectedTeams([])}
+                  className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest border border-slate-200 hover:border-red-300 px-2 py-1 rounded-lg transition-colors"
+                >
+                  Clear
+                </button>
+              )}
            </div>
            
            <button

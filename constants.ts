@@ -113,6 +113,7 @@ const BASE_TEAM_NAMES: Record<string, string> = {
   ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
   POR: "Portugal", COD: "DR Congo", UZB: "Uzbekistan", COL: "Colombia",
   ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
+  DEN: "Denmark",
   TBD: "TBD"
 };
 
@@ -647,6 +648,7 @@ const FLAG_MAP: Record<string, string> = {
   ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
   POR: "pt", COD: "cd", UZB: "uz", COL: "co",
   ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
+  DEN: "dk",
   TBD: ""
 };
 
@@ -700,7 +702,8 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
   CRO: { rank: 17, att: 78, mid: 85, def: 82 },
   GHA: { rank: 58, att: 76, mid: 75, def: 73 },
   PAN: { rank: 44, att: 72, mid: 71, def: 71 },
-  TBD: { rank: 99, att: 50, mid: 50, def: 50 } 
+  DEN: { rank: 21, att: 81, mid: 82, def: 80 },
+  TBD: { rank: 99, att: 50, mid: 50, def: 50 }
 };
 
 export const TEAMS: Record<string, Team> = {};

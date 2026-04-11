@@ -112,7 +112,7 @@ export const useAppData = () => {
                       baseTeamsMap[safeId] = {
                           id: safeId,
                           name: t.name || safeId,
-                          flag: t.flag || TEAMS[safeId]?.flag || '',
+                          flag: TEAMS[safeId]?.flag || t.flag || '',
                           rank: (t.rank && t.rank !== 50) ? t.rank : (TEAMS[safeId]?.rank ?? 50),
                           rating: t.rating || TEAMS[safeId]?.rating || 50,
                           att: t.att || TEAMS[safeId]?.att || 50,
