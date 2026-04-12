@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Translation, Match, TournamentPhase } from '../types';
 import {
-  Target, Wand2, Trophy, ShieldAlert, Eye, RefreshCw, Zap,
+  Target, Wand2, Trophy, ShieldAlert, Eye, RefreshCw,
   Unlock, Crown, Medal, BookOpen, TrendingUp,
 } from 'lucide-react';
 
@@ -103,18 +103,18 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
   const isLive = tournamentPhase === 'LIVE';
 
   const preRules = [
-    { icon: <Target size={14} />,    cls: 'bg-blue-100 text-blue-700',     title: stripNum(lang.rule1Title) },
-    { icon: <Wand2 size={14} />,     cls: 'bg-purple-100 text-purple-700',  title: stripNum(lang.rule2Title) },
-    { icon: <Trophy size={14} />,    cls: 'bg-indigo-100 text-indigo-700',  title: stripNum(lang.rule3Title) },
-    { icon: <Eye size={14} />,       cls: 'bg-cyan-100 text-cyan-700',      title: stripNum(lang.rule4Title) },
-    { icon: <RefreshCw size={14} />, cls: 'bg-emerald-100 text-emerald-700', title: stripNum(lang.rule5Title) },
-    { icon: <Unlock size={14} />,    cls: 'bg-orange-100 text-orange-700',  title: stripNum(lang.rule6Title) },
+    { icon: <Target size={14} />,    cls: 'bg-blue-100 text-blue-700',      title: stripNum(lang.rule1Title), desc: lang.rule1Desc },
+    { icon: <Wand2 size={14} />,     cls: 'bg-purple-100 text-purple-700',  title: stripNum(lang.rule2Title), desc: lang.rule2Desc },
+    { icon: <Trophy size={14} />,    cls: 'bg-indigo-100 text-indigo-700',  title: stripNum(lang.rule3Title), desc: lang.rule3Desc },
+    { icon: <Eye size={14} />,       cls: 'bg-cyan-100 text-cyan-700',      title: stripNum(lang.rule4Title), desc: lang.rule4Desc },
+    { icon: <RefreshCw size={14} />, cls: 'bg-emerald-100 text-emerald-700', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },
+    { icon: <Unlock size={14} />,    cls: 'bg-orange-100 text-orange-700',  title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
   ];
 
   const liveTools = [
-    { icon: <RefreshCw size={15} />, iconCls: 'bg-emerald-100 text-emerald-700', borderCls: 'border-emerald-100', title: lang.rule5Title, desc: lang.rule5Desc },
-    { icon: <Eye size={15} />,       iconCls: 'bg-cyan-100 text-cyan-700',       borderCls: 'border-cyan-100',    title: lang.rule4Title, desc: lang.rule4Desc },
-    { icon: <Unlock size={15} />,    iconCls: 'bg-orange-100 text-orange-700',   borderCls: 'border-orange-100',  title: lang.rule6Title, desc: lang.rule6Desc },
+    { icon: <RefreshCw size={14} />, iconCls: 'bg-emerald-100 text-emerald-700', title: lang.rule5Title, desc: lang.rule5Desc },
+    { icon: <Eye size={14} />,       iconCls: 'bg-cyan-100 text-cyan-700',       title: lang.rule4Title, desc: lang.rule4Desc },
+    { icon: <Unlock size={14} />,    iconCls: 'bg-orange-100 text-orange-700',   title: lang.rule6Title, desc: lang.rule6Desc },
   ];
 
   return (
@@ -150,13 +150,16 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
           {/* RULES — compact icon grid */}
           <SectionLabel icon={<Target size={10} />} label={lang.tabHowToPlay} className="mt-6 mb-3" />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {preRules.map(({ icon, cls, title }) => (
-              <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-2.5 flex items-center gap-2 shadow-sm">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${cls}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {preRules.map(({ icon, cls, title, desc }) => (
+              <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-3 flex items-start gap-3 shadow-sm">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${cls}`}>
                   {icon}
                 </div>
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight leading-tight">{title}</span>
+                <div>
+                  <div className="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-tight mb-1">{title}</div>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">{desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -178,32 +181,6 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
             </div>
           </div>
 
-          {/* WHEN LIVE — teaser */}
-          <div className="mt-4 bg-[#0f2545] rounded-2xl overflow-hidden shadow-lg">
-            <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10">
-              <Zap size={12} className="text-yellow-400 shrink-0" />
-              <span className="text-[9px] font-black text-white uppercase tracking-widest">
-                {(lang as any).rulesWhatsComingTitle}
-              </span>
-            </div>
-            <div className="px-4 py-3">
-              <p className="text-[10px] text-slate-400 leading-relaxed mb-3">
-                {(lang as any).rulesWhatsComingDesc}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { icon: <Trophy size={15} className="text-yellow-400" />,    label: lang.leaderboard || 'Leaderboard' },
-                  { icon: <RefreshCw size={15} className="text-cyan-400" />,   label: stripNum(lang.rule5Title || 'Substitutions') },
-                  { icon: <TrendingUp size={15} className="text-emerald-400" />, label: lang.analysisTab || 'Analysis' },
-                ].map(({ icon, label }) => (
-                  <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-2.5 flex flex-col items-center gap-1.5 text-center">
-                    {icon}
-                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-wide leading-tight">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </>
       )}
 
@@ -216,14 +193,14 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
           {/* TOOLS */}
           <SectionLabel icon={<RefreshCw size={10} />} label={(lang as any).rulesLiveToolsSection} className="mt-6 mb-3" />
-          <div className="space-y-2">
-            {liveTools.map(({ icon, iconCls, borderCls, title, desc }) => (
-              <div key={title} className={`bg-white border ${borderCls} rounded-xl px-4 py-3 flex gap-3 items-start shadow-sm`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconCls}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {liveTools.map(({ icon, iconCls, title, desc }) => (
+              <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-3 flex items-start gap-3 shadow-sm">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${iconCls}`}>
                   {icon}
                 </div>
                 <div>
-                  <div className="font-black text-slate-800 uppercase tracking-wide text-[10px] mb-0.5">{title}</div>
+                  <div className="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-tight mb-1">{title}</div>
                   <p className="text-[10px] text-slate-500 leading-relaxed">{desc}</p>
                 </div>
               </div>
