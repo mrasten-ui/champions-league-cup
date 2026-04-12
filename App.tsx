@@ -22,7 +22,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { ManagerHub } from './components/ManagerHub'; 
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
-import { RulesModal } from './components/RulesModal';
+import { RulesPage } from './components/RulesPage';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
@@ -54,7 +54,7 @@ export const App = () => {
     groupStageEndTime, knockoutStartTime
   } = useAppData();
 
-  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [showOverview, setShowOverview] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('A');
@@ -64,8 +64,6 @@ export const App = () => {
   const [tournamentPhase, setTournamentPhase] = useState<TournamentPhase>('PRE_LIVE');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
-  const [showRules, setShowRules] = useState(false);
-  const [rulesDefaultTab, setRulesDefaultTab] = useState<'play' | 'score'>('play');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
@@ -493,12 +491,12 @@ export const App = () => {
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
   const navTabs = useMemo(() => {
-      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard'];
-      return ['leaderboard', 'tournament', 'manager', 'analysis'];
+      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
+      return ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
   }, [tournamentPhase]);
 
   useEffect(() => {
-      const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis'];
+      const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
       if (tournamentPhase === 'LIVE' && !liveTabs.includes(activeTab)) {
           setActiveTab('tournament');
       }
@@ -608,8 +606,7 @@ export const App = () => {
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
-        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin} setShowRules={setShowRules}
-        onShowScoringGuide={() => { setRulesDefaultTab('score'); setShowRules(true); }}
+        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
         handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
@@ -629,6 +626,7 @@ export const App = () => {
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
+        {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} />}
         
         {/* TOURNAMENT HUB */}
         {activeTab === 'tournament' && (
@@ -867,8 +865,6 @@ export const App = () => {
           </div>
         </div>
       )}
-      <RulesModal isOpen={showRules} onClose={() => { setShowRules(false); setRulesDefaultTab('play'); }} lang={t} matches={matches} currentLocale={currentLocale} defaultTab={rulesDefaultTab} />
-      
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={Object.fromEntries(Object.entries(teamsData).filter(([id]) => matches.some(m => m.homeTeamId === id || m.awayTeamId === id)))} initialFavorites={user.favorites} mode={getSimMode()} lang={t}

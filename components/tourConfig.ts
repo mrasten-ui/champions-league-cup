@@ -125,7 +125,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
   // STOP 6: SCORING GUIDE
   {
     id: 'scoring_guide',
-    targetId: 'btn-points-guide',
+    targetId: 'nav-rules',
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {
@@ -241,7 +241,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 4: SCORING REMINDER
   {
     id: 'live_scoring_reminder',
-    targetId: 'btn-points-guide',
+    targetId: 'nav-rules',
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {},

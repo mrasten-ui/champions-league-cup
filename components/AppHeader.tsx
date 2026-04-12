@@ -22,8 +22,6 @@ interface AppHeaderProps {
   setShowAvatarEditor: (b: boolean) => void;
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
-  setShowRules: (b: boolean) => void;
-  onShowScoringGuide: () => void;
   handleLogout: () => void;
   onReplayIntro: () => void;
   onStartTour: () => void;
@@ -138,6 +136,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           case 'groups':      return <LayoutGrid size={20} />;
           case 'knockout':    return <Shield size={20} />;
           case 'scouting':    return <Users size={20} />;
+          case 'rules':       return <BookOpen size={20} />;
           default:            return <LayoutGrid size={20} />;
       }
   };
@@ -149,6 +148,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       if (tab === 'scouting')    return props.t.scoutingTab as string;
       if (tab === 'tournament')  return props.t.tabTournament as string;
       if (tab === 'leaderboard') return (props.tournamentPhase === 'PRE_LIVE' ? props.t.competition : props.t.leaderboard) as string;
+      if (tab === 'rules')       return props.t.rulesBtn as string;
       const val = props.t[tab as keyof typeof props.t];
       return typeof val === 'string' ? val : tab;
   };
@@ -167,6 +167,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
              else if (tab === 'tournament') tabId = isDesktop ? 'nav-tournament-desk' : 'nav-tournament';
              else if (tab === 'manager')    tabId = isDesktop ? 'nav-manager-desk'    : 'nav-manager';
              else if (tab === 'analysis')   tabId = isDesktop ? 'nav-analysis-desk'   : 'nav-analysis';
+             else if (tab === 'rules')      tabId = isDesktop ? 'nav-rules-desk'      : 'nav-rules';
 
              return (
                 <button
@@ -284,16 +285,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                           {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
                       </button>
                   )}
-                  {/* Points Guide — always visible */}
-                  <button
-                      id="btn-points-guide"
-                      onClick={props.onShowScoringGuide}
-                      className="flex items-center gap-1 text-slate-400 hover:text-yellow-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
-                      title={t.tabScoring || 'Points System'}
-                  >
-                      <Trophy size={16} />
-                  </button>
-
                   <div className="relative">
                       <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
@@ -323,7 +314,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   )}
                                   
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
-                                  <button onClick={() => { props.setShowRules(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
+                                  <button onClick={() => { props.setActiveTab('rules' as any); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
                                   <div className="border-t border-slate-100 mt-1 pt-1">
                                       {props.isAdminMode ? (
                                           <>

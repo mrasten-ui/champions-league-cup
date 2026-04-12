@@ -55,7 +55,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, lang, m
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/90 backdrop-blur-md transition-opacity animate-in fade-in"
         onClick={onClose}
