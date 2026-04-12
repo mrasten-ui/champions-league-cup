@@ -608,7 +608,9 @@ export const App = () => {
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
-        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin} setShowRules={setShowRules} handleLogout={handleLogout}
+        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin} setShowRules={setShowRules}
+        onShowScoringGuide={() => { setRulesDefaultTab('score'); setShowRules(true); }}
+        handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => setShowLiveTour(true)}
@@ -769,8 +771,8 @@ export const App = () => {
         )}
       </main>
 
-      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} onShowRules={() => { setRulesDefaultTab('score'); setShowRules(true); }} />
-      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" onShowRules={() => { setRulesDefaultTab('score'); setShowRules(true); }} />
+      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
+      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
 
       {showAvatarEditor && (

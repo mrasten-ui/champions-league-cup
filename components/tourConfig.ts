@@ -122,15 +122,39 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 6: PROFILE
+  // STOP 6: SCORING GUIDE
+  {
+    id: 'scoring_guide',
+    targetId: 'btn-points-guide',
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {
+      en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
+      no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
+    },
+    display: {
+      en:      { title: "Scoring",  lines: ["Exact score = 5 pts. Correct result = 3 pts.", "Tap this button any time to see the full breakdown."] },
+      'en-US': { title: "Scoring",  lines: ["Exact score = 5 pts. Right result = 3 pts.", "Tap this button anytime for the full points guide."] },
+      sco:     { title: "Scoring",  lines: ["Exact score = 5 pts. Right result = 3 pts.", "Tap this button any time for the full breakdown."] },
+      no:      { title: "Poeng",    lines: ["Eksakt resultat = 5 pt. Riktig utfall = 3 pt.", "Trykk på denne knappen når som helst for full oversikt."] }
+    },
+    audioScript: {
+      en:      { host: "Tap this button any time to see exactly how scores are calculated.", pundit: "Exact score bags 5. Correct result gets 3. Knockouts scale up from there." },
+      'en-US': { host: "Tap this button anytime to see the full points breakdown.", pundit: "Exact score? Five points. Right result? Three. Knockouts go up from 8 all the way to 40." },
+      no:      { host: "Trykk på denne knappen når som helst for å se poengsystemet.", pundit: "Eksakt resultat? 5 poeng. Riktig utfall? 3. Sluttspillet skalerer fra 8 til 40." },
+      sco:     { host: "Tap this button any time tae see how the scoring works.", pundit: "Exact score gets ye 5. Right result? Three. Knockouts scale right up. Simples." }
+    }
+  },
+
+  // STOP 7: PROFILE
   {
     id: 'profile_menu',
     targetId: 'btn-profile-menu',
     position: 'bottom',
     overlayType: 'none',
     audioFiles: {
-      en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
-      no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
+      en: '/audio/tour_pre_en_07.mp3', 'en-US': '/audio/tour_pre_us_07.mp3',
+      no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
     },
     display: {
       en:      { title: "Ready",  lines: ["Briefing done — now get your picks in.", "Replay this tour from your Profile anytime."] },
@@ -214,7 +238,28 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 4: TOURNAMENT NAV
+  // STOP 4: SCORING REMINDER
+  {
+    id: 'live_scoring_reminder',
+    targetId: 'btn-points-guide',
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {},
+    display: {
+      en:      { title: "Points Guide", lines: ["This button is always here.", "Tap it any time to check how scoring works."] },
+      'en-US': { title: "Points Guide", lines: ["This button is always here.", "Tap it anytime to check the full scoring breakdown."] },
+      no:      { title: "Poengguide",   lines: ["Denne knappen er alltid her.", "Trykk når som helst for å sjekke poengsystemet."] },
+      sco:     { title: "Points Guide", lines: ["This button's aye here.", "Tap it any time tae check how the scoring works."] },
+    },
+    audioScript: {
+      en:      { host: "This button is always here — tap it any time to check how scoring works.", pundit: "Knowing the breakdown helps. Use it." },
+      'en-US': { host: "This button lives here permanently — tap it for the full points guide.", pundit: "Points don't lie. Know how they're counted." },
+      no:      { host: "Denne knappen er alltid her — trykk når som helst for poengsystemet.", pundit: "Det hjelper å kjenne reglene. Bruk den." },
+      sco:     { host: "This button's aye here — tap it any time tae see how scoring works.", pundit: "Knowing the system helps. Use it." },
+    }
+  },
+
+  // STOP 5: TOURNAMENT NAV
   {
     id: 'live_tournament',
     targets: ['nav-tournament', 'nav-tournament-desk'],

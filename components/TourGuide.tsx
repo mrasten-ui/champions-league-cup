@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
-import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
 
 interface TourGuideProps {
   steps: TourStep[];
@@ -10,7 +10,6 @@ interface TourGuideProps {
   langCode: LanguageCode;
   onStepChange?: (stepId: string) => void;
   defaultMode?: 'audio' | 'text';
-  onShowRules?: () => void;
 }
 
 // --- LOCALIZATION DICTIONARY ---
@@ -21,7 +20,7 @@ const UI_STRINGS = {
   SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
-export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio', onShowRules }) => {
+export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio' }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -467,8 +466,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </div>
                       </div>
 
-                      {/* Headline + quip + optional points guide link */}
-                      <div className="flex flex-col gap-1">
+                      {/* Headline + quip — no scroll, always fits */}
+                      <div className="flex flex-col gap-1" style={{ maxHeight: '58px', overflow: 'hidden' }}>
                           <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
                               {tourMode === 'text'
                                   ? (audioScript?.host || content?.lines?.[0])
@@ -481,15 +480,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                   : content?.lines?.[1]
                               }
                           </p>
-                          {onShowRules && (
-                              <button
-                                  onClick={onShowRules}
-                                  className="mt-0.5 flex items-center gap-1 text-[9px] font-black text-yellow-400/60 hover:text-yellow-400 uppercase tracking-widest transition-colors self-start"
-                              >
-                                  <BookOpen size={9} />
-                                  Points Guide
-                              </button>
-                          )}
                       </div>
                   </div>
 

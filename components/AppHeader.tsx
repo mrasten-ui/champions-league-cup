@@ -23,6 +23,7 @@ interface AppHeaderProps {
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
   setShowRules: (b: boolean) => void;
+  onShowScoringGuide: () => void;
   handleLogout: () => void;
   onReplayIntro: () => void;
   onStartTour: () => void;
@@ -283,6 +284,16 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                           {props.tournamentPhase === 'LIVE' ? 'LIVE' : 'PRE'}
                       </button>
                   )}
+                  {/* Points Guide — always visible */}
+                  <button
+                      id="btn-points-guide"
+                      onClick={props.onShowScoringGuide}
+                      className="flex items-center gap-1 text-slate-400 hover:text-yellow-400 transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                      title={t.tabScoring || 'Points System'}
+                  >
+                      <Trophy size={16} />
+                  </button>
+
                   <div className="relative">
                       <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
