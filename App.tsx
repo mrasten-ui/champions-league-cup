@@ -626,7 +626,7 @@ export const App = () => {
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
-        {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} />}
+        {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} />}
         
         {/* TOURNAMENT HUB */}
         {activeTab === 'tournament' && (

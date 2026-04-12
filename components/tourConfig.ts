@@ -133,16 +133,16 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
     },
     display: {
-      en:      { title: "Scoring",  lines: ["Exact score = 5 pts. Correct result = 3 pts.", "Tap this button any time to see the full breakdown."] },
-      'en-US': { title: "Scoring",  lines: ["Exact score = 5 pts. Right result = 3 pts.", "Tap this button anytime for the full points guide."] },
-      sco:     { title: "Scoring",  lines: ["Exact score = 5 pts. Right result = 3 pts.", "Tap this button any time for the full breakdown."] },
-      no:      { title: "Poeng",    lines: ["Eksakt resultat = 5 pt. Riktig utfall = 3 pt.", "Trykk på denne knappen når som helst for full oversikt."] }
+      en:      { title: "Rules Tab",     lines: ["How to Play + full scoring breakdown.", "Tap the Rules tab any time — it's always here."] },
+      'en-US': { title: "Rules Tab",     lines: ["Game guide + full points system.", "Rules tab is always here — no excuses."] },
+      sco:     { title: "Rules Tab",     lines: ["How tae play + full scoring breakdown.", "The Rules tab is aye there. Use it."] },
+      no:      { title: "Regler-fanen",  lines: ["Spilleguide og poengsystem.", "Trykk på Regler-fanen når som helst."] }
     },
     audioScript: {
-      en:      { host: "Tap this button any time to see exactly how scores are calculated.", pundit: "Exact score bags 5. Correct result gets 3. Knockouts scale up from there." },
-      'en-US': { host: "Tap this button anytime to see the full points breakdown.", pundit: "Exact score? Five points. Right result? Three. Knockouts go up from 8 all the way to 40." },
-      no:      { host: "Trykk på denne knappen når som helst for å se poengsystemet.", pundit: "Eksakt resultat? 5 poeng. Riktig utfall? 3. Sluttspillet skalerer fra 8 til 40." },
-      sco:     { host: "Tap this button any time tae see how the scoring works.", pundit: "Exact score gets ye 5. Right result? Three. Knockouts scale right up. Simples." }
+      en:      { host: "The Rules tab is always here — how to play and the full scoring breakdown.", pundit: "Exact score bags 5. Right result gets 3. Knockouts climb all the way to 40." },
+      'en-US': { host: "The Rules tab lives here permanently — game guide and full points breakdown.", pundit: "Exact score? Five points. Right result? Three. Check the tab for the rest." },
+      no:      { host: "Regler-fanen er alltid her — spilleguide og full poengoversikt.", pundit: "Eksakt resultat gir 5 poeng. Riktig utfall gir 3. Sluttspillet stiger derfra." },
+      sco:     { host: "The Rules tab is aye here — how tae play and the full scoring.", pundit: "Exact score gets ye 5. Right result? Three. Worth a wee look." }
     }
   },
 
@@ -246,16 +246,16 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Points Guide", lines: ["This button is always here.", "Tap it any time to check how scoring works."] },
-      'en-US': { title: "Points Guide", lines: ["This button is always here.", "Tap it anytime to check the full scoring breakdown."] },
-      no:      { title: "Poengguide",   lines: ["Denne knappen er alltid her.", "Trykk når som helst for å sjekke poengsystemet."] },
-      sco:     { title: "Points Guide", lines: ["This button's aye here.", "Tap it any time tae check how the scoring works."] },
+      en:      { title: "Rules Tab",    lines: ["Still here — scoring and rules mid-tournament.", "Tap it any time. How to Play + Points System."] },
+      'en-US': { title: "Rules Tab",    lines: ["Still here during the live tournament.", "Full game guide and points system, always available."] },
+      no:      { title: "Regler-fanen", lines: ["Fortsatt her — regler og poeng underveis.", "Trykk når som helst. Spilleguide + poengsystem."] },
+      sco:     { title: "Rules Tab",    lines: ["Still here through the whole live tournament.", "Scoring and rules — aye available."] },
     },
     audioScript: {
-      en:      { host: "This button is always here — tap it any time to check how scoring works.", pundit: "Knowing the breakdown helps. Use it." },
-      'en-US': { host: "This button lives here permanently — tap it for the full points guide.", pundit: "Points don't lie. Know how they're counted." },
-      no:      { host: "Denne knappen er alltid her — trykk når som helst for poengsystemet.", pundit: "Det hjelper å kjenne reglene. Bruk den." },
-      sco:     { host: "This button's aye here — tap it any time tae see how scoring works.", pundit: "Knowing the system helps. Use it." },
+      en:      { host: "The Rules tab is always here during the live game — scoring and how to play, any time.", pundit: "Knowing the breakdown helps. Know it." },
+      'en-US': { host: "Rules tab is permanently here — full game guide and points system any time.", pundit: "Points don't lie. Know how they're counted." },
+      no:      { host: "Regler-fanen er alltid her under turneringen — poengsystem og regler når som helst.", pundit: "Kjenn reglene. Det hjelper." },
+      sco:     { host: "The Rules tab is aye here — scoring and rules throughout the tournament.", pundit: "Knowing the system helps. Use it." },
     }
   },
 
