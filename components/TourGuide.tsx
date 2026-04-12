@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
-import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw, BookOpen } from 'lucide-react';
 
 interface TourGuideProps {
   steps: TourStep[];
@@ -10,6 +10,7 @@ interface TourGuideProps {
   langCode: LanguageCode;
   onStepChange?: (stepId: string) => void;
   defaultMode?: 'audio' | 'text';
+  onShowRules?: () => void;
 }
 
 // --- LOCALIZATION DICTIONARY ---
@@ -20,7 +21,7 @@ const UI_STRINGS = {
   SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
-export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio' }) => {
+export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio', onShowRules }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -166,7 +167,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 } else {
                     onComplete();
                 }
-            }, 2000); 
+            }, 600);
         };
 
         const playPromise = audio.play();
@@ -311,14 +312,20 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                                 >
                                     <VolumeX size={20} />
-                                    <span>{ui.startText}</span>
+                                    <div className="flex flex-col items-start leading-none gap-0.5">
+                                        <span>{ui.startText}</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~30 sec</span>
+                                    </div>
                                 </button>
                                 <button
                                     onClick={handleStart}
                                     className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
                                 >
                                     <Play size={16} fill="currentColor" />
-                                    <span>{ui.start}</span>
+                                    <div className="flex flex-col items-start leading-none gap-0.5">
+                                        <span>{ui.start}</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~60 sec</span>
+                                    </div>
                                 </button>
                             </>
                         ) : (
@@ -328,14 +335,20 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                                 >
                                     <Play size={20} fill="currentColor" />
-                                    <span>{ui.start}</span>
+                                    <div className="flex flex-col items-start leading-none gap-0.5">
+                                        <span>{ui.start}</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~60 sec</span>
+                                    </div>
                                 </button>
                                 <button
                                     onClick={handleStartText}
                                     className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
                                 >
                                     <VolumeX size={16} />
-                                    <span>{ui.startText}</span>
+                                    <div className="flex flex-col items-start leading-none gap-0.5">
+                                        <span>{ui.startText}</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~30 sec</span>
+                                    </div>
                                 </button>
                             </>
                         )}
@@ -417,8 +430,18 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
               </div>
 
               {/* THE BACKGROUND BOX LAYER (Z-100) */}
-              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex h-28 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
+              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex flex-col h-28 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
+                  {/* Progress bar */}
+                  <div className="w-full h-0.5 bg-white/10 shrink-0">
+                    <div
+                      className="h-full bg-yellow-400 transition-all duration-500 ease-out"
+                      style={{ width: `${(currentStepIdx / (steps.length - 1)) * 100}%` }}
+                    />
+                  </div>
                   
+                  {/* Row: text content + controls */}
+                  <div className="flex flex-1 min-h-0">
+
                   {/* TEXT CONTENT: Padding-left acts as a physical barrier preventing text from going behind the images */}
                   <div className="flex-1 py-2 sm:py-3 pr-2 pl-[120px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
                       
@@ -444,8 +467,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </div>
                       </div>
 
-                      {/* Headline + quip — no scroll, always fits */}
-                      <div className="flex flex-col gap-1" style={{ maxHeight: '58px', overflow: 'hidden' }}>
+                      {/* Headline + quip + optional points guide link */}
+                      <div className="flex flex-col gap-1">
                           <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
                               {tourMode === 'text'
                                   ? (audioScript?.host || content?.lines?.[0])
@@ -458,6 +481,15 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                   : content?.lines?.[1]
                               }
                           </p>
+                          {onShowRules && (
+                              <button
+                                  onClick={onShowRules}
+                                  className="mt-0.5 flex items-center gap-1 text-[9px] font-black text-yellow-400/60 hover:text-yellow-400 uppercase tracking-widest transition-colors self-start"
+                              >
+                                  <BookOpen size={9} />
+                                  Points Guide
+                              </button>
+                          )}
                       </div>
                   </div>
 
@@ -479,6 +511,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </button>
                         </div>
                   </div>
+                  </div>{/* end row */}
               </div>
 
             </div>

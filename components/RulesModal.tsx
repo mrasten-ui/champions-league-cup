@@ -9,10 +9,16 @@ interface RulesModalProps {
   lang: Translation;
   matches: Match[];
   currentLocale: string;
+  defaultTab?: 'play' | 'score';
 }
 
-export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, lang, matches, currentLocale }) => {
-  const [activeTab, setActiveTab] = useState<'play' | 'score'>('play');
+export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, lang, matches, currentLocale, defaultTab = 'play' }) => {
+  const [activeTab, setActiveTab] = useState<'play' | 'score'>(defaultTab);
+
+  // Reset to the requested tab each time the modal opens
+  React.useEffect(() => {
+    if (isOpen) setActiveTab(defaultTab);
+  }, [isOpen, defaultTab]);
 
   const deadlineFormatted = useMemo(() => {
     const valid = matches.filter(m => m.date && m.date !== 'TBD');

@@ -19,10 +19,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Velkommen", lines: ["Velkommen til The Rasten Cup.", "Følg omvisningen for å lære spillet."] }
     },
     audioScript: {
-      en:      { host: "Good evening — I'm Sarah, and this is Gaz.", pundit: "Does this manager have a clue, or will they bottle it?" },
-      'en-US': { host: "We are LIVE! I'm Jessica, alongside legend Chuck.", pundit: "Let's see if this rookie has what it takes!" },
-      no:      { host: "Velkommen til studio! Jeg er Silje, og dette er Nils Arne.", pundit: "Er du klar til å spille de andre gode?" },
-      sco:     { host: "Welcome tae the show. Shona here, and Rab is also here.", pundit: "Let's see if this manager knows their fitba." }
+      en:      { host: "I'm Sarah, and this is Gaz. Quick briefing.", pundit: "Can they predict a score? We're about to find out." },
+      'en-US': { host: "I'm Jessica. Chuck's here. Let's make this fast.", pundit: "Rookie in the building. Let's see what you've got." },
+      no:      { host: "Silje her, med Nils Arne. Vi gjør det kort.", pundit: "Klarer du å tippe et resultat? Vi finner snart ut." },
+      sco:     { host: "Shona here wi' Rab. Quick briefing, then we're off.", pundit: "New manager. We'll see if they know their fitba." }
     }
   },
 
@@ -43,10 +43,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Tips",        lines: ["Tipp nøyaktig sluttresultat med pilene.", "Øye-ikonet = se en rivals tips."] }
     },
     audioScript: {
-      en:      { host: "Pick the score for every match using the arrows.", pundit: "Use the Spy button if you need to copy someone better." },
-      'en-US': { host: "Use the arrows to predict every final score.", pundit: "A DRAW?! What kind of sport allows draws?!" },
-      no:      { host: "Tipp resultatet i hver kamp med pilene.", pundit: "Spion-knappen kopierer rivalens tips. Nyttig." },
-      sco:     { host: "Use the arrows tae pick every score.", pundit: "See the wee eye? Spy on someone better than ye." }
+      en:      { host: "Use the arrows to predict every score.", pundit: "Picking 0-0 for everything? Brave. Or lazy." },
+      'en-US': { host: "Arrows up and down — pick every final score.", pundit: "Wrong score, zero points. The math is simple." },
+      no:      { host: "Bruk pilene til å tippe resultater.", pundit: "0-0 på alt? Modig. Eller lat." },
+      sco:     { host: "Use the arrows tae pick every score.", pundit: "Wrang scores dinnae score. Simple enough." }
     }
   },
 
@@ -67,10 +67,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Grupper", lines: ["12 grupper — fullfør alle.", "Ikke bare gruppe A. Alle 12."] }
     },
     audioScript: {
-      en:      { host: "Navigate through all 12 groups — don't stop early.", pundit: "12 groups. Get moving. Pub's closed till you're done." },
-      'en-US': { host: "Swipe through all twelve groups.", pundit: "Blanks score zero. Don't get benched." },
-      no:      { host: "Naviger gjennom alle 12 grupper.", pundit: "Alle 12. Ikke bare gruppe A. Videre!" },
-      sco:     { host: "Get through all 12 groups — dinnae stop early.", pundit: "12 groups. Keep swiping. No pie till ye're done." }
+      en:      { host: "Swipe through all 12 groups — don't stop at A.", pundit: "12 groups. No excuses." },
+      'en-US': { host: "Hit all 12 groups — every blank is a zero.", pundit: "You skipped Group F, didn't you." },
+      no:      { host: "Gå gjennom alle 12 grupper.", pundit: "Alle 12. Ikke bare gruppe A." },
+      sco:     { host: "Get through all 12 groups — every single wan.", pundit: "Blank picks dinnae score. Keep swiping." }
     }
   },
 
@@ -91,10 +91,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Tryllestav", lines: ["Én trykk fyller inn alle gjenværende tips.", "Basert på statistikk. Ingen garanti."] }
     },
     audioScript: {
-      en:      { host: "Short on time? The Magic Wand auto-fills everything.", pundit: "It's for people who don't know the game. But go ahead." },
-      'en-US': { host: "The Magic Wand fills the rest using stats.", pundit: "Analytics calling your plays? The game's gone soft." },
-      no:      { host: "Dårlig tid? Tryllestaven fyller ut alt.", pundit: "For de som ikke kan fotball. Men greit nok." },
-      sco:     { host: "Short o' time? The Magic Wand fills it out.", pundit: "Pure laziness. But aye, go ahead." }
+      en:      { host: "Magic Wand auto-fills your remaining picks using stats.", pundit: "Still your fault when it's wrong." },
+      'en-US': { host: "One tap fills the rest with stats-based picks.", pundit: "Analytics. The game's gone soft." },
+      no:      { host: "Tryllestaven fyller inn resten basert på statistikk.", pundit: "Statistikkbasert. Fremdeles din feil." },
+      sco:     { host: "Magic Wand fills yer remaining picks wi' stats.", pundit: "Stats-based. Still yer fault, aye." }
     }
   },
 
@@ -109,16 +109,16 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no: '/audio/tour_pre_no_05.mp3', sco: '/audio/tour_pre_sco_05.mp3'
     },
     display: {
-      en:      { title: "Knockouts", lines: ["No scores — just tap who advances.", "Pick your champion or you're wasting time."] },
-      'en-US': { title: "Playoffs",  lines: ["No scores — just pick who advances.", "Pick a champion. That's why you're here."] },
-      sco:     { title: "Knockouts", lines: ["Nae scores — just pick who goes through.", "Pick a champion or yer talkin' mince."] },
+      en:      { title: "Knockouts",  lines: ["No scores — just tap who advances.", "Pick your champion or you're wasting time."] },
+      'en-US': { title: "Playoffs",   lines: ["No scores — just pick who advances.", "Pick a champion. That's why you're here."] },
+      sco:     { title: "Knockouts",  lines: ["Nae scores — just pick who goes through.", "Pick a champion or yer talkin' mince."] },
       no:      { title: "Sluttspill", lines: ["Ingen resultat — velg hvem som går videre.", "Velg din mester. Det er derfor du er her."] }
     },
     audioScript: {
-      en:      { host: "Knockouts: just tap who you think advances.", pundit: "Pick a Champion or what are you even doing here?" },
-      'en-US': { host: "Tap who advances — no scores needed.", pundit: "Pick a Champion or go home!" },
-      no:      { host: "Sluttspill: trykk på laget som går videre.", pundit: "Velg en mester. Det er derfor du er her." },
-      sco:     { host: "Knockouts: pick who wins — nae scores needed.", pundit: "Someone has tae win. Get it done." }
+      en:      { host: "Knockouts: tap who advances — no scores needed.", pundit: "Pick a Champion. That's the whole point." },
+      'en-US': { host: "Tap who advances — no score predictions in knockouts.", pundit: "Someone has to win. Pick them." },
+      no:      { host: "Sluttspill: trykk på laget som går videre.", pundit: "Velg en mester. Det er jobben din." },
+      sco:     { host: "Knockouts: tap who goes through — nae scores.", pundit: "Pick a champion. Get it done." }
     }
   },
 
@@ -139,10 +139,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Klar",   lines: ["Briefing ferdig — legg inn tipsene dine.", "Gjennomspill via Profil-menyen når som helst."] }
     },
     audioScript: {
-      en:      { host: "That's the briefing. Replay it anytime from your Profile.", pundit: "Stop listening to us and get your predictions in." },
-      'en-US': { host: "That wraps it. Find the tour again in your Profile.", pundit: "Helmet on. Lock in those picks. Let's go." },
-      no:      { host: "Det var alt. Finn omvisningen igjen i Profil-menyen.", pundit: "Slutt å lytte. Legg inn tipsene dine." },
-      sco:     { host: "That's yer lot. Find the tour again in yer Profile.", pundit: "Right. Get cracking. We'll be watching." }
+      en:      { host: "Done. Replay this tour from your Profile anytime.", pundit: "Stop listening. Get your picks in." },
+      'en-US': { host: "That's it. Find the tour again in your Profile.", pundit: "Lock in those picks. Let's go." },
+      no:      { host: "Ferdig. Finn omvisningen i Profil-menyen.", pundit: "Slutt å lytte. Legg inn tipsene." },
+      sco:     { host: "That's yer lot. Replay from yer Profile anytime.", pundit: "Right. Get cracking." }
     }
   }
 ];
@@ -165,10 +165,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "We're Live",  lines: ["We're aff! Tournament is live!", "Picks locked — here's whit's changed."] },
     },
     audioScript: {
-      en:      { host: "The Rasten Cup is live. Predictions locked — but the game's very much on.", pundit: "Forget group stage. What matters now is the pitch." },
-      'en-US': { host: "IT IS HAPPENING! Tournament is live!", pundit: "Picks locked. Now we watch it unfold." },
-      no:      { host: "Turneringen er i gang. Tipsene er låst — men kampen er ikke over.", pundit: "Glem gruppespillet. Det som teller er banen nå." },
-      sco:     { host: "The Rasten Cup is live. Predictions locked.", pundit: "Forget what ye tipped. Actual fitba is on." },
+      en:      { host: "The tournament is live. Predictions locked.", pundit: "Forget the group stage — it's real football now." },
+      'en-US': { host: "It's live! Picks are locked in.", pundit: "Now we watch it all unfold." },
+      no:      { host: "Turneringen er i gang. Tipsene er låst.", pundit: "Glem gruppespillet. Ekte fotball nå." },
+      sco:     { host: "We're live. Predictions are locked.", pundit: "Actual fitba. Pay attention." },
     }
   },
 
@@ -186,10 +186,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Live Table",       lines: ["Live table — yer new home for the tournament.", "Points update after every result."] },
     },
     audioScript: {
-      en:      { host: "The Leaderboard is your home tab from now on.", pundit: "Every result moves it. Watch that table." },
-      'en-US': { host: "Leaderboard tab — your home base for the tournament.", pundit: "Is your name climbing or sinking?" },
-      no:      { host: "Poengtabellen er din hjem-fane nå.", pundit: "Hvert resultat beveger den. Hold øye." },
-      sco:     { host: "The Leaderboard tab is yer home now.", pundit: "Every right result nets points. Up or doon?" },
+      en:      { host: "Leaderboard is your home tab now — updates after every match.", pundit: "Up or down after every result." },
+      'en-US': { host: "Leaderboard — live standings update every match.", pundit: "Is your name climbing or sinking?" },
+      no:      { host: "Poengtabellen er din hjem-fane nå.", pundit: "Opp eller ned etter hvert resultat." },
+      sco:     { host: "Leaderboard is yer home tab — live points each match.", pundit: "Up or doon. That's the game." },
     }
   },
 
@@ -207,10 +207,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Yer Standing",   lines: ["See exactly where ye stand.", "Toggle: Live vs Banked points up top."] },
     },
     audioScript: {
-      en:      { host: "See exactly where you stand against your league.", pundit: "This is where reputations are made and destroyed." },
-      'en-US': { host: "Track your standing vs everyone in your league.", pundit: "Every result moves the needle. Hero or not." },
-      no:      { host: "Her ser du nøyaktig hvor du står i ligaen.", pundit: "Her skapes og ødelegges rykter. Hold øye." },
-      sco:     { host: "See exactly where ye stand in yer league.", pundit: "This is where the banter starts. Keep watching." },
+      en:      { host: "See your rank and toggle Live vs Banked points.", pundit: "This is where reputations get built or buried." },
+      'en-US': { host: "Track your standing — toggle Live vs Banked at the top.", pundit: "Every result moves the needle." },
+      no:      { host: "Se din plassering — bytt mellom Live og Bankede poeng.", pundit: "Her bygges og ødelegges ryktene." },
+      sco:     { host: "See yer rank — toggle Live vs Banked points up top.", pundit: "This is where the banter starts." },
     }
   },
 
@@ -222,16 +222,16 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'swipe-hand',
     audioFiles: {},
     display: {
-      en:      { title: "Tournament",         lines: ["Live match centre — all the action here.", "Schedule, tables, and bracket — one tab."] },
-      'en-US': { title: "Tournament",         lines: ["Everything live, right here.", "Schedule, standings, and bracket — all in one."] },
-      no:      { title: "Turnering",          lines: ["Live-kampsentral — all action her.", "Kampplan, tabeller og brakett — én fane."] },
-      sco:     { title: "Tournament",         lines: ["All the live action is right here.", "Schedule, tables, and bracket — wan tab."] },
+      en:      { title: "Tournament",  lines: ["Live match centre — all the action here.", "Schedule, tables, and bracket — one tab."] },
+      'en-US': { title: "Tournament",  lines: ["Everything live, right here.", "Schedule, standings, and bracket — all in one."] },
+      no:      { title: "Turnering",   lines: ["Live-kampsentral — all action her.", "Kampplan, tabeller og brakett — én fane."] },
+      sco:     { title: "Tournament",  lines: ["All the live action is right here.", "Schedule, tables, and bracket — wan tab."] },
     },
     audioScript: {
-      en:      { host: "Tournament tab — live match centre for the whole competition.", pundit: "Schedule, Tables, Bracket — all here." },
-      'en-US': { host: "Tournament tab — live scores, standings, and bracket.", pundit: "This is where you follow the actual games." },
-      no:      { host: "Turnering-fanen — live-kampsentral for hele turneringen.", pundit: "Kampplan, Tabeller, Brakett — alt her." },
-      sco:     { host: "Tournament tab — yer live match centre.", pundit: "Schedule, Tables, Bracket — aw in here." },
+      en:      { host: "Tournament tab — live scores, tables, and bracket.", pundit: "Schedule, Tables, Bracket — all here." },
+      'en-US': { host: "Tournament tab — everything live in one place.", pundit: "Scores, standings, bracket. All of it." },
+      no:      { host: "Turnering-fanen — live scorer, tabeller og brakett.", pundit: "Alt du trenger, ett sted." },
+      sco:     { host: "Tournament tab — live scores, tables, bracket.", pundit: "Everything's in here. Have a look." },
     }
   },
 
@@ -249,10 +249,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Three Views",   lines: ["Schedule · Tables · Bracket", "The Bracket is where yer picks live or dae."] },
     },
     audioScript: {
-      en:      { host: "Three views: Schedule for scores, Tables for groups, Bracket for the drama.", pundit: "Keep an eye on the Bracket. That's where it all falls apart." },
-      'en-US': { host: "Schedule, Tables, Bracket — all three views in this tab.", pundit: "Your champion loses in the quarters? Long walk home." },
-      no:      { host: "Kampplan, Tabeller, Brakett — tre visninger i én fane.", pundit: "Hold øye med braketten. Der skinner eller faller dine tips." },
-      sco:     { host: "Three views: Schedule, Tables, and Bracket.", pundit: "The Bracket — that's where yer predictions shine or fall apart." },
+      en:      { host: "Schedule, Tables, Bracket — three views, one tab.", pundit: "The Bracket is where your picks live or die." },
+      'en-US': { host: "Three views: Schedule, Standings, Bracket.", pundit: "Bracket's everything. Don't ignore it." },
+      no:      { host: "Kampplan, Tabeller, Brakett — tre visninger.", pundit: "Braketten er der det avgjøres." },
+      sco:     { host: "Schedule, Tables, Bracket — three views in wan tab.", pundit: "The Bracket — that's where it all falls apart." },
     }
   },
 
@@ -270,10 +270,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "The Bracket",  lines: ["Full knockout draw — R32 tae the Final.", "Is yer champion still breathin'?"] },
     },
     audioScript: {
-      en:      { host: "The bracket — every knockout match from R32 to the Final.", pundit: "Your champion's either still in or it's not. No hiding." },
-      'en-US': { host: "Every playoff matchup from Round of 32 to the Final.", pundit: "Every upset costs someone points. Brutal." },
-      no:      { host: "Braketten — alle sluttspillkamper fra R32 til finalen.", pundit: "Ditt mesterlags-valg lever eller ikke. Ingen gjemmeplasser." },
-      sco:     { host: "The bracket — every knockout tie tae the Final.", pundit: "Yer champion's either in or oot. No hiding." },
+      en:      { host: "Full knockout bracket — Round of 32 to the Final.", pundit: "Is your champion still standing?" },
+      'en-US': { host: "Every playoff matchup from R32 to the Final.", pundit: "Your champion lose in the quarters? Long walk." },
+      no:      { host: "Full brakett — R32 til finalen.", pundit: "Lever ditt mesterlags-valg fortsatt?" },
+      sco:     { host: "Full bracket — R32 tae the Final, right here.", pundit: "Is yer champion still breathing?" },
     }
   },
 
@@ -291,10 +291,10 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Manager",  lines: ["Still in the game — as manager.", "Subs let ye change locked predictions."] },
     },
     audioScript: {
-      en:      { host: "Manager tab — because locked predictions aren't the end.", pundit: "Substitutions let you swap out your worst calls." },
-      'en-US': { host: "Manager tab — locked in doesn't mean out of options.", pundit: "Use subs on the games that still matter." },
-      no:      { host: "Manager-fanen — fordi låste tips ikke er slutten.", pundit: "Bytter lar deg fikse dine verste valg." },
-      sco:     { host: "Manager tab — because predictions locking disnae stop the game.", pundit: "Subs let ye fix yer worst calls." },
+      en:      { host: "Manager tab — locked predictions aren't the end.", pundit: "Substitutions let you fix your worst calls." },
+      'en-US': { host: "Manager tab — locked in doesn't mean stuck.", pundit: "Use subs on games that still matter." },
+      no:      { host: "Manager-fanen — låste tips er ikke slutten.", pundit: "Bytter lar deg fikse dine verste valg." },
+      sco:     { host: "Manager tab — locked predictions arenae final.", pundit: "Subs let ye fix the disasters." },
     }
   },
 
@@ -312,14 +312,14 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Analysis",  lines: ["Yer tactical edge is right here.", "Swing matches and pundit insight."] },
     },
     audioScript: {
-      en:      { host: "Analysis tab — where you find your edge over rivals.", pundit: "Swing matches. That's where titles are won." },
-      'en-US': { host: "Analysis tab — AI intel and rival breakdowns.", pundit: "Ignore this and you're flying blind." },
-      no:      { host: "Analyse-fanen — din fordel over rivalene.", pundit: "Swing-kamper. Der titler vinnes." },
-      sco:     { host: "Analysis tab — where ye find yer edge.", pundit: "Swing matches. That's where it's won or lost." },
+      en:      { host: "Analysis — where you find your edge over rivals.", pundit: "Swing matches. That's where titles are won." },
+      'en-US': { host: "Analysis tab — rival breakdowns and AI intel.", pundit: "Ignore this and you're flying blind." },
+      no:      { host: "Analyse — finn din fordel over rivalene.", pundit: "Swing-kamper. Der titler vinnes." },
+      sco:     { host: "Analysis tab — find yer edge over the competition.", pundit: "Swing matches. Won or lost right here." },
     }
   },
 
-  // STOP 9: MANAGER CONTENT
+  // STOP 9: MANAGER CONTENT / WRAP-UP
   {
     id: 'live_manager_content',
     targets: ['tour-manager-viewmode'],
@@ -333,14 +333,14 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
       sco:     { title: "Use a Sub",      lines: ["Find the match. Spend a sub.", "Save subs for the games that matter."] },
     },
     audioScript: {
-      en:      { host: "Browse Group or Knockout — tap a match to spend a sub.", pundit: "Don't waste subs on dead rubbers." },
-      'en-US': { host: "Browse predictions and tap to spend a substitution.", pundit: "Save them for crunch games that shift the board." },
-      no:      { host: "Bla i tips og trykk på en kamp for å bruke et bytte.", pundit: "Ikke sløs bytter på avgjorte kamper." },
-      sco:     { host: "Browse predictions and tap a match tae use a sub.", pundit: "Dinnae waste subs on deid rubbers." },
+      en:      { host: "Browse predictions and tap a match to use a sub.", pundit: "Save subs for games that shift the board." },
+      'en-US': { host: "Find a match, tap it, spend a sub. That's it.", pundit: "Don't waste them on dead rubbers." },
+      no:      { host: "Finn en kamp, trykk på den, bruk et bytte.", pundit: "Ikke sløs bytter på avgjorte kamper." },
+      sco:     { host: "Find a match, tap it, use yer sub. Simple.", pundit: "Save subs for the crunch games." },
     }
   },
 
-  // STOP 9: PROFILE / WRAP-UP
+  // STOP 10: PROFILE / WRAP-UP
   {
     id: 'live_profile',
     targetId: 'btn-profile-menu',

@@ -65,6 +65,7 @@ export const App = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [rulesDefaultTab, setRulesDefaultTab] = useState<'play' | 'score'>('play');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
@@ -768,8 +769,8 @@ export const App = () => {
         )}
       </main>
 
-      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
-      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
+      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} onShowRules={() => { setRulesDefaultTab('score'); setShowRules(true); }} />
+      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" onShowRules={() => { setRulesDefaultTab('score'); setShowRules(true); }} />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
 
       {showAvatarEditor && (
@@ -864,7 +865,7 @@ export const App = () => {
           </div>
         </div>
       )}
-      <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} lang={t} matches={matches} currentLocale={currentLocale} />
+      <RulesModal isOpen={showRules} onClose={() => { setShowRules(false); setRulesDefaultTab('play'); }} lang={t} matches={matches} currentLocale={currentLocale} defaultTab={rulesDefaultTab} />
       
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
