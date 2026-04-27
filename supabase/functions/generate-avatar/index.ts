@@ -29,7 +29,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `3D Pixar animation studio style. NOT photorealistic. A close-up portrait headshot of a ${gender} football fan character at the 2026 FIFA World Cup. ${prompt}. The character must look like they belong in a Pixar or Illumination animated film — large expressive eyes, smooth stylised skin, warm exaggerated cartoon proportions, vibrant colours. Bold national team face paint on cheeks and under eyes. Wearing a team scarf draped around neck and shoulders. Warm proud smile, looking directly into camera. Background: blurred night stadium with soft bokeh crowd lights and green pitch glow. Warm floodlight rim lighting. Face fills the frame. Highly detailed 4K Pixar render. NO suit, NO tie, NO business clothing.`
+                text: `Pixar 3D animated character portrait. A ${gender} football supporter at the 2026 World Cup. ${prompt}. The character is wearing a football jersey and a team scarf around their neck. They have colourful face paint on their cheeks. Big warm smile, large expressive cartoon eyes, looking straight at the viewer. Art style: exactly like a character from a Pixar animated film — smooth stylised skin, vibrant colours, exaggerated friendly features, NOT photorealistic, NOT realistic. Background: blurred stadium at night, bokeh crowd lights, green pitch glow. Close-up headshot, face fills the frame, shallow depth of field, warm rim lighting. No suit. No tie. No office. No business.`
               }
             ]
           }
