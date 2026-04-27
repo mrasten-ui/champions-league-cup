@@ -95,9 +95,11 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
   const handleIconTap = () => {
     tapCountRef.current += 1;
+    console.log('[admin] tap', tapCountRef.current);
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     if (tapCountRef.current >= 5) {
       tapCountRef.current = 0;
+      console.log('[admin] triggering modal');
       onAdminTrigger?.();
     } else {
       tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 3000);
