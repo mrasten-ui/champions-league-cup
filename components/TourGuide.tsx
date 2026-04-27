@@ -323,19 +323,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <>
                                 <button
                                     onClick={handleStartText}
-                                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                                    className="w-full py-4 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                                 >
-                                    <VolumeX size={20} />
+                                    <VolumeX size={20} className="text-yellow-400" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~30 sec</span>
+                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~30 sec</span>
                                     </div>
                                 </button>
                                 <button
                                     onClick={handleStart}
-                                    className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <Play size={16} fill="currentColor" />
+                                    <Play size={16} fill="currentColor" className="text-yellow-500" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.start}</span>
                                         <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~60 sec</span>
@@ -346,19 +346,19 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <>
                                 <button
                                     onClick={handleStart}
-                                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                                    className="w-full py-4 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                                 >
-                                    <Play size={20} fill="currentColor" />
+                                    <Play size={20} fill="currentColor" className="text-yellow-400" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~60 sec</span>
+                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~60 sec</span>
                                     </div>
                                 </button>
                                 <button
                                     onClick={handleStartText}
-                                    className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <VolumeX size={16} />
+                                    <VolumeX size={16} className="text-yellow-500" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.startText}</span>
                                         <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~30 sec</span>
@@ -368,7 +368,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         )}
                         <button
                             onClick={handleSkip}
-                            className="w-full py-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"
+                            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-colors"
                         >
                             {ui.skip}
                         </button>
