@@ -637,11 +637,9 @@ export const BROADCAST_CHANNELS: Record<string, string> = {};
 // --- LEAGUE CONFIG ---
 // Add new leagues here only. Slug = URL invite key. Name = display name.
 export const LEAGUES: Record<string, string> = {
-  family:   'The Rasten Family',
-  friends:  'Friends',
-  office:   'Office League',
-  beeline:  'Beeline Colleagues',
-  scotland: 'Scotland & Friends',
+  inverkeighing:    'Inverkeighing',
+  beeline:          'Beeline',
+  family_friends:   'Family and Friends',
 };
 
 // --- DATA EXPORTS ---

@@ -33,7 +33,10 @@ serve(async (req) => {
               }
             ]
           }
-        ]
+        ],
+        generationConfig: {
+          responseModalities: ["IMAGE"]
+        }
       })
     })
 
