@@ -51,7 +51,7 @@ export const App = () => {
   const {
     session, user, setUser, loading, matches, setMatches, teamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime
+    groupStageEndTime, knockoutStartTime, lockTimePassed
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
@@ -61,13 +61,24 @@ export const App = () => {
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
-  const [tournamentPhase, setTournamentPhase] = useState<TournamentPhase>('PRE_LIVE');
+  const [adminPhaseOverride, setAdminPhaseOverride] = useState<TournamentPhase | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+
+  // Derived from match data — flips to LIVE the moment any group match leaves UPCOMING/NS.
+  // Admin can override for testing only (requires admin mode to be active).
+  const tournamentPhase = useMemo<TournamentPhase>(() => {
+      if (isAdminMode && adminPhaseOverride !== null) return adminPhaseOverride;
+      const anyGroupStarted = matches.some(
+          m => m.groupId && !['UPCOMING', 'NS'].includes(m.status)
+      );
+      return (anyGroupStarted || lockTimePassed) ? 'LIVE' : 'PRE_LIVE';
+  }, [matches, isAdminMode, adminPhaseOverride, lockTimePassed]);
+  const setTournamentPhase = setAdminPhaseOverride;
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminPasswordError, setAdminPasswordError] = useState(false);
@@ -141,7 +152,7 @@ export const App = () => {
       const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
 
       // If they activated OR are currently drafting, ignore their group predictions
-      if (user.hasTakenSecondChance || user.secondChanceStatus === 'ACTIVE' || isDraftingWindow) {
+      if (user.hasTakenSecondChance || isDraftingWindow) {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
       }
@@ -228,6 +239,7 @@ export const App = () => {
 
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
+      if (user.spiedMatches?.includes(matchId)) return;
       if (user.tokens < 1) { addToast('error', t.noIntel, t.noIntelMsg); return; }
       const newSpied = [...(user.spiedMatches || []), matchId];
       const newTokens = user.tokens - 1;
@@ -559,8 +571,11 @@ export const App = () => {
     if (!user || !supabase) return; 
     const query = supabase.from('predictions').delete().eq('user_id', user.email);
     if (activeTab === 'groups') {
-       setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
-       await query; 
+       const groupIds = matches.filter(m => m.groupId).map(m => m.id);
+       if (groupIds.length > 0) {
+           setAllPredictions(prev => prev.filter(p => p.userId !== user.email || !groupIds.includes(p.matchId)));
+           await query.in('match_id', groupIds);
+       }
     } else if (activeTab === 'knockout') {
        const knockoutIds = matches.filter(m => m.round).map(m => m.id);
        if (knockoutIds.length > 0) {

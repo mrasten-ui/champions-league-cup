@@ -69,7 +69,7 @@ export const fetchAllTeamTactics = async () => {
         const map: Record<string, any> = {};
         if (data) {
             data.forEach(row => {
-                map[row.team_id] = row;
+                map[row.team_id.toUpperCase()] = row;
             });
         }
         return map;

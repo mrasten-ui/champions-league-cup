@@ -13,12 +13,16 @@ export const SCORING_RULES = {
   '3RD': 20
 };
 
+// NOTE — penalty shootouts: scores must reflect the winning team having a higher
+// score than the loser. For a 0–0 AET match decided on pens, the admin must
+// enter e.g. 1–0 so calculatePoints can determine the correct winner. Storing
+// equal scores (0–0, 1–1) for a knockout match will result in no points awarded.
 export const calculatePoints = (
-  predHome: number, 
-  predAway: number, 
-  actualHome: number | null, 
-  actualAway: number | null, 
-  userHasPenalty: boolean = false, 
+  predHome: number,
+  predAway: number,
+  actualHome: number | null,
+  actualAway: number | null,
+  userHasPenalty: boolean = false,
   round?: Round
 ): number => {
   if (actualHome === null || actualAway === null) return 0;
@@ -803,7 +807,7 @@ export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
     const { data } = await supabase.from('team_form_data').select('team_id, fifa_rank');
     if (data) {
       const rankMap: Record<string, number> = {};
-      data.forEach(row => { if (row.team_id && row.fifa_rank !== null) rankMap[row.team_id] = row.fifa_rank; });
+      data.forEach(row => { if (row.team_id && row.fifa_rank !== null) rankMap[row.team_id.toUpperCase()] = row.fifa_rank; });
       return rankMap;
     }
   } catch (e) { console.error("Rank Sync Error:", e); }

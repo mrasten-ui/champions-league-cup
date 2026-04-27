@@ -51,6 +51,14 @@ export interface Translation {
   magicApplied: string;
   noIntel: string;
   noIntelMsg: string;
+
+  // --- Rules tab ---
+  rulesPreSubtitle: string;
+  rulesLiveSubtitle: string;
+  rulesLiveScoringSection: string;
+  rulesLiveToolsSection: string;
+  rulesLiveAnalysisTitle: string;
+  rulesLiveAnalysisDesc: string;
 }
 
 export type Round = 'R32' | 'R16' | 'QF' | 'SF' | 'FIN' | '3RD';

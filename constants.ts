@@ -113,7 +113,6 @@ const BASE_TEAM_NAMES: Record<string, string> = {
   ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
   POR: "Portugal", COD: "DR Congo", UZB: "Uzbekistan", COL: "Colombia",
   ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
-  DEN: "Denmark",
   TBD: "TBD"
 };
 
@@ -157,8 +156,6 @@ const EN_TRANSLATION: Translation = {
     tabHowToPlay: "How to Play", tabScoring: "Points System",
     rulesPreSubtitle: "Build your predictions. Collect points. Compete for glory.",
     rulesLiveSubtitle: "The tournament is live. Here's what matters now.",
-    rulesWhatsComingTitle: "When the Tournament Goes Live",
-    rulesWhatsComingDesc: "Once the group stage begins, predictions lock permanently. Your focus shifts to the leaderboard — track live points, use substitutions to fix locked group picks, and find your edge in the Analysis tab.",
     rulesLiveScoringSection: "Scoring Right Now",
     rulesLiveToolsSection: "Your Tools",
     rulesLiveAnalysisTitle: "Analysis — Find Your Edge",
@@ -290,8 +287,6 @@ const SCO_TRANSLATION: Translation = {
     profile: "Ma Profile", logout: "Cheerio", rulesBtn: "The Rules", rulesTitle: "Hoo tae Play", tabHowToPlay: "The Basics", tabScoring: "Points",
     rulesPreSubtitle: "Build yer picks. Score points. Take the glory.",
     rulesLiveSubtitle: "We're live. Here's whit matters noo.",
-    rulesWhatsComingTitle: "When the Tournament Kicks Aff",
-    rulesWhatsComingDesc: "Once the games kick aff, picks are locked. Check the live table, use yer subs tae fix group picks, and head tae Analysis tae find yer edge.",
     rulesLiveScoringSection: "Scorin' Right Noo",
     rulesLiveToolsSection: "Yer Tools",
     rulesLiveAnalysisTitle: "Analysis — Find Yer Edge",
@@ -411,8 +406,6 @@ const US_TRANSLATION: Translation = {
     profile: "Coach Profile", logout: "Sign Out", rulesBtn: "Rulebook", rulesTitle: "Official Rules", tabHowToPlay: "Basics", tabScoring: "Scoring",
     rulesPreSubtitle: "Build your bracket. Score points. Win the cup.",
     rulesLiveSubtitle: "Tournament is live. Time to play smart.",
-    rulesWhatsComingTitle: "When the Tournament Starts",
-    rulesWhatsComingDesc: "Once play begins, picks lock in. Track live standings, use substitutions to change locked group picks, and use Analysis to scout rivals and find your edge.",
     rulesLiveScoringSection: "Live Scoring",
     rulesLiveToolsSection: "Available Tools",
     rulesLiveAnalysisTitle: "Analysis — Find Your Advantage",
@@ -532,8 +525,6 @@ const NO_TRANSLATION: Translation = {
     profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
     rulesPreSubtitle: "Bygg dine tips. Samle poeng. Kjemp om æren.",
     rulesLiveSubtitle: "Turneringen er i gang. Her er det som teller nå.",
-    rulesWhatsComingTitle: "Når Turneringen Starter",
-    rulesWhatsComingDesc: "Når kampene starter, låses tipsene permanent. Fokuser på poengtabellen — følg poeng live, bruk bytter til å endre låste tips, og finn din fordel i Analyse-fanen.",
     rulesLiveScoringSection: "Poeng Nå",
     rulesLiveToolsSection: "Dine Verktøy",
     rulesLiveAnalysisTitle: "Analyse — Finn Din Fordel",
@@ -675,7 +666,6 @@ const FLAG_MAP: Record<string, string> = {
   ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
   POR: "pt", COD: "cd", UZB: "uz", COL: "co",
   ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
-  DEN: "dk",
   TBD: ""
 };
 
@@ -729,7 +719,6 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
   CRO: { rank: 11, att: 78, mid: 85, def: 82 },
   GHA: { rank: 58, att: 76, mid: 75, def: 73 },
   PAN: { rank: 33, att: 72, mid: 71, def: 71 },
-  DEN: { rank: 21, att: 81, mid: 82, def: 80 },
   TBD: { rank: 99, att: 50, mid: 50, def: 50 }
 };
 

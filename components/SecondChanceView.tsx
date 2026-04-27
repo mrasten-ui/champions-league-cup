@@ -179,7 +179,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
                       </div>
                   </div>
                   <button onClick={onLockIn} className="bg-white text-red-700 hover:bg-red-50 px-8 py-4 rounded-xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95">
-                      <Save size={18} /> Lock In Bracket
+                      <Save size={18} /> {lang.bracketLockedIn}
                   </button>
               </div>
           )}

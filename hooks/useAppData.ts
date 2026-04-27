@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
 import { Match, Team, Prediction, UserProfile } from '../types';
@@ -21,6 +21,9 @@ export const useAppData = () => {
   // --- SECOND CHANCE TIMERS ---
   const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
   const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
+  const [firstMatchTime, setFirstMatchTime] = useState<number>(0);
+  const [lockTimePassed, setLockTimePassed] = useState<boolean>(false);
+  const kickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
@@ -60,6 +63,27 @@ export const useAppData = () => {
             const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             if (koMatches.length > 0) {
                 setKnockoutStartTime(new Date(koMatches[0].date).getTime());
+            }
+
+            // First group match kickoff — drives automatic PRE_LIVE→LIVE transition.
+            // The lock time (kickoff - 15 min) matches the prediction-lock countdown,
+            // so the phase flips at exactly the same moment the countdown reaches zero.
+            const firstGroupMatch = [...validMatches]
+                .filter(m => m.groupId)
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+            if (firstGroupMatch) {
+                const t0 = new Date(firstGroupMatch.date).getTime();
+                const lockTime = t0 - 15 * 60 * 1000;
+                setFirstMatchTime(t0);
+                setLockTimePassed(Date.now() >= lockTime);
+                if (Date.now() < lockTime) {
+                    if (kickoffTimerRef.current) clearTimeout(kickoffTimerRef.current);
+                    const delay = Math.min(lockTime - Date.now(), 2_147_483_647);
+                    kickoffTimerRef.current = setTimeout(() => {
+                        setLockTimePassed(true);
+                        setMatches(prev => prev.map(m => ({ ...m, isLocked: true })));
+                    }, delay);
+                }
             }
 
             // --- CORE GLOBAL LOCK CHECK ---
@@ -136,11 +160,10 @@ export const useAppData = () => {
               }
 
               Object.keys(next).forEach(tid => {
-                  const dbId = tid.toLowerCase();
                   if (next[tid] && tid !== 'TBD') {
                       const updates: Partial<typeof next[string]> = {};
-                      if (rankMap[dbId] != null) updates.rank = rankMap[dbId];
-                      if (tacticsMap[dbId]) { const tc = tacticsMap[dbId]; updates.att = tc.att; updates.mid = tc.mid; updates.def = tc.def; updates.rating = Math.round((tc.att + tc.mid + tc.def) / 3); }
+                      if (rankMap[tid] != null) updates.rank = rankMap[tid];
+                      if (tacticsMap[tid]) { const tc = tacticsMap[tid]; updates.att = tc.att; updates.mid = tc.mid; updates.def = tc.def; updates.rating = Math.round((tc.att + tc.mid + tc.def) / 3); }
                       if (formMap[tid]) updates.form = formMap[tid];
                       if (Object.keys(updates).length > 0) next[tid] = { ...next[tid], ...updates };
                   }
@@ -159,7 +182,8 @@ export const useAppData = () => {
               setUser({
                   name: data.name || '', email: data.email, tokens: data.tokens ?? 0, substitutions: data.substitutions ?? 0,
                   unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance, secondChanceStatus: (data.second_chance_status as any) || 'NONE',
-                  spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || []
+                  spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || [],
+                  toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
               });
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -229,6 +253,7 @@ export const useAppData = () => {
           return () => {
               subscription.unsubscribe();
               supabase.removeChannel(channel);
+              if (kickoffTimerRef.current) clearTimeout(kickoffTimerRef.current);
           };
       } else { setLoading(false); }
   }, []);
@@ -236,6 +261,6 @@ export const useAppData = () => {
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime // <--- RE-ADDED: Fixes the Vercel crash!
+    groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed
   };
 };

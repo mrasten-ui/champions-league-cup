@@ -45,7 +45,7 @@ const ScoringSection: React.FC<{ lang: Translation }> = ({ lang }) => (
           { label: lang.roundOf16,         pts: 12, cls: 'bg-indigo-50 border-indigo-100 text-indigo-700 text-indigo-900' },
           { label: lang.quarterFinal,      pts: 16, cls: 'bg-purple-50 border-purple-100 text-purple-700 text-purple-900' },
           { label: lang.semiFinal,         pts: 24, cls: 'bg-purple-50 border-purple-100 text-purple-700 text-purple-900' },
-          { label: lang.thirdPlacePlayoff, pts: 20, cls: 'bg-amber-50  border-amber-100  text-amber-700  text-amber-900',  icon: <Medal size={9} className="text-amber-500 mb-0.5" /> },
+          { label: lang.thirdPlacePlayoff, pts: 20, cls: 'bg-amber-50 border-amber-100 text-amber-700 text-amber-900', icon: <Medal size={9} className="text-amber-500 mb-0.5" /> },
         ].map(({ label, pts, cls, icon }) => {
           const [bg, border, numCls, textCls] = cls.split(' ');
           return (
@@ -112,9 +112,9 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
   ];
 
   const liveTools = [
-    { icon: <RefreshCw size={14} />, iconCls: 'bg-emerald-100 text-emerald-700', title: lang.rule5Title, desc: lang.rule5Desc },
-    { icon: <Eye size={14} />,       iconCls: 'bg-cyan-100 text-cyan-700',       title: lang.rule4Title, desc: lang.rule4Desc },
-    { icon: <Unlock size={14} />,    iconCls: 'bg-orange-100 text-orange-700',   title: lang.rule6Title, desc: lang.rule6Desc },
+    { icon: <RefreshCw size={14} />, iconCls: 'bg-emerald-100 text-emerald-700', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },
+    { icon: <Eye size={14} />,       iconCls: 'bg-cyan-100 text-cyan-700',       title: stripNum(lang.rule4Title), desc: lang.rule4Desc },
+    { icon: <Unlock size={14} />,    iconCls: 'bg-orange-100 text-orange-700',   title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
   ];
 
   return (
@@ -135,7 +135,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
               {lang.rulesTitle}
             </h1>
             <p className="text-slate-400 text-[11px] font-medium leading-snug">
-              {isLive ? (lang as any).rulesLiveSubtitle : (lang as any).rulesPreSubtitle}
+              {isLive ? lang.rulesLiveSubtitle : lang.rulesPreSubtitle}
             </p>
           </div>
         </div>
@@ -188,11 +188,11 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
       {isLive && (
         <>
           {/* SCORING */}
-          <SectionLabel icon={<Trophy size={10} />} label={(lang as any).rulesLiveScoringSection} className="mb-3" />
+          <SectionLabel icon={<Trophy size={10} />} label={lang.rulesLiveScoringSection} className="mb-3" />
           <ScoringSection lang={lang} />
 
           {/* TOOLS */}
-          <SectionLabel icon={<RefreshCw size={10} />} label={(lang as any).rulesLiveToolsSection} className="mt-6 mb-3" />
+          <SectionLabel icon={<RefreshCw size={10} />} label={lang.rulesLiveToolsSection} className="mt-6 mb-3" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {liveTools.map(({ icon, iconCls, title, desc }) => (
               <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-3 flex items-start gap-3 shadow-sm">
@@ -208,13 +208,13 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
           </div>
 
           {/* ANALYSIS */}
-          <SectionLabel icon={<TrendingUp size={10} />} label={(lang as any).rulesLiveAnalysisTitle} className="mt-6 mb-3" />
+          <SectionLabel icon={<TrendingUp size={10} />} label={lang.rulesLiveAnalysisTitle} className="mt-6 mb-3" />
           <div className="bg-[#0f2545] rounded-2xl px-4 py-4 flex gap-3 items-start shadow-lg">
             <div className="bg-emerald-400/15 border border-emerald-400/20 p-2 rounded-xl shrink-0">
               <TrendingUp size={18} className="text-emerald-400" />
             </div>
             <p className="text-[11px] text-slate-300 leading-relaxed pt-0.5">
-              {(lang as any).rulesLiveAnalysisDesc}
+              {lang.rulesLiveAnalysisDesc}
             </p>
           </div>
         </>
