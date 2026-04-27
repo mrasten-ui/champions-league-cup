@@ -27,6 +27,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const [tourMode, setTourMode] = useState<'audio' | 'text'>('audio');
   
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
+  const [primaryIconPos, setPrimaryIconPos] = useState<{ left: string; top: string }>({ left: '50%', top: '50%' });
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestRef = useRef<number | null>(null); 
@@ -65,6 +66,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
           setIsMuted(false);
           setTourMode(defaultMode);
           setHighlightStyle(null);
+          setPrimaryIconPos({ left: '50%', top: '50%' });
       } else {
           if (audioRef.current) { 
               audioRef.current.pause(); 
@@ -88,11 +90,14 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
         let minTop = Infinity; let minLeft = Infinity;
         let maxBottom = -Infinity; let maxRight = -Infinity;
         let foundAny = false;
+        let firstValidRect: DOMRect | null = null;
 
         targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 const rect = el.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) return; // skip hidden / display:none
+                if (!firstValidRect) firstValidRect = rect;
                 if (rect.top < minTop) minTop = rect.top;
                 if (rect.left < minLeft) minLeft = rect.left;
                 if (rect.bottom > maxBottom) maxBottom = rect.bottom;
@@ -103,16 +108,26 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
 
         if (foundAny) {
             const PADDING = 12;
+            const frameLeft = minLeft - PADDING;
+            const frameTop = minTop - PADDING;
+            const frameWidth = (maxRight - minLeft) + PADDING * 2;
+            const frameHeight = (maxBottom - minTop) + PADDING * 2;
             setHighlightStyle({
-                top: minTop - PADDING,
-                left: minLeft - PADDING,
-                width: (maxRight - minLeft) + (PADDING * 2),
-                height: (maxBottom - minTop) + (PADDING * 2),
+                top: frameTop,
+                left: frameLeft,
+                width: frameWidth,
+                height: frameHeight,
                 borderRadius: '16px',
                 opacity: 1
             });
+            if (firstValidRect) {
+                const iconX = ((firstValidRect.left + firstValidRect.right) / 2 - frameLeft) / frameWidth * 100;
+                const iconY = ((firstValidRect.top + firstValidRect.bottom) / 2 - frameTop) / frameHeight * 100;
+                setPrimaryIconPos({ left: `${iconX}%`, top: `${iconY}%` });
+            }
         } else {
             setHighlightStyle({ opacity: 0 });
+            setPrimaryIconPos({ left: '50%', top: '50%' });
         }
         requestRef.current = requestAnimationFrame(updateHighlight);
     };
@@ -382,12 +397,12 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 </div>
             )}
             {currentStep.overlayType === 'swipe-hand' && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="absolute pointer-events-none" style={{ left: primaryIconPos.left, top: primaryIconPos.top, transform: 'translate(-50%, -50%)' }}>
                     <span className="tour-swipe text-3xl">👆</span>
                 </div>
             )}
             {currentStep.overlayType === 'tap-target' && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="absolute pointer-events-none" style={{ left: primaryIconPos.left, top: primaryIconPos.top, transform: 'translate(-50%, -50%)' }}>
                     <div className="relative w-10 h-10">
                         <div className="tour-ripple absolute inset-0 rounded-full border-2 border-yellow-400" />
                         <div className="absolute inset-0 flex items-center justify-center text-lg">👆</div>
