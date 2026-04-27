@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -126,22 +126,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return { headerUnits, modalUnits, numClass, labelClass, isCritical, isUrgent };
   }, [remaining, deadline, t]);
 
-  // --- SECRET ADMIN TRIGGER: tap logo 5× within 3 s ---
-  const tapCountRef = useRef(0);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTitleTap = () => {
-      tapCountRef.current += 1;
-      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-      if (tapCountRef.current >= 5) {
-          tapCountRef.current = 0;
-          props.setShowAdminLogin(true);
-          props.setIsProfileMenuOpen(false);
-      } else {
-          tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 3000);
-      }
-  };
-
   // --- HELPER: Tab icon for bottom nav ---
   const getTabIcon = (tab: string) => {
       switch (tab) {
@@ -255,7 +239,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      <Logo className="w-12 h-12" variant="theme" />
                  </button>
                  <div className="hidden md:block">
-                    <h1 onClick={handleTitleTap} className="text-lg font-black italic tracking-tighter uppercase leading-none cursor-default select-none">Rasten Cup</h1>
+                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1>
                  </div>
               </div>
 

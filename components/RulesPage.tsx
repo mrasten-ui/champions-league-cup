@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Translation, Match, TournamentPhase } from '../types';
 import {
   Target, Wand2, Trophy, ShieldAlert, Eye, RefreshCw,
@@ -11,6 +11,7 @@ interface RulesPageProps {
   matches: Match[];
   currentLocale: string;
   tournamentPhase: TournamentPhase;
+  onAdminTrigger?: () => void;
 }
 
 const stripNum = (s: string) => s.replace(/^\d+\.\s*/, '');
@@ -88,7 +89,21 @@ const SectionLabel: React.FC<{ icon: React.ReactNode; label: string; className?:
 );
 
 // ─── Main ────────────────────────────────────────────────────────────────────
-export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLocale, tournamentPhase }) => {
+export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLocale, tournamentPhase, onAdminTrigger }) => {
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleIconTap = () => {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      onAdminTrigger?.();
+    } else {
+      tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 3000);
+    }
+  };
+
   const deadlineFormatted = useMemo(() => {
     const valid = matches.filter(m => m.date && m.date !== 'TBD');
     if (valid.length === 0) return null;
@@ -124,7 +139,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
       <div className="bg-[#0f2545] rounded-2xl px-5 py-4 mb-5 relative overflow-hidden shadow-xl">
         <div className="absolute -top-6 -right-6 w-32 h-32 bg-yellow-400/8 rounded-full blur-3xl pointer-events-none" />
         <div className="flex items-center gap-4 relative z-10">
-          <div className="bg-yellow-400/10 border border-yellow-400/20 p-3 rounded-xl shrink-0">
+          <div className="bg-yellow-400/10 border border-yellow-400/20 p-3 rounded-xl shrink-0 cursor-default select-none" onClick={handleIconTap}>
             {isLive
               ? <Trophy size={26} className="text-yellow-400" />
               : <BookOpen size={26} className="text-yellow-400" />
