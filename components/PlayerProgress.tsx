@@ -10,9 +10,10 @@ interface PlayerProgressProps {
   totalMatches: { group: number, knockout: number };
   lang: Translation;
   currentUserLeagues?: string[];
+  currentUserEmail?: string;
 }
 
-export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [] }) => {
+export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [], currentUserEmail }) => {
   // 'global' tab shows everyone; league slugs show filtered views
   const tabs = currentUserLeagues.length > 0
     ? ['global', ...currentUserLeagues]
@@ -116,9 +117,11 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                 const count = userPreds.length;
                 const percent = totalGameMatches > 0 ? Math.min(100, Math.round((count / totalGameMatches) * 100)) : 0;
                 const isReady = count >= totalGameMatches;
+                const isMe = user.email === currentUserEmail;
 
                 return (
-                    <div key={user.email} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                    <div key={user.email} className={`p-4 flex items-center justify-between transition-colors group relative ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}>
+                        {isMe && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r" />}
                         <div className="flex items-center gap-3">
                             <AvatarDisplay avatar={user.avatar} size="md" className="ring-2 ring-white shadow-sm" />
                             <div>
