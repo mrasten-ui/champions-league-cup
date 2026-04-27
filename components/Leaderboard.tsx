@@ -417,16 +417,29 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           const gapAbove = above ? above.totalPoints - myEntry.totalPoints : 0;
           const isLeader = myIdx === 0;
 
-          const todayStr = new Date().toDateString();
-          const todayMatches = matches.filter(m =>
-              new Date(m.date).toDateString() === todayStr &&
-              ['FT', 'FINISHED', 'AET', 'PEN'].includes(m.status)
+          const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+          const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+          const historicalMatches = matches.filter(m =>
+              new Date(m.date).getTime() < threeDaysAgo &&
+              finishedStatuses.includes(m.status)
           );
-          const todayPoints = todayMatches.reduce((sum, m) => {
-              const pred = allPredictions.find(p => p.userId === currentUserEmail && p.matchId === m.id);
-              if (!pred || m.homeScore === null || m.awayScore === null) return sum;
-              return sum + calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!myEntry.hasTakenSecondChance, m.round);
-          }, 0);
+          const hasHistory = historicalMatches.length > 0;
+          const historicalRanking = hasHistory
+              ? [...displayList]
+                  .map(u => ({
+                      email: u.email,
+                      pts: historicalMatches.reduce((sum, m) => {
+                          const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+                          if (!pred || m.homeScore === null || m.awayScore === null) return sum;
+                          return sum + calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!u.hasTakenSecondChance, m.round);
+                      }, 0)
+                  }))
+                  .sort((a, b) => b.pts - a.pts)
+              : [];
+          const historicalRank = hasHistory
+              ? historicalRanking.findIndex(u => u.email === currentUserEmail) + 1
+              : myIdx + 1;
+          const rankChange = historicalRank - (myIdx + 1);
 
           return (
               <div id="tour-leaderboard-top" className="rounded-2xl bg-gradient-to-br from-[#1e1b4b] to-[#0f2545] border border-white/10 shadow-lg overflow-hidden">
@@ -475,10 +488,25 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                           <div className="w-px h-8 bg-white/10" />
 
                           <div className="text-center min-w-0">
-                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Today</div>
-                              <div className={`text-lg font-black ${todayPoints > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                                  {todayPoints > 0 ? `+${todayPoints}` : '–'}
-                              </div>
+                              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">3-Day Trend</div>
+                              {!hasHistory ? (
+                                  <div className="text-lg font-black text-slate-500">–</div>
+                              ) : rankChange > 0 ? (
+                                  <div className="flex flex-col items-center gap-0">
+                                      <TrendingUp size={18} className="text-green-400" />
+                                      <span className="text-[10px] font-black text-green-400">+{rankChange}</span>
+                                  </div>
+                              ) : rankChange < 0 ? (
+                                  <div className="flex flex-col items-center gap-0">
+                                      <TrendingDown size={18} className="text-red-400" />
+                                      <span className="text-[10px] font-black text-red-400">{rankChange}</span>
+                                  </div>
+                              ) : (
+                                  <div className="flex flex-col items-center gap-0">
+                                      <Minus size={18} className="text-yellow-400" />
+                                      <span className="text-[10px] font-black text-yellow-400">=</span>
+                                  </div>
+                              )}
                           </div>
                       </div>
                   )}
