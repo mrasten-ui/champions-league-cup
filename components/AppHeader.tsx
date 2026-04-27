@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -126,6 +126,23 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     return { headerUnits, modalUnits, numClass, labelClass, isCritical, isUrgent };
   }, [remaining, deadline, t]);
 
+  // --- SECRET ADMIN TRIGGER: tap logo 5× within 3 s ---
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogoTap = () => {
+      tapCountRef.current += 1;
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+      if (tapCountRef.current >= 5) {
+          tapCountRef.current = 0;
+          props.setShowAdminLogin(true);
+          props.setIsProfileMenuOpen(false);
+      } else {
+          tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 3000);
+          props.onReplayIntro();
+      }
+  };
+
   // --- HELPER: Tab icon for bottom nav ---
   const getTabIcon = (tab: string) => {
       switch (tab) {
@@ -235,7 +252,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
               {/* LEFT: Logo */}
               <div className="flex items-center gap-3 shrink-0">
-                 <button onClick={props.onReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
+                 <button onClick={handleLogoTap} className="focus:outline-none transition-transform active:scale-95">
                      <Logo className="w-12 h-12" variant="theme" />
                  </button>
                  <div className="hidden md:block">
@@ -315,15 +332,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
                                   <button onClick={() => { props.setActiveTab('rules' as any); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
-                                  <div className="border-t border-slate-100 mt-1 pt-1">
-                                      {props.isAdminMode ? (
-                                          <>
-                                              <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 transition-colors"><Bot size={16} /> Management</button>
-                                          </>
-                                      ) : (
-                                          <button onClick={() => { props.setShowAdminLogin(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 rounded-lg flex items-center gap-2 transition-colors"><Shield size={16} /> Admin Login</button>
-                                      )}
-                                  </div>
+                                  {props.isAdminMode && (
+                                      <div className="border-t border-slate-100 mt-1 pt-1">
+                                          <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 transition-colors"><Bot size={16} /> Management</button>
+                                      </div>
+                                  )}
                                   <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
                               </div>
                            </div>
