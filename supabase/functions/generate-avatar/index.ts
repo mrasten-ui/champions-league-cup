@@ -29,7 +29,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `A front-facing, close-up headshot avatar of a passionate ${gender} football fan attending the 2026 World Cup. The character is looking directly into the camera. ${prompt}. High-fidelity modern 3D animation studio style, expressive Pixar Disney vibe. Clean solid color background, soft studio lighting, sharp focus.`
+                text: `A close-up portrait of a passionate ${gender} football fan at the 2026 FIFA World Cup. ${prompt}. Rendered in high-fidelity Pixar/Illumination 3D animation studio style — semi-realistic, warm skin tones, smooth surfaces, large expressive eyes, natural proportions. The character has bold national team face paint on their cheeks, is wearing a team scarf draped around their neck, and has an excited, proud fan energy with a warm smile looking directly into the camera. Background is a softly blurred stadium at night with out-of-focus bokeh crowd lights. Warm floodlight glow from above, soft rim lighting, shallow depth of field. Face fills most of the frame, chin slightly raised, 4K portrait quality, sharp focus on face.`
               }
             ]
           }
