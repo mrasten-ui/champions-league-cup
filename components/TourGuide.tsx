@@ -14,10 +14,10 @@ interface TourGuideProps {
 
 // --- LOCALIZATION DICTIONARY ---
 const UI_STRINGS = {
-  EN:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
-  US:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
-  NO:  { title: 'Omvisning', subtitle: 'Før-sesong Brief', assistant: 'Din Assistent', start: 'Lydtur', startText: 'Tekstomvisning', skip: 'Jeg har spilt før', next: 'Neste', finish: 'Ferdig', host: 'Programleder', pundit: 'Ekspert' },
-  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  EN:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  US:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Update',   assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  NO:  { title: 'Omvisning', subtitle: 'Før-sesong Brief',   liveSubtitle: 'Livesesong Brief',     assistant: 'Din Assistent', start: 'Lydtur', startText: 'Tekstomvisning', skip: 'Jeg har spilt før', next: 'Neste', finish: 'Ferdig', host: 'Programleder', pundit: 'Ekspert' },
+  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
 export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio' }) => {
@@ -278,7 +278,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter drop-shadow-lg">
                             {ui.title}
                         </h2>
-                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest mt-1">{ui.subtitle}</p>
+                        <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest mt-1">{steps[0]?.id?.startsWith('live_') ? ui.liveSubtitle : ui.subtitle}</p>
                     </div>
                 </div>
                 
@@ -299,7 +299,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             {ui.assistant}
                         </p>
                         <p className="text-slate-800 text-sm sm:text-lg font-medium leading-relaxed italic">
-                            "{audioScript?.host}"
+                            "{content?.lines?.[0]}"
                         </p>
                     </div>
 
