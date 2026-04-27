@@ -130,7 +130,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleLogoTap = () => {
+  const handleTitleTap = () => {
       tapCountRef.current += 1;
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
       if (tapCountRef.current >= 5) {
@@ -139,7 +139,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           props.setIsProfileMenuOpen(false);
       } else {
           tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 3000);
-          props.onReplayIntro();
       }
   };
 
@@ -252,11 +251,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
               {/* LEFT: Logo */}
               <div className="flex items-center gap-3 shrink-0">
-                 <button onClick={handleLogoTap} className="focus:outline-none transition-transform active:scale-95">
+                 <button onClick={props.onReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
                      <Logo className="w-12 h-12" variant="theme" />
                  </button>
                  <div className="hidden md:block">
-                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1>
+                    <h1 onClick={handleTitleTap} className="text-lg font-black italic tracking-tighter uppercase leading-none cursor-default select-none">Rasten Cup</h1>
                  </div>
               </div>
 
