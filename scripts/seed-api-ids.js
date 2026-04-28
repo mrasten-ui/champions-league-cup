@@ -1,45 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
 /**
- * seed-api-ids.js — ONE-TIME SETUP (run ~1 week before kickoff)
+ * seed-api-ids.js — ONE-TIME SETUP (run before kickoff)
  *
  * Fetches all WC2026 fixtures from API-Football and writes the external
  * api_id into matching rows in your Supabase 'matches' table.
  * Matching is done by: home_team_id + away_team_id + date (date portion only).
  *
- * Run:
- *   SUPABASE_URL=... SUPABASE_SERVICE_KEY=... API_FOOTBALL_KEY=... node scripts/seed-api-ids.js
+ * Uses the `code` field on each team (e.g. "BEL", "ENG") which directly
+ * matches our internal 3-letter team IDs. Add CODE_OVERRIDE entries if the
+ * seed run reports any unmatched fixtures.
+ *
+ * Run from project root:
+ *   node scripts/seed-api-ids.js
  */
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// Accepts both the Vite-prefixed names from .env and the plain names used in GitHub Actions
+const SUPABASE_URL         = process.env.SUPABASE_URL         ?? process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const API_KEY   = process.env.API_FOOTBALL_KEY;
 const LEAGUE_ID = 1;
 const SEASON    = 2026;
 
-const TEAM_NAME_TO_ID = {
-  "Mexico": "MEX", "South Africa": "RSA", "Korea Republic": "KOR",
-  "South Korea": "KOR", "Czech Republic": "CZE", "Czechia": "CZE",
-  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia": "BIH",
-  "Qatar": "QAT", "Switzerland": "SUI",
-  "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
-  "United States": "USA", "USA": "USA", "Paraguay": "PAR",
-  "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",
-  "Germany": "GER", "Curacao": "CUW", "Curaçao": "CUW",
-  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Ecuador": "ECU",
-  "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
-  "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "IR Iran": "IRN",
-  "New Zealand": "NZL",
-  "Spain": "ESP", "Cabo Verde": "CPV", "Cape Verde": "CPV",
-  "Saudi Arabia": "KSA", "Uruguay": "URU",
-  "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
-  "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
-  "Portugal": "POR", "DR Congo": "COD", "Congo DR": "COD",
-  "Uzbekistan": "UZB", "Colombia": "COL",
-  "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
+// Only needed when API's 3-letter code differs from our internal ID.
+// e.g. if API returns "code": "KSA" but our DB uses "SAU", add: SAU: "KSA"
+// Run the script once and check the "Unmatched" log to find any needed overrides.
+const CODE_OVERRIDE = {
+  // Example: "IRN": "IRI"  — add entries here if the seed run shows mismatches
 };
 
 async function seedApiIds() {
@@ -50,6 +41,9 @@ async function seedApiIds() {
     { headers: { 'x-apisports-key': API_KEY } }
   );
   const data = await res.json();
+
+  console.log(`API HTTP status: ${res.status}`);
+  console.log(`API errors:`, JSON.stringify(data.errors));
 
   if (!data.response?.length) {
     console.error('No fixtures returned. Verify API key, league ID, and season.');
@@ -69,13 +63,16 @@ async function seedApiIds() {
 
   for (const item of data.response) {
     const { fixture, teams } = item;
-    const apiId   = fixture.id.toString();
-    const homeId  = TEAM_NAME_TO_ID[teams.home.name]?.toUpperCase();
-    const awayId  = TEAM_NAME_TO_ID[teams.away.name]?.toUpperCase();
+    const apiId  = fixture.id.toString();
     const apiDate = fixture.date?.slice(0, 10);
 
+    const rawHome = teams.home.code?.toUpperCase();
+    const rawAway = teams.away.code?.toUpperCase();
+    const homeId  = CODE_OVERRIDE[rawHome] ?? rawHome;
+    const awayId  = CODE_OVERRIDE[rawAway] ?? rawAway;
+
     if (!homeId || !awayId) {
-      unmatched.push(`UNMAPPED TEAM: "${teams.home.name}" vs "${teams.away.name}"`);
+      unmatched.push(`MISSING CODE: "${teams.home.name}" (${rawHome}) vs "${teams.away.name}" (${rawAway})`);
       continue;
     }
 
@@ -107,10 +104,10 @@ async function seedApiIds() {
 
   console.log(`\nLinked: ${linked} / ${data.response.length}`);
   if (unmatched.length) {
-    console.warn(`\nUnmatched (${unmatched.length}) — add to TEAM_NAME_TO_ID or fix DB dates:`);
+    console.warn(`\nUnmatched (${unmatched.length}) — add to CODE_OVERRIDE or fix DB dates:`);
     unmatched.forEach(u => console.warn('  •', u));
   } else {
-    console.log('All group-stage fixtures linked successfully!');
+    console.log('All fixtures linked successfully!');
   }
 }
 
