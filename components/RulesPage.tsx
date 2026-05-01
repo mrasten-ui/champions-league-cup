@@ -167,7 +167,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
           {/* RULES — compact icon grid */}
           <SectionLabel icon={<Target size={10} />} label={lang.tabHowToPlay} className="mt-6 mb-3" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div id="rules-howtoplay-section" className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {preRules.map(({ icon, cls, title, desc }) => (
               <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-3 flex items-start gap-3 shadow-sm">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${cls}`}>
@@ -210,7 +210,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
           {/* TOOLS */}
           <SectionLabel icon={<RefreshCw size={10} />} label={lang.rulesLiveToolsSection} className="mt-6 mb-3" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div id="rules-tools-section" className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {liveTools.map(({ icon, iconCls, title, desc }) => (
               <div key={title} className="bg-white border border-slate-100 rounded-xl px-3 py-3 flex items-start gap-3 shadow-sm">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${iconCls}`}>

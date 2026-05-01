@@ -122,33 +122,34 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 6: SCORING OVERVIEW (inline — teaches the system before redirecting)
+  // STOP 6: RULES TAB — navigates to Rules page, highlights scoring section
   {
-    id: 'scoring_overview',
-    position: 'center',
-    overlayType: 'none',
+    id: 'rules_tab',
+    targetId: 'rules-scoring-section',
+    position: 'bottom',
+    overlayType: 'sparkles',
     audioFiles: {
       en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
       no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
     },
     display: {
-      en:      { title: "Scoring",        lines: ["Exact score: 5 pts · Right result: 3 pts", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
-      'en-US': { title: "Points System",  lines: ["Nail the score: 5 pts. Right winner: 3 pts.", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
-      sco:     { title: "The Points",     lines: ["Exact score: 5 pts · Right result: 3 pts", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
-      no:      { title: "Poenggivning",   lines: ["Eksakt resultat: 5 poeng · Riktig utfall: 3 poeng", "Sluttspill: R32=8 · R16=12 · QF=16 · SF=24 · Finale=40"] },
+      en:      { title: "Points System", lines: ["The full scoring breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
+      'en-US': { title: "Points System", lines: ["Full points breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
+      sco:     { title: "The Points",    lines: ["Full scoring breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
+      no:      { title: "Poengsystem",   lines: ["Full poengoversikt — rett her.", "Eksakt: 5 · Utfall: 3 · Mester: 40."] },
     },
     audioScript: {
-      en:      { host: "Exact score gets you 5. Right result gets you 3. In the knockouts it climbs — 8, 12, 16, 24 — all the way to 40 for the champion.", pundit: "Nail the final. Forty points. That's where it's won." },
-      'en-US': { host: "Exact score: 5 points. Correct winner: 3. Knockouts scale up from 8 all the way to 40 for the champion.", pundit: "Champion pick. Forty points. That's the tournament right there." },
-      no:      { host: "Eksakt resultat gir 5 poeng. Riktig utfall gir 3. I sluttspillet stiger det — 8, 12, 16, 24, og 40 for mesteren.", pundit: "Tipp finalen riktig. 40 poeng. Der vinnes turneringen." },
-      sco:     { host: "Exact score: 5 points. Right result: 3. Knockouts climb — 8, 12, 16, 24 — and 40 for picking the champion.", pundit: "Forty points for the champion. That's the whole game right there." },
+      en:      { host: "The Rules tab has the full scoring breakdown — always available.", pundit: "Check it before you complain about your score." },
+      'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
+      no:      { host: "Regler-fanen har full poengoversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
+      sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
     }
   },
 
-  // STOP 7: RULES TAB (navigates to Rules page, highlights scoring section)
+  // STOP 7: HOW TO PLAY — stays on Rules page, highlights the rules grid
   {
-    id: 'rules_tab',
-    targetId: 'rules-scoring-section',
+    id: 'rules_howtoplay',
+    targetId: 'rules-howtoplay-section',
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {
@@ -156,16 +157,16 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
     },
     display: {
-      en:      { title: "Rules Tab",    lines: ["Full scoring breakdown lives here.", "Tap it any time during the tournament."] },
-      'en-US': { title: "Rules Tab",    lines: ["Full points breakdown — always here.", "Come back to it any time."] },
-      sco:     { title: "Rules Tab",    lines: ["Full scoring is right here.", "Tap it any time — it's no goin' anywhere."] },
-      no:      { title: "Regler-fanen", lines: ["Full poengoversikt er her.", "Trykk når som helst under turneringen."] },
+      en:      { title: "The Rules", lines: ["Six rules — everything you need to know.", "Read them once. No excuses after."] },
+      'en-US': { title: "The Rules", lines: ["Six rules — everything you need.", "Read before you play."] },
+      sco:     { title: "The Rules", lines: ["Six rules — that's all ye need.", "Read them. Nae excuses."] },
+      no:      { title: "Reglene",   lines: ["Seks regler — alt du trenger å vite.", "Les dem. Ingen unnskyldninger."] },
     },
     audioScript: {
-      en:      { host: "The Rules tab has the full breakdown — always available.", pundit: "Check it before you complain about your score." },
-      'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
-      no:      { host: "Regler-fanen har full oversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
-      sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
+      en:      { host: "And below — the full rules. Six of them. Everything you need to know before you play.", pundit: "Read them. All six. Not just the first one." },
+      'en-US': { host: "Below the scoring — six rules covering everything you need to play.", pundit: "All six. Not just the first two." },
+      no:      { host: "Under poengsystemet — de seks reglene. Alt du trenger å vite.", pundit: "Les dem. Alle seks. Ingen unnskyldninger." },
+      sco:     { host: "And below — the full rules. Six of them. Everything ye need.", pundit: "Read them. Aye, all of them." },
     }
   },
 
@@ -261,27 +262,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 4: SCORING OVERVIEW (inline recap)
-  {
-    id: 'live_scoring_overview',
-    position: 'center',
-    overlayType: 'none',
-    audioFiles: {},
-    display: {
-      en:      { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
-      'en-US': { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
-      no:      { title: "Poeng-oversikt", lines: ["Eksakt: 5 · Utfall: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3.pl: 20 · Finale: 40"] },
-      sco:     { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
-    },
-    audioScript: {
-      en:      { host: "Quick recap — exact score is 5, right result is 3. Knockouts scale from 8 up to 40 for the champion.", pundit: "Third place is 20. Better than nothing. Just." },
-      'en-US': { host: "Exact score: 5. Right result: 3. Knockout rounds scale from 8 to 40.", pundit: "Third place is 20 points. Consolation prize." },
-      no:      { host: "Eksakt resultat: 5 poeng. Riktig utfall: 3. Sluttspillet stiger fra 8 til 40.", pundit: "3. plass gir 20 poeng. Bedre enn ingenting." },
-      sco:     { host: "Quick recap — exact score is 5, right result is 3. Knockouts go from 8 all the way to 40.", pundit: "Third place: 20 points. Dinnae feel bad about it." },
-    }
-  },
-
-  // STOP 5: RULES TAB (navigates to Rules page, highlights scoring section)
+  // STOP 4: RULES TAB — navigates to Rules page, highlights scoring section
   {
     id: 'live_rules_tab',
     targetId: 'rules-scoring-section',
@@ -289,16 +270,37 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Rules Tab",    lines: ["Full scoring breakdown — always here.", "Tap it any time during the tournament."] },
-      'en-US': { title: "Rules Tab",    lines: ["Full points breakdown — always here.", "Come back to it any time."] },
-      no:      { title: "Regler-fanen", lines: ["Full poengoversikt er her.", "Trykk når som helst under turneringen."] },
-      sco:     { title: "Rules Tab",    lines: ["Full scoring is right here.", "Tap it any time — it's no goin' anywhere."] },
+      en:      { title: "Points System", lines: ["Full scoring breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
+      'en-US': { title: "Points System", lines: ["Full points breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
+      no:      { title: "Poengsystem",   lines: ["Full poengoversikt — rett her.", "Eksakt: 5 · Utfall: 3 · Mester: 40."] },
+      sco:     { title: "The Points",    lines: ["Full scoring breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
     },
     audioScript: {
-      en:      { host: "The Rules tab has the full breakdown — always available.", pundit: "Check it before you complain about your score." },
+      en:      { host: "The Rules tab has the full scoring breakdown — always available.", pundit: "Check it before you complain about your score." },
       'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
-      no:      { host: "Regler-fanen har full oversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
+      no:      { host: "Regler-fanen har full poengoversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
       sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
+    }
+  },
+
+  // STOP 5: LIVE TOOLS — stays on Rules page, highlights the tools grid
+  {
+    id: 'live_rules_tools',
+    targetId: 'rules-tools-section',
+    position: 'bottom',
+    overlayType: 'sparkles',
+    audioFiles: {},
+    display: {
+      en:      { title: "Live Tools",   lines: ["Subs, Spy, and Second Chance — all here.", "Use them. They're here for a reason."] },
+      'en-US': { title: "Live Tools",   lines: ["Subs, Spy, and Second Chance — right here.", "Use them wisely."] },
+      no:      { title: "Live-verktøy", lines: ["Bytter, Spion og Andre Sjanse — her.", "Bruk dem. De er her av en grunn."] },
+      sco:     { title: "Live Tools",   lines: ["Subs, Spy, Second Chance — right here.", "Use them at the right time."] },
+    },
+    audioScript: {
+      en:      { host: "Below the scoring — your three live tools: substitutions, spy, and second chance.", pundit: "Use a sub on a game that can still move the board." },
+      'en-US': { host: "Three live tools: subs, spy, second chance — all explained here.", pundit: "Don't waste your subs on dead games." },
+      no:      { host: "Under poengsystemet — dine tre live-verktøy: bytter, spion og andre sjanse.", pundit: "Bruk bytter på kamper som fremdeles betyr noe." },
+      sco:     { host: "Below the scoring — three live tools: subs, spy, and second chance.", pundit: "Use yer sub on a game that still matters." },
     }
   },
 
