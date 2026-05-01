@@ -91,7 +91,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Tryllestav", lines: ["Én trykk fyller inn alle gjenværende tips.", "Basert på statistikk. Ingen garanti."] }
     },
     audioScript: {
-      en:      { host: "Magic Wand auto-fills your remaining picks using stats.", pundit: "Still your fault when it's wrong." },
+      en:      { host: "Magic Wand auto-fills your remaining picks using stats.", pundit: "When it goes wrong — and it will — that's all you." },
       'en-US': { host: "One tap fills the rest with stats-based picks.", pundit: "Analytics. The game's gone soft." },
       no:      { host: "Tryllestaven fyller inn resten basert på statistikk.", pundit: "Statistikkbasert. Fremdeles din feil." },
       sco:     { host: "Magic Wand fills yer remaining picks wi' stats.", pundit: "Stats-based. Still yer fault, aye." }
@@ -122,39 +122,62 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 6: SCORING GUIDE
+  // STOP 6: SCORING OVERVIEW (inline — teaches the system before redirecting)
   {
-    id: 'scoring_guide',
-    targetId: 'nav-rules',
-    position: 'bottom',
-    overlayType: 'tap-target',
+    id: 'scoring_overview',
+    position: 'center',
+    overlayType: 'none',
     audioFiles: {
       en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
       no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
     },
     display: {
-      en:      { title: "Rules Tab",     lines: ["How to Play + full scoring breakdown.", "Tap the Rules tab any time — it's always here."] },
-      'en-US': { title: "Rules Tab",     lines: ["Game guide + full points system.", "Rules tab is always here — no excuses."] },
-      sco:     { title: "Rules Tab",     lines: ["How tae play + full scoring breakdown.", "The Rules tab is aye there. Use it."] },
-      no:      { title: "Regler-fanen",  lines: ["Spilleguide og poengsystem.", "Trykk på Regler-fanen når som helst."] }
+      en:      { title: "Scoring",        lines: ["Exact score: 5 pts · Right result: 3 pts", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
+      'en-US': { title: "Points System",  lines: ["Nail the score: 5 pts. Right winner: 3 pts.", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
+      sco:     { title: "The Points",     lines: ["Exact score: 5 pts · Right result: 3 pts", "Knockouts: R32=8 · R16=12 · QF=16 · SF=24 · Final=40"] },
+      no:      { title: "Poenggivning",   lines: ["Eksakt resultat: 5 poeng · Riktig utfall: 3 poeng", "Sluttspill: R32=8 · R16=12 · QF=16 · SF=24 · Finale=40"] },
     },
     audioScript: {
-      en:      { host: "The Rules tab is always here — how to play and the full scoring breakdown.", pundit: "Exact score bags 5. Right result gets 3. Knockouts climb all the way to 40." },
-      'en-US': { host: "The Rules tab lives here permanently — game guide and full points breakdown.", pundit: "Exact score? Five points. Right result? Three. Check the tab for the rest." },
-      no:      { host: "Regler-fanen er alltid her — spilleguide og full poengoversikt.", pundit: "Eksakt resultat gir 5 poeng. Riktig utfall gir 3. Sluttspillet stiger derfra." },
-      sco:     { host: "The Rules tab is aye here — how tae play and the full scoring.", pundit: "Exact score gets ye 5. Right result? Three. Worth a wee look." }
+      en:      { host: "Exact score gets you 5. Right result gets you 3. In the knockouts it climbs — 8, 12, 16, 24 — all the way to 40 for the champion.", pundit: "Nail the final. Forty points. That's where it's won." },
+      'en-US': { host: "Exact score: 5 points. Correct winner: 3. Knockouts scale up from 8 all the way to 40 for the champion.", pundit: "Champion pick. Forty points. That's the tournament right there." },
+      no:      { host: "Eksakt resultat gir 5 poeng. Riktig utfall gir 3. I sluttspillet stiger det — 8, 12, 16, 24, og 40 for mesteren.", pundit: "Tipp finalen riktig. 40 poeng. Der vinnes turneringen." },
+      sco:     { host: "Exact score: 5 points. Right result: 3. Knockouts climb — 8, 12, 16, 24 — and 40 for picking the champion.", pundit: "Forty points for the champion. That's the whole game right there." },
     }
   },
 
-  // STOP 7: PROFILE
+  // STOP 7: RULES TAB (pointer — full breakdown always available)
+  {
+    id: 'rules_tab',
+    targetId: 'nav-rules',
+    position: 'bottom',
+    overlayType: 'tap-target',
+    audioFiles: {
+      en: '/audio/tour_pre_en_07.mp3', 'en-US': '/audio/tour_pre_us_07.mp3',
+      no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
+    },
+    display: {
+      en:      { title: "Rules Tab",    lines: ["Full scoring breakdown lives here.", "Tap it any time during the tournament."] },
+      'en-US': { title: "Rules Tab",    lines: ["Full points breakdown — always here.", "Come back to it any time."] },
+      sco:     { title: "Rules Tab",    lines: ["Full scoring is right here.", "Tap it any time — it's no goin' anywhere."] },
+      no:      { title: "Regler-fanen", lines: ["Full poengoversikt er her.", "Trykk når som helst under turneringen."] },
+    },
+    audioScript: {
+      en:      { host: "The Rules tab has the full breakdown — always available.", pundit: "Check it before you complain about your score." },
+      'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
+      no:      { host: "Regler-fanen har full oversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
+      sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
+    }
+  },
+
+  // STOP 8: PROFILE
   {
     id: 'profile_menu',
     targetId: 'btn-profile-menu',
     position: 'bottom',
     overlayType: 'none',
     audioFiles: {
-      en: '/audio/tour_pre_en_07.mp3', 'en-US': '/audio/tour_pre_us_07.mp3',
-      no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
+      en: '/audio/tour_pre_en_08.mp3', 'en-US': '/audio/tour_pre_us_08.mp3',
+      no: '/audio/tour_pre_no_08.mp3', sco: '/audio/tour_pre_sco_08.mp3'
     },
     display: {
       en:      { title: "Ready",  lines: ["Briefing done — now get your picks in.", "Replay this tour from your Profile anytime."] },
@@ -238,28 +261,48 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 4: SCORING REMINDER
+  // STOP 4: SCORING OVERVIEW (inline recap)
   {
-    id: 'live_scoring_reminder',
+    id: 'live_scoring_overview',
+    position: 'center',
+    overlayType: 'none',
+    audioFiles: {},
+    display: {
+      en:      { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
+      'en-US': { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
+      no:      { title: "Poeng-oversikt", lines: ["Eksakt: 5 · Utfall: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3.pl: 20 · Finale: 40"] },
+      sco:     { title: "Points Recap",   lines: ["Exact: 5 · Result: 3 · R32: 8 · R16: 12", "QF: 16 · SF: 24 · 3rd: 20 · Final: 40"] },
+    },
+    audioScript: {
+      en:      { host: "Quick recap — exact score is 5, right result is 3. Knockouts scale from 8 up to 40 for the champion.", pundit: "Third place is 20. Better than nothing. Just." },
+      'en-US': { host: "Exact score: 5. Right result: 3. Knockout rounds scale from 8 to 40.", pundit: "Third place is 20 points. Consolation prize." },
+      no:      { host: "Eksakt resultat: 5 poeng. Riktig utfall: 3. Sluttspillet stiger fra 8 til 40.", pundit: "3. plass gir 20 poeng. Bedre enn ingenting." },
+      sco:     { host: "Quick recap — exact score is 5, right result is 3. Knockouts go from 8 all the way to 40.", pundit: "Third place: 20 points. Dinnae feel bad about it." },
+    }
+  },
+
+  // STOP 5: RULES TAB (pointer — full breakdown always available)
+  {
+    id: 'live_rules_tab',
     targetId: 'nav-rules',
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Rules Tab",    lines: ["Still here — scoring and rules mid-tournament.", "Tap it any time. How to Play + Points System."] },
-      'en-US': { title: "Rules Tab",    lines: ["Still here during the live tournament.", "Full game guide and points system, always available."] },
-      no:      { title: "Regler-fanen", lines: ["Fortsatt her — regler og poeng underveis.", "Trykk når som helst. Spilleguide + poengsystem."] },
-      sco:     { title: "Rules Tab",    lines: ["Still here through the whole live tournament.", "Scoring and rules — aye available."] },
+      en:      { title: "Rules Tab",    lines: ["Full scoring breakdown — always here.", "Tap it any time during the tournament."] },
+      'en-US': { title: "Rules Tab",    lines: ["Full points breakdown — always here.", "Come back to it any time."] },
+      no:      { title: "Regler-fanen", lines: ["Full poengoversikt er her.", "Trykk når som helst under turneringen."] },
+      sco:     { title: "Rules Tab",    lines: ["Full scoring is right here.", "Tap it any time — it's no goin' anywhere."] },
     },
     audioScript: {
-      en:      { host: "The Rules tab is always here during the live game — scoring and how to play, any time.", pundit: "Knowing the breakdown helps. Know it." },
-      'en-US': { host: "Rules tab is permanently here — full game guide and points system any time.", pundit: "Points don't lie. Know how they're counted." },
-      no:      { host: "Regler-fanen er alltid her under turneringen — poengsystem og regler når som helst.", pundit: "Kjenn reglene. Det hjelper." },
-      sco:     { host: "The Rules tab is aye here — scoring and rules throughout the tournament.", pundit: "Knowing the system helps. Use it." },
+      en:      { host: "The Rules tab has the full breakdown — always available.", pundit: "Check it before you complain about your score." },
+      'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
+      no:      { host: "Regler-fanen har full oversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
+      sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
     }
   },
 
-  // STOP 5: TOURNAMENT NAV
+  // STOP 6: TOURNAMENT NAV
   {
     id: 'live_tournament',
     targets: ['nav-tournament', 'nav-tournament-desk'],
@@ -280,7 +323,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: TOURNAMENT SUB-TABS
+  // STOP 7: TOURNAMENT SUB-TABS
   {
     id: 'live_tournament_subtabs',
     targets: ['tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
@@ -301,7 +344,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 6: BRACKET
+  // STOP 8: BRACKET
   {
     id: 'live_bracket',
     targets: ['tour-subnav-bracket'],
@@ -322,7 +365,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 7: MANAGER NAV
+  // STOP 9: MANAGER NAV
   {
     id: 'live_manager_nav',
     targets: ['nav-manager', 'nav-manager-desk'],
@@ -343,7 +386,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 8: ANALYSIS NAV
+  // STOP 10: ANALYSIS NAV
   {
     id: 'live_analysis_nav',
     targets: ['nav-analysis', 'nav-analysis-desk'],
@@ -364,7 +407,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 9: MANAGER CONTENT / WRAP-UP
+  // STOP 11: MANAGER CONTENT / WRAP-UP
   {
     id: 'live_manager_content',
     targets: ['tour-manager-viewmode'],
@@ -385,7 +428,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 10: PROFILE / WRAP-UP
+  // STOP 12: PROFILE / WRAP-UP
   {
     id: 'live_profile',
     targetId: 'btn-profile-menu',
