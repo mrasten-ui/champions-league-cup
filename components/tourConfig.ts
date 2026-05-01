@@ -145,12 +145,12 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 7: RULES TAB (pointer — full breakdown always available)
+  // STOP 7: RULES TAB (navigates to Rules page, highlights scoring section)
   {
     id: 'rules_tab',
-    targetId: 'nav-rules',
+    targetId: 'rules-scoring-section',
     position: 'bottom',
-    overlayType: 'tap-target',
+    overlayType: 'sparkles',
     audioFiles: {
       en: '/audio/tour_pre_en_07.mp3', 'en-US': '/audio/tour_pre_us_07.mp3',
       no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
@@ -281,12 +281,12 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: RULES TAB (pointer — full breakdown always available)
+  // STOP 5: RULES TAB (navigates to Rules page, highlights scoring section)
   {
     id: 'live_rules_tab',
-    targetId: 'nav-rules',
+    targetId: 'rules-scoring-section',
     position: 'bottom',
-    overlayType: 'tap-target',
+    overlayType: 'sparkles',
     audioFiles: {},
     display: {
       en:      { title: "Rules Tab",    lines: ["Full scoring breakdown — always here.", "Tap it any time during the tournament."] },

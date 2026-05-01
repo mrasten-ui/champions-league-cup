@@ -448,7 +448,8 @@ export const App = () => {
       if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
       else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
       else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
-      else if (stepId === 'profile_menu' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
+      else if (stepId === 'rules_tab') setActiveTab('rules');
+      else if (stepId === 'profile_menu') { setActiveTab('groups'); setActiveGroup('A'); }
   };
 
   const handleLiveTourNavigation = (stepId: string) => {
@@ -458,6 +459,7 @@ export const App = () => {
       else if (stepId === 'live_bracket') setTournamentSubTab('bracket');
       else if (stepId === 'live_manager_nav') setActiveTab('manager');
       else if (stepId === 'live_analysis_nav') setActiveTab('analysis');
+      else if (stepId === 'live_rules_tab') setActiveTab('rules');
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);

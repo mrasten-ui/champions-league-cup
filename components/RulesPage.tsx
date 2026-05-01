@@ -18,7 +18,7 @@ const stripNum = (s: string) => s.replace(/^\d+\.\s*/, '');
 
 // ─── Shared: full scoring breakdown ─────────────────────────────────────────
 const ScoringSection: React.FC<{ lang: Translation }> = ({ lang }) => (
-  <div className="space-y-3">
+  <div id="rules-scoring-section" className="space-y-3">
     {/* Group stage — 2 big side-by-side cards */}
     <div className="grid grid-cols-2 gap-3">
       <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex flex-col items-center gap-0.5">
