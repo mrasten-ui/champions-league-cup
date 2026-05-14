@@ -101,7 +101,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
   // STOP 5: KNOCKOUTS
   {
     id: 'knockout_tab',
-    targets: ['nav-knockout', 'nav-knockout-desk', 'subnav-knockout', 'tour-first-knockout'],
+    targetId: 'tour-first-knockout',
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {
