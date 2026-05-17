@@ -284,11 +284,11 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                 <div className="px-5 py-5 sm:py-8 text-center space-y-4 sm:space-y-6" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}>
                     <div className="flex justify-center -mt-12 sm:-mt-16 mb-2 sm:mb-4 relative z-20">
                         <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
-                             <img 
-                                src={hostUrl}
-                                onError={(e) => { e.currentTarget.src = '/pundit/host-en.png'; }}
-                                className="w-full h-full object-cover scale-110" 
-                                alt="Host"
+                             <img
+                                src={teamUrl}
+                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                                className="w-full h-full object-cover scale-110"
+                                alt="Team"
                              />
                         </div>
                     </div>

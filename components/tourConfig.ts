@@ -37,10 +37,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no: '/audio/tour_pre_no_02.mp3', sco: '/audio/tour_pre_sco_02.mp3'
     },
     display: {
-      en:      { title: "Predictions", lines: ["Predict the exact score for every match.", "Eye icon = spy on a rival's picks."] },
-      'en-US': { title: "Predictions", lines: ["Pick the exact final score with the arrows.", "Eye icon = peek at a rival's picks."] },
-      sco:     { title: "Predictions", lines: ["Pick the exact score wi' the arrows.", "Wee eye = spy on a rival's picks."] },
-      no:      { title: "Tips",        lines: ["Tipp nøyaktig sluttresultat med pilene.", "Øye-ikonet = se en rivals tips."] }
+      en:      { title: "Predictions", lines: ["Predict the exact score for every match.", "Scouts button = spy on a rival's picks."] },
+      'en-US': { title: "Predictions", lines: ["Pick the exact final score with the arrows.", "Scouts button = peek at a rival's picks."] },
+      sco:     { title: "Predictions", lines: ["Pick the exact score wi' the arrows.", "Scouts button = spy on a rival's picks."] },
+      no:      { title: "Tips",        lines: ["Tipp nøyaktig sluttresultat med pilene.", "Speiderne-knappen = se en rivals tips."] }
     },
     audioScript: {
       en:      { host: "Use the arrows to predict every score.", pundit: "Picking 0-0 for everything? Brave. Or lazy." },
