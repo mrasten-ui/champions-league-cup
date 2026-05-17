@@ -267,26 +267,10 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
             <div className="relative w-full sm:max-w-sm bg-white sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 border-t-4 sm:border-4 border-yellow-400" style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - 8px)', overflowY: 'auto' }}>
                 <div className="h-32 sm:h-40 bg-[#0f2545] flex items-center justify-center relative overflow-hidden transition-all duration-500">
                     
-                    <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-500"
-                        style={{ backgroundImage: "url('" + bannerUrlJpeg + "')" }}
-                    >
-                        <img 
-                            src={bannerUrlJpeg} 
-                            onError={(e) => { 
-                                const parent = e.currentTarget.parentElement;
-                                e.currentTarget.onerror = null; 
-                                if (parent) {
-                                    const img = new Image();
-                                    img.src = bannerUrlJpg;
-                                    img.onload = () => { if(parent) parent.style.backgroundImage = "url('" + bannerUrlJpg + "')"; };
-                                    img.onerror = () => { if(parent) parent.style.backgroundImage = "url('/pundit/banner-en.jpeg')"; }; 
-                                }
-                            }}
-                            className="hidden" 
-                            alt="" 
-                        />
-                    </div>
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-40"
+                        style={{ backgroundImage: "url('/pundit-banner.png')" }}
+                    />
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f2545] to-transparent"></div>
                     <div className="relative z-10 text-center">
