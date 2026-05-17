@@ -18,8 +18,8 @@ serve(async (req) => {
     const apiKey = Deno.env.get('GEMINI_API_KEY')
     if (!apiKey) throw new Error("Missing Gemini API Key")
 
-    // 2. Call the new unified Gemini Image Generation endpoint
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
+    // 2. Call Gemini Image Generation endpoint
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,50 +35,46 @@ serve(async (req) => {
           }
         ],
         generationConfig: {
-          responseModalities: ["IMAGE"]
+          responseModalities: ["TEXT", "IMAGE"]
         }
       })
     })
 
+    // 3. Handle API Rejections — surface the actual status + body for debugging
+    if (!response.ok) {
+      const errBody = await response.text()
+      console.error(`Gemini API ${response.status}:`, errBody)
+      throw new Error(`Gemini API error ${response.status}: ${errBody}`)
+    }
+
     const data = await response.json()
 
-    // 3. Handle API Rejections (Safety filters, bad keys, etc.)
-    if (!response.ok) {
-        console.error("Gemini API Error Response:", data);
-        throw new Error(data.error?.message || "Failed to generate image from Gemini");
+    // 4. Find the image part (response may also contain a text part — skip it)
+    const imagePart = data.candidates?.[0]?.content?.parts?.find(
+      (p: any) => p.inlineData?.data
+    )
+    if (!imagePart) {
+      console.error("Unexpected Gemini response structure:", JSON.stringify(data))
+      throw new Error("No image generated. The prompt might have been blocked by safety filters.")
     }
 
-    // 4. Safely extract the Base64 string
-    if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.inlineData?.data) {
-        console.error("Unexpected Gemini response structure:", data);
-        throw new Error("No image generated. The prompt might have been blocked by safety filters.");
-    }
+    const geminiBase64 = imagePart.inlineData.data
 
-    const geminiBase64 = data.candidates[0].content.parts[0].inlineData.data;
-
-    // 5. Mock the OpenAI response structure so your frontend doesn't break
-    const mockOpenAiResponse = {
-      data: [
-        {
-          b64_json: geminiBase64
-        }
-      ]
-    };
-
-    return new Response(JSON.stringify(mockOpenAiResponse), {
-      headers: { 
+    // 5. Mock the OpenAI response structure so the frontend doesn't break
+    return new Response(JSON.stringify({ data: [{ b64_json: geminiBase64 }] }), {
+      headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
     })
 
   } catch (error) {
-    console.error("Edge Function Error:", error);
+    console.error("Edge Function Error:", error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", 
+        "Access-Control-Allow-Origin": "*",
       },
     })
   }
