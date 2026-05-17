@@ -44,6 +44,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   const bannerUrlJpg = "/pundit/banner-" + assetLang + ".jpg"; 
   const teamUrl = "/pundit/team-" + assetLang + ".png";
   const hostUrl = "/pundit/host-" + assetLang + ".png";
+  const welcomeCircleUrl = "/pundit/team-" + assetLang + "-1.png";
 
   // --- 2. WAKE LOCK ---
   useEffect(() => {
@@ -285,8 +286,8 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     <div className="flex justify-center -mt-12 sm:-mt-16 mb-2 sm:mb-4 relative z-20">
                         <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-slate-800 flex items-center justify-center">
                              <img
-                                src={teamUrl}
-                                onError={(e) => { e.currentTarget.src = '/pundit/team-en.png'; }}
+                                src={welcomeCircleUrl}
+                                onError={(e) => { e.currentTarget.src = '/pundit/team-en-1.png'; }}
                                 className="w-full h-full object-cover scale-110"
                                 alt="Team"
                              />
@@ -312,7 +313,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     <VolumeX size={20} className="text-yellow-400" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~30 sec</span>
+                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~1 min</span>
                                     </div>
                                 </button>
                                 <button
@@ -322,7 +323,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     <Play size={16} fill="currentColor" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~60 sec</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~2 min</span>
                                     </div>
                                 </button>
                             </>
@@ -335,7 +336,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     <Play size={20} fill="currentColor" className="text-yellow-400" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~60 sec</span>
+                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~2 min</span>
                                     </div>
                                 </button>
                                 <button
@@ -345,7 +346,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                     <VolumeX size={16} />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~30 sec</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~1 min</span>
                                     </div>
                                 </button>
                             </>
