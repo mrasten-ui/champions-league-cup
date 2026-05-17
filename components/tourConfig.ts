@@ -139,10 +139,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Poengsystem",   lines: ["Full poengoversikt — rett her.", "Eksakt: 5 · Utfall: 3 · Mester: 40."] },
     },
     audioScript: {
-      en:      { host: "The Rules tab has the full scoring breakdown — always available.", pundit: "Check it before you complain about your score." },
-      'en-US': { host: "Full points breakdown is always in the Rules tab.", pundit: "No excuses for not knowing the system." },
-      no:      { host: "Regler-fanen har full poengoversikt — alltid tilgjengelig.", pundit: "Les den. Ingen unnskyldninger." },
-      sco:     { host: "The Rules tab has the full breakdown — aye available.", pundit: "Nae excuses. It's right there." },
+      en:      { host: "Exact score: 5 points. Right result: 3. The full breakdown is right here — check it.", pundit: "Check it before you complain about your score." },
+      'en-US': { host: "Nail the score: 5 points. Right winner: 3. Full points breakdown right here.", pundit: "No excuses for not knowing the system." },
+      no:      { host: "Eksakt resultat: 5 poeng. Riktig utfall: 3. Full oversikt er rett her.", pundit: "Les den. Ingen unnskyldninger." },
+      sco:     { host: "Exact score: 5 points. Right result: 3. Full breakdown's right here — check it.", pundit: "Nae excuses. It's all there." },
     }
   },
 
@@ -163,10 +163,10 @@ export const PRE_SEASON_TOUR: TourStep[] = [
       no:      { title: "Reglene",   lines: ["Seks regler — alt du trenger å vite.", "Les dem. Ingen unnskyldninger."] },
     },
     audioScript: {
-      en:      { host: "And below — the full rules. Six of them. Everything you need to know before you play.", pundit: "Read them. All six. Not just the first one." },
-      'en-US': { host: "Below the scoring — six rules covering everything you need to play.", pundit: "All six. Not just the first two." },
-      no:      { host: "Under poengsystemet — de seks reglene. Alt du trenger å vite.", pundit: "Les dem. Alle seks. Ingen unnskyldninger." },
-      sco:     { host: "And below — the full rules. Six of them. Everything ye need.", pundit: "Read them. Aye, all of them." },
+      en:      { host: "Six rules — everything that governs this competition. Read them now.", pundit: "No VAR here to bail you out. The rulebook doesn't care if you didn't read it." },
+      'en-US': { host: "Six rules — everything you need to know. Read them now.", pundit: "No instant replay to save you. The rulebook doesn't care if you skipped it." },
+      no:      { host: "Seks regler — alt som gjelder for konkurransen. Les dem nå.", pundit: "Ingen VAR her. Reglene bryr seg ikke om du ikke leste dem." },
+      sco:     { host: "Six rules — everything that governs this game. Read them now.", pundit: "Nae VAR tae save ye. The rulebook disnae care if ye didnae read it." },
     }
   },
 
