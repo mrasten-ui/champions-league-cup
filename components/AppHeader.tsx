@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2 } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -28,6 +28,7 @@ interface AppHeaderProps {
   onStartLiveTour?: () => void;
   showSecondChanceBadge?: boolean;
   isAdminMode?: boolean;
+  onInstallApp?: () => void;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -314,11 +315,28 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   )}
                                   
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
+                                  {user.leagues && user.leagues.length > 0 && (
+                                    <button
+                                      onClick={() => {
+                                        const url = `${window.location.origin}?invite=${user.leagues[0]}`;
+                                        if (navigator.share) {
+                                          navigator.share({ url, title: 'The Rasten Cup 2026', text: 'Join me in The Rasten Cup 2026 — World Cup prediction game!' }).catch(() => {});
+                                        } else {
+                                          navigator.clipboard.writeText(url);
+                                        }
+                                        props.setIsProfileMenuOpen(false);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-green-50 hover:text-green-600 rounded-lg flex items-center gap-2 transition-colors"
+                                    ><Share2 size={16} /> Share League</button>
+                                  )}
                                   <button onClick={() => { props.setActiveTab('rules' as any); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
                                   {props.isAdminMode && (
                                       <div className="border-t border-slate-100 mt-1 pt-1">
                                           <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 transition-colors"><Bot size={16} /> Management</button>
                                       </div>
+                                  )}
+                                  {props.onInstallApp && (
+                                      <button onClick={() => { props.onInstallApp!(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg flex items-center gap-2 transition-colors"><Smartphone size={16} /> Install App</button>
                                   )}
                                   <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
                               </div>

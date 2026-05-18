@@ -97,6 +97,47 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
 
         <div className="p-6 overflow-y-auto space-y-8 bg-slate-50">
 
+            {/* 0. UNASSIGNED PLAYERS */}
+            {(() => {
+              const unassigned = users.filter(u => !u.leagues || u.leagues.length === 0);
+              if (unassigned.length === 0) return null;
+              return (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
+                    <Users size={14} />
+                    Unassigned Players
+                    <span className="bg-red-100 text-red-600 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-black">{unassigned.length}</span>
+                  </h4>
+                  <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+                    {unassigned.map(u => (
+                      <div key={u.email} className="p-3 space-y-2">
+                        <div>
+                          <div className="text-xs font-black text-slate-800">{u.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{u.email}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(LEAGUES).map(([slug, leagueName]) => (
+                            <button
+                              key={slug}
+                              onClick={async () => {
+                                setSavingLeague(u.email + slug);
+                                await onUpdateUserLeagues(u.email, [slug]);
+                                setSavingLeague(null);
+                              }}
+                              disabled={savingLeague === u.email + slug}
+                              className="px-2 py-1 rounded-md text-[10px] font-bold border bg-slate-100 text-slate-500 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all disabled:opacity-40"
+                            >
+                              + {leagueName}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 1. TIME TRAVEL */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">

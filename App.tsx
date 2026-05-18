@@ -24,6 +24,7 @@ import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesPage } from './components/RulesPage';
 import { AvatarGenerator } from './components/AvatarGenerator';
+import { InstallPrompt } from './components/InstallPrompt';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
@@ -92,6 +93,7 @@ export const App = () => {
   const [showTour, setShowTour] = useState(false);
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
+  const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
 
@@ -207,7 +209,8 @@ export const App = () => {
         } catch (e) { addToast('error', t.saveFailed, t.saveFailedMsg); return; }
     }
     setUser({ ...user, avatar: finalUrl });
-    await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
+    const { error: dbError } = await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
+    if (dbError) { console.error('Avatar DB save failed:', dbError); addToast('error', t.saveFailed, dbError.message); return; }
     setShowAvatarEditor(false);
     addToast('success', t.profileUpdated, t.profileMsg);
   };
@@ -239,6 +242,10 @@ export const App = () => {
 
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
+      if (!user.leagues || user.leagues.length === 0) {
+          addToast('info', "Not yet assigned", "You haven't been assigned to a league yet. This can take up to 24 hours — check back tomorrow.");
+          return;
+      }
       if (user.spiedMatches?.includes(matchId)) return;
       if (user.tokens < 1) { addToast('error', t.noIntel, t.noIntelMsg); return; }
       const newSpied = [...(user.spiedMatches || []), matchId];
@@ -345,22 +352,12 @@ export const App = () => {
               const singleInvite = sessionStorage.getItem('pending_league_invite');
               if (singleInvite && !existing.includes(singleInvite)) toAdd.push(singleInvite);
 
-              // Multi-league signup picker
-              const multiRaw = sessionStorage.getItem('pending_leagues_signup');
-              if (multiRaw) {
-                  try {
-                      const multi: string[] = JSON.parse(multiRaw);
-                      multi.forEach(slug => { if (!existing.includes(slug) && !toAdd.includes(slug)) toAdd.push(slug); });
-                  } catch { /* malformed JSON, ignore */ }
-              }
-
               if (toAdd.length > 0) {
                   const newLeagues = [...existing, ...toAdd];
                   await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', user.email);
                   setUser({ ...user, leagues: newLeagues });
                   addToast('success', t.leagueJoined, toAdd.map(s => LEAGUES[s] || s).join(', '));
                   sessionStorage.removeItem('pending_league_invite');
-                  sessionStorage.removeItem('pending_leagues_signup');
               }
           }
       };
@@ -635,9 +632,11 @@ export const App = () => {
             Date.now() < groupStageEndTime
         }
         isAdminMode={isAdminMode}
+        onInstallApp={installAction ?? undefined}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
+      <InstallPrompt isLoggedIn={!!user} onRegisterTrigger={setInstallAction} />
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}

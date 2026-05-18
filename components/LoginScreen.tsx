@@ -3,7 +3,7 @@ import { ChevronRight, RefreshCw, Mail, KeyRound, UserCircle2, X, CheckCircle2, 
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { AvatarGenerator } from './AvatarGenerator';
 import { Logo } from './Logo';
-import { LANGUAGES, TRANSLATIONS, LEAGUES } from '../constants';
+import { LANGUAGES, TRANSLATIONS } from '../constants';
 import { LanguageCode } from '../types';
 
 interface LoginScreenProps {
@@ -30,18 +30,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Pre-fill from invite link if present
-  const pendingInvite = sessionStorage.getItem('pending_league_invite');
-  const [selectedLeagues, setSelectedLeagues] = useState<string[]>(
-    pendingInvite ? [pendingInvite] : []
-  );
-
-  const toggleLeague = (slug: string) => {
-    setSelectedLeagues(prev =>
-      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
-    );
-  };
-  
   const t = TRANSLATIONS[currentLang];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,10 +56,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
-            // Persist league choices so App.tsx join effect can apply them after profile creation
-            if (selectedLeagues.length > 0) {
-                sessionStorage.setItem('pending_leagues_signup', JSON.stringify(selectedLeagues));
-            }
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email, password, options: { data: { full_name: name } }
             });
@@ -173,29 +157,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
                       <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Your Identity</span><div className="h-px bg-white/10 flex-1"></div></div>
                       <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} /></div>
-
-                      <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Join a League</span><div className="h-px bg-white/10 flex-1"></div></div>
-                      <div className="grid grid-cols-1 gap-2">
-                        {Object.entries(LEAGUES).map(([slug, leagueName]) => {
-                          const checked = selectedLeagues.includes(slug);
-                          return (
-                            <button
-                              key={slug}
-                              type="button"
-                              onClick={() => toggleLeague(slug)}
-                              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${checked ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-black/20 border-white/10 text-slate-400 hover:border-white/30 hover:text-white'}`}
-                            >
-                              <span className="text-xs font-bold">{leagueName}</span>
-                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${checked ? 'bg-blue-500 border-blue-400' : 'border-slate-600'}`}>
-                                {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {selectedLeagues.length === 0 && (
-                        <p className="text-[10px] text-slate-500 text-center">Select at least one league, or join later via an invite link.</p>
-                      )}
                   </div>
                 )}
 
