@@ -82,7 +82,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
 
     // --- STATUS HELPERS ---
-    const isLive = ['LIVE', '1H', '2H', 'HT', 'AET', 'PEN'].includes(match.status);
+    const isLive     = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     const isStarted = isLive || isFinished; 
     
@@ -182,9 +182,61 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     // DEFENSIVE FIX: Check for 'TBD' before parsing Date
     const getLeftStatus = () => {
-        if (isFinished) return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
-        if (isLive) return <div className="flex items-center gap-1.5 text-red-400 animate-pulse"><div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div><span className="text-[10px] font-black uppercase tracking-widest">{match.minute ? `${match.minute}'` : 'LIVE'}</span></div>;
-        
+        const s = match.status;
+
+        // --- FINISHED STATES ---
+        if (s === 'PEN')      return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT <span className="text-amber-400">PSO</span></span>;
+        if (s === 'AET')      return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT <span className="text-sky-400">AET</span></span>;
+        if (isFinished)       return <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">FT</span>;
+
+        // --- LIVE STATES ---
+        const liveDot = <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse shrink-0" />;
+
+        if (s === 'HT') return (
+            <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">HT</span>
+            </div>
+        );
+
+        if (s === 'BT') return (
+            <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.9)] animate-pulse shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-sky-400">ET HT</span>
+            </div>
+        );
+
+        if (s === 'P') return (
+            <div className="flex items-center gap-1.5">
+                {liveDot}
+                <span className="text-[10px] font-black uppercase tracking-widest text-red-400">PENS</span>
+            </div>
+        );
+
+        if (s === 'INT') return (
+            <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">INT</span>
+            </div>
+        );
+
+        if (isLive) {
+            const min = match.minute;
+            const isET = s === 'ET' || (min && min > 90);
+            const label = min
+                ? (isET ? `ET ${min}'` : `${min}'`)
+                : 'LIVE';
+            return (
+                <div className="flex items-center gap-1.5">
+                    {liveDot}
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${isET ? 'text-sky-400' : 'text-red-400'}`}>
+                        {label}
+                    </span>
+                </div>
+            );
+        }
+
+        // --- UPCOMING ---
         return (
             <div className="flex items-center gap-1.5 text-slate-300">
                 <Clock size={12} />

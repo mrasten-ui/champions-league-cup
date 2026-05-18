@@ -29,17 +29,9 @@ const EVENTS_STATUSES = [...LIVE_STATUSES, 'FT', 'AET', 'PEN'] // fetch events f
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' } })
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-sync-secret, content-type' } })
   }
 
-  // Optional Bearer-token guard — set SYNC_SECRET in edge function env to enable
-  const syncSecret = Deno.env.get('SYNC_SECRET')
-  if (syncSecret) {
-    const auth = req.headers.get('authorization')
-    if (auth !== `Bearer ${syncSecret}`) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
