@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
-import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES } from './constants';
+import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
 import { 
   calculateGroupStandings,
@@ -62,6 +62,7 @@ export const App = () => {
   const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
+  const [leagueLangs, setLeagueLangs] = useState<Record<string, LanguageCode>>(LEAGUE_DEFAULT_LANGS);
   const [adminPhaseOverride, setAdminPhaseOverride] = useState<TournamentPhase | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
@@ -103,14 +104,25 @@ export const App = () => {
 
   // --- INVITE LINK HANDLER ---
   // Reads ?invite=slug from URL on first load and stores in sessionStorage.
-  // The league-join useEffect below picks it up once the user is authenticated.
+  // Also applies the league's default language immediately (for the login screen).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const invite = params.get('invite');
     if (invite) {
       sessionStorage.setItem('pending_league_invite', invite);
       window.history.replaceState({}, '', window.location.pathname);
+      const defaultLang = LEAGUE_DEFAULT_LANGS[invite];
+      if (defaultLang) setLanguage(defaultLang);
     }
+  }, []);
+
+  // --- LEAGUE LANGUAGE SETTINGS ---
+  // Load per-league language overrides from Supabase settings table.
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from('settings').select('value').eq('key', 'league_langs').maybeSingle().then(({ data }) => {
+      if (data?.value) setLeagueLangs(prev => ({ ...prev, ...(data.value as Record<string, LanguageCode>) }));
+    });
   }, []);
 
   // --- HELPERS ---
@@ -358,6 +370,10 @@ export const App = () => {
                   setUser({ ...user, leagues: newLeagues });
                   addToast('success', t.leagueJoined, toAdd.map(s => LEAGUES[s] || s).join(', '));
                   sessionStorage.removeItem('pending_league_invite');
+                  // Apply the league's configured default language
+                  const invitedSlug = toAdd[0];
+                  const defaultLang = leagueLangs[invitedSlug];
+                  if (defaultLang) setLanguage(defaultLang);
               }
           }
       };
@@ -803,6 +819,12 @@ export const App = () => {
         onClear={() => { localStorage.clear(); window.location.reload(); }}
         onTimeTravel={handleTimeTravel}
         lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}
+        leagueLangs={leagueLangs}
+        onUpdateLeagueLang={async (slug, lang) => {
+          const updated = { ...leagueLangs, [slug]: lang };
+          setLeagueLangs(updated);
+          if (supabase) await supabase.from('settings').upsert({ key: 'league_langs', value: updated });
+        }}
         onUpdateUserLeagues={async (email, leagues) => {
           if (!supabase) return;
           await supabase.from('profiles').update({ leagues } as any).eq('email', email);

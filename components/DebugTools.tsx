@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check } from 'lucide-react';
-import { Match, UserProfile, Prediction, Translation } from '../types';
-import { LEAGUES, BROADCAST_CHANNELS } from '../constants';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe } from 'lucide-react';
+import { Match, UserProfile, Prediction, Translation, LanguageCode } from '../types';
+import { LEAGUES, BROADCAST_CHANNELS, LANGUAGES } from '../constants';
 
 interface DebugToolsProps {
   isOpen: boolean;
@@ -11,6 +11,8 @@ interface DebugToolsProps {
   onUpdateUserLeagues: (email: string, leagues: string[]) => Promise<void>;
   onUpdateMatchChannels: (matchId: string, channels: Record<string, string>) => Promise<void>;
   onBulkUpdateChannels: (locale: string, scope: 'all' | 'groups' | 'knockout', channel: string) => Promise<void>;
+  leagueLangs: Record<string, LanguageCode>;
+  onUpdateLeagueLang: (slug: string, lang: LanguageCode) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -18,7 +20,7 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang
 }) => {
   if (!isOpen) return null;
 
@@ -138,7 +140,33 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
               );
             })()}
 
-            {/* 1. TIME TRAVEL */}
+            {/* 1. LEAGUE DEFAULT LANGUAGES */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Globe size={14} /> League Default Languages
+              </h4>
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+                {Object.entries(LEAGUES).map(([slug, leagueName]) => (
+                  <div key={slug} className="p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black text-slate-700">{leagueName}</div>
+                      <div className="text-[10px] font-mono text-slate-400">?invite={slug}</div>
+                    </div>
+                    <select
+                      value={leagueLangs[slug] || 'EN'}
+                      onChange={(e) => onUpdateLeagueLang(slug, e.target.value as LanguageCode)}
+                      className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                      {LANGUAGES.map(l => (
+                        <option key={l.code} value={l.code}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. TIME TRAVEL */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Calendar size={14} /> Temporal Controls

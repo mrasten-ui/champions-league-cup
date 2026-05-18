@@ -642,6 +642,14 @@ export const LEAGUES: Record<string, string> = {
   family_friends:   'Family and Friends',
 };
 
+// Default language shown when joining via each league's invite link.
+// Can be overridden at runtime by the admin in the Management panel.
+export const LEAGUE_DEFAULT_LANGS: Record<string, LanguageCode> = {
+  inverkeighing:  'EN',
+  beeline:        'EN',
+  family_friends: 'EN',
+};
+
 // --- DATA EXPORTS ---
 
 export const TRANSLATIONS: Record<LanguageCode, Translation> = {
