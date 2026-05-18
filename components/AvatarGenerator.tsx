@@ -66,7 +66,14 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
         .from('avatars')
         .upload(fileName, blob, { contentType: 'image/png', upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        // Fallback: use base64 data URI so signup can re-upload after auth
+        console.warn('Storage upload failed, using Base64 fallback', uploadError);
+        const dataUri = canvas.toDataURL('image/png');
+        setActiveAvatar(dataUri);
+        onGenerate(dataUri);
+        return;
+      }
 
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setActiveAvatar(urlData.publicUrl);

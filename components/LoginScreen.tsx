@@ -58,6 +58,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
+
+            // Store avatar in sessionStorage BEFORE triggering auth, so fetchUserProfile
+            // can read it even if onAuthStateChange fires during the signUp await.
+            const preSignupAvatar = selectedAvatar || (menPresets.length > 0 ? menPresets[0] : '');
+            if (preSignupAvatar && !preSignupAvatar.startsWith('data:')) {
+                sessionStorage.setItem('pending_avatar', preSignupAvatar);
+            }
+
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email, password, options: { data: { full_name: name } }
             });
@@ -66,6 +74,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
             let finalAvatarUrl = selectedAvatar;
             if (selectedAvatar.startsWith('data:')) {
+                // base64 fallback — re-upload now that we have a user id and session
                 try {
                     const res = await fetch(selectedAvatar);
                     const blob = await res.blob();
@@ -76,9 +85,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         finalAvatarUrl = data.publicUrl;
                     }
                 } catch (e) { console.warn("Avatar upload failed"); }
+                // Update sessionStorage with the resolved URL (or keep base64 as last resort)
+                if (!finalAvatarUrl && menPresets.length > 0) finalAvatarUrl = menPresets[0];
+                if (finalAvatarUrl) sessionStorage.setItem('pending_avatar', finalAvatarUrl);
+            } else if (!preSignupAvatar) {
+                if (!finalAvatarUrl && menPresets.length > 0) finalAvatarUrl = menPresets[0];
+                if (finalAvatarUrl) sessionStorage.setItem('pending_avatar', finalAvatarUrl);
             }
-            if (!finalAvatarUrl && menPresets.length > 0) finalAvatarUrl = menPresets[0];
-            if (finalAvatarUrl) sessionStorage.setItem('pending_avatar', finalAvatarUrl);
 
             if (authData.session) onSuccess();
             else setErrorMsg("Please check your email to confirm your account.");
