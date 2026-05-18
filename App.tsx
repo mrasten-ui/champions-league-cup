@@ -41,11 +41,14 @@ import { LiveSplashScreen } from './components/LiveSplashScreen';
 import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
+import { KnockoutReminderModal } from './components/KnockoutReminderModal';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
   TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_',
   AUTO_FILLED_PREFIX: 'rasten_autofill_v1_',
+  KNOCKOUT_COMPLETION_TIME_PREFIX: 'rasten_knockout_done_v1_',
+  KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX: 'rasten_knockout_reminder_v1_',
 };
 
 export const App = () => {
@@ -95,6 +98,7 @@ export const App = () => {
   const [showTour, setShowTour] = useState(false);
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
+  const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
@@ -510,6 +514,12 @@ export const App = () => {
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => user ? allPredictions.filter(p => p.userId === user.email && groupStageMatches.some(gm => gm.id === p.matchId)).length : 0, [allPredictions, user, groupStageMatches]);
   const isGroupStageComplete = userGroupPredictionsCount === groupStageMatches.length && groupStageMatches.length > 0;
+
+  const knockoutMatches = useMemo(() => matches.filter(m => m.round), [matches]);
+  const userKnockoutPredictionsCount = useMemo(
+      () => user ? allPredictions.filter(p => p.userId === user.email && knockoutMatches.some(km => km.id === p.matchId)).length : 0,
+      [allPredictions, user, knockoutMatches]
+  );
   
   const firstIncompleteGroup = useMemo(() => {
     if (isGroupStageComplete || !user) return null;
@@ -560,6 +570,35 @@ export const App = () => {
           setActiveTab('tournament');
       }
   }, [tournamentPhase]);
+
+  // Record the moment group stage is fully predicted (once, never overwrites)
+  useEffect(() => {
+      if (!user || !isGroupStageComplete) return;
+      const timeKey = STORAGE_KEYS.KNOCKOUT_COMPLETION_TIME_PREFIX + user.email;
+      if (!localStorage.getItem(timeKey)) {
+          localStorage.setItem(timeKey, Date.now().toString());
+      }
+  }, [isGroupStageComplete, user]);
+
+  // Show knockout reminder immediately on completion, then re-show if 24h pass with no bracket entry
+  useEffect(() => {
+      if (!user || tournamentPhase !== 'PRE_LIVE' || !isGroupStageComplete || userKnockoutPredictionsCount > 0) return;
+      const lastShownKey = STORAGE_KEYS.KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX + user.email;
+      const completionTimeKey = STORAGE_KEYS.KNOCKOUT_COMPLETION_TIME_PREFIX + user.email;
+      const lastShown = parseInt(localStorage.getItem(lastShownKey) || '0');
+      const completionTime = parseInt(localStorage.getItem(completionTimeKey) || Date.now().toString());
+      const now = Date.now();
+      const H24 = 24 * 60 * 60 * 1000;
+      const neverShown = lastShown === 0;
+      const remindAgain = (now - completionTime >= H24) && (now - lastShown >= H24);
+      if (neverShown || remindAgain) setShowKnockoutReminder(true);
+  }, [isGroupStageComplete, userKnockoutPredictionsCount, user, tournamentPhase]);
+
+  const handleKnockoutReminderDismiss = (goToKnockouts: boolean) => {
+      if (user) localStorage.setItem(STORAGE_KEYS.KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX + user.email, Date.now().toString());
+      setShowKnockoutReminder(false);
+      if (goToKnockouts) setActiveTab('knockout');
+  };
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
 
@@ -868,6 +907,7 @@ export const App = () => {
       <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
+      <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
