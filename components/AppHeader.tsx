@@ -54,7 +54,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       }
   };
 
-  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
 
   // --- MODIFIED: Count ALL Matches (104 Total) ---
   const completionStats = useMemo(() => {

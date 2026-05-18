@@ -544,7 +544,7 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeGroup]);
 
-  const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
   const handlePrevRound = () => {
     const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
     if (idx > 0) { setActiveKnockoutRound(ROUND_ORDER[idx - 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
