@@ -26,11 +26,10 @@ serve(async (req) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'gpt-image-1',
         prompt: fullPrompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
       }),
     })
 
@@ -42,7 +41,17 @@ serve(async (req) => {
 
     const data = await response.json()
 
-    return new Response(JSON.stringify(data), {
+    // gpt-image-1 returns b64_json directly; fall back to fetching URL if needed
+    let b64 = data.data?.[0]?.b64_json
+    if (!b64) {
+      const imageUrl = data.data?.[0]?.url
+      if (!imageUrl) throw new Error("No image returned from OpenAI")
+      const imgResponse = await fetch(imageUrl)
+      const imgBuffer = await imgResponse.arrayBuffer()
+      b64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)))
+    }
+
+    return new Response(JSON.stringify({ data: [{ b64_json: b64 }] }), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',

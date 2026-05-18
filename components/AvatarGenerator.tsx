@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User, Shuffle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, RefreshCw, Wand2, Bug, LayoutGrid, Check, User, Shuffle, Upload } from 'lucide-react';
 import { supabase } from '../supabase';
 
 interface AvatarGeneratorProps {
@@ -26,11 +26,56 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
   currentAvatar 
 }) => {
   const [gender, setGender] = useState<'Male' | 'Female'>('Male'); 
-  const [mode, setMode] = useState<'AI' | 'Presets'>('AI');
+  const [mode, setMode] = useState<'AI' | 'Presets' | 'Upload'>('AI');
   
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+
+    // Show instant preview
+    const previewUrl = URL.createObjectURL(file);
+    setUploadPreview(previewUrl);
+
+    try {
+      // Resize to 512x512 via canvas
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d')!;
+      const size = Math.min(bitmap.width, bitmap.height);
+      const sx = (bitmap.width - size) / 2;
+      const sy = (bitmap.height - size) / 2;
+      ctx.drawImage(bitmap, sx, sy, size, size, 0, 0, 512, 512);
+
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas conversion failed')), 'image/png')
+      );
+
+      const fileName = `upload_avatar_${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setActiveAvatar(urlData.publicUrl);
+      onGenerate(urlData.publicUrl);
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setError(err.message || 'Upload failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // The avatar we are currently showing/using
   const [activeAvatar, setActiveAvatar] = useState<string | null>(currentAvatar || null);
@@ -165,7 +210,7 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
                   )}
               </div>
               {/* Badge showing source */}
-              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-lg border border-white/20 ${mode === 'AI' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white shadow-lg border border-white/20 ${mode === 'AI' ? 'bg-purple-600' : mode === 'Upload' ? 'bg-green-600' : 'bg-blue-600'}`}>
                   {mode}
               </div>
           </div>
@@ -179,12 +224,19 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
               >
                   <Sparkles size={14} /> AI Studio
               </button>
-              <button 
+              <button
                   type="button"
-                  onClick={() => setMode('Presets')} 
+                  onClick={() => setMode('Presets')}
                   className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mode === 'Presets' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
               >
                   <LayoutGrid size={14} /> Presets
+              </button>
+              <button
+                  type="button"
+                  onClick={() => setMode('Upload')}
+                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mode === 'Upload' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              >
+                  <Upload size={14} /> Upload
               </button>
           </div>
       </div>
@@ -228,7 +280,43 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
               </div>
           )}
 
-          {/* B) PRESETS MODE */}
+          {/* B) UPLOAD MODE */}
+          {mode === 'Upload' && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="text-center mb-2">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Upload Your Own</h4>
+                      <p className="text-[10px] text-slate-400">Pick any photo from your device.</p>
+                  </div>
+
+                  <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
+                  />
+
+                  {uploadPreview && !loading && (
+                      <div className="flex justify-center">
+                          <img src={uploadPreview} className="w-20 h-20 rounded-full object-cover border-2 border-green-500/50" alt="preview" />
+                      </div>
+                  )}
+
+                  <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                      className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl shadow-lg border border-white/10 font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />}
+                      {loading ? 'Uploading...' : 'Choose Photo'}
+                  </button>
+
+                  {error && <div className="text-[10px] text-red-300 bg-red-500/10 p-2 rounded text-center border border-red-500/20">{error}</div>}
+              </div>
+          )}
+
+          {/* C) PRESETS MODE */}
           {mode === 'Presets' && (
               <div className="animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex justify-between items-center mb-3 px-1">
