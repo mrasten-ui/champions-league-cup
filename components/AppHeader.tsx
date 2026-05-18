@@ -30,6 +30,7 @@ interface AppHeaderProps {
   isAdminMode?: boolean;
   unassignedCount?: number;
   onInstallApp?: () => void;
+  onLinkCopied?: () => void;
   navTabs: string[];
   t: Translation;
   matches: Match[];
@@ -329,6 +330,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                           navigator.share({ url, title: 'The Rasten Cup 2026', text: 'Join me in The Rasten Cup 2026 — World Cup prediction game!' }).catch(() => {});
                                         } else {
                                           navigator.clipboard.writeText(url);
+                                          props.onLinkCopied?.();
                                         }
                                         props.setIsProfileMenuOpen(false);
                                       }}

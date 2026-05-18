@@ -186,6 +186,13 @@ export const useAppData = () => {
                   toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
                   isAdmin: !!data.is_admin,
               });
+              // Carry through AI-generated avatar from signup if the profile was pre-created before this session
+              const pendingAvatar = sessionStorage.getItem('pending_avatar');
+              if (pendingAvatar) {
+                  sessionStorage.removeItem('pending_avatar');
+                  supabase.from('profiles').update({ avatar: pendingAvatar }).eq('email', email)
+                      .then(() => setUser(prev => prev ? { ...prev, avatar: pendingAvatar } : null));
+              }
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
               if (authUser) {

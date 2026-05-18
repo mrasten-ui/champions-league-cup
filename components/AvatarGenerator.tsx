@@ -9,6 +9,7 @@ interface AvatarGeneratorProps {
   womenAvatars: string[];
   usedAvatars?: string[];
   currentAvatar?: string;
+  disableAutoAssign?: boolean;
 }
 
 // UTILITY: Base64 -> Blob (For AI Uploads)
@@ -17,16 +18,17 @@ const base64ToBlob = async (base64: string): Promise<Blob> => {
   return await res.blob();
 };
 
-export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ 
-  onGenerate, 
-  lang, 
-  menAvatars = [], 
-  womenAvatars = [], 
+export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
+  onGenerate,
+  lang,
+  menAvatars = [],
+  womenAvatars = [],
   usedAvatars = [],
-  currentAvatar 
+  currentAvatar,
+  disableAutoAssign = false,
 }) => {
-  const [gender, setGender] = useState<'Male' | 'Female'>('Male'); 
-  const [mode, setMode] = useState<'AI' | 'Presets' | 'Upload'>('AI');
+  const [gender, setGender] = useState<'Male' | 'Female'>('Male');
+  const [mode, setMode] = useState<'AI' | 'Presets' | 'Upload'>((currentAvatar || disableAutoAssign) ? 'Presets' : 'AI');
   
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,15 +99,12 @@ export const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({
       }
   };
 
-  // 1. Auto-assign on load once avatars are available
+  // 1. Auto-assign on load once avatars are available (signup only — disabled in edit mode)
   useEffect(() => {
-      // Only if we don't have a current avatar (e.g. fresh signup)
-      // AND we haven't picked one yet
-      // AND the lists are actually populated
-      if (!currentAvatar && !activeAvatar && menAvatars.length > 0) {
+      if (!disableAutoAssign && !currentAvatar && !activeAvatar && menAvatars.length > 0) {
           assignRandomPreset('Male');
       }
-  }, [menAvatars, womenAvatars, currentAvatar]); 
+  }, [menAvatars, womenAvatars, currentAvatar, activeAvatar]);
 
   // 2. Handle Gender Switch: Auto-assign a new unused avatar of that gender
   const handleGenderSwitch = (newGender: 'Male' | 'Female') => {

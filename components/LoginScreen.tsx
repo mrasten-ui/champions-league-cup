@@ -158,7 +158,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 {mode === 'signup' && (
                   <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
                       <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Your Identity</span><div className="h-px bg-white/10 flex-1"></div></div>
-                      <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} /></div>
+                      <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={selectedAvatar || undefined} /></div>
                   </div>
                 )}
 
