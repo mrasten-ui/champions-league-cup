@@ -18,6 +18,8 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
 
+  const fetchingProfileRef = useRef(false);
+
   // --- SECOND CHANCE TIMERS ---
   const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
   const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
@@ -175,7 +177,9 @@ export const useAppData = () => {
   };
 
   const fetchUserProfile = async (email: string) => {
-      if (!isSupabaseConfigured || !supabase) return;
+      if (fetchingProfileRef.current) return;
+      fetchingProfileRef.current = true;
+      if (!isSupabaseConfigured || !supabase) { fetchingProfileRef.current = false; return; }
       try {
           const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
@@ -198,13 +202,16 @@ export const useAppData = () => {
               if (authUser) {
                   const pendingAvatar = sessionStorage.getItem('pending_avatar') || '';
                   sessionStorage.removeItem('pending_avatar');
+                  // Clear stale localStorage tour flags so the tour always fires for a fresh profile
+                  localStorage.removeItem(`rasten_cup_tour_done_v1_${email}`);
+                  localStorage.removeItem(`rasten_cup_tour_done_v1_${email}_live`);
                   const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
                       name: dbRow.name,
                       avatar: pendingAvatar,
-                      tokens: MAX_SUBSTITUTIONS, // Scout tokens
+                      tokens: MAX_SUBSTITUTIONS,
                       substitutions: MAX_SUBSTITUTIONS,
                       leagues: [],
                       favorites: [],
@@ -215,8 +222,8 @@ export const useAppData = () => {
                   });
               }
           }
-      } catch (err) { console.error("Profile Error", err); } 
-      finally { setLoading(false); loadGameData(); }
+      } catch (err) { console.error("Profile Error", err); }
+      finally { fetchingProfileRef.current = false; setLoading(false); loadGameData(); }
   };
 
   useEffect(() => {
