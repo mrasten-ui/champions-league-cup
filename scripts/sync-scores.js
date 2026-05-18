@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_URL         ?? process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const API_KEY = process.env.API_FOOTBALL_KEY;
+const API_KEY   = process.env.API_FOOTBALL_KEY;
 const LEAGUE_ID = 1;   // FIFA World Cup in API-Football
 const SEASON    = 2026;
 
@@ -36,12 +37,25 @@ const TEAM_NAME_TO_ID = {
 const LOCKED_STATUSES = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
 
 async function syncScores() {
-  console.log(`[${new Date().toISOString()}] Starting score sync...`);
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+  console.log(`[${new Date().toISOString()}] Starting score sync for ${today}...`);
 
   try {
-    // 1. Fetch all fixtures from API-Football
+    // 0. Guard: skip the API call entirely on days with no matches (saves quota)
+    const { data: todayDbMatches } = await supabase
+      .from('matches')
+      .select('id')
+      .gte('date', `${today}T00:00:00Z`)
+      .lte('date', `${today}T23:59:59Z`);
+
+    if (!todayDbMatches?.length) {
+      console.log('No matches scheduled today — skipping API call.');
+      return;
+    }
+
+    // 1. Fetch only today's fixtures from API-Football (conserves daily quota)
     const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`,
+      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&date=${today}`,
       { headers: { 'x-apisports-key': API_KEY } }
     );
 

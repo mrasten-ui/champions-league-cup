@@ -130,7 +130,6 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
   const liveTools = [
     { icon: <RefreshCw size={14} />, iconCls: 'bg-emerald-100 text-emerald-700', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },
-    { icon: <Eye size={14} />,       iconCls: 'bg-cyan-100 text-cyan-700',       title: stripNum(lang.rule4Title), desc: lang.rule4Desc },
     { icon: <Unlock size={14} />,    iconCls: 'bg-orange-100 text-orange-700',   title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
   ];
 

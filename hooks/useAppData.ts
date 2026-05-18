@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
-import { Match, Team, Prediction, UserProfile } from '../types';
+import { Match, Team, Prediction, UserProfile, MatchEvent } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
@@ -17,6 +17,7 @@ export const useAppData = () => {
   
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
 
   const fetchingProfileRef = useRef(false);
 
@@ -105,6 +106,15 @@ export const useAppData = () => {
           const { data: preds } = await supabase.from('predictions').select('*');
           if (preds) {
             setAllPredictions(preds.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
+          }
+
+          const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true });
+          if (events) {
+            setMatchEvents(events.map(e => ({
+              id: e.id, matchId: e.match_id || '', minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
+              type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
+              player: e.player ?? undefined, assist: e.assist ?? undefined,
+            })));
           }
 
           const { data: profiles } = await supabase.from('profiles').select('*');
@@ -241,7 +251,7 @@ export const useAppData = () => {
               else { setUser(null); setLoading(false); loadGameData(); }
           });
 
-          // ── Realtime: push score/status updates to all connected clients ──
+          // ── Realtime: push score/status/minute updates to all connected clients ──
           const channel = supabase
               .channel('live-scores')
               .on(
@@ -259,9 +269,24 @@ export const useAppData = () => {
                                   isLocked:    !!m.is_locked,
                                   homeTeamId:  m.home_team_id?.toUpperCase() || existing.homeTeamId,
                                   awayTeamId:  m.away_team_id?.toUpperCase() || existing.awayTeamId,
+                                  minute:      m.minute ?? existing.minute,
                               }
                               : existing
                       ));
+                  }
+              )
+              .on(
+                  'postgres_changes',
+                  { event: 'INSERT', schema: 'public', table: 'match_events' },
+                  (payload) => {
+                      const e = payload.new as any;
+                      const event: MatchEvent = {
+                          id: e.id, matchId: e.match_id || '', minute: e.minute ?? 0,
+                          minuteExtra: e.minute_extra ?? undefined, type: e.type || '',
+                          detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
+                          player: e.player ?? undefined, assist: e.assist ?? undefined,
+                      };
+                      setMatchEvents(prev => prev.some(ev => ev.id === event.id) ? prev : [...prev, event]);
                   }
               )
               .subscribe();
@@ -277,6 +302,7 @@ export const useAppData = () => {
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed
+    groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed,
+    matchEvents,
   };
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase } from '../types';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent } from '../types';
 import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -34,14 +34,15 @@ interface MatchCardProps {
   variant?: 'prediction' | 'official';
   context?: 'groups' | 'knockout' | 'carousel';
   cardId?: string;
+  events?: MatchEvent[];
 }
 
 
 // --- MAIN COMPONENT ---
 
-export const MatchCard: React.FC<MatchCardProps> = ({ 
+export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = []
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -332,6 +333,35 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
              </div>
+
+             {/* GOAL EVENTS */}
+             {(() => {
+               const goals = events.filter(e => e.type === 'Goal');
+               if (!goals.length || (!isLive && !isFinished)) return null;
+               const homeGoals = goals.filter(e => e.teamId === match.homeTeamId);
+               const awayGoals = goals.filter(e => e.teamId === match.awayTeamId);
+               const fmtMin = (e: MatchEvent) => `${e.minute}${e.minuteExtra ? `+${e.minuteExtra}` : ''}'`;
+               const isOG = (e: MatchEvent) => e.detail === 'Own Goal';
+               return (
+                 <div className="px-3 pt-1 pb-2 border-t border-slate-100 flex gap-2 text-[9px]">
+                   <div className="flex-1 flex flex-col gap-0.5">
+                     {homeGoals.map(e => (
+                       <span key={e.id} className="text-slate-500 truncate">
+                         {isOG(e) ? '⚽ OG' : '⚽'} <span className="font-bold text-slate-600">{fmtMin(e)}</span> {e.player}
+                       </span>
+                     ))}
+                   </div>
+                   {(homeGoals.length > 0 || awayGoals.length > 0) && <div className="w-px bg-slate-100 shrink-0" />}
+                   <div className="flex-1 flex flex-col gap-0.5 items-end">
+                     {awayGoals.map(e => (
+                       <span key={e.id} className="text-slate-500 truncate text-right">
+                         {e.player} <span className="font-bold text-slate-600">{fmtMin(e)}</span> {isOG(e) ? 'OG ⚽' : '⚽'}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               );
+             })()}
 
              {/* SAVE STATUS BAR */}
              {!isLocked && !isKnockout && (isSaving || isSaved) && (

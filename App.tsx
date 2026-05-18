@@ -55,7 +55,7 @@ export const App = () => {
   const {
     session, user, setUser, loading, matches, setMatches, teamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime, lockTimePassed
+    groupStageEndTime, knockoutStartTime, lockTimePassed, matchEvents,
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
@@ -806,28 +806,29 @@ export const App = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {groupMatchesList.map((match, index) => (
-                              <MatchCard 
-                                key={match.id} 
-                                cardId={index === 0 ? "tour-first-match" : undefined} 
-                                match={match} 
-                                homeTeam={teamsData[match.homeTeamId]} 
-                                awayTeam={teamsData[match.awayTeamId]} 
-                                onUpdate={handleScoreUpdate} 
-                                lang={t} 
-                                locale={currentLocale} 
-                                userTokens={user?.tokens || 0} 
-                                rivals={rivalsList} 
+                              <MatchCard
+                                key={match.id}
+                                cardId={index === 0 ? "tour-first-match" : undefined}
+                                match={match}
+                                homeTeam={teamsData[match.homeTeamId]}
+                                awayTeam={teamsData[match.awayTeamId]}
+                                onUpdate={handleScoreUpdate}
+                                lang={t}
+                                locale={currentLocale}
+                                userTokens={user?.tokens || 0}
+                                rivals={rivalsList}
                                 onSpy={handleSpy}
                                 currentUser={user}
-                                allPredictions={allPredictions} 
-                                phase={tournamentPhase} 
-                                isAdminMode={isAdminMode} 
-                                onSubstitute={() => handleSubstitute(match.id)} 
-                                substitutionsLeft={user?.substitutions || 0} 
-                                isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false} 
-                                onTeamClick={(id) => setViewingTeamId(id)} 
-                                showStatusBadge={false} 
-                                context="groups" 
+                                allPredictions={allPredictions}
+                                phase={tournamentPhase}
+                                isAdminMode={isAdminMode}
+                                onSubstitute={() => handleSubstitute(match.id)}
+                                substitutionsLeft={user?.substitutions || 0}
+                                isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
+                                onTeamClick={(id) => setViewingTeamId(id)}
+                                showStatusBadge={false}
+                                context="groups"
+                                events={matchEvents.filter(e => e.matchId === match.id)}
                               />
                           ))}
                       </div>

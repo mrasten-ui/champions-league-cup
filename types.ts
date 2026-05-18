@@ -187,6 +187,18 @@ export interface TeamFormData {
 
 export type TournamentPhase = 'PRE_LIVE' | 'LIVE';
 
+export interface MatchEvent {
+  id: number;
+  matchId: string;
+  minute: number;
+  minuteExtra?: number | null;
+  type: string;      // 'Goal', 'Card', 'Subst', 'Var'
+  detail?: string;   // 'Normal Goal', 'Own Goal', 'Penalty', 'Yellow Card', etc.
+  teamId?: string;
+  player?: string;
+  assist?: string;
+}
+
 // --- NEW: Broadcast & Lore Types ---
 export interface CastMember {
   name: string;

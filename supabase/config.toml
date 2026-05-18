@@ -14,3 +14,8 @@ entrypoint = "./functions/generate-avatar/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/daily-brief/index.ts"
+
+[functions.sync-scores]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/sync-scores/index.ts"
