@@ -46,9 +46,9 @@ export interface Database {
         Update: { team_id?: string | null; style?: string | null; att?: number | null; mid?: number | null; def?: number | null; pace?: number | null; phys?: number | null; tech?: number | null; key_player_role?: string | null; narrative?: Json | null; };
       };
       teams: {
-        Row: { id: string; name: string | null; flag: string | null; rank: number | null; rating: number | null; att: number | null; mid: number | null; def: number | null; overview: string | null; group_letter: string | null; iso_code: string | null; region: string | null; };
-        Insert: { id: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; };
-        Update: { id?: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; };
+        Row: { id: string; name: string | null; flag: string | null; rank: number | null; rating: number | null; att: number | null; mid: number | null; def: number | null; overview: string | null; group_letter: string | null; iso_code: string | null; region: string | null; elo_rating: number | null; };
+        Insert: { id: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
+        Update: { id?: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
       };
       worldcup2026_schedule: {
         Row: { matchid: number | null; matchdate: string | null; time_uk: string | null; stage: string | null; hometeam: string | null; awayteam: string | null; channel_uk_england: string | null; channel_uk_scotland: string | null; channel_norway: string | null; channel_us: string | null; };

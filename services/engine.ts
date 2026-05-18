@@ -450,47 +450,55 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
 
     const homeTeam = teams[match.homeTeamId];
     const awayTeam = teams[match.awayTeamId];
-    
     if (!homeTeam || !awayTeam) return match;
-    
-    let diff = 0;
-    
-    if ('rank' in homeTeam && 'rank' in awayTeam && (homeTeam as any).rank && (awayTeam as any).rank) {
-       const rH = (homeTeam as any).rank;
-       const rA = (awayTeam as any).rank;
-       diff = (rA - rH) / 15; 
+
+    // --- ELO WIN PROBABILITY → GOAL DIFFERENTIAL (70% weight) ---
+    // ELO formula: We = 1 / (10^(-dr/400) + 1)
+    // 200-pt gap ≈ 76% win prob ≈ +0.78 goal advantage; 400-pt gap ≈ 91% ≈ +1.23.
+    // Falls back to FIFA rank if ELO isn't loaded yet.
+    const eloH = homeTeam.eloRating;
+    const eloA = awayTeam.eloRating;
+    let eloGoalDiff = 0;
+    if (eloH && eloA) {
+      const winProbH = 1 / (1 + Math.pow(10, -(eloH - eloA) / 400));
+      eloGoalDiff = (winProbH - 0.5) * 3.0;
     } else {
-       diff = (homeTeam.rating - awayTeam.rating) / 18;
+      const rH = homeTeam.rank || 100;
+      const rA = awayTeam.rank || 100;
+      eloGoalDiff = (rA - rH) / 15;
     }
 
-    let hAdv = favorites.includes(homeTeam.id) ? 0.5 : 0;
-    let aAdv = favorites.includes(awayTeam.id) ? 0.5 : 0;
-    
-    const baseGoals = 1.0 + (Math.random() * 1.5); 
+    // --- ATT vs DEF TEXTURE (30% weight) ---
+    // Which team's attack overloads the opponent's defence — adds score variety.
+    const attDefH = ((homeTeam.att || 50) - (awayTeam.def || 50)) / 50;
+    const attDefA = ((awayTeam.att || 50) - (homeTeam.def || 50)) / 50;
 
-    let hS = Math.max(0, baseGoals + diff + hAdv);
-    let aS = Math.max(0, baseGoals - diff + aAdv);
+    const skillH = eloGoalDiff * 0.7 + attDefH * 0.3;
+    const skillA = -eloGoalDiff * 0.7 + attDefA * 0.3;
 
-    hS += (Math.random() * 3.0) - 1.5;
-    aS += (Math.random() * 3.0) - 1.5;
+    // --- FAVORITES BOOST ---
+    // Base +0.4, scaling up to +1.0 when the match is a genuine 50/50 by ELO.
+    // Picking a favourite in a tight game tips the balance; in a mismatch it barely shows.
+    const matchTightness = Math.max(0, 1 - Math.abs(eloGoalDiff) / 1.5);
+    const hFav = favorites.includes(homeTeam.id) ? (0.4 + matchTightness * 0.6) : 0;
+    const aFav = favorites.includes(awayTeam.id) ? (0.4 + matchTightness * 0.6) : 0;
 
-    let finalHome = Math.round(Math.max(0, hS));
-    let finalAway = Math.round(Math.max(0, aS));
-    
-    finalHome = Math.min(finalHome, 9);
-    finalAway = Math.min(finalAway, 9);
-    
+    // --- BASE GOALS + LUCK ---
+    // Base 1.0–2.5, plus ±1.5 luck per team — keeps every user's sheet unique.
+    const baseGoals = 1.0 + Math.random() * 1.5;
+    const luckH = Math.random() * 3.0 - 1.5;
+    const luckA = Math.random() * 3.0 - 1.5;
+
+    let finalHome = Math.round(Math.max(0, Math.min(9, baseGoals + skillH + hFav + luckH)));
+    let finalAway = Math.round(Math.max(0, Math.min(9, baseGoals + skillA + aFav + luckA)));
+
+    // --- KNOCKOUT DRAW PREVENTION ---
     if (!match.groupId && finalHome === finalAway) {
-        const hWeight = (homeTeam as any).rank ? (200 - (homeTeam as any).rank) : homeTeam.rating;
-        const aWeight = (awayTeam as any).rank ? (200 - (awayTeam as any).rank) : awayTeam.rating;
-        
-        if (hWeight + (Math.random() * 50) > aWeight + (Math.random() * 50)) {
-            finalHome++;
-        } else {
-            finalAway++;
-        }
+      const eloTie = eloH && eloA ? eloH : (200 - (homeTeam.rank || 100)) * 10;
+      const eloTieA = eloH && eloA ? eloA : (200 - (awayTeam.rank || 100)) * 10;
+      if (eloTie + Math.random() * 100 > eloTieA + Math.random() * 100) finalHome++; else finalAway++;
     }
-    
+
     return { ...match, homeScore: finalHome, awayScore: finalAway };
   });
 };

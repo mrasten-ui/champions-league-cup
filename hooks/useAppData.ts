@@ -148,7 +148,8 @@ export const useAppData = () => {
                           starPlayer: 'TBD',
                           strengths: '',
                           weaknesses: '',
-                          form: []
+                          form: [],
+                          eloRating: t.elo_rating || undefined,
                       };
                   }
               });

@@ -95,6 +95,7 @@ export interface Team {
   weaknesses?: string;
   code?: string;
   form?: string[];
+  eloRating?: number;
 }
 
 export interface Prediction {
