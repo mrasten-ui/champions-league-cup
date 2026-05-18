@@ -28,6 +28,7 @@ interface AppHeaderProps {
   onStartLiveTour?: () => void;
   showSecondChanceBadge?: boolean;
   isAdminMode?: boolean;
+  unassignedCount?: number;
   onInstallApp?: () => void;
   navTabs: string[];
   t: Translation;
@@ -290,6 +291,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                       <button id="btn-profile-menu" onClick={() => props.setIsProfileMenuOpen(!props.isProfileMenuOpen)} className="flex items-center gap-2 group focus:outline-none relative">
                           <AvatarDisplay avatar={user?.avatar || ''} size="sm" />
                           <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-0.5 rounded-full border border-white shadow-sm"><Edit3 size={8} /></div>
+                          {props.isAdminMode && (props.unassignedCount ?? 0) > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-[0_0_6px_rgba(239,68,68,0.8)] z-10 border border-white">
+                              {props.unassignedCount}
+                            </span>
+                          )}
                       </button>
                       {props.isProfileMenuOpen && (
                         <>

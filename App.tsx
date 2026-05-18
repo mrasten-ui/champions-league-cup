@@ -70,6 +70,7 @@ export const App = () => {
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showAdminBanner, setShowAdminBanner] = useState(false);
 
   // Derived from match data — flips to LIVE the moment any group match leaves UPCOMING/NS.
   // Admin can override for testing only (requires admin mode to be active).
@@ -380,6 +381,20 @@ export const App = () => {
       checkPendingLeague();
   }, [user]);
 
+  // Auto-activate admin mode when user has is_admin flag in DB
+  useEffect(() => {
+    if (user?.isAdmin && !isAdminMode) setIsAdminMode(true);
+  }, [user?.isAdmin]);
+
+  // Show admin banner 2s after login when there are unassigned users
+  useEffect(() => {
+    if (!isAdminMode) return;
+    const unassigned = Object.values(usersDb).filter(u => !(u as UserProfile).leagues?.length).length;
+    if (unassigned === 0) return;
+    const t = setTimeout(() => setShowAdminBanner(true), 2000);
+    return () => clearTimeout(t);
+  }, [isAdminMode, usersDb]);
+
   // --- TOUR GUIDE CONTROLS ---
   useEffect(() => {
       const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
@@ -625,12 +640,16 @@ export const App = () => {
       return <LoginScreen onSuccess={() => supabase.auth.getSession().then(({ data }) => { if (data.session?.user?.email) window.location.reload(); })} currentLang={language} setLang={(l) => setLanguage(l)} isLoading={loading} onLogin={async () => {}} menPresets={getAvailable(menPresets).slice(0,5)} womenPresets={getAvailable(womenPresets).slice(0,5)} />;
   }
 
+  const unassignedCount = isAdminMode
+    ? Object.values(usersDb).filter(u => !(u as UserProfile).leagues?.length).length
+    : 0;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12 relative">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
-      <AppHeader 
+      <AppHeader
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
         showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
@@ -648,11 +667,38 @@ export const App = () => {
             Date.now() < groupStageEndTime
         }
         isAdminMode={isAdminMode}
+        unassignedCount={unassignedCount}
         onInstallApp={installAction ?? undefined}
         navTabs={navTabs} t={t} matches={matches} teamsData={teamsData} allPredictions={allPredictions}
         activeKnockoutRound={activeKnockoutRound} setActiveKnockoutRound={setActiveKnockoutRound}
       />
       <InstallPrompt isLoggedIn={!!user} onRegisterTrigger={setInstallAction} />
+
+      {/* Admin: unassigned players banner */}
+      {showAdminBanner && unassignedCount > 0 && (
+        <div className="fixed bottom-16 inset-x-0 z-[44] px-3 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-[#0f2545] border border-red-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <div className="bg-red-500/15 border border-red-500/30 p-2 rounded-xl shrink-0">
+              <span className="text-red-400 font-black text-sm">{unassignedCount}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-xs font-black uppercase tracking-tight leading-tight">
+                {unassignedCount === 1 ? '1 player needs a league' : `${unassignedCount} players need a league`}
+              </p>
+              <p className="text-slate-400 text-[10px] leading-snug">Assign them in the management panel</p>
+            </div>
+            <button
+              onClick={() => { setIsDebugOpen(true); setShowAdminBanner(false); }}
+              className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shrink-0 active:scale-95 transition-transform"
+            >
+              Manage
+            </button>
+            <button onClick={() => setShowAdminBanner(false)} className="text-slate-500 hover:text-white shrink-0 transition-colors p-1">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
@@ -824,6 +870,12 @@ export const App = () => {
           const updated = { ...leagueLangs, [slug]: lang };
           setLeagueLangs(updated);
           if (supabase) await supabase.from('settings').upsert({ key: 'league_langs', value: updated });
+        }}
+        onToggleAdmin={async (email, isAdmin) => {
+          if (!supabase) return;
+          await supabase.from('profiles').update({ is_admin: isAdmin } as any).eq('email', email);
+          setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], isAdmin } }));
+          if (user?.email === email) setUser(prev => prev ? { ...prev, isAdmin } : null);
         }}
         onUpdateUserLeagues={async (email, leagues) => {
           if (!supabase) return;

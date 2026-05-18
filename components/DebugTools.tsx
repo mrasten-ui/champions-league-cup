@@ -13,6 +13,7 @@ interface DebugToolsProps {
   onBulkUpdateChannels: (locale: string, scope: 'all' | 'groups' | 'knockout', channel: string) => Promise<void>;
   leagueLangs: Record<string, LanguageCode>;
   onUpdateLeagueLang: (slug: string, lang: LanguageCode) => Promise<void>;
+  onToggleAdmin: (email: string, isAdmin: boolean) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -20,7 +21,7 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin
 }) => {
   if (!isOpen) return null;
 
@@ -225,21 +226,30 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                                     <div className="text-xs font-black text-slate-800">{u.name}</div>
                                     <div className="text-[10px] text-slate-400 font-mono">{u.email}</div>
                                 </div>
-                                <button
-                                    onClick={async () => {
-                                        const allSlugs = Object.keys(LEAGUES);
-                                        const current = u.leagues || [];
-                                        const missing = allSlugs.filter(s => !current.includes(s));
-                                        if (missing.length === 0) return;
-                                        setSavingLeague(u.email + '_all');
-                                        await onUpdateUserLeagues(u.email, [...current, ...missing]);
-                                        setSavingLeague(null);
-                                    }}
-                                    disabled={savingLeague === u.email + '_all' || Object.keys(LEAGUES).every(s => (u.leagues || []).includes(s))}
-                                    className="shrink-0 px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    All Leagues
-                                </button>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        onClick={async () => {
+                                            const allSlugs = Object.keys(LEAGUES);
+                                            const current = u.leagues || [];
+                                            const missing = allSlugs.filter(s => !current.includes(s));
+                                            if (missing.length === 0) return;
+                                            setSavingLeague(u.email + '_all');
+                                            await onUpdateUserLeagues(u.email, [...current, ...missing]);
+                                            setSavingLeague(null);
+                                        }}
+                                        disabled={savingLeague === u.email + '_all' || Object.keys(LEAGUES).every(s => (u.leagues || []).includes(s))}
+                                        className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        All Leagues
+                                    </button>
+                                    <button
+                                        onClick={() => onToggleAdmin(u.email, !u.isAdmin)}
+                                        title={u.isAdmin ? 'Revoke admin' : 'Grant admin'}
+                                        className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors ${u.isAdmin ? 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200'}`}
+                                    >
+                                        {u.isAdmin ? '★ Admin' : 'Admin'}
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {Object.entries(LEAGUES).map(([slug, leagueName]) => {

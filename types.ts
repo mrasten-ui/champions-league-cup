@@ -122,6 +122,7 @@ export interface UserProfile {
     preSeason: boolean;
     liveSeason: boolean;
   };
+  isAdmin?: boolean;
 }
 
 export interface GroupStanding {

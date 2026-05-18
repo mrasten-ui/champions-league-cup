@@ -184,6 +184,7 @@ export const useAppData = () => {
                   unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance, secondChanceStatus: (data.second_chance_status as any) || 'NONE',
                   spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || [],
                   toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
+                  isAdmin: !!data.is_admin,
               });
           } else {
               const { data: { user: authUser } } = await supabase.auth.getUser();
