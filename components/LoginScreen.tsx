@@ -20,7 +20,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogin, currentLang, setLang, onSuccess, isLoading, 
   menPresets, womenPresets 
 }) => {
-  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>(
+    sessionStorage.getItem('pending_league_invite') ? 'signup' : 'login'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');

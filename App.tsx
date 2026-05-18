@@ -117,13 +117,30 @@ export const App = () => {
     }
   }, []);
 
+  // Keep ?invite=slug in the URL while the user is logged in with a league,
+  // so they can share directly from the browser address bar.
+  useEffect(() => {
+    if (!user?.leagues?.length) return;
+    const slug = user.leagues[0];
+    const current = new URLSearchParams(window.location.search).get('invite');
+    if (current !== slug) window.history.replaceState({}, '', `?invite=${slug}`);
+  }, [user?.leagues]);
+
   // --- LEAGUE LANGUAGE SETTINGS ---
   // Load per-league language overrides from Supabase settings table.
+  // After loading, re-apply language for any pending invite so the login page
+  // shows the right language even when the constants fallback is 'EN'.
   useEffect(() => {
     if (!supabase) return;
-    supabase.from('settings').select('value').eq('key', 'league_langs').maybeSingle().then(({ data }) => {
-      if (data?.value) setLeagueLangs(prev => ({ ...prev, ...(data.value as Record<string, LanguageCode>) }));
-    });
+    supabase.from('settings').select('value').eq('key', 'league_langs').maybeSingle()
+      .then(({ data }) => {
+        if (!data?.value) return;
+        const overrides = data.value as Record<string, LanguageCode>;
+        setLeagueLangs(prev => ({ ...prev, ...overrides }));
+        const pendingInvite = sessionStorage.getItem('pending_league_invite');
+        if (pendingInvite && overrides[pendingInvite]) setLanguage(overrides[pendingInvite]);
+      })
+      .catch(() => { /* settings table not yet created — silently ignore */ });
   }, []);
 
   // --- HELPERS ---
@@ -363,14 +380,16 @@ export const App = () => {
 
               // Single invite link (?invite=slug)
               const singleInvite = sessionStorage.getItem('pending_league_invite');
-              if (singleInvite && !existing.includes(singleInvite)) toAdd.push(singleInvite);
+              if (singleInvite) {
+                if (!existing.includes(singleInvite)) toAdd.push(singleInvite);
+                sessionStorage.removeItem('pending_league_invite'); // always clear, whether member or not
+              }
 
               if (toAdd.length > 0) {
                   const newLeagues = [...existing, ...toAdd];
                   await supabase.from('profiles').update({ leagues: newLeagues } as any).eq('email', user.email);
                   setUser({ ...user, leagues: newLeagues });
                   addToast('success', t.leagueJoined, toAdd.map(s => LEAGUES[s] || s).join(', '));
-                  sessionStorage.removeItem('pending_league_invite');
                   // Apply the league's configured default language
                   const invitedSlug = toAdd[0];
                   const defaultLang = leagueLangs[invitedSlug];
