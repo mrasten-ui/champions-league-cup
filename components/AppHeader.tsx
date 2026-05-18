@@ -74,7 +74,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     const valid = matches.filter(m => m.date && m.date !== 'TBD');
     if (!valid.length) return null;
     const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
-    return new Date(earliest.date).getTime() - 15 * 60 * 1000;
+    return new Date(earliest.date).getTime();
   }, [matches, props.tournamentPhase]);
 
   const [remaining, setRemaining] = useState(() => deadline ? deadline - Date.now() : 0);
@@ -476,7 +476,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             <div className="bg-[#0f2545] border-t border-white/5 px-6 py-4 text-center">
               <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">{t.deadlineBodyPre || 'All predictions lock permanently at'}</p>
               <p className={`font-black text-base ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-white'}`}>{deadlineFormatted}</p>
-              <p className="text-[9px] text-slate-600 mt-2 font-medium italic">15 min before opening kick-off</p>
+              <p className="text-[9px] text-slate-600 mt-2 font-medium italic">Opening kick-off</p>
             </div>
 
             {/* CTA */}
