@@ -206,7 +206,7 @@ export const useAppData = () => {
                   // Clear stale localStorage tour flags so the tour always fires for a fresh profile
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}`);
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}_live`);
-                  const dbRow = { id: authUser.id, email, name: email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE' };
+                  const dbRow = { id: authUser.id, email, name: authUser.user_metadata?.full_name || email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE' };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
