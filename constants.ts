@@ -637,17 +637,17 @@ export const BROADCAST_CHANNELS: Record<string, string> = {};
 // --- LEAGUE CONFIG ---
 // Add new leagues here only. Slug = URL invite key. Name = display name.
 export const LEAGUES: Record<string, string> = {
-  inverkeighing:    'Inverkeighing',
-  beeline:          'Beeline',
-  family_friends:   'Family and Friends',
+  armchair_gaffers:   'The Armchair Gaffers',
+  beeline:            'Beeline World Cup 2026',
+  sofa_ekspertene:    'Rasten-ligaen avd Sofa-ekspertene',
 };
 
 // Default language shown when joining via each league's invite link.
 // Can be overridden at runtime by the admin in the Management panel.
 export const LEAGUE_DEFAULT_LANGS: Record<string, LanguageCode> = {
-  inverkeighing:  'EN',
-  beeline:        'EN',
-  family_friends: 'EN',
+  armchair_gaffers:   'SCO',
+  beeline:            'EN',
+  sofa_ekspertene:    'NO',
 };
 
 // --- DATA EXPORTS ---
