@@ -145,6 +145,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         return specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || null);
     };
 
+    const CHANNEL_URLS: Record<string, string> = {
+        BBC: 'https://www.bbc.co.uk/iplayer/live/bbcone',
+        ITV: 'https://www.itv.com/watch/live',
+        STV: 'https://player.stv.tv/live',
+        NRK: 'https://www.nrk.no/sport',
+        TV2: 'https://play.tv2.no/direkte/',
+        FOX: 'https://www.foxsports.com/live',
+        FS1: 'https://www.foxsports.com/live',
+    };
+
+    const getChannelUrl = (ch: string) => CHANNEL_URLS[ch.toUpperCase()] ?? null;
+
     const getShortVenue = (rawVenue: string | null) => {
         if (!rawVenue) return 'TBD';
         const v = rawVenue.toLowerCase();
@@ -307,11 +319,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
                 {/* TV Channel badge — top-right of white body, pre-live only */}
-                {!isLive && !isFinished && (() => { const ch = getTvChannelName(); return ch ? (
-                  <div className="absolute top-2 right-3 flex items-center gap-1 text-slate-400">
-                    <Tv size={9} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">{ch}</span>
-                  </div>
+                {!isLive && !isFinished && (() => { const ch = getTvChannelName(); const url = ch ? getChannelUrl(ch) : null; return ch ? (
+                  url
+                    ? <a href={url} target="_blank" rel="noopener noreferrer" className="absolute top-2 right-3 flex items-center gap-1 text-slate-400 hover:text-blue-400 transition-colors" title={`Watch on ${ch}`}>
+                        <Tv size={9} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">{ch}</span>
+                      </a>
+                    : <div className="absolute top-2 right-3 flex items-center gap-1 text-slate-400">
+                        <Tv size={9} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">{ch}</span>
+                      </div>
                 ) : null; })()}
                 {/* Home Team */}
                 <div onClick={() => { if (isHomeTBD) return; if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${predictedWinnerId === match.homeTeamId && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
@@ -471,7 +488,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="flex items-center gap-3 justify-end w-1/3">
                         {pointsEarned !== null && !isAdminMode
                             ? <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>
-                            : (() => { const ch = getTvChannelName(); return ch ? <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></div> : null; })()
+                            : (() => { const ch = getTvChannelName(); const url = ch ? getChannelUrl(ch) : null; return ch ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-300 hover:text-blue-400 transition-colors" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></a> : <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></div>) : null; })()
                         }
                         {match.isLocked && <LockIcon size={10} className="text-slate-400" />}
                     </div>
