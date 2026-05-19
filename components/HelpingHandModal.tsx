@@ -65,7 +65,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity" onClick={onClose}></div>
 
-      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/10">
+      <div id="tour-magic-wand-panel" className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/10">
         
         {/* Header - Midnight Stadium Aesthetic */}
         <div className="bg-[#0f172a] text-white p-10 text-center relative shrink-0">

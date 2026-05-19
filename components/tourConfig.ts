@@ -77,7 +77,7 @@ export const PRE_SEASON_TOUR: TourStep[] = [
   // STOP 4: MAGIC WAND
   {
     id: 'magic_wand',
-    targetId: 'btn-magic-wand',
+    targetId: 'tour-magic-wand-panel',
     position: 'top',
     overlayType: 'sparkles',
     audioFiles: {
