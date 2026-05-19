@@ -81,18 +81,13 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
           <p className="text-slate-400 text-xs font-black max-w-sm mx-auto leading-relaxed uppercase tracking-widest opacity-80">
             {getActionDescription()}
           </p>
+          <p className="text-slate-500 text-[10px] font-medium max-w-xs mx-auto mt-2 leading-snug opacity-70">
+            {lang.simBoostNote}
+          </p>
         </div>
         {/* FIFA rank label */}
         <div className="bg-[#0f172a] px-8 pb-4 text-right">
           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest"># = FIFA World Ranking (Apr 2026)</span>
-        </div>
-
-        {/* Boost explanation */}
-        <div className="bg-amber-50 border-b border-amber-100 px-8 py-3 flex items-start gap-3">
-          <span className="text-amber-500 mt-0.5 shrink-0">ⓘ</span>
-          <p className="text-[11px] text-amber-800 font-semibold leading-snug">
-            {lang.simBoostNote}
-          </p>
         </div>
 
         {/* Team Grid */}
