@@ -419,8 +419,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    const isRed = e.detail === 'Red Card';
                    return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${isRed ? 'bg-red-500' : 'bg-yellow-400'}`} />;
                  }
-                 const label = e.detail === 'Own Goal' ? '⚽OG' : e.detail === 'Penalty' ? '⚽P' : '⚽';
-                 return <span className="shrink-0">{label}</span>;
+                 const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
+                 return (
+                   <span className="flex items-center gap-0.5 shrink-0">
+                     <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 shrink-0" fill="none">
+                       <circle cx="5" cy="5" r="4.5" fill="white" stroke="#94a3b8" strokeWidth="0.8"/>
+                       <path d="M5 1.8L6.3 2.8 5.9 4.6H4.1L3.7 2.8Z" fill="#334155"/>
+                       <path d="M5.9 4.6 7.3 5.1 7.8 6.8 6.4 7.8 5 7.1 3.6 7.8 2.2 6.8 2.7 5.1 4.1 4.6Z" fill="#334155"/>
+                     </svg>
+                     {suffix && <span className="text-[7px] font-bold text-slate-500">{suffix}</span>}
+                   </span>
+                 );
                };
                return (
                  <div className="px-3 pt-1.5 pb-2 border-t border-slate-100 flex gap-2 text-[9px]">

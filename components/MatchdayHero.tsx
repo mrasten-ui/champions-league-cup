@@ -302,8 +302,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             if (e.type === 'Card') {
               return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${e.detail === 'Red Card' ? 'bg-red-500' : 'bg-yellow-400'}`} />;
             }
-            const label = e.detail === 'Own Goal' ? '⚽OG' : e.detail === 'Penalty' ? '⚽P' : '⚽';
-            return <span className="shrink-0">{label}</span>;
+            const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
+            return (
+              <span className="flex items-center gap-0.5 shrink-0">
+                <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 shrink-0" fill="none">
+                  <circle cx="5" cy="5" r="4.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8"/>
+                  <path d="M5 1.8L6.3 2.8 5.9 4.6H4.1L3.7 2.8Z" fill="#1e293b"/>
+                  <path d="M5.9 4.6 7.3 5.1 7.8 6.8 6.4 7.8 5 7.1 3.6 7.8 2.2 6.8 2.7 5.1 4.1 4.6Z" fill="#1e293b"/>
+                </svg>
+                {suffix && <span className="text-[7px] font-bold text-white/60">{suffix}</span>}
+              </span>
+            );
           };
           return (
             <div className="relative z-10 bg-black/30 border-t border-white/5 px-6 py-2.5 flex gap-4 text-[10px]">
