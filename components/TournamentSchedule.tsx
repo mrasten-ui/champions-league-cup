@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Match, Team, Translation, Prediction, UserProfile } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile, MatchEvent } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -17,6 +17,7 @@ interface TournamentScheduleProps {
   onJumpToTable?: (groupId: string, teamId: string) => void;
   onJumpToBracket?: (matchId: string) => void;
   jumpToMatchId?: string;
+  matchEvents?: MatchEvent[];
 }
 
 // MAPPING: Language Code -> Team ID
@@ -39,7 +40,7 @@ const LOCALE_MAP: Record<string, string> = {
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = []
 }) => {
   
   // Get the correct BCP 47 locale string
@@ -270,13 +271,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
                         return (
                             <div key={match.id} className="relative">
-                                <MatchCard 
+                                <MatchCard
                                     match={readOnlyMatch}
                                     homeTeam={teams[match.homeTeamId]}
                                     awayTeam={teams[match.awayTeamId]}
-                                    onUpdate={() => {}} 
+                                    onUpdate={() => {}}
                                     lang={lang}
-                                    locale={activeLocale} // Pass the mapped locale
+                                    locale={activeLocale}
                                     userTokens={0}
                                     rivals={[]}
                                     onSpy={() => {}}
@@ -285,14 +286,15 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     allPredictions={userPredictions}
                                     phase={'LIVE'}
                                     isAdminMode={false}
-                                    onTeamClick={createClickHandler(match)} 
-                                    showStatusBadge={true} 
+                                    onTeamClick={createClickHandler(match)}
+                                    showStatusBadge={true}
                                     homeTeamPoints={teamPointsMap[match.homeTeamId]}
                                     awayTeamPoints={teamPointsMap[match.awayTeamId]}
                                     allMatches={matches}
                                     allTeams={teams}
                                     variant="official"
                                     cardId={`schedule-match-${match.id}`}
+                                    events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
