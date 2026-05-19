@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Match, Team, Translation, Prediction, UserProfile } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
@@ -16,6 +16,7 @@ interface TournamentScheduleProps {
   onTeamClick: (teamId: string) => void;
   onJumpToTable?: (groupId: string, teamId: string) => void;
   onJumpToBracket?: (matchId: string) => void;
+  jumpToMatchId?: string;
 }
 
 // MAPPING: Language Code -> Team ID
@@ -37,8 +38,8 @@ const LOCALE_MAP: Record<string, string> = {
 // OTHER SUPPORTED TEAMS (Priority Tier 2)
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
-export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket 
+export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId
 }) => {
   
   // Get the correct BCP 47 locale string
@@ -64,6 +65,18 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   });
   
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    if (!jumpToMatchId) return;
+    const match = matches.find(m => m.id === jumpToMatchId);
+    if (match?.date) {
+      setFilterDate(new Date(match.date).toDateString());
+      setTimeout(() => {
+        const el = document.getElementById(`schedule-match-${jumpToMatchId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    }
+  }, [jumpToMatchId]);
 
   // 2. Extract unique dates for the Ribbon
   const uniqueDates = useMemo(() => {
@@ -231,17 +244,19 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
             {/* MATCH OF THE DAY HERO */}
             {heroMatch && !searchTerm && (
-                <MatchdayHero
-                    match={heroMatch}
-                    teams={teams}
-                    groupStandings={heroStandings}
-                    lang={lang}
-                    locale={activeLocale}
-                    allMatches={matches}
-                    onTeamClick={createClickHandler(heroMatch)}
-                    userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
-                    currentUser={user}
-                />
+                <div id={`schedule-match-${heroMatch.id}`}>
+                    <MatchdayHero
+                        match={heroMatch}
+                        teams={teams}
+                        groupStandings={heroStandings}
+                        lang={lang}
+                        locale={activeLocale}
+                        allMatches={matches}
+                        onTeamClick={createClickHandler(heroMatch)}
+                        userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
+                        currentUser={user}
+                    />
+                </div>
             )}
 
             {/* List */}
@@ -276,7 +291,8 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     awayTeamPoints={teamPointsMap[match.awayTeamId]}
                                     allMatches={matches}
                                     allTeams={teams}
-                                    variant="official" 
+                                    variant="official"
+                                    cardId={`schedule-match-${match.id}`}
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
