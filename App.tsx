@@ -42,6 +42,7 @@ import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
+import { GoalBanner, GoalNotification } from './components/GoalBanner';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
@@ -99,6 +100,8 @@ export const App = () => {
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
+  const [goalNotification, setGoalNotification] = useState<GoalNotification | null>(null);
+  const seenEventIdsRef = useRef<Set<number> | null>(null);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
@@ -600,6 +603,38 @@ export const App = () => {
       if (goToKnockouts) setActiveTab('knockout');
   };
 
+  // --- GOAL BANNER ---
+  // First time matchEvents arrives (initial DB load), mark all as seen — don't notify.
+  // Any new INSERT after that fires the banner.
+  useEffect(() => {
+    if (seenEventIdsRef.current === null) {
+      seenEventIdsRef.current = new Set(matchEvents.map(e => e.id));
+      return;
+    }
+    const newGoals = matchEvents.filter(
+      e => e.type === 'Goal' && !seenEventIdsRef.current!.has(e.id)
+    );
+    newGoals.forEach(e => seenEventIdsRef.current!.add(e.id));
+    if (newGoals.length > 0 && !goalNotification) {
+      const goal = newGoals[0];
+      const match = matches.find(m => m.id === goal.matchId);
+      if (match && match.homeScore !== null && match.awayScore !== null) {
+        setGoalNotification({
+          eventId: goal.id,
+          teamId: goal.teamId || '',
+          player: goal.player,
+          detail: goal.detail,
+          minute: goal.minute,
+          minuteExtra: goal.minuteExtra,
+          homeTeamId: match.homeTeamId,
+          awayTeamId: match.awayTeamId,
+          homeScore: match.homeScore,
+          awayScore: match.awayScore,
+        });
+      }
+    }
+  }, [matchEvents]);
+
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
 
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
@@ -922,6 +957,13 @@ export const App = () => {
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
+      <GoalBanner
+        notification={goalNotification}
+        homeTeam={goalNotification ? teamsData[goalNotification.homeTeamId] : undefined}
+        awayTeam={goalNotification ? teamsData[goalNotification.awayTeamId] : undefined}
+        scoringTeam={goalNotification ? teamsData[goalNotification.teamId] : undefined}
+        onDismiss={() => setGoalNotification(null)}
+      />
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
