@@ -403,13 +403,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
              </div>
 
-             {/* MATCH EVENTS: goals + cards */}
+             {/* MATCH EVENTS: goals + cards — schedule view only, or live/finished */}
              {(() => {
                const sig = events.filter(e =>
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
                );
                if (!sig.length) return null;
+               if (!isLive && !isFinished && variant !== 'official') return null;
                const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
                const awayEvts = sig.filter(e => e.teamId === match.awayTeamId).sort((a, b) => a.minute - b.minute);
                const fmtMin = (e: MatchEvent) => `${e.minute}${e.minuteExtra ? `+${e.minuteExtra}` : ''}'`;
