@@ -137,7 +137,6 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
         className="flex items-center gap-1.5 px-3 shrink-0 hover:bg-white/5 transition-colors rounded h-full cursor-pointer"
       >
         {getStatusLabel(m)}
-        <span className="text-white/30 text-[9px] mx-0.5">|</span>
         <Flag src={home?.flag} alt={homeCode} />
         <span className={`text-[10px] font-black uppercase tracking-tight ${isLive ? 'text-white' : 'text-slate-300'}`}>
           {homeCode}
