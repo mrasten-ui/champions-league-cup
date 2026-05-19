@@ -294,7 +294,7 @@ export const App = () => {
       if (!user || !supabase) return;
       
       const match = matches.find(m => m.id === matchId);
-      const isStarted = match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H'].includes(match.status);
+      const isStarted = match && ['LIVE', 'HT', 'FINISHED', 'FT', 'AET', 'PEN', '1H', '2H', 'ET', 'BT', 'P', 'INT'].includes(match.status);
       
       if (!match || isStarted) {
           addToast('error', t.tooLate, t.tooLateMsg);
@@ -870,7 +870,8 @@ export const App = () => {
                         matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} 
                         onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} 
                         isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} 
-                        onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound} 
+                        onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
+                        matchEvents={matchEvents}
                     />
                 )}
                 <div className="mt-8 flex justify-center pb-8">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round } from '../types';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round, MatchEvent } from '../types';
 import { MatchCard } from './MatchCard';
 import { Lock } from 'lucide-react';
 
@@ -20,10 +20,11 @@ interface KnockoutBracketProps {
   onSpy: (id: string) => void;
   revealedRivals: string[];
   activeRound: Round;
+  matchEvents?: MatchEvent[];
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
-  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound
+  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = []
 }) => {
   
   // Filter matches for the active round
@@ -92,6 +93,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             showStatusBadge={false}
                             context="knockout"
                             cardId={index === 0 ? 'tour-first-knockout' : undefined}
+                            events={matchEvents.filter(e => e.matchId === match.id)}
                         />
                     </div>
                 );
