@@ -256,6 +256,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         onTeamClick={createClickHandler(heroMatch)}
                         userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
                         currentUser={user}
+                        events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
                     />
                 </div>
             )}

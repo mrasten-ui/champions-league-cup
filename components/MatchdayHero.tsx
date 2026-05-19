@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Match, Team, Translation, GroupStanding, Prediction, UserProfile } from '../types';
+import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv, Check } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -15,6 +15,7 @@ interface MatchdayHeroProps {
   allMatches?: Match[];
   userPrediction?: Prediction;
   currentUser?: UserProfile | null;
+  events?: MatchEvent[];
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -108,7 +109,7 @@ const TbdHeroSlot: React.FC<{
     );
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [] }) => {
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
@@ -286,6 +287,48 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
         </div>
+
+        {/* MATCH EVENTS STRIP */}
+        {(() => {
+          const sig = events.filter(e =>
+            e.type === 'Goal' ||
+            (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
+          );
+          if (!sig.length) return null;
+          const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
+          const awayEvts = sig.filter(e => e.teamId === match.awayTeamId).sort((a, b) => a.minute - b.minute);
+          const fmtMin = (e: MatchEvent) => `${e.minute}${e.minuteExtra ? `+${e.minuteExtra}` : ''}'`;
+          const Icon = ({ e }: { e: MatchEvent }) => {
+            if (e.type === 'Card') {
+              return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${e.detail === 'Red Card' ? 'bg-red-500' : 'bg-yellow-400'}`} />;
+            }
+            const label = e.detail === 'Own Goal' ? '⚽OG' : e.detail === 'Penalty' ? '⚽P' : '⚽';
+            return <span className="shrink-0">{label}</span>;
+          };
+          return (
+            <div className="relative z-10 bg-black/30 border-t border-white/5 px-6 py-2.5 flex gap-4 text-[10px]">
+              <div className="flex-1 flex flex-col gap-1 min-w-0">
+                {homeEvts.map(e => (
+                  <span key={e.id} className="flex items-center gap-1.5 text-white/70 min-w-0">
+                    <Icon e={e} />
+                    <span className="font-bold text-white/90 shrink-0">{fmtMin(e)}</span>
+                    <span className="truncate">{e.player}</span>
+                  </span>
+                ))}
+              </div>
+              {(homeEvts.length > 0 || awayEvts.length > 0) && <div className="w-px bg-white/10 shrink-0" />}
+              <div className="flex-1 flex flex-col gap-1 items-end min-w-0">
+                {awayEvts.map(e => (
+                  <span key={e.id} className="flex items-center justify-end gap-1.5 text-white/70 min-w-0">
+                    <span className="truncate">{e.player}</span>
+                    <span className="font-bold text-white/90 shrink-0">{fmtMin(e)}</span>
+                    <Icon e={e} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Footer: Stadium & User Prediction */}
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
