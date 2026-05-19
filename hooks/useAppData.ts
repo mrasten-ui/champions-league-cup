@@ -17,35 +17,48 @@ export const useAppData = () => {
   
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
-  // TODO: remove MOCK_JUNE13_EVENTS once real API events are wired up
-  const MOCK_JUNE13_EVENTS: MatchEvent[] = [
-    // Match 4: USA vs NGA
-    { id: 9001, matchId: '4', minute: 23, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'C. Pulisic' },
-    { id: 9002, matchId: '4', minute: 38, type: 'Card', detail: 'Yellow Card', teamId: 'USA', player: 'W. McKennie' },
-    { id: 9003, matchId: '4', minute: 45, minuteExtra: 1, type: 'Goal', detail: 'Penalty', teamId: 'NGA', player: 'V. Osimhen' },
-    { id: 9004, matchId: '4', minute: 67, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'T. Weah' },
-    { id: 9005, matchId: '4', minute: 82, type: 'Card', detail: 'Red Card', teamId: 'NGA', player: 'S. Chukwueze' },
-    // Match 5: SCO vs MAR
-    { id: 9006, matchId: '5', minute: 14, type: 'Goal', detail: 'Normal Goal', teamId: 'SCO', player: 'S. McTominay' },
-    { id: 9007, matchId: '5', minute: 41, type: 'Card', detail: 'Yellow Card', teamId: 'SCO', player: 'K. Tierney' },
-    { id: 9008, matchId: '5', minute: 59, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'Y. En-Nesyri' },
-    { id: 9009, matchId: '5', minute: 74, type: 'Card', detail: 'Yellow Card', teamId: 'MAR', player: 'S. Amallah' },
-    { id: 9010, matchId: '5', minute: 88, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'H. Ziyech' },
-    // Match 6: PAR vs AUS
-    { id: 9011, matchId: '6', minute: 31, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
-    { id: 9012, matchId: '6', minute: 52, type: 'Card', detail: 'Yellow Card', teamId: 'AUS', player: 'A. Behich' },
-    { id: 9013, matchId: '6', minute: 64, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
-    { id: 9014, matchId: '6', minute: 79, type: 'Goal', detail: 'Normal Goal', teamId: 'AUS', player: 'A. Hrustic' },
-    { id: 9015, matchId: '6', minute: 88, type: 'Card', detail: 'Yellow Card', teamId: 'PAR', player: 'G. Gómez' },
-    // Match 7: BRA vs DEN
-    { id: 9016, matchId: '7', minute: 9, type: 'Goal', detail: 'Penalty', teamId: 'BRA', player: 'Vinicius Jr.' },
-    { id: 9017, matchId: '7', minute: 33, type: 'Card', detail: 'Yellow Card', teamId: 'DEN', player: 'P. Højbjerg' },
-    { id: 9018, matchId: '7', minute: 44, type: 'Goal', detail: 'Normal Goal', teamId: 'DEN', player: 'C. Eriksen' },
-    { id: 9019, matchId: '7', minute: 52, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Rodrygo' },
-    { id: 9020, matchId: '7', minute: 66, type: 'Card', detail: 'Yellow Card', teamId: 'BRA', player: 'Casemiro' },
-    { id: 9021, matchId: '7', minute: 77, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Endrick' },
+  // TODO: remove MOCK_EVENTS once real API events are wired up
+  // matchId uses HOME_AWAY team-combo so DB numeric IDs don't matter
+  const MOCK_EVENTS: MatchEvent[] = [
+    // Group A: MEX vs RSA (June 11)
+    { id: 9001, matchId: 'MEX_RSA', minute: 17, type: 'Goal', detail: 'Normal Goal', teamId: 'MEX', player: 'H. Lozano' },
+    { id: 9002, matchId: 'MEX_RSA', minute: 34, type: 'Card', detail: 'Yellow Card', teamId: 'RSA', player: 'S. Tau' },
+    { id: 9003, matchId: 'MEX_RSA', minute: 55, type: 'Goal', detail: 'Normal Goal', teamId: 'MEX', player: 'R. Jiménez' },
+    { id: 9004, matchId: 'MEX_RSA', minute: 71, type: 'Goal', detail: 'Penalty', teamId: 'RSA', player: 'P. Zwane' },
+    { id: 9005, matchId: 'MEX_RSA', minute: 88, type: 'Card', detail: 'Red Card', teamId: 'RSA', player: 'T. Hlatshwayo' },
+    // Group A: KOR vs CZE (June 12)
+    { id: 9006, matchId: 'KOR_CZE', minute: 23, type: 'Goal', detail: 'Normal Goal', teamId: 'KOR', player: 'Son Heung-min' },
+    { id: 9007, matchId: 'KOR_CZE', minute: 38, type: 'Card', detail: 'Yellow Card', teamId: 'CZE', player: 'T. Souček' },
+    { id: 9008, matchId: 'KOR_CZE', minute: 44, type: 'Goal', detail: 'Normal Goal', teamId: 'CZE', player: 'P. Schick' },
+    { id: 9009, matchId: 'KOR_CZE', minute: 67, type: 'Goal', detail: 'Own Goal', teamId: 'CZE', player: 'V. Coufal' },
+    { id: 9010, matchId: 'KOR_CZE', minute: 81, type: 'Card', detail: 'Yellow Card', teamId: 'KOR', player: 'H. Hwang' },
+    // Group C: SCO vs MAR (June 13)
+    { id: 9011, matchId: 'SCO_MAR', minute: 14, type: 'Goal', detail: 'Normal Goal', teamId: 'SCO', player: 'S. McTominay' },
+    { id: 9012, matchId: 'SCO_MAR', minute: 41, type: 'Card', detail: 'Yellow Card', teamId: 'SCO', player: 'K. Tierney' },
+    { id: 9013, matchId: 'SCO_MAR', minute: 59, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'Y. En-Nesyri' },
+    { id: 9014, matchId: 'SCO_MAR', minute: 74, type: 'Card', detail: 'Yellow Card', teamId: 'MAR', player: 'S. Amallah' },
+    { id: 9015, matchId: 'SCO_MAR', minute: 88, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'H. Ziyech' },
+    // Group D: USA vs NGA (June 13)
+    { id: 9016, matchId: 'USA_NGA', minute: 23, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'C. Pulisic' },
+    { id: 9017, matchId: 'USA_NGA', minute: 38, type: 'Card', detail: 'Yellow Card', teamId: 'USA', player: 'W. McKennie' },
+    { id: 9018, matchId: 'USA_NGA', minute: 45, minuteExtra: 1, type: 'Goal', detail: 'Penalty', teamId: 'NGA', player: 'V. Osimhen' },
+    { id: 9019, matchId: 'USA_NGA', minute: 67, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'T. Weah' },
+    { id: 9020, matchId: 'USA_NGA', minute: 82, type: 'Card', detail: 'Red Card', teamId: 'NGA', player: 'S. Chukwueze' },
+    // Group D: PAR vs AUS (June 13)
+    { id: 9021, matchId: 'PAR_AUS', minute: 31, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
+    { id: 9022, matchId: 'PAR_AUS', minute: 52, type: 'Card', detail: 'Yellow Card', teamId: 'AUS', player: 'A. Behich' },
+    { id: 9023, matchId: 'PAR_AUS', minute: 64, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
+    { id: 9024, matchId: 'PAR_AUS', minute: 79, type: 'Goal', detail: 'Normal Goal', teamId: 'AUS', player: 'A. Hrustic' },
+    { id: 9025, matchId: 'PAR_AUS', minute: 88, type: 'Card', detail: 'Yellow Card', teamId: 'PAR', player: 'G. Gómez' },
+    // Group C: BRA vs DEN (June 13)
+    { id: 9026, matchId: 'BRA_DEN', minute: 9, type: 'Goal', detail: 'Penalty', teamId: 'BRA', player: 'Vinicius Jr.' },
+    { id: 9027, matchId: 'BRA_DEN', minute: 33, type: 'Card', detail: 'Yellow Card', teamId: 'DEN', player: 'P. Højbjerg' },
+    { id: 9028, matchId: 'BRA_DEN', minute: 44, type: 'Goal', detail: 'Normal Goal', teamId: 'DEN', player: 'C. Eriksen' },
+    { id: 9029, matchId: 'BRA_DEN', minute: 52, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Rodrygo' },
+    { id: 9030, matchId: 'BRA_DEN', minute: 66, type: 'Card', detail: 'Yellow Card', teamId: 'BRA', player: 'Casemiro' },
+    { id: 9031, matchId: 'BRA_DEN', minute: 77, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Endrick' },
   ];
-  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>(MOCK_JUNE13_EVENTS);
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>(MOCK_EVENTS);
 
   const fetchingProfileRef = useRef(false);
 

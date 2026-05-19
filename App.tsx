@@ -905,7 +905,7 @@ export const App = () => {
                                 onTeamClick={(id) => setViewingTeamId(id)}
                                 showStatusBadge={false}
                                 context="groups"
-                                events={matchEvents.filter(e => String(e.matchId) === String(match.id))}
+                                events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                               />
                           ))}
                       </div>
