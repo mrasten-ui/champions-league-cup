@@ -111,7 +111,14 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
     } else if (diffDays > 7) {
       prefix = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ';
     }
-    return <span className="text-slate-400 font-black text-[9px]">{prefix}{timeStr}</span>;
+    if (!prefix) return <span className="text-slate-300 font-black text-[9px]">{timeStr}</span>;
+    return (
+      <span className="flex items-center gap-0.5">
+        <span className="text-slate-500 font-bold text-[9px]">{prefix.trim()}</span>
+        <span className="text-slate-600 text-[8px]">·</span>
+        <span className="text-slate-300 font-black text-[9px]">{timeStr}</span>
+      </span>
+    );
   };
 
   const renderScore = (m: Match) => {
