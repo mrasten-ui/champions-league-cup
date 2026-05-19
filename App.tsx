@@ -600,12 +600,17 @@ export const App = () => {
 
   const handleTickerMatchClick = (match: Match) => {
     if (match.groupId) {
-      setActiveTab('groups');
-      setActiveGroup(match.groupId);
-      setTimeout(() => {
-        const el = document.getElementById(`match-card-${match.id}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 150);
+      if (tournamentPhase === 'LIVE') {
+        setActiveTab('tournament');
+        setTournamentSubTab('schedule');
+      } else {
+        setActiveTab('groups');
+        setActiveGroup(match.groupId);
+        setTimeout(() => {
+          const el = document.getElementById(`match-card-${match.id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      }
     } else if (match.round) {
       if (tournamentPhase === 'LIVE') {
         setActiveTab('tournament');
