@@ -94,7 +94,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             showStatusBadge={false}
                             context="knockout"
                             cardId={index === 0 ? 'tour-first-knockout' : undefined}
-                            events={matchEvents.filter(e => e.matchId === match.id)}
+                            events={matchEvents.filter(e => String(e.matchId) === String(match.id))}
                             allMatches={allMatches ?? matches}
                             allTeams={teams}
                         />

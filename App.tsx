@@ -99,6 +99,7 @@ export const App = () => {
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
   const [showTour, setShowTour] = useState(false);
+  const [currentTourStepId, setCurrentTourStepId] = useState<string | null>(null);
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
@@ -502,6 +503,7 @@ export const App = () => {
   };
 
   const handleTourNavigation = (stepId: string) => {
+      setCurrentTourStepId(stepId);
       if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
       else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
       else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
@@ -903,7 +905,7 @@ export const App = () => {
                                 onTeamClick={(id) => setViewingTeamId(id)}
                                 showStatusBadge={false}
                                 context="groups"
-                                events={matchEvents.filter(e => e.matchId === match.id)}
+                                events={matchEvents.filter(e => String(e.matchId) === String(match.id))}
                               />
                           ))}
                       </div>
@@ -1146,7 +1148,7 @@ export const App = () => {
         />
       )}
 
-      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={showTour} />}
+      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={currentTourStepId === 'magic_wand' && !isHelpingHandOpen} />}
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
 
 

@@ -403,28 +403,42 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
              </div>
 
-             {/* GOAL EVENTS */}
+             {/* MATCH EVENTS: goals + cards */}
              {(() => {
-               const goals = events.filter(e => e.type === 'Goal');
-               if (!goals.length || (!isLive && !isFinished)) return null;
-               const homeGoals = goals.filter(e => e.teamId === match.homeTeamId);
-               const awayGoals = goals.filter(e => e.teamId === match.awayTeamId);
+               const sig = events.filter(e =>
+                 e.type === 'Goal' ||
+                 (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
+               );
+               if (!sig.length) return null;
+               const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
+               const awayEvts = sig.filter(e => e.teamId === match.awayTeamId).sort((a, b) => a.minute - b.minute);
                const fmtMin = (e: MatchEvent) => `${e.minute}${e.minuteExtra ? `+${e.minuteExtra}` : ''}'`;
-               const isOG = (e: MatchEvent) => e.detail === 'Own Goal';
+               const Icon = ({ e }: { e: MatchEvent }) => {
+                 if (e.type === 'Card') {
+                   const isRed = e.detail === 'Red Card';
+                   return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${isRed ? 'bg-red-500' : 'bg-yellow-400'}`} />;
+                 }
+                 const label = e.detail === 'Own Goal' ? '⚽OG' : e.detail === 'Penalty' ? '⚽P' : '⚽';
+                 return <span className="shrink-0">{label}</span>;
+               };
                return (
-                 <div className="px-3 pt-1 pb-2 border-t border-slate-100 flex gap-2 text-[9px]">
-                   <div className="flex-1 flex flex-col gap-0.5">
-                     {homeGoals.map(e => (
-                       <span key={e.id} className="text-slate-500 truncate">
-                         {isOG(e) ? '⚽ OG' : '⚽'} <span className="font-bold text-slate-600">{fmtMin(e)}</span> {e.player}
+                 <div className="px-3 pt-1.5 pb-2 border-t border-slate-100 flex gap-2 text-[9px]">
+                   <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                     {homeEvts.map(e => (
+                       <span key={e.id} className="flex items-center gap-1 text-slate-500 min-w-0">
+                         <Icon e={e} />
+                         <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                         <span className="truncate">{e.player}</span>
                        </span>
                      ))}
                    </div>
-                   {(homeGoals.length > 0 || awayGoals.length > 0) && <div className="w-px bg-slate-100 shrink-0" />}
-                   <div className="flex-1 flex flex-col gap-0.5 items-end">
-                     {awayGoals.map(e => (
-                       <span key={e.id} className="text-slate-500 truncate text-right">
-                         {e.player} <span className="font-bold text-slate-600">{fmtMin(e)}</span> {isOG(e) ? 'OG ⚽' : '⚽'}
+                   {(homeEvts.length > 0 || awayEvts.length > 0) && <div className="w-px bg-slate-100 shrink-0" />}
+                   <div className="flex-1 flex flex-col gap-0.5 items-end min-w-0">
+                     {awayEvts.map(e => (
+                       <span key={e.id} className="flex items-center justify-end gap-1 text-slate-500 min-w-0">
+                         <span className="truncate">{e.player}</span>
+                         <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                         <Icon e={e} />
                        </span>
                      ))}
                    </div>

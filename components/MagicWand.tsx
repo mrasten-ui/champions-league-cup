@@ -102,21 +102,21 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
             onOpen();
         }}
         className={`pointer-events-auto relative bg-[#0f172a] text-white p-4 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-700 border-2 ${
-          isActive 
-            ? 'border-yellow-400 scale-110 animate-bounce' 
-            : 'border-yellow-500/20 hover:border-yellow-400/60 scale-100' 
+          isActive || isTourActive
+            ? 'border-yellow-400 scale-110 animate-bounce'
+            : 'border-yellow-500/20 hover:border-yellow-400/60 scale-100'
         } group active:scale-95`}
         aria-label={lang.openHand}
       >
-        <div className={`absolute inset-0 bg-yellow-500/10 rounded-2xl blur-2xl transition-opacity duration-1000 ${isActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`}></div>
-        <div className={`absolute -inset-1 rounded-2xl bg-gradient-to-tr from-transparent via-yellow-500/20 to-transparent transition-opacity duration-1000 ${isActive ? 'opacity-100 animate-spin-slow' : 'opacity-0 group-hover:opacity-100'}`}></div>
-        
+        <div className={`absolute inset-0 bg-yellow-500/10 rounded-2xl blur-2xl transition-opacity duration-1000 ${isActive || isTourActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`}></div>
+        <div className={`absolute -inset-1 rounded-2xl bg-gradient-to-tr from-transparent via-yellow-500/20 to-transparent transition-opacity duration-1000 ${isActive || isTourActive ? 'opacity-100 animate-spin-slow' : 'opacity-0 group-hover:opacity-100'}`}></div>
+
         <div className="relative z-10">
-           <Wand2 size={28} className={`transition-all duration-500 ${isActive ? 'text-yellow-400 scale-110 rotate-12' : 'text-slate-400 group-hover:text-yellow-400 group-hover:rotate-12'}`} />
-           <Sparkles size={16} className={`absolute -top-3 -right-3 text-yellow-300 transition-all duration-1000 ${isActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`} />
+           <Wand2 size={28} className={`transition-all duration-500 ${isActive || isTourActive ? 'text-yellow-400 scale-110 rotate-12' : 'text-slate-400 group-hover:text-yellow-400 group-hover:rotate-12'}`} />
+           <Sparkles size={16} className={`absolute -top-3 -right-3 text-yellow-300 transition-all duration-1000 ${isActive || isTourActive ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'}`} />
         </div>
 
-        <div className={`absolute -inset-2 border border-yellow-500/5 rounded-[1.5rem] transition-all duration-1000 ${isActive ? 'scale-100 opacity-100' : 'scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`}></div>
+        <div className={`absolute -inset-2 border border-yellow-500/5 rounded-[1.5rem] transition-all duration-1000 ${isActive || isTourActive ? 'scale-100 opacity-100' : 'scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`}></div>
       </button>
 
       <style>{`

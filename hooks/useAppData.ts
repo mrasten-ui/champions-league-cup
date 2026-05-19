@@ -17,7 +17,35 @@ export const useAppData = () => {
   
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
-  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
+  // TODO: remove MOCK_JUNE13_EVENTS once real API events are wired up
+  const MOCK_JUNE13_EVENTS: MatchEvent[] = [
+    // Match 4: USA vs NGA
+    { id: 9001, matchId: '4', minute: 23, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'C. Pulisic' },
+    { id: 9002, matchId: '4', minute: 38, type: 'Card', detail: 'Yellow Card', teamId: 'USA', player: 'W. McKennie' },
+    { id: 9003, matchId: '4', minute: 45, minuteExtra: 1, type: 'Goal', detail: 'Penalty', teamId: 'NGA', player: 'V. Osimhen' },
+    { id: 9004, matchId: '4', minute: 67, type: 'Goal', detail: 'Normal Goal', teamId: 'USA', player: 'T. Weah' },
+    { id: 9005, matchId: '4', minute: 82, type: 'Card', detail: 'Red Card', teamId: 'NGA', player: 'S. Chukwueze' },
+    // Match 5: SCO vs MAR
+    { id: 9006, matchId: '5', minute: 14, type: 'Goal', detail: 'Normal Goal', teamId: 'SCO', player: 'S. McTominay' },
+    { id: 9007, matchId: '5', minute: 41, type: 'Card', detail: 'Yellow Card', teamId: 'SCO', player: 'K. Tierney' },
+    { id: 9008, matchId: '5', minute: 59, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'Y. En-Nesyri' },
+    { id: 9009, matchId: '5', minute: 74, type: 'Card', detail: 'Yellow Card', teamId: 'MAR', player: 'S. Amallah' },
+    { id: 9010, matchId: '5', minute: 88, type: 'Goal', detail: 'Normal Goal', teamId: 'MAR', player: 'H. Ziyech' },
+    // Match 6: PAR vs AUS
+    { id: 9011, matchId: '6', minute: 31, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
+    { id: 9012, matchId: '6', minute: 52, type: 'Card', detail: 'Yellow Card', teamId: 'AUS', player: 'A. Behich' },
+    { id: 9013, matchId: '6', minute: 64, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
+    { id: 9014, matchId: '6', minute: 79, type: 'Goal', detail: 'Normal Goal', teamId: 'AUS', player: 'A. Hrustic' },
+    { id: 9015, matchId: '6', minute: 88, type: 'Card', detail: 'Yellow Card', teamId: 'PAR', player: 'G. Gómez' },
+    // Match 7: BRA vs DEN
+    { id: 9016, matchId: '7', minute: 9, type: 'Goal', detail: 'Penalty', teamId: 'BRA', player: 'Vinicius Jr.' },
+    { id: 9017, matchId: '7', minute: 33, type: 'Card', detail: 'Yellow Card', teamId: 'DEN', player: 'P. Højbjerg' },
+    { id: 9018, matchId: '7', minute: 44, type: 'Goal', detail: 'Normal Goal', teamId: 'DEN', player: 'C. Eriksen' },
+    { id: 9019, matchId: '7', minute: 52, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Rodrygo' },
+    { id: 9020, matchId: '7', minute: 66, type: 'Card', detail: 'Yellow Card', teamId: 'BRA', player: 'Casemiro' },
+    { id: 9021, matchId: '7', minute: 77, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Endrick' },
+  ];
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>(MOCK_JUNE13_EVENTS);
 
   const fetchingProfileRef = useRef(false);
 
@@ -110,11 +138,15 @@ export const useAppData = () => {
 
           const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true });
           if (events) {
-            setMatchEvents(events.map(e => ({
-              id: e.id, matchId: e.match_id || '', minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
+            const realEvents = events.map(e => ({
+              id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
               type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
               player: e.player ?? undefined, assist: e.assist ?? undefined,
-            })));
+            }));
+            setMatchEvents(prev => {
+              const mockOnly = prev.filter(e => e.id >= 9000);
+              return [...mockOnly, ...realEvents];
+            });
           }
 
           const { data: profiles } = await supabase.from('profiles').select('*');
