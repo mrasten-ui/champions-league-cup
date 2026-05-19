@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
-import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round } from './types';
+import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import { 
   calculateGroupStandings,
   simulateFullTournament,
@@ -43,6 +43,7 @@ import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
 import { GoalBanner, GoalNotification } from './components/GoalBanner';
+import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
@@ -597,6 +598,29 @@ export const App = () => {
       if (neverShown || remindAgain) setShowKnockoutReminder(true);
   }, [isGroupStageComplete, userKnockoutPredictionsCount, user, tournamentPhase]);
 
+  const handleTickerMatchClick = (match: Match) => {
+    if (match.groupId) {
+      setActiveTab('groups');
+      setActiveGroup(match.groupId);
+      setTimeout(() => {
+        const el = document.getElementById(`match-card-${match.id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    } else if (match.round) {
+      if (tournamentPhase === 'LIVE') {
+        setActiveTab('tournament');
+        setTournamentSubTab('schedule');
+      } else {
+        setActiveTab('knockout');
+        setActiveKnockoutRound(match.round as any);
+        handleJumpToBracket(match.id);
+      }
+    } else {
+      setActiveTab('tournament');
+      setTournamentSubTab('schedule');
+    }
+  };
+
   const handleKnockoutReminderDismiss = (goToKnockouts: boolean) => {
       if (user) localStorage.setItem(STORAGE_KEYS.KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX + user.email, Date.now().toString());
       setShowKnockoutReminder(false);
@@ -738,7 +762,7 @@ export const App = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-32 md:pb-12 relative">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-44 md:pb-12 relative">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
@@ -952,6 +976,15 @@ export const App = () => {
             />
         )}
       </main>
+
+      <LiveTicker
+        matches={matches}
+        teams={teamsData}
+        onMatchClick={handleTickerMatchClick}
+        phase={tournamentPhase}
+        lockTimePassed={lockTimePassed}
+        addToast={addToast}
+      />
 
       <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
