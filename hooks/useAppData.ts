@@ -26,6 +26,13 @@ export const useAppData = () => {
     { id: 9003, matchId: 'MEX_RSA', minute: 55, type: 'Goal', detail: 'Normal Goal', teamId: 'MEX', player: 'R. Jiménez' },
     { id: 9004, matchId: 'MEX_RSA', minute: 71, type: 'Goal', detail: 'Penalty', teamId: 'RSA', player: 'P. Zwane' },
     { id: 9005, matchId: 'MEX_RSA', minute: 88, type: 'Card', detail: 'Red Card', teamId: 'RSA', player: 'T. Hlatshwayo' },
+    // Group B: CAN vs BIH (June 12)
+    { id: 9032, matchId: 'CAN_BIH', minute: 11, type: 'Goal', detail: 'Normal Goal', teamId: 'CAN', player: 'A. Davies' },
+    { id: 9033, matchId: 'CAN_BIH', minute: 29, type: 'Card', detail: 'Yellow Card', teamId: 'BIH', player: 'E. Džeko' },
+    { id: 9034, matchId: 'CAN_BIH', minute: 45, minuteExtra: 2, type: 'Goal', detail: 'Normal Goal', teamId: 'BIH', player: 'E. Džeko' },
+    { id: 9035, matchId: 'CAN_BIH', minute: 58, type: 'Goal', detail: 'Normal Goal', teamId: 'CAN', player: 'J. David' },
+    { id: 9036, matchId: 'CAN_BIH', minute: 72, type: 'Card', detail: 'Yellow Card', teamId: 'CAN', player: 'S. Larin' },
+    { id: 9037, matchId: 'CAN_BIH', minute: 84, type: 'Card', detail: 'Red Card', teamId: 'BIH', player: 'S. Kolasinac' },
     // Group A: KOR vs CZE (June 12)
     { id: 9006, matchId: 'KOR_CZE', minute: 23, type: 'Goal', detail: 'Normal Goal', teamId: 'KOR', player: 'Son Heung-min' },
     { id: 9007, matchId: 'KOR_CZE', minute: 38, type: 'Card', detail: 'Yellow Card', teamId: 'CZE', player: 'T. Souček' },
@@ -50,13 +57,6 @@ export const useAppData = () => {
     { id: 9023, matchId: 'PAR_AUS', minute: 64, type: 'Goal', detail: 'Normal Goal', teamId: 'PAR', player: 'A. Sanabria' },
     { id: 9024, matchId: 'PAR_AUS', minute: 79, type: 'Goal', detail: 'Normal Goal', teamId: 'AUS', player: 'A. Hrustic' },
     { id: 9025, matchId: 'PAR_AUS', minute: 88, type: 'Card', detail: 'Yellow Card', teamId: 'PAR', player: 'G. Gómez' },
-    // Group C: BRA vs DEN (June 13)
-    { id: 9026, matchId: 'BRA_DEN', minute: 9, type: 'Goal', detail: 'Penalty', teamId: 'BRA', player: 'Vinicius Jr.' },
-    { id: 9027, matchId: 'BRA_DEN', minute: 33, type: 'Card', detail: 'Yellow Card', teamId: 'DEN', player: 'P. Højbjerg' },
-    { id: 9028, matchId: 'BRA_DEN', minute: 44, type: 'Goal', detail: 'Normal Goal', teamId: 'DEN', player: 'C. Eriksen' },
-    { id: 9029, matchId: 'BRA_DEN', minute: 52, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Rodrygo' },
-    { id: 9030, matchId: 'BRA_DEN', minute: 66, type: 'Card', detail: 'Yellow Card', teamId: 'BRA', player: 'Casemiro' },
-    { id: 9031, matchId: 'BRA_DEN', minute: 77, type: 'Goal', detail: 'Normal Goal', teamId: 'BRA', player: 'Endrick' },
   ];
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>(MOCK_EVENTS);
 
