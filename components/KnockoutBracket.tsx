@@ -21,10 +21,11 @@ interface KnockoutBracketProps {
   revealedRivals: string[];
   activeRound: Round;
   matchEvents?: MatchEvent[];
+  allMatches?: Match[];
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
-  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = []
+  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = [], allMatches
 }) => {
   
   // Filter matches for the active round
@@ -94,6 +95,8 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             context="knockout"
                             cardId={index === 0 ? 'tour-first-knockout' : undefined}
                             events={matchEvents.filter(e => e.matchId === match.id)}
+                            allMatches={allMatches ?? matches}
+                            allTeams={teams}
                         />
                     </div>
                 );

@@ -268,8 +268,8 @@ const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'awa
     'QF_3': { nextId: 'SF_2', slot: 'home' }, 
     'QF_4': { nextId: 'SF_2', slot: 'away' }, 
     // Semi Finals to Final / 3rd Place
-    'SF_1': { nextId: 'FIN', slot: 'home' }, 
-    'SF_2': { nextId: 'FIN', slot: 'away' }, 
+    'SF_1': { nextId: 'FIN_1', slot: 'home' },
+    'SF_2': { nextId: 'FIN_1', slot: 'away' },
 };
 
 export const updateBracket = (matches: Match[], teams: Record<string, Team>): Match[] => {
