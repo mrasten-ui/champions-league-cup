@@ -137,7 +137,6 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
         className="flex items-center gap-1.5 px-3 shrink-0 hover:bg-white/5 transition-colors rounded h-full cursor-pointer"
       >
         {getStatusLabel(m)}
-        <span className="text-white/20 text-[9px] mx-1">|</span>
         <Flag src={home?.flag} alt={homeCode} />
         <span className={`text-[10px] font-black uppercase tracking-tight ${isLive ? 'text-white' : 'text-slate-300'}`}>
           {homeCode}
@@ -192,7 +191,7 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
             {doubled.map((m, i) => (
               <React.Fragment key={`${m.id}-${i}`}>
                 {renderScore(m)}
-                <span className="text-white/15 text-[10px] select-none shrink-0">·</span>
+                <span className="text-white/20 text-[9px] select-none shrink-0 px-0.5">|</span>
               </React.Fragment>
             ))}
           </div>
