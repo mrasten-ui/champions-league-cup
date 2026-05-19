@@ -96,10 +96,22 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
       const label = m.status === 'AET' ? 'AET' : m.status === 'PEN' ? 'PSO' : 'FT';
       return <span className="text-slate-400 font-black text-[9px]">{label}</span>;
     }
-    // Upcoming — show kickoff time
+    // Upcoming — smart relative label (today=time only, tomorrow, weekday, or date)
     const d = new Date(m.date);
     const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-    return <span className="text-slate-400 font-black text-[9px]">{timeStr}</span>;
+    const todayMidnight = new Date(now);
+    const diffDays = Math.floor(
+      (d.getTime() - new Date(todayMidnight.getFullYear(), todayMidnight.getMonth(), todayMidnight.getDate()).getTime()) / 86_400_000
+    );
+    let prefix = '';
+    if (diffDays === 1) {
+      prefix = 'Tomorrow ';
+    } else if (diffDays > 1 && diffDays <= 7) {
+      prefix = d.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ';
+    } else if (diffDays > 7) {
+      prefix = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ';
+    }
+    return <span className="text-slate-400 font-black text-[9px]">{prefix}{timeStr}</span>;
   };
 
   const renderScore = (m: Match) => {
