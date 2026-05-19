@@ -835,7 +835,19 @@ export const App = () => {
                       <div className="mt-12 flex flex-col items-center gap-4">
                           <div className="flex gap-3 w-full max-w-lg">
                               {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex gap-2"><button onClick={() => setShowOverview(true)} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-blue-600 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"><LayoutGrid size={18} /> {t.tablesBtn}</button><button onClick={() => setActiveTab('knockout')} className="flex-1 px-4 py-4 bg-[#0f2545] border border-white/10 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:bg-[#153055] hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2">{t.bracketBtn} <ChevronRight size={18} /></button></div>}
+                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex flex-col gap-3">
+                                  <button onClick={() => setShowOverview(true)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm"><LayoutGrid size={16} /> {t.tablesBtn}</button>
+                                  <button onClick={() => setActiveTab('knockout')} className="w-full px-6 py-5 bg-gradient-to-r from-[#0f2545] to-[#1a3a6c] border border-yellow-400/30 text-white rounded-2xl shadow-xl font-black uppercase tracking-widest hover:from-[#153055] hover:to-[#1e4080] hover:shadow-yellow-500/20 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-between gap-3 group">
+                                    <div className="flex items-center gap-3">
+                                      <GitMerge size={22} className="text-yellow-400 shrink-0" />
+                                      <div className="flex flex-col items-start">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">{isGroupStageComplete ? '✓ All groups predicted' : 'Next up'}</span>
+                                        <span className="text-base leading-none">{t.bracketBtn}</span>
+                                      </div>
+                                    </div>
+                                    <ChevronRight size={20} className="text-yellow-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                                  </button>
+                                </div>}
                           </div>
                       </div>
                    </>
