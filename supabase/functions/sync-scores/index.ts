@@ -91,6 +91,7 @@ serve(async (req) => {
       away_score: goals.away ?? null,
       is_locked:  isLocked,
       minute,
+      ...(fixture.date && { date: fixture.date }),
     }
 
     if (homeId) payload.home_team_id = homeId
