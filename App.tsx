@@ -104,6 +104,7 @@ export const App = () => {
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
   const [goalNotification, setGoalNotification] = useState<GoalNotification | null>(null);
   const seenEventIdsRef = useRef<Set<number> | null>(null);
+  const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
@@ -506,6 +507,13 @@ export const App = () => {
       else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
       else if (stepId === 'rules_tab') setActiveTab('rules');
       else if (stepId === 'profile_menu') { setActiveTab('groups'); setActiveGroup('A'); }
+
+      clearTimeout(wandTourTimerRef.current);
+      if (stepId === 'magic_wand') {
+          wandTourTimerRef.current = setTimeout(() => setIsHelpingHandOpen(true), 1500);
+      } else {
+          setIsHelpingHandOpen(false);
+      }
   };
 
   const handleLiveTourNavigation = (stepId: string) => {
