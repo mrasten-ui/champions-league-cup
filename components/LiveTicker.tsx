@@ -9,7 +9,6 @@ interface LiveTickerProps {
   teams: Record<string, Team>;
   onMatchClick: (match: Match) => void;
   phase: TournamentPhase;
-  lockTimePassed: boolean;
   addToast: (type: 'info' | 'success' | 'error', title: string, message?: string) => void;
 }
 
@@ -22,7 +21,7 @@ function Flag({ src, alt }: { src?: string; alt: string }) {
   return <img src={src} alt={alt} className="w-5 h-3.5 object-cover rounded-sm border border-white/15 shrink-0" />;
 }
 
-export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchClick, phase, lockTimePassed, addToast }) => {
+export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchClick, phase, addToast }) => {
   const [hidden, setHidden] = useState(() => localStorage.getItem(HIDDEN_KEY) === 'true');
   const now = Date.now();
 
@@ -45,12 +44,11 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
 
     upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    return [...live, ...recent, ...upcoming.slice(0, 8)];
+    return [...live, ...recent, ...upcoming.slice(0, 12)];
   }, [matches, now]);
 
-  // Hide if nothing to show, or if we're pre-live and haven't reached lock time yet
   if (items.length === 0) return null;
-  if (phase === 'PRE_LIVE' && !lockTimePassed) return null;
+  if (phase === 'PRE_LIVE') return null;
 
   const handleHide = () => {
     localStorage.setItem(HIDDEN_KEY, 'true');

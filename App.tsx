@@ -982,7 +982,6 @@ export const App = () => {
         teams={teamsData}
         onMatchClick={handleTickerMatchClick}
         phase={tournamentPhase}
-        lockTimePassed={lockTimePassed}
         addToast={addToast}
       />
 
