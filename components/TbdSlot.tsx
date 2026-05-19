@@ -60,6 +60,17 @@ export const TbdSlot: React.FC<TbdSlotProps> = ({ matchId, side, allMatches, all
         );
     }
 
+    if (source.type === 'MATCH_WINNER' || source.type === 'MATCH_LOSER') {
+        return (
+            <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75 opacity-30"></div>
+                <div className="relative z-10 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 backdrop-blur-[1px]">
+                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-tight block text-center leading-none">{source.label}</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-16 h-12 rounded-lg border-2 border-dashed border-[#2a4a7c] bg-[#0f2545] flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('/logo.png')] bg-center bg-contain bg-no-repeat scale-75"></div>
