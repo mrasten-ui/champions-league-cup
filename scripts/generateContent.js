@@ -3,7 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
 // Initialize Supabase and OpenAI
-const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // The 4 distinct personas we are generating
