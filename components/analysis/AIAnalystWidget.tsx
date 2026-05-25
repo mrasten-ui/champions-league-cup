@@ -10,45 +10,58 @@ export interface AIAnalystProps {
     isRefreshing?: boolean;
     // compact: renders without the outer card shell — for embedding inside another card
     compact?: boolean;
+    userName?: string;
 }
 
 // --- PERSONA CONFIGURATION ---
 const PERSONAS: Record<string, any> = {
     en: {
         title: "Coach's Report",
+        coachName: "Thomas Tuchel",
+        coachShort: "Tuchel",
+        coachImage: "/coaches/tuchel.jpg",
         loading: "Reviewing game tape...",
         error: "Connection lost. Showing cached brief.",
         noGames: "No confirmed fixtures yet. We are waiting for the bracket to populate.",
         refreshLabel: "New Brief",
         lastUpdated: "Updated",
-        systemPrompt: `You are a sharp, witty fantasy football analyst with the personality of a knowledgeable friend who follows the tournament obsessively. You speak directly to the user by name. You are specific, personal, and a little cheeky. Never give generic advice.`,
+        systemPrompt: `You are Thomas Tuchel, the England national team manager, delivering a personal briefing to one of your analysts. Precise, intense, tactically obsessive. Speak directly to the user by name. Reference the real numbers — standings, gaps, specific picks. Never generic.`,
     },
     'en-US': {
         title: "Coach's Intel",
+        coachName: "Mauricio Pochettino",
+        coachShort: "Pochettino",
+        coachImage: "/coaches/pochettino.jpg",
         loading: "Crunching numbers...",
         error: "Server timeout. Showing cached intel.",
         noGames: "No active matchups. Waiting for the playoffs to fill.",
         refreshLabel: "New Intel",
         lastUpdated: "Updated",
-        systemPrompt: `You are a sharp, witty US fantasy sports analyst — think ESPN hot-take energy but smarter. You speak directly to the user by name. Be specific, personal, and punchy. No generic advice.`,
+        systemPrompt: `You are Mauricio Pochettino, the USA national team manager, giving a personal briefing. Passionate, direct, emotionally invested. Speak to the user by name. Use the actual numbers — standings, rival gaps, picks. No generic advice.`,
     },
     sco: {
         title: "The Gaffer's Word",
+        coachName: "Steve Clarke",
+        coachShort: "Clarke",
+        coachImage: "/coaches/clarke.jpg",
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed. Showing last brief.",
         noGames: "Nae games yet, lad. Waitin' on the draw.",
         refreshLabel: "New Word",
         lastUpdated: "Updated",
-        systemPrompt: `You are a straight-talking Scottish football manager — like a mix of Sir Alex Ferguson and a wise pub regular. Speak directly to the user by name. Be specific, blunt, and occasionally dry-humoured. Write in light Scottish dialect (not impenetrable). No generic advice.`,
+        systemPrompt: `You are Steve Clarke, the Scotland national team manager, giving a personal briefing. Straight-talking, dry, occasionally sardonic. Speak to the user by name. Use actual standings and picks. Light Scottish tone — blunt but knowledgeable. Never sugarcoat. Never generic.`,
     },
     no: {
         title: "Trenerens Rapport",
+        coachName: "Ståle Solbakken",
+        coachShort: "Solbakken",
+        coachImage: "/coaches/solbakken.jpg",
         loading: "Kobler til studio...",
         error: "Teknisk feil. Viser siste rapport.",
         noGames: "Ingen kamper klare. Vi venter på at sluttspillet skal settes.",
         refreshLabel: "Ny Rapport",
         lastUpdated: "Oppdatert",
-        systemPrompt: `Du er en skarp, vennlig norsk fantasyfotball-analytiker — som en kyndig venn som følger turneringen slavisk. Snakk direkte til brukeren med navn. Vær spesifikk, personlig og litt vittig. Ingen generiske råd. Skriv på norsk.`,
+        systemPrompt: `Du er Ståle Solbakken, Norges landslagssjef, og gir en personlig rapport. Rolig, taktisk og gjennomtenkt. Bruk de faktiske tallene — plassering, gap til rivaler, tips. Snakk direkte til brukeren med navn. Skriv på norsk. Aldri generisk.`,
     }
 };
 
@@ -137,7 +150,7 @@ CURRENT STANDING: ${leaderboardContext}
 UPCOMING MATCHES:
 ${matchLines}
 
-Write 2–3 punchy sentences. Reference their actual rank battle and name the rival they're chasing or defending against. Mention at least one of their specific picks and whether the crowd agrees or not. Sound like a knowledgeable friend — direct, specific, a little sharp. No bullet points, no headers. Plain paragraph only. Max 100 words.`;
+Write 2–3 punchy sentences. Reference their actual rank battle and name the rival they're chasing or defending against. Mention at least one of their specific picks and whether the crowd agrees or not. No bullet points, no headers. Plain paragraph only. Max 100 words.`;
 
     const { data, error } = await supabaseClient.rpc('generate_daily_brief', { prompt });
     if (error) throw error;
@@ -146,7 +159,7 @@ Write 2–3 punchy sentences. Reference their actual rank battle and name the ri
 
 // ── Widget (display only — no self-triggering) ───────────────────────────────
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
-    currentLang, preloadedAnalysis, onRefresh, isRefreshing, compact,
+    currentLang, preloadedAnalysis, onRefresh, isRefreshing, compact, userName,
 }) => {
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
@@ -157,11 +170,24 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
         <>
             {/* Header row */}
             <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-indigo-300" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
-                        {t.title}
-                    </span>
+                <div className="flex items-center gap-2">
+                    {t.coachImage && (
+                        <img
+                            src={t.coachImage}
+                            alt={t.coachName}
+                            className="w-7 h-7 rounded-full object-cover border border-indigo-500/40 shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    )}
+                    <Sparkles size={13} className="text-indigo-300 shrink-0" />
+                    <div className="min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none">
+                            {userName ? `${userName}'s Brief` : t.title}
+                        </div>
+                        <div className="text-[8px] text-indigo-400/60 font-semibold tracking-wide mt-0.5">
+                            {t.coachShort} · Assistant Coach
+                        </div>
+                    </div>
                 </div>
                 {onRefresh && (
                     <button

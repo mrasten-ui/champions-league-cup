@@ -241,7 +241,28 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 3: RULES & TOOLS
+  // STOP 3: COACH BRIEF
+  {
+    id: 'live_coach_brief',
+    targets: ['tour-leaderboard-top'],
+    position: 'bottom',
+    overlayType: 'sparkles',
+    audioFiles: {},
+    display: {
+      en:      { title: "Your Brief",  lines: ["Meet Tuchel — your Assistant Coach.", "Your rank, rivals, picks. Personalised. Daily."] },
+      'en-US': { title: "Your Brief",  lines: ["Meet Pochettino — your Assistant Coach.", "Personal AI intel — rank, rivals, picks. Every day."] },
+      no:      { title: "Din Rapport", lines: ["Møt Solbakken — din assistenttrener.", "Din plassering, rivaler og tips. Personlig. Daglig."] },
+      sco:     { title: "Yer Brief",   lines: ["Meet Clarke — yer Assistant Coach.", "Yer rank, rivals, picks. Personal. Every day."] },
+    },
+    audioScript: {
+      en:      { host: "That card at the top is your daily brief from Tuchel — your Assistant Coach. Your rank, your rivals, your specific picks. Every day.", pundit: "Tuchel has studied your picks. He has thoughts." },
+      'en-US': { host: "Top card — daily brief from Pochettino. Your rank, rivals, and picks. Personal, every day.", pundit: "Pochettino believes in you. Whether he should is another matter." },
+      no:      { host: "Kortet øverst er din daglige rapport fra Solbakken. Din plassering, rivaler og tips. Oppdateres daglig.", pundit: "Solbakken har sett på tipsene dine. Han er stille. Det er ikke et godt tegn." },
+      sco:     { host: "That card at the top — yer daily brief from Clarke. Rank, rivals, picks. Every day.", pundit: "Clarke's read yer picks. He's no' saying much. Yet." },
+    }
+  },
+
+  // STOP 4: RULES & TOOLS
   {
     id: 'live_rules',
     targetId: 'rules-scoring-section',
