@@ -59,6 +59,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         if (mode === 'signup') {
             if (!name.trim()) throw new Error("Please enter your name.");
 
+            // Check name uniqueness before creating the account
+            const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).ilike('name', name.trim());
+            if ((count ?? 0) > 0) throw new Error(`"${name.trim()}" is already taken — please choose a different nickname.`);
+
             // Store avatar in sessionStorage BEFORE triggering auth, so fetchUserProfile
             // can read it even if onAuthStateChange fires during the signUp await.
             const preSignupAvatar = selectedAvatar || (menPresets.length > 0 ? menPresets[0] : '');

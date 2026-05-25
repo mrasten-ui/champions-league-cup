@@ -74,6 +74,9 @@ export const App = () => {
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [pendingName, setPendingName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSaving, setNameSaving] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminBanner, setShowAdminBanner] = useState(false);
@@ -232,6 +235,35 @@ export const App = () => {
       setUser(null); setIsProfileMenuOpen(false);
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       addToast('info', t.loggedOutTitle, t.loggedOutMsg);
+  };
+
+  useEffect(() => {
+    if (showAvatarEditor && user) {
+      setPendingName(user.name);
+      setNameError(null);
+    }
+  }, [showAvatarEditor]);
+
+  const saveNewName = async () => {
+    if (!user || !supabase) return;
+    const trimmed = pendingName.trim();
+    if (!trimmed) { setNameError('Name cannot be empty.'); return; }
+    if (trimmed === user.name) { setShowAvatarEditor(false); return; }
+
+    const lc = trimmed.toLowerCase();
+    const taken = Object.values(usersDb).some(p => p.email !== user.email && p.name.toLowerCase() === lc);
+    if (taken) { setNameError(t.nameTaken); return; }
+
+    setNameSaving(true);
+    const { error } = await supabase.from('profiles').update({ name: trimmed } as any).eq('email', user.email);
+    setNameSaving(false);
+    if (error) { setNameError(t.saveFailedMsg); return; }
+
+    setUser({ ...user, name: trimmed });
+    setUsersDb(prev => ({ ...prev, [user.email]: { ...prev[user.email], name: trimmed } }));
+    setNameError(null);
+    setShowAvatarEditor(false);
+    addToast('success', t.profileUpdated, t.profileMsg);
   };
 
   const updateAvatar = async (newAvatar: string) => {
@@ -1020,7 +1052,32 @@ export const App = () => {
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
             <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
-                <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
+                {/* Name editor */}
+                <div className="mb-5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.nameLabel}</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={pendingName}
+                            onChange={e => { setPendingName(e.target.value); setNameError(null); }}
+                            maxLength={30}
+                            className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                            onKeyDown={e => { if (e.key === 'Enter') saveNewName(); }}
+                        />
+                        <button
+                            onClick={saveNewName}
+                            disabled={nameSaving || !pendingName.trim()}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all"
+                        >
+                            {nameSaving ? <RefreshCw size={14} className="animate-spin" /> : t.saveBtn}
+                        </button>
+                    </div>
+                    {nameError && <p className="text-[10px] text-red-400 mt-1.5 font-semibold">{nameError}</p>}
+                </div>
+                <div className="border-t border-white/10 pt-5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.selectAvatar}</p>
+                    <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
+                </div>
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
             </div>
         </div>
@@ -1042,6 +1099,12 @@ export const App = () => {
           await supabase.from('profiles').update({ is_admin: isAdmin } as any).eq('email', email);
           setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], isAdmin } }));
           if (user?.email === email) setUser(prev => prev ? { ...prev, isAdmin } : null);
+        }}
+        onRenameUser={async (email, newName) => {
+          if (!supabase) return;
+          await supabase.from('profiles').update({ name: newName } as any).eq('email', email);
+          setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], name: newName } }));
+          if (user?.email === email) setUser(prev => prev ? { ...prev, name: newName } : null);
         }}
         onUpdateUserLeagues={async (email, leagues) => {
           if (!supabase) return;

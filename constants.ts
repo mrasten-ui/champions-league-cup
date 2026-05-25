@@ -216,6 +216,7 @@ const EN_TRANSLATION: Translation = {
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Until predictions lock",
 
     // --- NEW KEYS ---
+    nameTaken: "Name already taken — try something else.",
     noSubsTitle: "No Subs Left",
     noSubsMsg: "All substitutions used.",
     loggedOutTitle: "Logged Out",
@@ -337,6 +338,7 @@ const SCO_TRANSLATION: Translation = {
     noHistory: "No history found.", loadingHistory: "Diggin' it up...", days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Time tae lock in",
 
     // --- NEW KEYS ---
+    nameTaken: "That name's taken — try somethin' else, pal.",
     noSubsTitle: "Nae Subs Left",
     noSubsMsg: "Yer bench is empty, lad.",
     loggedOutTitle: "Away Ye Go",
@@ -456,6 +458,7 @@ const US_TRANSLATION: Translation = {
     teamCol: "Team", grpCol: "Grp", days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Until lock-in",
 
     // --- NEW KEYS ---
+    nameTaken: "Name already taken — try a different one.",
     noSubsTitle: "Out of Subs",
     noSubsMsg: "You used all your moves.",
     loggedOutTitle: "Signed Out",
@@ -578,6 +581,7 @@ const NO_TRANSLATION: Translation = {
     myPickShort: "Tips", watchOn: "Se på",
 
     // --- NEW KEYS ---
+    nameTaken: "Navnet er allerede tatt — prøv et annet.",
     noSubsTitle: "Tomt for Bytter",
     noSubsMsg: "Alle bytter er brukt opp.",
     loggedOutTitle: "Logget ut",

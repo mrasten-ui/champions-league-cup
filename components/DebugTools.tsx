@@ -14,6 +14,7 @@ interface DebugToolsProps {
   leagueLangs: Record<string, LanguageCode>;
   onUpdateLeagueLang: (slug: string, lang: LanguageCode) => Promise<void>;
   onToggleAdmin: (email: string, isAdmin: boolean) => Promise<void>;
+  onRenameUser: (email: string, newName: string) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -21,12 +22,15 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser
 }) => {
   if (!isOpen) return null;
 
   const [dateInput, setDateInput] = useState('2026-06-11T14:00');
   const [savingLeague, setSavingLeague] = useState<string | null>(null);
+  const [renamingEmail, setRenamingEmail] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
 
   // Bulk channel state
   const [bulkLocale, setBulkLocale] = useState('NO');
@@ -221,10 +225,54 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
                     {users.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
                         <div key={u.email} className="p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-xs font-black text-slate-800">{u.name}</div>
-                                    <div className="text-[10px] text-slate-400 font-mono">{u.email}</div>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                    {renamingEmail === u.email ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={renameValue}
+                                                onChange={e => setRenameValue(e.target.value)}
+                                                maxLength={30}
+                                                className="flex-1 text-xs font-black text-slate-800 border border-blue-400 rounded-lg px-2 py-1 focus:outline-none"
+                                                onKeyDown={async e => {
+                                                    if (e.key === 'Enter') {
+                                                        const t = renameValue.trim();
+                                                        if (!t) return;
+                                                        setRenameSaving(true);
+                                                        await onRenameUser(u.email, t);
+                                                        setRenameSaving(false);
+                                                        setRenamingEmail(null);
+                                                    }
+                                                    if (e.key === 'Escape') setRenamingEmail(null);
+                                                }}
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    const t = renameValue.trim();
+                                                    if (!t) return;
+                                                    setRenameSaving(true);
+                                                    await onRenameUser(u.email, t);
+                                                    setRenameSaving(false);
+                                                    setRenamingEmail(null);
+                                                }}
+                                                disabled={renameSaving || !renameValue.trim()}
+                                                className="shrink-0 px-2 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black disabled:opacity-40"
+                                            >
+                                                {renameSaving ? '…' : '✓'}
+                                            </button>
+                                            <button onClick={() => setRenamingEmail(null)} className="shrink-0 px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black">✕</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => { setRenamingEmail(u.email); setRenameValue(u.name); }}
+                                            className="text-left group"
+                                        >
+                                            <div className="text-xs font-black text-slate-800 group-hover:text-blue-600 transition-colors">{u.name} <span className="text-slate-300 text-[9px]">✎</span></div>
+                                            <div className="text-[10px] text-slate-400 font-mono">{u.email}</div>
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                     <button
