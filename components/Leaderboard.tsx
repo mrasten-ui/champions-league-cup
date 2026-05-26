@@ -451,7 +451,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                               preloadedAnalysis={preloadedAnalysis}
                               onRefresh={onRefreshBrief}
                               isRefreshing={briefRefreshing}
-                              userName={currentUser?.name}
+                              userName={users.find(u => u.email === currentUserEmail)?.name}
                               compact
                           />
                       </div>
