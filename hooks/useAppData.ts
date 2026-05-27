@@ -103,7 +103,7 @@ export const useAppData = () => {
             setMatches(mappedMatches);
           }
 
-          const { data: preds } = await supabase.from('predictions').select('*');
+          const { data: preds } = await supabase.from('predictions').select('*').range(0, 9999);
           if (preds) {
             setAllPredictions(preds.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
