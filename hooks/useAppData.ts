@@ -103,9 +103,22 @@ export const useAppData = () => {
             setMatches(mappedMatches);
           }
 
-          const { data: preds } = await supabase.from('predictions').select('*').range(0, 9999);
-          if (preds) {
-            setAllPredictions(preds.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
+          {
+            const PAGE = 1000;
+            let allPredRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
+              if (page && page.length > 0) {
+                allPredRows.push(...page);
+                keepGoing = page.length === PAGE;
+                from += PAGE;
+              } else {
+                keepGoing = false;
+              }
+            }
+            setAllPredictions(allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
 
           const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true });
