@@ -119,7 +119,6 @@ export const useAppData = () => {
                 keepGoing = false;
               }
             }
-            console.log('Predictions loaded:', allPredRows.length);
             setAllPredictions(allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
 
