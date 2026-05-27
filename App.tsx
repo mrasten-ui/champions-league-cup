@@ -303,7 +303,7 @@ export const App = () => {
     });
 
     const { error: predError } = await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
-    if (predError) addToast('error', t.saveFailed, t.saveFailedMsg);
+    if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
 
     if (isWhitelisted) {
         const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
