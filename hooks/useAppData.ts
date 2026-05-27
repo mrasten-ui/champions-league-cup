@@ -109,7 +109,8 @@ export const useAppData = () => {
             let from = 0;
             let keepGoing = true;
             while (keepGoing) {
-              const { data: page } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
+              const { data: page, error: pageErr } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Predictions fetch error (page', from, '):', pageErr); keepGoing = false; break; }
               if (page && page.length > 0) {
                 allPredRows.push(...page);
                 keepGoing = page.length === PAGE;
@@ -118,6 +119,7 @@ export const useAppData = () => {
                 keepGoing = false;
               }
             }
+            console.log('Predictions loaded:', allPredRows.length);
             setAllPredictions(allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
 
