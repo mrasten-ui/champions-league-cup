@@ -666,7 +666,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                       />
                                       <div>
                                           <div className="text-lg font-black text-slate-800">{user.name}</div>
-                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · {user.score} pts</div>
+                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · {user.totalPoints} pts</div>
                                       </div>
                                   </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
