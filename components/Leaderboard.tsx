@@ -657,7 +657,19 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       {isExpanded && (
                           <tr className="bg-slate-50/50">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                                  <div className="flex items-center gap-4 mb-4 pb-3 border-b border-slate-200 animate-in slide-in-from-top-2">
+                                      <AvatarDisplay
+                                          avatar={user.avatar}
+                                          size="2xl"
+                                          ring={rank <= 3}
+                                          className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''}
+                                      />
+                                      <div>
+                                          <div className="text-lg font-black text-slate-800">{user.name}</div>
+                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · {user.score} pts</div>
+                                      </div>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       
                                       {/* STATS BREAKDOWN */}
                                       <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">

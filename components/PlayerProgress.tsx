@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Prediction, Translation } from '../types';
-import { Users, CheckCircle2, Globe } from 'lucide-react';
+import { Users, CheckCircle2, Globe, X } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LEAGUES, TOTAL_MATCHES } from '../constants';
 
@@ -19,6 +19,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
     ? ['global', ...currentUserLeagues]
     : ['global'];
   const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues[0] || 'global');
+  const [profileModal, setProfileModal] = useState<UserProfile | null>(null);
 
   const getLeagueName = (slug: string) => {
     if (slug === 'global') return 'All';
@@ -120,7 +121,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                 const isMe = user.email === currentUserEmail;
 
                 return (
-                    <div key={user.email} className={`p-4 flex items-center justify-between transition-colors group relative ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}>
+                    <div key={user.email} onClick={() => setProfileModal(user)} className={`p-4 flex items-center justify-between transition-colors group relative cursor-pointer ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}>
                         {isMe && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r" />}
                         <div className="flex items-center gap-3">
                             <AvatarDisplay avatar={user.avatar} size="md" className="ring-2 ring-white shadow-sm" />
@@ -159,6 +160,48 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
             </div>
         )}
       </div>
+
+      {/* Profile spotlight modal */}
+      {profileModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setProfileModal(null)}>
+              <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
+              <div className="relative bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-3 w-72 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
+                      <X size={18} />
+                  </button>
+                  <AvatarDisplay avatar={profileModal.avatar} size="4xl" className="ring-4 ring-white shadow-xl" />
+                  <div className="text-center">
+                      <div className="text-xl font-black text-slate-800">{profileModal.name}</div>
+                      {profileModal.leagues && profileModal.leagues.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 justify-center mt-1.5">
+                              {profileModal.leagues.map(l => (
+                                  <span key={l} className="text-[10px] font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                                      {LEAGUES[l] ?? l}
+                                  </span>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+                  {(() => {
+                      const count = allPredictions.filter(p => p.userId === profileModal.email).length;
+                      const isReady = count >= totalGameMatches;
+                      return (
+                          <div className="w-full bg-slate-100 rounded-2xl p-3 text-center">
+                              <div className={`text-sm font-black ${isReady ? 'text-green-600' : 'text-slate-600'}`}>
+                                  {isReady ? (lang.managerReady || 'Ready') : `${count} / ${totalGameMatches}`}
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-200 rounded-full mt-1.5 overflow-hidden">
+                                  <div
+                                      className={`h-full rounded-full ${isReady ? 'bg-green-500' : 'bg-blue-500'}`}
+                                      style={{ width: `${Math.min(100, Math.round((count / totalGameMatches) * 100))}%` }}
+                                  />
+                              </div>
+                          </div>
+                      );
+                  })()}
+              </div>
+          </div>
+      )}
     </div>
   );
 };
