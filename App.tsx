@@ -1000,7 +1000,7 @@ export const App = () => {
         {activeTab === 'leaderboard' && (
             <>
                 {tournamentPhase === 'PRE_LIVE' ? (
-                    <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={totalMatchesCount} lang={t} currentUserLeagues={user.leagues} currentUserEmail={user?.email} />
+                    <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={totalMatchesCount} lang={t} currentUserLeagues={user.leagues} currentUserEmail={user?.email} currentLang={language} />
                 ) : (
                     <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} currentLang={language} />
                 )}

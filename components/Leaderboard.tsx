@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, PieChart, Users, Globe, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Globe, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { INITIAL_MATCHES, LEAGUES } from '../constants';
 
@@ -270,6 +270,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   
   // Stats Modal State
   const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
+  // Profile spotlight modal (avatar click in expanded row)
+  const [lbProfileModal, setLbProfileModal] = useState<(UserProfile & { totalPoints: number; liveRank: number; rankDiff: number }) | null>(null);
 
   // Filter users based on league selection
   const filteredUsers = useMemo(() => {
@@ -657,71 +659,70 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       {isExpanded && (
                           <tr className="bg-slate-50/50">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
-                                  <div className="flex items-center gap-4 mb-4 pb-3 border-b border-slate-200 animate-in slide-in-from-top-2">
+
+                                  {/* Profile header — click opens full profile modal */}
+                                  <div
+                                      className="flex items-center gap-4 mb-4 pb-3 border-b border-slate-200 cursor-pointer group"
+                                      onClick={() => setLbProfileModal(user)}
+                                  >
                                       <AvatarDisplay
                                           avatar={user.avatar}
-                                          size="2xl"
+                                          size="3xl"
                                           ring={rank <= 3}
-                                          className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''}
+                                          className={`group-hover:ring-blue-400 transition-all ${rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : 'ring-white'}`}
                                       />
-                                      <div>
-                                          <div className="text-lg font-black text-slate-800">{user.name}</div>
-                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · {user.totalPoints} pts</div>
+                                      <div className="flex-1">
+                                          <div className="text-lg font-black text-slate-800 group-hover:text-blue-700 transition-colors">{user.name}</div>
+                                          <div className="text-sm text-slate-500">#{rank} · {user.totalPoints} pts</div>
+                                      </div>
+                                      <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                  </div>
+
+                                  {/* Horizontal stats chips */}
+                                  <div className="grid grid-cols-4 gap-2 mb-4">
+                                      <button onClick={() => openStatsModal(user, 'EXACT')} className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center hover:bg-green-100 transition-colors">
+                                          <span className="text-xl font-black text-green-600">{user.exactCount}</span>
+                                          <span className="text-[8px] font-bold text-green-800 uppercase tracking-wide leading-tight text-center">{lang.lbExact}</span>
+                                      </button>
+                                      <button onClick={() => openStatsModal(user, 'RESULT')} className="bg-blue-50 p-2 rounded-xl border border-blue-100 flex flex-col items-center hover:bg-blue-100 transition-colors">
+                                          <span className="text-xl font-black text-blue-600">{user.resultCount}</span>
+                                          <span className="text-[8px] font-bold text-blue-800 uppercase tracking-wide leading-tight text-center">{lang.lbCorrect}</span>
+                                      </button>
+                                      <div className="bg-indigo-50 p-2 rounded-xl border border-indigo-100 flex flex-col items-center">
+                                          <span className="text-xl font-black text-indigo-600">{user.groupPoints}</span>
+                                          <span className="text-[8px] font-bold text-indigo-800 uppercase tracking-wide leading-tight text-center">{lang.lbGroupPts}</span>
+                                      </div>
+                                      <div className="bg-purple-50 p-2 rounded-xl border border-purple-100 flex flex-col items-center relative overflow-hidden group/kopt cursor-pointer hover:bg-purple-100 transition-colors" onClick={() => openStatsModal(user, 'ADVANCED')}>
+                                          <span className="text-xl font-black text-purple-600 relative z-10">{user.knockoutPoints}</span>
+                                          <span className="text-[8px] font-bold text-purple-800 uppercase tracking-wide leading-tight text-center relative z-10">{lang.lbKoPts}</span>
+                                          <Trophy size={32} className="absolute -bottom-1 -right-1 text-purple-200 opacity-50 rotate-12 group-hover/kopt:scale-110 transition-transform" />
                                       </div>
                                   </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      
-                                      {/* STATS BREAKDOWN */}
-                                      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{lang.lbBreakdown}</h4>
-                                          
-                                          <div className="grid grid-cols-2 gap-3">
-                                              <button onClick={() => openStatsModal(user, 'EXACT')} className="bg-green-50 p-3 rounded-lg border border-green-100 flex flex-col items-center hover:bg-green-100 transition-colors">
-                                                  <span className="text-2xl font-black text-green-600">{user.exactCount}</span>
-                                                  <span className="text-[9px] font-bold text-green-800 uppercase">{lang.lbExact}</span>
-                                              </button>
-                                              <button onClick={() => openStatsModal(user, 'RESULT')} className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex flex-col items-center hover:bg-blue-100 transition-colors">
-                                                  <span className="text-2xl font-black text-blue-600">{user.resultCount}</span>
-                                                  <span className="text-[9px] font-bold text-blue-800 uppercase">{lang.lbCorrect}</span>
-                                              </button>
-                                              <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex flex-col items-center">
-                                                  <span className="text-xl font-black text-indigo-600">{user.groupPoints}</span>
-                                                  <span className="text-[9px] font-bold text-indigo-800 uppercase">{lang.lbGroupPts}</span>
-                                              </div>
-                                              <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 flex flex-col items-center relative overflow-hidden group hover:bg-purple-100 transition-colors cursor-pointer" onClick={() => openStatsModal(user, 'ADVANCED')}>
-                                                  <span className="text-xl font-black text-purple-600 relative z-10">{user.knockoutPoints}</span>
-                                                  <span className="text-[9px] font-bold text-purple-800 uppercase relative z-10">{lang.lbKoPts}</span>
-                                                  <Trophy size={40} className="absolute -bottom-2 -right-2 text-purple-200 opacity-50 transform rotate-12 group-hover:scale-110 transition-transform" />
-                                              </div>
-                                          </div>
-                                      </div>
 
-                                      {/* QUALIFIED TEAMS GRID (ADVANCED VIEW) */}
-                                      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm overflow-hidden relative">
-                                          <div className="flex justify-between items-center mb-3">
-                                              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
-                                              {user.hasTakenSecondChance && (
-                                                  <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                                                      <Shield size={8} /> 2nd Chance
-                                                  </span>
-                                              )}
-                                          </div>
-                                          
-                                          {matches.some(m => m.round) ? (
-                                               <QualifiedTeamsGrid 
-                                                  realMatches={matches} 
-                                                  userPredictions={allPredictions.filter(p => p.userId === user.email)} 
-                                                  user={user}
-                                                  teams={teams}
-                                                  onTeamClick={onTeamClick}
-                                               />
-                                          ) : (
-                                              <div className="h-32 flex flex-col items-center justify-center text-slate-400">
-                                                  <Lock size={24} className="mb-2 opacity-50" />
-                                                  <span className="text-xs font-medium">Knockout Stage Locked</span>
-                                              </div>
+                                  {/* Knockout bracket — full width */}
+                                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm overflow-hidden">
+                                      <div className="flex justify-between items-center mb-3">
+                                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
+                                          {user.hasTakenSecondChance && (
+                                              <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                                                  <Shield size={8} /> 2nd Chance
+                                              </span>
                                           )}
                                       </div>
+                                      {matches.some(m => m.round) ? (
+                                          <QualifiedTeamsGrid
+                                              realMatches={matches}
+                                              userPredictions={allPredictions.filter(p => p.userId === user.email)}
+                                              user={user}
+                                              teams={teams}
+                                              onTeamClick={onTeamClick}
+                                          />
+                                      ) : (
+                                          <div className="h-32 flex flex-col items-center justify-center text-slate-400">
+                                              <Lock size={24} className="mb-2 opacity-50" />
+                                              <span className="text-xs font-medium">Knockout Stage Locked</span>
+                                          </div>
+                                      )}
                                   </div>
                               </td>
                           </tr>
@@ -779,6 +780,83 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
               </div>
           </div>
       )}
+
+      {/* LEADERBOARD PROFILE MODAL */}
+      {lbProfileModal && (() => {
+        const u = lbProfileModal;
+        const totalUsers = finalDisplayData.length;
+        const userPreds = allPredictions.filter(p => p.userId === u.email);
+
+        const next3 = matches
+          .filter(m => m.status === 'UPCOMING' && !m.isLocked)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 3)
+          .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
+
+        const userBracket = applyPredictionsToBracket(matches, teams, userPreds);
+        const finMatch = userBracket.find(m => m.round === 'FIN');
+        let champId: string | null = null;
+        if (finMatch && finMatch.homeScore !== null && finMatch.awayScore !== null) {
+          const winnerId = finMatch.homeScore >= finMatch.awayScore ? finMatch.homeTeamId : finMatch.awayTeamId;
+          if (winnerId && !winnerId.startsWith('TBD')) champId = winnerId;
+        }
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLbProfileModal(null)}>
+            <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
+            <div className="relative bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-4 w-80 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setLbProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+
+              <AvatarDisplay avatar={u.avatar} size="4xl" className="ring-4 ring-white shadow-xl" />
+              <div className="text-center -mt-1">
+                <div className="text-xl font-black text-slate-800">{u.name}</div>
+                <div className="text-sm text-slate-500 mt-0.5">#{u.liveRank} of {totalUsers} · {u.totalPoints} pts</div>
+                {u.rankDiff !== 0 && (
+                  <div className={`text-xs font-bold mt-1 ${u.rankDiff > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {u.rankDiff > 0 ? `↑${u.rankDiff}` : `↓${Math.abs(u.rankDiff)}`} places
+                  </div>
+                )}
+              </div>
+
+              {next3.length > 0 && (
+                <div className="w-full">
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Next Predictions</div>
+                  <div className="flex flex-col gap-2">
+                    {next3.map(({ match: m, pred }) => (
+                      <div key={m.id} className="bg-slate-50 rounded-xl p-2.5 flex items-center justify-between text-xs font-bold text-slate-700">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span>{teams[m.homeTeamId]?.flag ?? '🏳'}</span>
+                          <span className="truncate">{teams[m.homeTeamId]?.name ?? m.homeTeamId}</span>
+                        </div>
+                        <div className="text-sm font-black text-slate-800 mx-2 shrink-0">
+                          {pred ? `${pred.home}–${pred.away}` : '?–?'}
+                        </div>
+                        <div className="flex items-center gap-1 min-w-0 justify-end">
+                          <span className="truncate">{teams[m.awayTeamId]?.name ?? m.awayTeamId}</span>
+                          <span>{teams[m.awayTeamId]?.flag ?? '🏳'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {champId && teams[champId] && (
+                <div className="w-full bg-amber-50 rounded-2xl p-3 border border-amber-100 flex items-center gap-3">
+                  <span className="text-2xl">{teams[champId].flag}</span>
+                  <div>
+                    <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Tournament Winner</div>
+                    <div className="text-sm font-black text-slate-800">{teams[champId].name}</div>
+                  </div>
+                  <span className="ml-auto text-xl">🏆</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

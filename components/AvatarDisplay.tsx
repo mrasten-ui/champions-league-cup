@@ -2,7 +2,7 @@ import React from 'react';
 
 interface AvatarDisplayProps {
   avatar: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
   className?: string;
   ring?: boolean;
 }
@@ -16,7 +16,8 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ avatar, size = 'md
     xl: 'w-16 h-16 text-2xl',
     '2xl': 'w-20 h-20 text-3xl',
     '3xl': 'w-24 h-24 text-4xl',
-    '4xl': 'w-32 h-32 text-5xl'
+    '4xl': 'w-32 h-32 text-5xl',
+    '5xl': 'w-40 h-40 text-6xl'
   };
 
   const ringClass = ring ? 'ring-2 ring-white shadow-lg' : '';

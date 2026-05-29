@@ -11,9 +11,15 @@ interface PlayerProgressProps {
   lang: Translation;
   currentUserLeagues?: string[];
   currentUserEmail?: string;
+  currentLang?: string;
 }
 
-export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [], currentUserEmail }) => {
+const LANG_LABELS: Record<string, string> = {
+  en: '🇬🇧 English', no: '🇳🇴 Norsk', sv: '🇸🇪 Svenska',
+  us: '🇺🇸 English', sc: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scots'
+};
+
+export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [], currentUserEmail, currentLang }) => {
   // 'global' tab shows everyone; league slugs show filtered views
   const tabs = currentUserLeagues.length > 0
     ? ['global', ...currentUserLeagues]
@@ -169,7 +175,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                   <button onClick={() => setProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
                       <X size={18} />
                   </button>
-                  <AvatarDisplay avatar={profileModal.avatar} size="4xl" className="ring-4 ring-white shadow-xl" />
+                  <AvatarDisplay avatar={profileModal.avatar} size="5xl" className="ring-4 ring-white shadow-xl" />
                   <div className="text-center">
                       <div className="text-xl font-black text-slate-800">{profileModal.name}</div>
                       {profileModal.leagues && profileModal.leagues.length > 0 && (
@@ -180,6 +186,11 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                                   </span>
                               ))}
                           </div>
+                      )}
+                      {profileModal.email === currentUserEmail && currentLang && (
+                          <span className="inline-block text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full mt-1.5">
+                              {LANG_LABELS[currentLang] ?? currentLang.toUpperCase()}
+                          </span>
                       )}
                   </div>
                   {(() => {
