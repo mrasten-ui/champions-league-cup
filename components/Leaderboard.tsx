@@ -787,8 +787,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
         const totalUsers = finalDisplayData.length;
         const userPreds = allPredictions.filter(p => p.userId === u.email);
 
+        const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+        const now = Date.now();
         const next3 = matches
-          .filter(m => m.status === 'UPCOMING' && !m.isLocked)
+          .filter(m => !finishedStatuses.includes(m.status) && new Date(m.date).getTime() >= now)
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
@@ -824,28 +826,43 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                 <div className="w-full">
                   <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Next Predictions</div>
                   <div className="flex flex-col gap-2">
-                    {next3.map(({ match: m, pred }) => (
-                      <div key={m.id} className="bg-slate-50 rounded-xl p-2.5 flex items-center justify-between text-xs font-bold text-slate-700">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span>{teams[m.homeTeamId]?.flag ?? '🏳'}</span>
-                          <span className="truncate">{teams[m.homeTeamId]?.name ?? m.homeTeamId}</span>
+                    {next3.map(({ match: m, pred }) => {
+                      const homeFlag = teams[m.homeTeamId]?.flag ?? '';
+                      const awayFlag = teams[m.awayTeamId]?.flag ?? '';
+                      const renderFlag = (f: string) => f.startsWith('http')
+                        ? <img src={f} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0" />
+                        : <span className="shrink-0">{f || '🏳'}</span>;
+                      const matchDate = new Date(m.date);
+                      const dateLabel = matchDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + matchDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                      return (
+                        <div key={m.id} className="bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1 min-w-0 flex-1">
+                              {renderFlag(homeFlag)}
+                              <span className="truncate">{teams[m.homeTeamId]?.name ?? m.homeTeamId}</span>
+                            </div>
+                            <div className="text-sm font-black text-slate-800 mx-2 shrink-0">
+                              {pred ? `${pred.home}–${pred.away}` : '?–?'}
+                            </div>
+                            <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
+                              <span className="truncate">{teams[m.awayTeamId]?.name ?? m.awayTeamId}</span>
+                              {renderFlag(awayFlag)}
+                            </div>
+                          </div>
+                          <div className="text-[9px] text-slate-400 font-medium mt-1 text-center">{dateLabel}</div>
                         </div>
-                        <div className="text-sm font-black text-slate-800 mx-2 shrink-0">
-                          {pred ? `${pred.home}–${pred.away}` : '?–?'}
-                        </div>
-                        <div className="flex items-center gap-1 min-w-0 justify-end">
-                          <span className="truncate">{teams[m.awayTeamId]?.name ?? m.awayTeamId}</span>
-                          <span>{teams[m.awayTeamId]?.flag ?? '🏳'}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {champId && teams[champId] && (
                 <div className="w-full bg-amber-50 rounded-2xl p-3 border border-amber-100 flex items-center gap-3">
-                  <span className="text-2xl">{teams[champId].flag}</span>
+                  {teams[champId].flag?.startsWith('http')
+                    ? <img src={teams[champId].flag} alt="" className="w-8 h-6 object-cover rounded-sm" />
+                    : <span className="text-2xl">{teams[champId].flag || '🏳'}</span>
+                  }
                   <div>
                     <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Tournament Winner</div>
                     <div className="text-sm font-black text-slate-800">{teams[champId].name}</div>
