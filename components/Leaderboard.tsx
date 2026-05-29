@@ -616,7 +616,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
                         <td className="w-[50%] px-4 py-4 align-middle">
                             <div className="flex items-center gap-3">
-                                <AvatarDisplay avatar={user.avatar} size="md" ring={rank <= 3} className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''} />
+                                {!isExpanded && <AvatarDisplay avatar={user.avatar} size="md" ring={rank <= 3} className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''} />}
                                 <div className="flex flex-col min-w-0">
                                     <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5 truncate">
                                         {user.name}
@@ -667,34 +667,34 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                   >
                                       <AvatarDisplay
                                           avatar={user.avatar}
-                                          size="3xl"
+                                          size="4xl"
                                           ring={rank <= 3}
                                           className={`group-hover:ring-blue-400 transition-all ${rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : 'ring-white'}`}
                                       />
                                       <div className="flex-1">
-                                          <div className="text-lg font-black text-slate-800 group-hover:text-blue-700 transition-colors">{user.name}</div>
-                                          <div className="text-sm text-slate-500">#{rank} · {user.totalPoints} pts</div>
+                                          <div className="text-xl font-black text-slate-800 group-hover:text-blue-700 transition-colors">{user.name}</div>
+                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · <span className="font-black text-slate-700">{user.totalPoints} pts</span></div>
                                       </div>
                                       <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
                                   </div>
 
                                   {/* Horizontal stats chips */}
                                   <div className="grid grid-cols-4 gap-2 mb-4">
-                                      <button onClick={() => openStatsModal(user, 'EXACT')} className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center hover:bg-green-100 transition-colors">
-                                          <span className="text-xl font-black text-green-600">{user.exactCount}</span>
-                                          <span className="text-[8px] font-bold text-green-800 uppercase tracking-wide leading-tight text-center">{lang.lbExact}</span>
+                                      <button onClick={() => openStatsModal(user, 'EXACT')} className="bg-green-50 py-3 px-2 rounded-xl border border-green-200 flex flex-col items-center hover:bg-green-100 transition-colors shadow-sm">
+                                          <span className="text-2xl font-black text-green-600 leading-none">{user.exactCount}</span>
+                                          <span className="text-[9px] font-bold text-green-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbExact}</span>
                                       </button>
-                                      <button onClick={() => openStatsModal(user, 'RESULT')} className="bg-blue-50 p-2 rounded-xl border border-blue-100 flex flex-col items-center hover:bg-blue-100 transition-colors">
-                                          <span className="text-xl font-black text-blue-600">{user.resultCount}</span>
-                                          <span className="text-[8px] font-bold text-blue-800 uppercase tracking-wide leading-tight text-center">{lang.lbCorrect}</span>
+                                      <button onClick={() => openStatsModal(user, 'RESULT')} className="bg-blue-50 py-3 px-2 rounded-xl border border-blue-200 flex flex-col items-center hover:bg-blue-100 transition-colors shadow-sm">
+                                          <span className="text-2xl font-black text-blue-600 leading-none">{user.resultCount}</span>
+                                          <span className="text-[9px] font-bold text-blue-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbCorrect}</span>
                                       </button>
-                                      <div className="bg-indigo-50 p-2 rounded-xl border border-indigo-100 flex flex-col items-center">
-                                          <span className="text-xl font-black text-indigo-600">{user.groupPoints}</span>
-                                          <span className="text-[8px] font-bold text-indigo-800 uppercase tracking-wide leading-tight text-center">{lang.lbGroupPts}</span>
+                                      <div className="bg-indigo-50 py-3 px-2 rounded-xl border border-indigo-200 flex flex-col items-center shadow-sm">
+                                          <span className="text-2xl font-black text-indigo-600 leading-none">{user.groupPoints}</span>
+                                          <span className="text-[9px] font-bold text-indigo-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbGroupPts}</span>
                                       </div>
-                                      <div className="bg-purple-50 p-2 rounded-xl border border-purple-100 flex flex-col items-center relative overflow-hidden group/kopt cursor-pointer hover:bg-purple-100 transition-colors" onClick={() => openStatsModal(user, 'ADVANCED')}>
-                                          <span className="text-xl font-black text-purple-600 relative z-10">{user.knockoutPoints}</span>
-                                          <span className="text-[8px] font-bold text-purple-800 uppercase tracking-wide leading-tight text-center relative z-10">{lang.lbKoPts}</span>
+                                      <div className="bg-purple-50 py-3 px-2 rounded-xl border border-purple-200 flex flex-col items-center relative overflow-hidden group/kopt cursor-pointer hover:bg-purple-100 transition-colors shadow-sm" onClick={() => openStatsModal(user, 'ADVANCED')}>
+                                          <span className="text-2xl font-black text-purple-600 leading-none relative z-10">{user.knockoutPoints}</span>
+                                          <span className="text-[9px] font-bold text-purple-700 uppercase tracking-wide leading-tight text-center mt-1 relative z-10">{lang.lbKoPts}</span>
                                           <Trophy size={32} className="absolute -bottom-1 -right-1 text-purple-200 opacity-50 rotate-12 group-hover/kopt:scale-110 transition-transform" />
                                       </div>
                                   </div>
@@ -811,7 +811,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                 <X size={18} />
               </button>
 
-              <AvatarDisplay avatar={u.avatar} size="4xl" className="ring-4 ring-white shadow-xl" />
+              <AvatarDisplay avatar={u.avatar} size="5xl" className="ring-4 ring-white shadow-xl" />
               <div className="text-center -mt-1">
                 <div className="text-xl font-black text-slate-800">{u.name}</div>
                 <div className="text-sm text-slate-500 mt-0.5">#{u.liveRank} of {totalUsers} · {u.totalPoints} pts</div>
