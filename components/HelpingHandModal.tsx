@@ -65,7 +65,9 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   const zone = riskValue <= 33 ? 'banker' : riskValue <= 66 ? 'balanced' : 'wildcard';
   const zoneLabel = zone === 'banker' ? lang.riskBanker : zone === 'balanced' ? lang.riskBalanced : lang.riskWildcard;
   const zoneDesc  = zone === 'banker' ? lang.riskBankerDesc : zone === 'balanced' ? lang.riskBalancedDesc : lang.riskWildcardDesc;
-  const thumbColor = zone === 'banker' ? 'accent-green-500' : zone === 'balanced' ? 'accent-amber-500' : 'accent-red-500';
+  // Thumb colour interpolates blue → red as riskValue goes 0 → 100
+  const t = riskValue / 100;
+  const thumbRgb = `rgb(${Math.round(59 + 180 * t)}, ${Math.round(130 - 62 * t)}, ${Math.round(246 - 178 * t)})`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -73,16 +75,17 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
 
       <div id="tour-magic-wand-panel" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300">
 
-        {/* Compact header */}
-        <div className="bg-[#0f172a] text-white px-4 py-3 flex items-center gap-3 shrink-0">
-          <div className="bg-yellow-500/10 p-1.5 rounded-xl border border-yellow-500/20 shrink-0">
-            <Wand2 size={18} className="text-yellow-400" />
+        {/* Header */}
+        <div className="bg-[#0f172a] text-white px-4 py-5 flex items-start gap-3 shrink-0">
+          <div className="bg-yellow-500/10 p-2.5 rounded-xl border border-yellow-500/20 shrink-0 mt-0.5">
+            <Wand2 size={24} className="text-yellow-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-black uppercase tracking-widest leading-none">{getActionTitle()}</h2>
-            <p className="text-[9px] text-slate-400 font-medium mt-0.5 leading-snug opacity-80 truncate">{getActionDescription()}</p>
+            <h2 className="text-sm font-black uppercase tracking-widest leading-tight">{getActionTitle()}</h2>
+            <p className="text-[10px] text-slate-400 font-medium mt-1 leading-snug opacity-90">{getActionDescription()}</p>
+            <p className="text-[9px] text-slate-500 mt-1 leading-snug opacity-70">{lang.simBoostNote}</p>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors shrink-0 ml-2"><X size={20} /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors shrink-0 mt-0.5"><X size={20} /></button>
         </div>
 
         {/* Team Grid */}
@@ -135,12 +138,12 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
           <input
             type="range" min="0" max="100" value={riskValue}
             onChange={e => setRiskValue(Number(e.target.value))}
-            className={`w-full h-1.5 rounded-full appearance-none cursor-pointer ${thumbColor}`}
-            style={{ background: 'linear-gradient(to right, #22c55e, #f59e0b 50%, #ef4444)' }}
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+            style={{ accentColor: thumbRgb, background: '#e2e8f0' }}
           />
           <div className="flex justify-between mt-1">
-            <span className="text-[8px] font-bold text-green-600">🛡️ {lang.riskBanker}</span>
-            <span className="text-[8px] font-bold text-amber-500">{lang.riskBalanced}</span>
+            <span className="text-[8px] font-bold text-blue-500">🛡️ {lang.riskBanker}</span>
+            <span className="text-[8px] font-bold text-slate-400">{lang.riskBalanced}</span>
             <span className="text-[8px] font-bold text-red-500">{lang.riskWildcard} ⚡</span>
           </div>
         </div>
