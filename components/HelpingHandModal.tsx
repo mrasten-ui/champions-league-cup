@@ -68,8 +68,13 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   // Thumb colour interpolates blue → red as riskValue goes 0 → 100
   const t = riskValue / 100;
   const thumbRgb = `rgb(${Math.round(59 + 180 * t)}, ${Math.round(130 - 62 * t)}, ${Math.round(246 - 178 * t)})`;
-  // Track: filled area uses thumb colour at ~25% opacity; unfilled shows a faint fixed blue→red hint
-  const trackBg = `linear-gradient(to right, ${thumbRgb}44 0%, ${thumbRgb}44 ${riskValue}%, rgba(59,130,246,0.08) ${riskValue}%, rgba(239,68,68,0.12) 100%)`;
+  // Track: neutral slate with a spotlight peaking at the thumb.
+  // Endpoints are 70% visible; halfway between endpoint and thumb drops to 30%; thumb itself at 95%.
+  const v = riskValue;
+  const midL = v * 0.5;
+  const midR = v + (100 - v) * 0.5;
+  const c = '100,116,139'; // slate-500
+  const trackBg = `linear-gradient(to right, rgba(${c},0.70) 0%, rgba(${c},0.30) ${midL}%, rgba(${c},0.95) ${v}%, rgba(${c},0.30) ${midR}%, rgba(${c},0.70) 100%)`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
