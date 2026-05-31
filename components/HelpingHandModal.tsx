@@ -7,7 +7,7 @@ interface HelpingHandModalProps {
   onClose: () => void;
   teams: Record<string, Team>;
   initialFavorites: string[];
-  onGenerate: (favorites: string[], scope: 'GROUPS' | 'KNOCKOUT') => void;
+  onGenerate: (favorites: string[], scope: 'GROUPS' | 'KNOCKOUT', riskLevel: number) => void;
   lang: Translation;
   mode: 'groups' | 'knockout' | 'leaderboard';
 }
@@ -23,6 +23,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
 }) => {
   const [selectedTeams, setSelectedTeams] = useState<string[]>(initialFavorites);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [riskValue, setRiskValue] = useState(50);
 
   if (!isOpen) return null;
 
@@ -52,7 +53,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   const handleGenerateClick = () => {
     setIsGenerating(true);
     setTimeout(() => {
-        onGenerate(selectedTeams, mode === 'knockout' ? 'KNOCKOUT' : 'GROUPS');
+        onGenerate(selectedTeams, mode === 'knockout' ? 'KNOCKOUT' : 'GROUPS', riskValue / 100);
         setIsGenerating(false);
         onClose();
     }, 600);
@@ -132,6 +133,35 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             })}
           </div>
         </div>
+
+        {/* Risk Slider */}
+        {(() => {
+          const zone = riskValue <= 33 ? 'banker' : riskValue <= 66 ? 'balanced' : 'wildcard';
+          const zoneLabel = zone === 'banker' ? lang.riskBanker : zone === 'balanced' ? lang.riskBalanced : lang.riskWildcard;
+          const zoneDesc  = zone === 'banker' ? lang.riskBankerDesc : zone === 'balanced' ? lang.riskBalancedDesc : lang.riskWildcardDesc;
+          const thumbColor = zone === 'banker' ? 'accent-green-500' : zone === 'balanced' ? 'accent-amber-500' : 'accent-red-500';
+          return (
+            <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 shrink-0">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
+                {lang.riskTitle}
+              </p>
+              <input
+                type="range" min="0" max="100" value={riskValue}
+                onChange={e => setRiskValue(Number(e.target.value))}
+                className={`w-full h-2 rounded-full appearance-none cursor-pointer ${thumbColor}`}
+                style={{ background: 'linear-gradient(to right, #22c55e, #f59e0b 50%, #ef4444)' }}
+              />
+              <div className="flex justify-between mt-2 px-0.5">
+                <span className="text-[9px] font-bold text-green-600">🛡️ {lang.riskBanker}</span>
+                <span className="text-[9px] font-bold text-amber-500">{lang.riskBalanced}</span>
+                <span className="text-[9px] font-bold text-red-500">{lang.riskWildcard} ⚡</span>
+              </div>
+              <p className="text-center text-[10px] italic text-slate-500 mt-1.5 font-medium">
+                {zoneLabel} — {zoneDesc}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Footer - High Contrast Actions */}
         <div className="p-8 bg-white border-t border-slate-100 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-6">

@@ -444,7 +444,7 @@ export const applyPredictionsToBracket = (
     return currentMatches;
 };
 
-export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[]): Match[] => {
+export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[], riskLevel = 0.5): Match[] => {
   return matches.map(match => {
     if (match.homeTeamId === 'TBD' || match.awayTeamId === 'TBD') return match;
 
@@ -473,8 +473,13 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     const attDefH = ((homeTeam.att || 50) - (awayTeam.def || 50)) / 50;
     const attDefA = ((awayTeam.att || 50) - (homeTeam.def || 50)) / 50;
 
-    const skillH = eloGoalDiff * 0.7 + attDefH * 0.3;
-    const skillA = -eloGoalDiff * 0.7 + attDefA * 0.3;
+    // riskLevel 0=banker, 0.5=default, 1=wildcard
+    // Low risk: ELO carries more weight; luck swings are tiny → favourites dominate.
+    // High risk: ELO matters less; large luck swings → frequent upsets.
+    const eloWeight  = 0.90 - riskLevel * 0.40;   // 0.90 → 0.70 → 0.50
+    const adWeight   = 1 - eloWeight;              // 0.10 → 0.30 → 0.50
+    const skillH = eloGoalDiff * eloWeight + attDefH * adWeight;
+    const skillA = -eloGoalDiff * eloWeight + attDefA * adWeight;
 
     // --- FAVORITES BOOST ---
     // Base +0.4, scaling up to +1.0 when the match is a genuine 50/50 by ELO.
@@ -484,10 +489,11 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     const aFav = favorites.includes(awayTeam.id) ? (0.4 + matchTightness * 0.6) : 0;
 
     // --- BASE GOALS + LUCK ---
-    // Base 1.0–2.5, plus ±1.5 luck per team — keeps every user's sheet unique.
+    // luckRange scales with risk: ±0.3 (banker) → ±1.4 (balanced) → ±2.5 (wildcard).
+    const luckRange = 0.3 + riskLevel * 2.2;
     const baseGoals = 1.0 + Math.random() * 1.5;
-    const luckH = Math.random() * 3.0 - 1.5;
-    const luckA = Math.random() * 3.0 - 1.5;
+    const luckH = (Math.random() * 2 - 1) * luckRange;
+    const luckA = (Math.random() * 2 - 1) * luckRange;
 
     let finalHome = Math.round(Math.max(0, Math.min(9, baseGoals + skillH + hFav + luckH)));
     let finalAway = Math.round(Math.max(0, Math.min(9, baseGoals + skillA + aFav + luckA)));
@@ -504,10 +510,11 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
 };
 
 export const simulateFullTournament = (
-    initialMatches: Match[], 
-    teams: Record<string, Team>, 
+    initialMatches: Match[],
+    teams: Record<string, Team>,
     favorites: string[],
-    scope: 'GROUPS' | 'KNOCKOUT' | 'ALL' = 'ALL'
+    scope: 'GROUPS' | 'KNOCKOUT' | 'ALL' = 'ALL',
+    riskLevel = 0.5
 ): Match[] => {
     let currentMatches = initialMatches.map(m => ({ ...m }));
 
@@ -541,7 +548,7 @@ export const simulateFullTournament = (
 
         if (matchesToPredict.length === 0) break;
 
-        const predictedMatches = generateMagicScores(matchesToPredict, teams, favorites);
+        const predictedMatches = generateMagicScores(matchesToPredict, teams, favorites, riskLevel);
         
         currentMatches = currentMatches.map(m => {
             const pred = predictedMatches.find(pm => pm.id === m.id);

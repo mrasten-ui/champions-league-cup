@@ -52,6 +52,15 @@ export interface Translation {
   noIntel: string;
   noIntelMsg: string;
 
+  // --- Magic Wand risk slider ---
+  riskTitle: string;
+  riskBanker: string;
+  riskBalanced: string;
+  riskWildcard: string;
+  riskBankerDesc: string;
+  riskBalancedDesc: string;
+  riskWildcardDesc: string;
+
   // --- Rules tab ---
   rulesPreSubtitle: string;
   rulesLiveSubtitle: string;

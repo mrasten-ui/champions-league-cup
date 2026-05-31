@@ -1185,10 +1185,10 @@ export const App = () => {
       {isHelpingHandOpen && user && (
         <HelpingHandModal 
             isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={Object.fromEntries(Object.entries(teamsData).filter(([id]) => matches.some(m => m.homeTeamId === id || m.awayTeamId === id)))} initialFavorites={user.favorites} mode={getSimMode()} lang={t}
-            onGenerate={async (favs, scope) => {
+            onGenerate={async (favs, scope, riskLevel) => {
                 if (user && supabase) { await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email); setUser({ ...user, favorites: favs }); }
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
-                const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope);
+                const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope, riskLevel);
                 const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !!m.groupId; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
 
                 if (user && supabase) {
