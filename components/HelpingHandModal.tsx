@@ -62,38 +62,32 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   const getActionTitle = () => mode === 'knockout' ? lang.simKnockoutTitle : lang.simGroupTitle;
   const getActionDescription = () => mode === 'knockout' ? lang.simKnockoutDesc : lang.simGroupDesc;
 
+  const zone = riskValue <= 33 ? 'banker' : riskValue <= 66 ? 'balanced' : 'wildcard';
+  const zoneLabel = zone === 'banker' ? lang.riskBanker : zone === 'balanced' ? lang.riskBalanced : lang.riskWildcard;
+  const zoneDesc  = zone === 'banker' ? lang.riskBankerDesc : zone === 'balanced' ? lang.riskBalancedDesc : lang.riskWildcardDesc;
+  const thumbColor = zone === 'banker' ? 'accent-green-500' : zone === 'balanced' ? 'accent-amber-500' : 'accent-red-500';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity" onClick={onClose}></div>
 
-      <div id="tour-magic-wand-panel" className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/10">
-        
-        {/* Header - Midnight Stadium Aesthetic */}
-        <div className="bg-[#0f172a] text-white p-10 text-center relative shrink-0">
-          <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"><X size={28} /></button>
-          
-          <div className="flex justify-center mb-6">
-             {/* UPDATED: Gold Theme */}
-             <div className="bg-yellow-500/10 p-5 rounded-[2rem] border border-yellow-500/20 shadow-[0_0_40px_rgba(250,204,21,0.15)]">
-                <Wand2 size={44} className="text-yellow-400" />
-             </div>
+      <div id="tour-magic-wand-panel" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300">
+
+        {/* Compact header */}
+        <div className="bg-[#0f172a] text-white px-4 py-3 flex items-center gap-3 shrink-0">
+          <div className="bg-yellow-500/10 p-1.5 rounded-xl border border-yellow-500/20 shrink-0">
+            <Wand2 size={18} className="text-yellow-400" />
           </div>
-          <h2 className="text-3xl font-black uppercase tracking-tighter mb-2 italic">{getActionTitle()}</h2>
-          <p className="text-slate-400 text-xs font-black max-w-sm mx-auto leading-relaxed uppercase tracking-widest opacity-80">
-            {getActionDescription()}
-          </p>
-          <p className="text-slate-500 text-[10px] font-medium max-w-xs mx-auto mt-2 leading-snug opacity-70">
-            {lang.simBoostNote}
-          </p>
-        </div>
-        {/* FIFA rank label */}
-        <div className="bg-[#0f172a] px-8 pb-4 text-right">
-          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest"># = FIFA World Ranking (Apr 2026)</span>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-black uppercase tracking-widest leading-none">{getActionTitle()}</h2>
+            <p className="text-[9px] text-slate-400 font-medium mt-0.5 leading-snug opacity-80 truncate">{getActionDescription()}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors shrink-0 ml-2"><X size={20} /></button>
         </div>
 
         {/* Team Grid */}
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="flex-1 overflow-y-auto p-3 bg-slate-50">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
             {validTeams.map((team) => {
               const teamName = lang.teamNames[team.id] || team.name;
               const isSelected = selectedTeams.includes(team.id);
@@ -104,28 +98,26 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
                   key={team.id}
                   onClick={() => toggleTeam(team.id)}
                   disabled={isDisabled}
-                  className={`relative flex flex-col items-center p-3 rounded-3xl border-2 transition-all duration-300 ${
+                  className={`relative flex flex-col items-center py-2 px-1 rounded-2xl border-2 transition-all duration-200 ${
                     isSelected
-                      ? 'bg-white border-yellow-400 shadow-xl scale-105 z-10'
+                      ? 'bg-white border-yellow-400 shadow-lg scale-105 z-10'
                       : isDisabled
-                        ? 'bg-slate-100 border-transparent opacity-30 grayscale cursor-not-allowed'
-                        : 'bg-white border-transparent hover:border-slate-300 hover:shadow-lg'
+                        ? 'bg-slate-100 border-transparent opacity-25 grayscale cursor-not-allowed'
+                        : 'bg-white border-transparent hover:border-slate-200 hover:shadow-md'
                   }`}
                 >
-                  {/* FIFA rank badge */}
                   {team.rank && team.rank < 99 && (
-                    <span className="absolute top-2 right-2 text-[9px] font-black text-slate-400 leading-none">#{team.rank}</span>
+                    <span className="absolute top-1 right-1.5 text-[8px] font-black text-slate-400 leading-none">#{team.rank}</span>
                   )}
-                  <div className="w-12 h-8 mb-2 shadow-sm rounded overflow-hidden border border-slate-100">
+                  <div className="w-10 h-7 mb-1 shadow-sm rounded overflow-hidden border border-slate-100">
                     <img src={team.flag} alt={teamName} className="w-full h-full object-cover" />
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest leading-tight text-center ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-tight leading-none text-center line-clamp-1 ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>
                     {teamName}
                   </span>
-
                   {isSelected && (
-                    <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white animate-in zoom-in">
-                      <Check size={14} strokeWidth={4} />
+                    <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow border-2 border-white">
+                      <Check size={10} strokeWidth={4} />
                     </div>
                   )}
                 </button>
@@ -135,64 +127,47 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
         </div>
 
         {/* Risk Slider */}
-        {(() => {
-          const zone = riskValue <= 33 ? 'banker' : riskValue <= 66 ? 'balanced' : 'wildcard';
-          const zoneLabel = zone === 'banker' ? lang.riskBanker : zone === 'balanced' ? lang.riskBalanced : lang.riskWildcard;
-          const zoneDesc  = zone === 'banker' ? lang.riskBankerDesc : zone === 'balanced' ? lang.riskBalancedDesc : lang.riskWildcardDesc;
-          const thumbColor = zone === 'banker' ? 'accent-green-500' : zone === 'balanced' ? 'accent-amber-500' : 'accent-red-500';
-          return (
-            <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 shrink-0">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
-                {lang.riskTitle}
-              </p>
-              <input
-                type="range" min="0" max="100" value={riskValue}
-                onChange={e => setRiskValue(Number(e.target.value))}
-                className={`w-full h-2 rounded-full appearance-none cursor-pointer ${thumbColor}`}
-                style={{ background: 'linear-gradient(to right, #22c55e, #f59e0b 50%, #ef4444)' }}
-              />
-              <div className="flex justify-between mt-2 px-0.5">
-                <span className="text-[9px] font-bold text-green-600">🛡️ {lang.riskBanker}</span>
-                <span className="text-[9px] font-bold text-amber-500">{lang.riskBalanced}</span>
-                <span className="text-[9px] font-bold text-red-500">{lang.riskWildcard} ⚡</span>
-              </div>
-              <p className="text-center text-[10px] italic text-slate-500 mt-1.5 font-medium">
-                {zoneLabel} — {zoneDesc}
-              </p>
-            </div>
-          );
-        })()}
+        <div className="px-4 py-3 bg-white border-t border-slate-100 shrink-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{lang.riskTitle}</p>
+            <span className="text-[9px] font-bold text-slate-500 italic">{zoneLabel} — {zoneDesc}</span>
+          </div>
+          <input
+            type="range" min="0" max="100" value={riskValue}
+            onChange={e => setRiskValue(Number(e.target.value))}
+            className={`w-full h-1.5 rounded-full appearance-none cursor-pointer ${thumbColor}`}
+            style={{ background: 'linear-gradient(to right, #22c55e, #f59e0b 50%, #ef4444)' }}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-[8px] font-bold text-green-600">🛡️ {lang.riskBanker}</span>
+            <span className="text-[8px] font-bold text-amber-500">{lang.riskBalanced}</span>
+            <span className="text-[8px] font-bold text-red-500">{lang.riskWildcard} ⚡</span>
+          </div>
+        </div>
 
-        {/* Footer - High Contrast Actions */}
-        <div className="p-8 bg-white border-t border-slate-100 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-3">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
-                {selectedTeams.length} / 3 {lang.selected}
-              </span>
-              {selectedTeams.length > 0 && (
-                <button
-                  onClick={() => setSelectedTeams([])}
-                  className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest border border-slate-200 hover:border-red-300 px-2 py-1 rounded-lg transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-           </div>
-           
-           <button
-             onClick={handleGenerateClick}
-             disabled={isGenerating}
-             className="w-full sm:w-auto bg-[#0f172a] hover:bg-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/5"
-           >
-             {isGenerating ? (
-                /* UPDATED: Gold Icon */
-                <RefreshCw size={24} className="animate-spin text-yellow-400" />
-             ) : (
-                /* UPDATED: Gold Icon */
-                <Sparkles size={24} className="text-yellow-400" />
-             )}
-             <span>{isGenerating ? lang.simulating : lang.runSim}</span>
-           </button>
+        {/* Footer */}
+        <div className="px-4 py-3 bg-white border-t border-slate-100 shrink-0 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {selectedTeams.length}/3
+            </span>
+            {selectedTeams.length > 0 && (
+              <button onClick={() => setSelectedTeams([])} className="text-[9px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest border border-slate-200 hover:border-red-300 px-2 py-0.5 rounded-lg transition-colors">
+                {lang.clearAll || 'Clear'}
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+            className="bg-[#0f172a] hover:bg-black text-white px-6 py-2.5 rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs border border-white/5"
+          >
+            {isGenerating
+              ? <RefreshCw size={16} className="animate-spin text-yellow-400" />
+              : <Sparkles size={16} className="text-yellow-400" />
+            }
+            <span>{isGenerating ? lang.simulating : lang.runSim}</span>
+          </button>
         </div>
       </div>
     </div>
