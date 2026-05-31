@@ -68,6 +68,8 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   // Thumb colour interpolates blue → red as riskValue goes 0 → 100
   const t = riskValue / 100;
   const thumbRgb = `rgb(${Math.round(59 + 180 * t)}, ${Math.round(130 - 62 * t)}, ${Math.round(246 - 178 * t)})`;
+  // Track: filled area uses thumb colour at ~25% opacity; unfilled shows a faint fixed blue→red hint
+  const trackBg = `linear-gradient(to right, ${thumbRgb}44 0%, ${thumbRgb}44 ${riskValue}%, rgba(59,130,246,0.08) ${riskValue}%, rgba(239,68,68,0.12) 100%)`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -76,14 +78,14 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
       <div id="tour-magic-wand-panel" className="relative w-full max-w-2xl bg-white rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300">
 
         {/* Header */}
-        <div className="bg-[#0f172a] text-white px-4 py-5 flex items-start gap-3 shrink-0">
-          <div className="bg-yellow-500/10 p-2.5 rounded-xl border border-yellow-500/20 shrink-0 mt-0.5">
-            <Wand2 size={24} className="text-yellow-400" />
+        <div className="bg-[#0f172a] text-white px-5 py-6 flex items-start gap-4 shrink-0">
+          <div className="bg-yellow-500/10 p-3 rounded-xl border border-yellow-500/20 shrink-0 mt-0.5">
+            <Wand2 size={28} className="text-yellow-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-black uppercase tracking-widest leading-tight">{getActionTitle()}</h2>
-            <p className="text-[10px] text-slate-400 font-medium mt-1 leading-snug opacity-90">{getActionDescription()}</p>
-            <p className="text-[9px] text-slate-500 mt-1 leading-snug opacity-70">{lang.simBoostNote}</p>
+            <h2 className="text-base font-black uppercase tracking-widest leading-tight">{getActionTitle()}</h2>
+            <p className="text-xs text-slate-300 font-medium mt-1.5 leading-relaxed">{getActionDescription()}</p>
+            <p className="text-[10px] text-yellow-400/70 font-semibold mt-1.5 leading-snug">{lang.simBoostNote.split('.')[0]}.</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors shrink-0 mt-0.5"><X size={20} /></button>
         </div>
@@ -130,17 +132,40 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
         </div>
 
         {/* Risk Slider */}
-        <div className="px-4 py-3 bg-white border-t border-slate-100 shrink-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <style>{`
+          #risk-slider { appearance: none; -webkit-appearance: none; outline: none; }
+          #risk-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px; height: 28px;
+            border-radius: 4px;
+            background: ${thumbRgb};
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+          }
+          #risk-slider::-moz-range-thumb {
+            width: 10px; height: 28px;
+            border-radius: 4px;
+            background: ${thumbRgb};
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+          }
+        `}</style>
+        <div className="px-4 py-3 bg-white border-t border-slate-200 shrink-0">
+          <div className="flex items-center justify-between mb-2">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{lang.riskTitle}</p>
             <span className="text-[9px] font-bold text-slate-500 italic">{zoneLabel} — {zoneDesc}</span>
           </div>
-          <input
-            type="range" min="0" max="100" value={riskValue}
-            onChange={e => setRiskValue(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-            style={{ accentColor: thumbRgb, background: '#e2e8f0' }}
-          />
+          <div className="py-2">
+            <input
+              id="risk-slider"
+              type="range" min="0" max="100" value={riskValue}
+              onChange={e => setRiskValue(Number(e.target.value))}
+              className="w-full cursor-pointer"
+              style={{ height: '8px', borderRadius: '9999px', background: trackBg }}
+            />
+          </div>
           <div className="flex justify-between mt-1">
             <span className="text-[8px] font-bold text-blue-500">🛡️ {lang.riskBanker}</span>
             <span className="text-[8px] font-bold text-slate-400">{lang.riskBalanced}</span>
@@ -149,7 +174,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 bg-white border-t border-slate-100 shrink-0 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 bg-white border-t border-slate-200 shrink-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               {selectedTeams.length}/3
@@ -163,11 +188,11 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
           <button
             onClick={handleGenerateClick}
             disabled={isGenerating}
-            className="bg-[#0f172a] hover:bg-black text-white px-6 py-2.5 rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs border border-white/5"
+            className="bg-[#0f172a] hover:bg-black text-white px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-sm border border-white/10"
           >
             {isGenerating
-              ? <RefreshCw size={16} className="animate-spin text-yellow-400" />
-              : <Sparkles size={16} className="text-yellow-400" />
+              ? <RefreshCw size={20} className="animate-spin text-yellow-400" />
+              : <Sparkles size={20} className="text-yellow-400" />
             }
             <span>{isGenerating ? lang.simulating : lang.runSim}</span>
           </button>
