@@ -65,16 +65,21 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
   const zone = riskValue <= 33 ? 'banker' : riskValue <= 66 ? 'balanced' : 'wildcard';
   const zoneLabel = zone === 'banker' ? lang.riskBanker : zone === 'balanced' ? lang.riskBalanced : lang.riskWildcard;
   const zoneDesc  = zone === 'banker' ? lang.riskBankerDesc : zone === 'balanced' ? lang.riskBalancedDesc : lang.riskWildcardDesc;
-  // Thumb colour interpolates blue → red as riskValue goes 0 → 100
-  const t = riskValue / 100;
-  const thumbRgb = `rgb(${Math.round(59 + 180 * t)}, ${Math.round(130 - 62 * t)}, ${Math.round(246 - 178 * t)})`;
-  // Track: neutral slate with a spotlight peaking at the thumb.
-  // Endpoints are 70% visible; halfway between endpoint and thumb drops to 30%; thumb itself at 95%.
+  // Thumb colour interpolates blue → yellow → red as riskValue goes 0 → 50 → 100
+  const calcColor = (pos: number): [number, number, number] => {
+    const p = pos / 100;
+    if (p <= 0.5) { const s = p * 2; return [Math.round(59 + 175 * s), Math.round(130 + 49 * s), Math.round(246 - 238 * s)]; }
+    const s = (p - 0.5) * 2;
+    return [Math.round(234 + 5 * s), Math.round(179 - 111 * s), Math.round(8 + 60 * s)];
+  };
+  const [tr, tg, tb] = calcColor(riskValue);
+  const thumbRgb = `rgb(${tr}, ${tg}, ${tb})`;
+  // Track: blue→yellow→red gradient with opacity spotlight peaking at thumb.
   const v = riskValue;
   const midL = v * 0.5;
   const midR = v + (100 - v) * 0.5;
-  const c = '100,116,139'; // slate-500
-  const trackBg = `linear-gradient(to right, rgba(${c},0.70) 0%, rgba(${c},0.30) ${midL}%, rgba(${c},0.95) ${v}%, rgba(${c},0.30) ${midR}%, rgba(${c},0.70) 100%)`;
+  const tc = (pos: number, alpha: number) => { const [r,g,b] = calcColor(pos); return `rgba(${r},${g},${b},${alpha})`; };
+  const trackBg = `linear-gradient(to right, ${tc(0,0.70)} 0%, ${tc(midL,0.30)} ${midL}%, ${tc(v,0.95)} ${v}%, ${tc(midR,0.30)} ${midR}%, ${tc(100,0.70)} 100%)`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -157,10 +162,10 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             box-shadow: 0 2px 8px rgba(0,0,0,0.18);
           }
         `}</style>
-        <div className="px-4 py-3 bg-white border-t border-slate-200 shrink-0">
+        <div className="px-4 py-3 bg-[#0f172a] border-t border-slate-800 shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{lang.riskTitle}</p>
-            <span className="text-[9px] font-bold text-slate-500 italic">{zoneLabel} — {zoneDesc}</span>
+            <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{lang.riskTitle}</p>
+            <span className="text-[9px] font-bold italic" style={{ color: thumbRgb }}>{zoneLabel} — {zoneDesc}</span>
           </div>
           <div className="py-2">
             <input
@@ -172,15 +177,26 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[8px] font-bold text-blue-500">🛡️ {lang.riskBanker}</span>
-            <span className="text-[8px] font-bold text-slate-400">{lang.riskBalanced}</span>
-            <span className="text-[8px] font-bold text-red-500">{lang.riskWildcard} ⚡</span>
+            <span className="text-[8px] font-bold text-blue-400">🛡️ {lang.riskBanker}</span>
+            <span className="text-[8px] font-bold text-yellow-400">{lang.riskBalanced}</span>
+            <span className="text-[8px] font-bold text-red-400">{lang.riskWildcard} ⚡</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 bg-white border-t border-slate-200 shrink-0 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="px-4 py-4 bg-white border-t border-slate-200 shrink-0 flex flex-col items-center gap-2">
+          <button
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+            className="w-full bg-[#0f172a] hover:bg-black text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 text-sm border border-white/10"
+          >
+            {isGenerating
+              ? <RefreshCw size={22} className="animate-spin text-yellow-400" />
+              : <Sparkles size={22} className="text-yellow-400" />
+            }
+            <span>{isGenerating ? lang.simulating : lang.runSim}</span>
+          </button>
+          <div className="flex items-center gap-2">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               {selectedTeams.length}/3
             </span>
@@ -190,17 +206,6 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
               </button>
             )}
           </div>
-          <button
-            onClick={handleGenerateClick}
-            disabled={isGenerating}
-            className="bg-[#0f172a] hover:bg-black text-white px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-sm border border-white/10"
-          >
-            {isGenerating
-              ? <RefreshCw size={20} className="animate-spin text-yellow-400" />
-              : <Sparkles size={20} className="text-yellow-400" />
-            }
-            <span>{isGenerating ? lang.simulating : lang.runSim}</span>
-          </button>
         </div>
       </div>
     </div>
