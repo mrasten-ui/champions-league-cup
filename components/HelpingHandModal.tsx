@@ -97,7 +97,17 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             <p className="text-xs text-slate-300 font-medium mt-1.5 leading-relaxed">{getActionDescription()}</p>
             <p className="text-[10px] text-yellow-400/70 font-semibold mt-1.5 leading-snug">{lang.simBoostNote.split('.')[0]}.</p>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors shrink-0 mt-0.5"><X size={20} /></button>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X size={20} /></button>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedTeams.length}/3</span>
+              {selectedTeams.length > 0 && (
+                <button onClick={() => setSelectedTeams([])} className="text-[9px] font-black text-slate-500 hover:text-red-400 uppercase tracking-widest border border-slate-700 hover:border-red-500/50 px-2 py-0.5 rounded-lg transition-colors">
+                  {lang.clearAll || 'Clear'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Team Grid */}
@@ -164,7 +174,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
         `}</style>
         <div className="px-4 py-3 bg-[#0f172a] border-t border-slate-800 shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[9px] font-black text-white/50 uppercase tracking-widest">{lang.riskTitle}</p>
+            <p className="text-[9px] font-black text-white uppercase tracking-widest">{lang.riskTitle}</p>
             <span className="text-[9px] font-bold italic" style={{ color: thumbRgb }}>{zoneLabel} — {zoneDesc}</span>
           </div>
           <div className="py-2">
@@ -196,16 +206,6 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
             }
             <span>{isGenerating ? lang.simulating : lang.runSim}</span>
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              {selectedTeams.length}/3
-            </span>
-            {selectedTeams.length > 0 && (
-              <button onClick={() => setSelectedTeams([])} className="text-[9px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest border border-slate-200 hover:border-red-300 px-2 py-0.5 rounded-lg transition-colors">
-                {lang.clearAll || 'Clear'}
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>
