@@ -1,0 +1,35 @@
+name: Fix Kickoff Times
+
+on:
+  schedule:
+    # Runs once daily at 06:00 UTC. When knockout fixtures appear in the
+    # API (from late June onwards), this automatically corrects their dates
+    # in Supabase. The script is idempotent — it's a no-op when everything
+    # is already correct.
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Manual trigger from the GitHub Actions UI
+
+jobs:
+  fix-times:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fix kickoff times from API
+        run: node scripts/fix-kickoff-times.js --apply
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          API_FOOTBALL_KEY:     ${{ secrets.API_FOOTBALL_KEY }}
