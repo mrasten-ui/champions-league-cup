@@ -74,7 +74,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                         {team?.flag && (
                             <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" />
                         )}
-                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'} ${!isQualified && index > 2 ? 'opacity-60' : ''}`}>
+                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'} ${!isQualified ? 'opacity-60' : ''}`}>
                             {lang.teamNames[row.teamId] || team?.name || row.teamId}
                         </span>
                     </div>
