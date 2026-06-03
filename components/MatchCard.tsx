@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent } from '../types';
-import { Clock, ChevronDown, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
@@ -51,6 +51,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [rivalsOpen, setRivalsOpen] = useState(true);
 
 
     const isKnockout = !!match.round; 
@@ -483,11 +484,39 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              )}
 
              {showRivals && rivals.length > 0 && (
-                <div className={`bg-[#0f2545] p-3 animate-in slide-in-from-top-2 ${showStatusBadge ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
-                    <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><LockIcon size={10} className="text-yellow-400" /><span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span></div>{prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white">{prediction.home} - {prediction.away}</span></span>}</div>
-                    <div className="flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
-                        {rivals.map(rival => { const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id); return (<div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5 transition-colors"><div className="flex items-center gap-3"><AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[10px]" /><span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span></div><span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span></div>); })}
+                <div className={`bg-slate-800 border-l-[3px] border-yellow-500/60 animate-in slide-in-from-top-2 ${showStatusBadge ? '' : 'rounded-b-2xl'}`}>
+                  {/* Collapsible header */}
+                  <div
+                    onClick={() => setRivalsOpen(o => !o)}
+                    className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <LockIcon size={10} className="text-yellow-400 shrink-0" />
+                      <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      {prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white/70">{prediction.home} - {prediction.away}</span></span>}
+                      <span className="text-[9px] font-black text-yellow-500/70 bg-yellow-500/10 px-1.5 py-0.5 rounded-full">{rivals.length}</span>
+                      {rivalsOpen ? <ChevronUp size={12} className="text-yellow-400/70" /> : <ChevronDown size={12} className="text-yellow-400/70" />}
+                    </div>
+                  </div>
+                  {/* Expandable body */}
+                  {rivalsOpen && (
+                    <div className="px-3 pb-2 flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
+                      {rivals.map(rival => {
+                        const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
+                        return (
+                          <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5">
+                            <div className="flex items-center gap-3">
+                              <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[10px]" />
+                              <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
+                            </div>
+                            <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
              )}
 
