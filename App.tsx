@@ -325,7 +325,8 @@ export const App = () => {
       );
     }
 
-    // Snapshot deleted predictions before mutating (needed for undo)
+    // Snapshot PREVIOUS group prediction and cascade victims before mutating (needed for full undo)
+    const previousGroupPred = allPredictions.find(p => p.userId === user.email && p.matchId === matchId) ?? null;
     const deletedPreds = idsToDelete.length > 0
       ? allPredictions.filter(p => p.userId === user.email && idsToDelete.includes(p.matchId))
       : [];
@@ -346,21 +347,33 @@ export const App = () => {
     );
     if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
 
-    // Cascade delete from DB + toast with undo
+    // Cascade delete from DB + toast with full undo (group score + knockouts)
     if (idsToDelete.length > 0) {
       await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', idsToDelete);
       const handleUndo = async () => {
-        // Always restore local state first so UI is instant
+        // Restore local state immediately (UI first)
         setAllPredictions(prev => {
-          const userMatchIds = new Set(prev.filter(p => p.userId === user.email).map(p => p.matchId));
-          return [...prev, ...deletedPreds.filter(p => !userMatchIds.has(p.matchId))];
+          let updated = prev.filter(p => !(p.userId === user.email && p.matchId === matchId));
+          if (previousGroupPred) updated = [...updated, previousGroupPred];
+          const userMatchIds = new Set(updated.filter(p => p.userId === user.email).map(p => p.matchId));
+          return [...updated, ...deletedPreds.filter(p => !userMatchIds.has(p.matchId))];
         });
-        // Then persist to Supabase (best-effort)
+        // Persist to Supabase (best-effort)
         try {
-          await supabase.from('predictions').upsert(
-            deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
-            { onConflict: 'user_id,match_id' }
-          );
+          if (previousGroupPred) {
+            await supabase.from('predictions').upsert(
+              { user_id: previousGroupPred.userId, match_id: previousGroupPred.matchId, home: previousGroupPred.home, away: previousGroupPred.away } as any,
+              { onConflict: 'user_id,match_id' }
+            );
+          } else {
+            await supabase.from('predictions').delete().eq('user_id', user.email).eq('match_id', matchId);
+          }
+          if (deletedPreds.length > 0) {
+            await supabase.from('predictions').upsert(
+              deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
+              { onConflict: 'user_id,match_id' }
+            );
+          }
         } catch (e) {
           console.error('Undo persist failed:', e);
         }
