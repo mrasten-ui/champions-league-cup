@@ -61,6 +61,11 @@ export interface Translation {
   riskBalancedDesc: string;
   riskWildcardDesc: string;
 
+  // --- Bracket cascade ---
+  bracketAdjusted: string;
+  bracketAdjustedMsg: string;
+  undo: string;
+
   // --- Rules tab ---
   rulesPreSubtitle: string;
   rulesLiveSubtitle: string;

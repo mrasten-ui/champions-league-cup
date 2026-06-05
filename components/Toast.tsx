@@ -9,6 +9,7 @@ export interface ToastMessage {
   type: ToastType;
   title: string;
   message?: string;
+  action?: { label: string; onClick: () => void };
 }
 
 interface ToastProps {
@@ -18,12 +19,11 @@ interface ToastProps {
 
 const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   useEffect(() => {
-    // Quick auto-dismiss for snappy feel
     const timer = setTimeout(() => {
       onClose(toast.id);
-    }, 2500); 
+    }, toast.action ? 6000 : 2500);
     return () => clearTimeout(timer);
-  }, [toast.id, onClose]);
+  }, [toast.id, toast.action, onClose]);
 
   const config = {
     success: {
@@ -75,6 +75,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
             <p className="text-[11px] font-medium text-slate-400 truncate mt-0.5">
               {toast.message}
             </p>
+          )}
+          {toast.action && (
+            <button
+              onClick={() => { toast.action!.onClick(); onClose(toast.id); }}
+              className="text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-2 py-0.5 rounded-lg mt-1 transition-colors"
+            >
+              {toast.action.label}
+            </button>
           )}
         </div>
       </div>

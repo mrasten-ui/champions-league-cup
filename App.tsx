@@ -158,9 +158,9 @@ export const App = () => {
   }, []);
 
   // --- HELPERS ---
-  const addToast = (type: ToastType, title: string, message?: string) => {
+  const addToast = (type: ToastType, title: string, message?: string, action?: { label: string; onClick: () => void }) => {
     const id = Math.random().toString(36).substring(7);
-    setToasts(prev => [...prev, { id, type, title, message }]);
+    setToasts(prev => [...prev, { id, type, title, message, action }]);
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
@@ -291,25 +291,82 @@ export const App = () => {
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
-    
+
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
     if (!match || (match.isLocked && !isWhitelisted)) return;
-    
+
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
+
+    // --- Cascade: detect knockout slots that shift due to this group prediction ---
+    let idsToDelete: string[] = [];
+    if (match.groupId) {
+      const updatedPreds = (() => {
+        const idx = allPredictions.findIndex(p => p.userId === user.email && p.matchId === matchId);
+        if (idx > -1) { const copy = [...allPredictions]; copy[idx] = newPred; return copy; }
+        return [...allPredictions, newPred];
+      })();
+      const afterBracket = applyPredictionsToBracket(matches, teamsData, updatedPreds);
+      const affected = new Set<string>();
+      for (const afterMatch of afterBracket.filter(m => m.round)) {
+        const before = userMatches.find(b => b.id === afterMatch.id);
+        if (!before) continue;
+        const homeShifted = before.homeTeamId !== 'TBD' && before.homeTeamId !== afterMatch.homeTeamId;
+        const awayShifted = before.awayTeamId !== 'TBD' && before.awayTeamId !== afterMatch.awayTeamId;
+        if (homeShifted || awayShifted) {
+          let cur: typeof afterMatch | undefined = afterMatch;
+          while (cur) {
+            affected.add(cur.id);
+            cur = cur.nextMatchId ? afterBracket.find(m => m.id === cur!.nextMatchId) : undefined;
+          }
+        }
+      }
+      idsToDelete = [...affected].filter(id =>
+        allPredictions.some(p => p.userId === user.email && p.matchId === id)
+      );
+    }
+
+    // Snapshot deleted predictions before mutating (needed for undo)
+    const deletedPreds = idsToDelete.length > 0
+      ? allPredictions.filter(p => p.userId === user.email && idsToDelete.includes(p.matchId))
+      : [];
+
+    // Update local state atomically: apply group edit + remove cascade-affected
     setAllPredictions(prev => {
-        const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
-        if (idx > -1) { const copy = [...prev]; copy[idx] = newPred; return copy; }
-        return [...prev, newPred];
+      const idx = prev.findIndex(p => p.userId === user.email && p.matchId === matchId);
+      let updated = idx > -1 ? prev.map((p, i) => i === idx ? newPred : p) : [...prev, newPred];
+      if (idsToDelete.length > 0)
+        updated = updated.filter(p => !(p.userId === user.email && idsToDelete.includes(p.matchId)));
+      return updated;
     });
 
-    const { error: predError } = await supabase.from('predictions').upsert({ user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any, { onConflict: 'user_id,match_id' });
+    // Save group/knockout prediction
+    const { error: predError } = await supabase.from('predictions').upsert(
+      { user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any,
+      { onConflict: 'user_id,match_id' }
+    );
     if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
 
+    // Cascade delete from DB + toast with undo
+    if (idsToDelete.length > 0) {
+      await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', idsToDelete);
+      const handleUndo = async () => {
+        await supabase.from('predictions').upsert(
+          deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
+          { onConflict: 'user_id,match_id' }
+        );
+        setAllPredictions(prev => {
+          const existing = new Set(prev.map(p => p.matchId));
+          return [...prev, ...deletedPreds.filter(p => !existing.has(p.matchId))];
+        });
+      };
+      addToast('warning', t.bracketAdjusted, t.bracketAdjustedMsg, { label: t.undo, onClick: handleUndo });
+    }
+
     if (isWhitelisted) {
-        const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
-        setUser({ ...user, unlockedMatches: newUnlocked });
-        await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
-        addToast('success', t.predSaved, t.predLocked);
+      const newUnlocked = user.unlockedMatches?.filter(id => id !== matchId) || [];
+      setUser({ ...user, unlockedMatches: newUnlocked });
+      await supabase.from('profiles').update({ unlocked_matches: newUnlocked } as any).eq('email', user.email);
+      addToast('success', t.predSaved, t.predLocked);
     }
   };
 
