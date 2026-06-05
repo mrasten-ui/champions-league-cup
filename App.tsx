@@ -350,14 +350,20 @@ export const App = () => {
     if (idsToDelete.length > 0) {
       await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', idsToDelete);
       const handleUndo = async () => {
-        await supabase.from('predictions').upsert(
-          deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
-          { onConflict: 'user_id,match_id' }
-        );
+        // Always restore local state first so UI is instant
         setAllPredictions(prev => {
-          const existing = new Set(prev.map(p => p.matchId));
-          return [...prev, ...deletedPreds.filter(p => !existing.has(p.matchId))];
+          const userMatchIds = new Set(prev.filter(p => p.userId === user.email).map(p => p.matchId));
+          return [...prev, ...deletedPreds.filter(p => !userMatchIds.has(p.matchId))];
         });
+        // Then persist to Supabase (best-effort)
+        try {
+          await supabase.from('predictions').upsert(
+            deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
+            { onConflict: 'user_id,match_id' }
+          );
+        } catch (e) {
+          console.error('Undo persist failed:', e);
+        }
       };
       addToast('warning', t.bracketAdjusted, t.bracketAdjustedMsg, { label: t.undo, onClick: handleUndo });
     }
