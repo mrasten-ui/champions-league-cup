@@ -220,45 +220,45 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 2: DAILY AI COACH BRIEF
+  // STOP 2: DAILY AI COACH BRIEF + STATS CARD
   {
     id: 'live_coach_brief',
-    targetId: 'tour-ai-coach-brief',
+    targetId: 'tour-leaderboard-top',
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Your Daily Brief",  lines: ["That card is your personal AI coach report.", "Your current rank, your closest rivals, and how your specific picks are performing — updated every day.", "Tap the portrait to get the full commentary."] },
-      'en-US': { title: "Your Daily Brief",  lines: ["That card is your personal AI coach report.", "Your rank, your rivals, and how your picks stack up — refreshed daily.", "Tap the portrait for the full breakdown."] },
-      no:      { title: "Din Daglige Rapport", lines: ["Det kortet er din personlige AI-trenerrapport.", "Din plassering, dine nærmeste rivaler og hvordan tipsene dine holder — oppdateres daglig.", "Trykk på portrettet for full kommentar."] },
-      sco:     { title: "Yer Daily Brief",   lines: ["That card is yer personal AI coach report.", "Yer rank, yer rivals, and how yer picks are haudin' up — updated every day.", "Tap the portrait for the full rundown."] },
+      en:      { title: "Your Command Card",    lines: ["This card is your personal command centre.", "At the top: your AI coach report — a daily briefing on your rank, your closest rivals, and how your specific picks are holding up.", "Below it: your gap to the leader, who you're chasing, and your 3-day rank trend.", "Tap the coach portrait to get the full commentary."] },
+      'en-US': { title: "Your Command Card",    lines: ["This card is your personal command center.", "Top: AI coach report — daily briefing on your rank, rivals, and how your picks are performing.", "Below: your gap to the leader, who you're chasing, and your 3-day trend.", "Tap the coach portrait for the full breakdown."] },
+      no:      { title: "Kommandokortet",        lines: ["Dette kortet er ditt personlige kommandosenter.", "Øverst: AI-trenerrapporten — daglig briefing om din plassering, dine rivaler og hvordan tipsene dine holder.", "Under: avstand til lederen, hvem du jager og 3-dagers utvikling.", "Trykk på trenerportrettet for full kommentar."] },
+      sco:     { title: "Yer Command Card",     lines: ["That card is yer personal command centre.", "Top: AI coach report — daily briefing on yer rank, yer rivals, and how yer picks are haudin' up.", "Below: yer gap tae the leader, who ye're chasin', and yer 3-day trend.", "Tap the coach portrait for the full rundown."] },
     },
     audioScript: {
-      en:      { host: "That card is your daily brief from your Assistant Coach — your rank, your rivals, your picks. Updated every day.", pundit: "The AI has studied your predictions. It has concerns." },
-      'en-US': { host: "Your daily brief — rank, rivals, and how your picks are performing. Refreshed every day.", pundit: "Pochettino's reviewed your picks. He believes in you. Barely." },
-      no:      { host: "Det kortet er din daglige rapport — plassering, rivaler og tipsene dine. Oppdateres daglig.", pundit: "Assistenttrener har gransket tipsene dine. Han er bekymret." },
-      sco:     { host: "That card — yer daily brief. Rank, rivals, picks. Every day.", pundit: "Clarke's read yer picks. He's keepin' his thoughts tae himsel'. For now." },
+      en:      { host: "This card is your daily command centre — AI coach brief at the top, your rank gap and rivals below. Updated every day.", pundit: "The AI has studied your predictions. It has opinions." },
+      'en-US': { host: "Your command card — daily AI brief on top, rank gap and rivals below. Refreshed every day.", pundit: "Pochettino's reviewed your picks. He's cautiously optimistic." },
+      no:      { host: "Dette kortet er ditt daglige kommandosenter — AI-brief øverst, plassering og rivaler under. Oppdateres daglig.", pundit: "Assistenttreneren har gransket tipsene dine. Han er... bekymret." },
+      sco:     { host: "That card — yer daily command centre. AI brief on top, rank gap and rivals below. Every day.", pundit: "Clarke's read yer picks. He's keepin' his thoughts tae himsel'. For now." },
     }
   },
 
-  // STOP 3: LEADERBOARD
+  // STOP 3: LEADERBOARD TABLE
   {
     id: 'live_leaderboard',
-    targets: ['tour-leaderboard-top'],
+    targetId: 'tour-leaderboard-table',
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Leaderboard",  lines: ["This is home base.", "Your rank updates live after every result.", "Banked = confirmed points from finished matches only.", "Live = your total including matches still being played.", "Toggle between them at the top to see where you really stand."] },
-      'en-US': { title: "Leaderboard",  lines: ["This is home base.", "Your rank updates live after every result.", "Banked = points from completed matches only.", "Live = total including games in progress.", "Toggle at the top to see both views."] },
-      no:      { title: "Tabell",       lines: ["Her er hjemmebasen din.", "Plasseringen oppdateres live etter hvert resultat.", "Banket = bekreftede poeng fra fullspilte kamper.", "Live = totalt inkludert kamper som pågår.", "Bytt mellom dem øverst for å se begge visningene."] },
-      sco:     { title: "Live Table",   lines: ["This is hame base.", "Yer rank updates live after every result.", "Banked = confirmed points fae finished matches.", "Live = total includin' games still bein' played.", "Toggle up top tae see where ye actually stand."] },
+      en:      { title: "The Rankings Table",  lines: ["This is the full player ranking — updated live after every match result.", "Banked = confirmed points from fully completed matches only.", "Live = your running total including games still being played.", "Toggle between LIVE and BANKED using the button in the top-right corner of the table."] },
+      'en-US': { title: "The Rankings Table",  lines: ["Full player rankings — updated live after every result.", "Banked = confirmed points from completed matches only.", "Live = running total including games in progress.", "Toggle LIVE / BANKED in the top-right corner of the table."] },
+      no:      { title: "Rangtabellen",         lines: ["Dette er hele spillerrangeringen — oppdateres live etter hvert resultat.", "Banket = bekreftede poeng fra fullstendig fullspilte kamper.", "Live = løpende totalt inkludert kamper som pågår.", "Bytt mellom LIVE og BANKET med knappen øverst til høyre i tabellen."] },
+      sco:     { title: "The Rankings Table",   lines: ["Full player rankings — live after every result.", "Banked = confirmed points fae fully finished matches.", "Live = runnin' total includin' games still gaun.", "Toggle LIVE / BANKED wi' the button in the top-right o' the table."] },
     },
     audioScript: {
-      en:      { host: "The leaderboard updates after every match. Banked is confirmed points — Live includes games still in play. Toggle between them at the top.", pundit: "Up or down after every result. This is where it hurts." },
-      'en-US': { host: "Rankings update every result. Banked is locked-in points, Live includes games in progress.", pundit: "Is your name climbing or sinking? Check often." },
-      no:      { host: "Tabellen oppdateres etter hver kamp. Banket er bekreftede poeng — Live inkluderer pågående kamper.", pundit: "Opp eller ned. Det er her det gjør vondt." },
-      sco:     { host: "Leaderboard updates every result. Banked is confirmed points — Live's got the games still gaun.", pundit: "Up or doon. This is where the banter starts." },
+      en:      { host: "The full rankings table — updates after every result. Toggle Live and Banked in the top-right corner to switch between your running total and confirmed points.", pundit: "Up or down after every result. This is where it hurts." },
+      'en-US': { host: "Full rankings, live after every result. Toggle Live vs Banked — top right of the table.", pundit: "Is your name climbing or sinking? Check often." },
+      no:      { host: "Full rangtabell — oppdateres etter hvert resultat. Bytt mellom Live og Banket øverst til høyre i tabellen.", pundit: "Opp eller ned. Det er her det gjør vondt." },
+      sco:     { host: "Full rankings — live after every result. Toggle Live and Banked, top-right o' the table.", pundit: "Up or doon. This is where the banter starts." },
     }
   },
 

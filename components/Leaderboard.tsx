@@ -518,7 +518,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       })()}
 
       {/* THE LIST */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <div id="tour-leaderboard-table" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Navy table header — title + league tabs + LIVE toggle */}
         <div className="bg-[#0f2545] px-4 pt-3 pb-0 border-b border-slate-700">
             <div className="flex items-center justify-between mb-2">

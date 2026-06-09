@@ -554,6 +554,7 @@ export const App = () => {
 
   const handleSplashDone = () => {
       setShowLiveSplash(false);
+      setActiveTab('leaderboard');
       setTimeout(() => setShowLiveTour(true), 300);
   };
 
@@ -641,11 +642,19 @@ export const App = () => {
   };
 
   const handleLiveTourNavigation = (stepId: string) => {
-      if (stepId === 'live_leaderboard') setActiveTab('leaderboard');
-      else if (stepId === 'live_rules') setActiveTab('rules');
-      else if (stepId === 'live_tournament') { setActiveTab('tournament'); setTournamentSubTab('schedule'); }
-      else if (stepId === 'live_manager') setActiveTab('manager');
-      else if (stepId === 'live_analysis') setActiveTab('analysis');
+      if (stepId === 'live_welcome' || stepId === 'live_coach_brief' || stepId === 'live_leaderboard') {
+          setActiveTab('leaderboard');
+      } else if (stepId === 'live_tournament') {
+          setActiveTab('tournament'); setTournamentSubTab('schedule');
+      } else if (stepId === 'live_manager' || stepId === 'live_second_chance') {
+          setActiveTab('manager');
+      } else if (stepId === 'live_analysis') {
+          setActiveTab('analysis');
+      } else if (stepId === 'live_rules') {
+          setActiveTab('rules');
+      } else if (stepId === 'live_profile') {
+          setActiveTab('leaderboard');
+      }
   };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
@@ -921,7 +930,7 @@ export const App = () => {
         handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
-        onStartLiveTour={() => setShowLiveTour(true)}
+        onStartLiveTour={() => { setActiveTab('leaderboard'); setShowLiveTour(true); }}
         showSecondChanceBadge={
             tournamentPhase === 'LIVE' &&
             !user?.hasTakenSecondChance &&
