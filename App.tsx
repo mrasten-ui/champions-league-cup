@@ -650,13 +650,7 @@ export const App = () => {
                   if (myRow) {
                       myRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       const alreadyExpanded = !!document.getElementById('tour-my-row-expanded');
-                      if (!alreadyExpanded) {
-                          setTimeout(() => {
-                              myRow.click();
-                              // Re-anchor after expand so the detail chips aren't hidden under the tour panel
-                              setTimeout(() => myRow.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
-                          }, 400);
-                      }
+                      if (!alreadyExpanded) setTimeout(() => myRow.click(), 400);
                   }
               }, 450);
           }
