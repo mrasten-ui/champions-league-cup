@@ -591,7 +591,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
                 return (
                   <React.Fragment key={user.email}>
-                      <tr 
+                      <tr
+                        id={isMe ? 'tour-my-row' : undefined}
                         onClick={() => toggleExpand(user.email)}
                         className={`transition-all cursor-pointer group ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-slate-50 shadow-inner' : ''}`}
                       >
@@ -657,7 +658,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
                       {/* EXPANDED DETAILS */}
                       {isExpanded && (
-                          <tr className="bg-slate-50/50">
+                          <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-slate-50/50">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
 
                                   {/* Profile header — click opens full profile modal */}

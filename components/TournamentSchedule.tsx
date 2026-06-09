@@ -245,7 +245,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
             {/* MATCH OF THE DAY HERO */}
             {heroMatch && !searchTerm && (
-                <div id={`schedule-match-${heroMatch.id}`}>
+                <div id="tour-schedule-hero" data-match-id={heroMatch.id}>
                     <MatchdayHero
                         match={heroMatch}
                         teams={teams}

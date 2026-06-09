@@ -223,7 +223,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 2: DAILY AI COACH BRIEF + STATS CARD
   {
     id: 'live_coach_brief',
-    targetId: 'tour-leaderboard-top',
+    targets: ['tour-leaderboard-top', 'nav-leaderboard', 'nav-leaderboard-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
@@ -241,73 +241,73 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 3: LEADERBOARD TABLE
+  // STOP 3: LEADERBOARD — USER'S ROW EXPANDED
   {
     id: 'live_leaderboard',
-    targetId: 'tour-leaderboard-table',
+    targets: ['tour-my-row', 'tour-my-row-expanded', 'nav-leaderboard', 'nav-leaderboard-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "The Rankings Table",  lines: ["This is the full player ranking — updated live after every match result.", "Banked = confirmed points from fully completed matches only.", "Live = your running total including games still being played.", "Toggle between LIVE and BANKED using the button in the top-right corner of the table."] },
-      'en-US': { title: "The Rankings Table",  lines: ["Full player rankings — updated live after every result.", "Banked = confirmed points from completed matches only.", "Live = running total including games in progress.", "Toggle LIVE / BANKED in the top-right corner of the table."] },
-      no:      { title: "Rangtabellen",         lines: ["Dette er hele spillerrangeringen — oppdateres live etter hvert resultat.", "Banket = bekreftede poeng fra fullstendig fullspilte kamper.", "Live = løpende totalt inkludert kamper som pågår.", "Bytt mellom LIVE og BANKET med knappen øverst til høyre i tabellen."] },
-      sco:     { title: "The Rankings Table",   lines: ["Full player rankings — live after every result.", "Banked = confirmed points fae fully finished matches.", "Live = runnin' total includin' games still gaun.", "Toggle LIVE / BANKED wi' the button in the top-right o' the table."] },
+      en:      { title: "Your Points",  lines: ["This is your row — tapped open so you can see the full breakdown.", "Green = exact scores (5 pts each). Blue = correct results (3 pts each).", "Indigo = total group stage points. Purple = knockout stage points.", "Toggle LIVE / BANKED at the top of the table to switch between confirmed and running totals."] },
+      'en-US': { title: "Your Points",  lines: ["This is your row — opened up so you can see the full breakdown.", "Green = exact scores (5 pts each). Blue = correct results (3 pts each).", "Indigo = group stage points. Purple = knockout stage points.", "Toggle LIVE / BANKED at the top of the table to switch views."] },
+      no:      { title: "Dine Poeng",   lines: ["Dette er din rad — åpnet slik at du kan se den fulle oversikten.", "Grønn = eksakte resultater (5 poeng hver). Blå = riktig utfall (3 poeng hver).", "Indigo = totale gruppespillpoeng. Lilla = sluttspillpoeng.", "Bytt LIVE / BANKET øverst i tabellen for å veksle mellom visningene."] },
+      sco:     { title: "Yer Points",   lines: ["This is yer row — tapped open so ye can see the full breakdown.", "Green = exact scores (5 pts each). Blue = right results (3 pts each).", "Indigo = group stage points. Purple = knockout points.", "Toggle LIVE / BANKED at the top o' the table tae switch views."] },
     },
     audioScript: {
-      en:      { host: "The full rankings table — updates after every result. Toggle Live and Banked in the top-right corner to switch between your running total and confirmed points.", pundit: "Up or down after every result. This is where it hurts." },
-      'en-US': { host: "Full rankings, live after every result. Toggle Live vs Banked — top right of the table.", pundit: "Is your name climbing or sinking? Check often." },
-      no:      { host: "Full rangtabell — oppdateres etter hvert resultat. Bytt mellom Live og Banket øverst til høyre i tabellen.", pundit: "Opp eller ned. Det er her det gjør vondt." },
-      sco:     { host: "Full rankings — live after every result. Toggle Live and Banked, top-right o' the table.", pundit: "Up or doon. This is where the banter starts." },
+      en:      { host: "Your row is open. Green is exact scores, blue is correct results, indigo is group points, purple is knockout. Toggle Live and Banked at the top to switch views.", pundit: "The purple number is where tournaments are won or lost." },
+      'en-US': { host: "Your row is open. Green for exact scores, blue for correct results, indigo group points, purple knockout. Toggle Live vs Banked at the top.", pundit: "That purple knockout number is everything." },
+      no:      { host: "Din rad er åpen. Grønn for eksakte, blå for riktig utfall, indigo for gruppespill, lilla for sluttspill. Bytt Live og Banket øverst.", pundit: "Det lilla tallet er der turneringen vinnes eller tapes." },
+      sco:     { host: "Yer row's open. Green for exact scores, blue for right results, indigo group points, purple knockout. Toggle Live and Banked at the top.", pundit: "That purple number — that's where it's decided." },
     }
   },
 
-  // STOP 4: TOURNAMENT
+  // STOP 4: TOURNAMENT — SCHEDULE / MATCH CARD
   {
     id: 'live_tournament',
-    targets: ['tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
+    targets: ['tour-schedule-hero', 'tour-subnav-schedule', 'nav-tournament', 'nav-tournament-desk'],
     position: 'bottom',
-    overlayType: 'swipe-hand',
+    overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Tournament",  lines: ["Three views — Schedule, Tables, and Bracket.", "Schedule shows live scores as they happen, plus links to watch every game.", "Tables tracks the group standings.", "Bracket is where your knockout picks live or die."] },
-      'en-US': { title: "Tournament",  lines: ["Three views — Schedule, Standings, and Bracket.", "Schedule shows live scores and links to watch the games.", "Standings tracks how groups are shaking out.", "Bracket is where your playoff picks succeed or collapse."] },
-      no:      { title: "Turnering",   lines: ["Tre visninger — Kampplan, Tabeller og Brakett.", "Kampplanen viser livescorer og lenker til å se kampene.", "Tabeller følger gruppestillingene.", "Braketten er der dine sluttspilltips lever eller dør."] },
-      sco:     { title: "Tournament",  lines: ["Three views — Schedule, Tables, and Bracket.", "Schedule has live scores and links tae watch every game.", "Tables tracks how the groups are shapin' up.", "The Bracket — that's where yer picks live or die."] },
+      en:      { title: "Tournament",   lines: ["You're looking at the Schedule — today's featured match.", "Each card shows the kick-off time, your prediction, and your rivals' picks.", "When a match is live the score updates in real time, along with goal scorers and the current minute.", "Switch to Tables for group standings, or Bracket to see how your knockout picks are holding up."] },
+      'en-US': { title: "Tournament",   lines: ["You're on the Schedule — today's featured match.", "Each card shows kick-off, your pick, and what your rivals are predicting.", "When a game is live you'll see the live score, goal scorers, and the clock in real time.", "Switch to Standings for group tables, or Bracket to track your playoff picks."] },
+      no:      { title: "Turneringen",  lines: ["Du ser på Terminlisten — dagens kamphøjdepunkt.", "Hvert kort viser avspark, ditt tips og hva rivalene dine tror.", "Når en kamp er i gang vises livescoren, målscorere og minutt i sanntid.", "Bytt til Tabeller for gruppestillinger, eller Treet for å se hvordan sluttspilltipsene dine holder."] },
+      sco:     { title: "The Cup",      lines: ["Ye're on the Fixtures — today's featured match.", "Each card shows kick-off, yer pick, and what yer rivals are callin'.", "When a game's live ye'll see the score, scorers, and the minute — updated in real time.", "Switch tae Leagues for group standings, or Tree tae see how yer knockout picks are haudin' up."] },
     },
     audioScript: {
-      en:      { host: "Tournament tab — live schedule with game links, group tables, and the full knockout bracket.", pundit: "The Bracket. Is your champion still standing?" },
-      'en-US': { host: "Schedule with live scores and watch links, standings, and the full bracket — all here.", pundit: "Bracket. Check it. Often." },
-      no:      { host: "Turnering-fanen — kampplan med lenker, grupptabeller og hele sluttspillbraketten.", pundit: "Braketten. Lever din mester fortsatt?" },
-      sco:     { host: "Tournament tab — live schedule wi' game links, tables, and the full bracket.", pundit: "The Bracket. Is yer champion still breathin'?" },
+      en:      { host: "The Schedule shows today's featured match — kick-off, your prediction, and rivals' picks. Live matches update in real time. Switch to Tables or Bracket from the buttons above.", pundit: "The Bracket. Is your champion still standing?" },
+      'en-US': { host: "Schedule shows the featured match — your pick and rivals' calls. Live games update in real time. Standings and Bracket are up top.", pundit: "Bracket. Check it. Often." },
+      no:      { host: "Terminlisten viser dagens kamphøjdepunkt — ditt tips og rivalenes. Livekamper oppdateres i sanntid. Bytt til Tabeller eller Treet øverst.", pundit: "Treet. Lever din mester fortsatt?" },
+      sco:     { host: "Fixtures shows the featured match — yer pick and rivals' calls. Live games update in real time. Switch tae Leagues or Tree up top.", pundit: "The Tree. Is yer champion still breathin'?" },
     }
   },
 
   // STOP 5: MANAGER — SUBSTITUTIONS
   {
     id: 'live_manager',
-    targets: ['tour-manager-hub', 'tour-manager-viewmode'],
+    targets: ['tour-manager-hub', 'tour-manager-viewmode', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Substitutions",  lines: ["Locked predictions aren't final.", "You have a set number of substitutions — find any locked match in the Manager tab, tap it, and spend a sub to change your prediction.", "Use them wisely. They don't refill."] },
-      'en-US': { title: "Substitutions",  lines: ["Locked doesn't mean stuck.", "You have a set number of subs — find a locked match in the Manager tab, tap it, spend a sub to change your pick.", "Use them carefully. You won't get more."] },
-      no:      { title: "Bytter",          lines: ["Låste tips er ikke endelige.", "Du har et sett antall bytter — finn en låst kamp i Manager-fanen, trykk på den og bruk et bytte for å endre tipset.", "Bruk dem klokt. De fylles ikke opp igjen."] },
-      sco:     { title: "Substitutions",  lines: ["Locked picks arnae final.", "Ye've got a set number of subs — find any locked match in the Manager tab, tap it, spend a sub tae change yer pick.", "Use them wisely. They dinnae refill."] },
+      en:      { title: "Manager",  lines: ["You're on the Manager tab — this is where you control your predictions during the live tournament.", "All your picks locked at kick-off, but you were given Substitution tokens at the start.", "A Substitution works just like in football — you swap out one prediction for a new one.", "Find any upcoming match in the list, tap it, and spend a token to change your pick before that match kicks off.", "Tokens are limited and don't refill, so use them on matches that really matter."] },
+      'en-US': { title: "Manager",  lines: ["You're on the Manager tab — your live prediction control room.", "All picks locked at kick-off, but you were given Substitution tokens at the start.", "A Sub works like a football substitution — you swap one prediction for a new one.", "Find any upcoming match, tap it, and spend a token to update your pick before it kicks off.", "Tokens are limited and don't come back, so use them wisely."] },
+      no:      { title: "Manager",  lines: ["Du er på Manager-fanen — her styrer du tipsene dine under turneringen.", "Alle tips ble låst ved kampstart, men du fikk Byttetoken ved starten.", "Et Bytte fungerer som i fotball — du bytter ut ett tips med et nytt.", "Finn en kommende kamp i listen, trykk på den, og bruk et token for å endre tipset ditt før kampen starter.", "Token er begrenset og fylles ikke opp igjen, så bruk dem på kamper som virkelig teller."] },
+      sco:     { title: "Manager",  lines: ["Ye're on the Manager tab — this is where ye control yer picks durin' the live tournament.", "Aw yer picks locked at kick-off, but ye were given Substitution tokens at the start.", "A Sub is like a fitba substitution — ye swap oot one pick for a new one.", "Find any comin' match in the list, tap it, and spend a token tae change yer pick before it kicks aff.", "Tokens are limited and dinnae refill, so use them on games that actually matter."] },
     },
     audioScript: {
-      en:      { host: "Manager tab — substitutions let you change locked predictions. Find the match, tap it, spend a sub.", pundit: "Save them for the games that still matter. Don't waste them early." },
-      'en-US': { host: "Locked picks can still be changed. Find the match in the Manager tab, tap it, use a sub.", pundit: "Don't waste subs on dead rubbers. Save them." },
-      no:      { host: "Manager-fanen — bytter lar deg endre låste tips. Finn kampen, trykk på den, bruk et bytte.", pundit: "Spar bytter til kamper som fortsatt betyr noe." },
-      sco:     { host: "Manager tab — subs let ye change locked picks. Find the match, tap it, use yer sub.", pundit: "Save subs for games that still matter. Dinnae throw them awa'." },
+      en:      { host: "Manager tab. Your picks are locked, but you have substitution tokens — spend one to swap a prediction on any upcoming match before it kicks off.", pundit: "Like a real manager. Use the sub at the right moment, not in a panic." },
+      'en-US': { host: "Manager tab. Picks are locked, but your sub tokens let you swap a prediction on any upcoming game before kick-off.", pundit: "Use the sub at the right moment. Not out of desperation." },
+      no:      { host: "Manager-fanen. Tipsene er låst, men byttetokenene lar deg bytte ett tips på en kommende kamp før den starter.", pundit: "Som en ekte manager. Bytt på riktig tidspunkt, ikke i panikk." },
+      sco:     { host: "Manager tab. Picks are locked, but yer sub tokens let ye swap a pick on any comin' match before it kicks aff.", pundit: "Like a real manager. Use the sub at the right time. No' in a panic." },
     }
   },
 
   // STOP 6: SECOND CHANCE
   {
     id: 'live_second_chance',
-    targetId: 'tour-second-chance-promo',
+    targets: ['tour-second-chance-promo', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
@@ -325,7 +325,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 7: ANALYSIS
+  // STOP 7: ANALYSIS — TAB + CONTENT
   {
     id: 'live_analysis',
     targets: ['nav-analysis', 'nav-analysis-desk'],
@@ -349,7 +349,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 8: RULES & POINTS
   {
     id: 'live_rules',
-    targetId: 'rules-scoring-section',
+    targets: ['rules-scoring-section', 'nav-rules', 'nav-rules-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},

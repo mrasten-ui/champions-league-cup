@@ -644,8 +644,22 @@ export const App = () => {
   const handleLiveTourNavigation = (stepId: string) => {
       if (stepId === 'live_welcome' || stepId === 'live_coach_brief' || stepId === 'live_leaderboard') {
           setActiveTab('leaderboard');
+          if (stepId === 'live_leaderboard') {
+              setTimeout(() => {
+                  const myRow = document.getElementById('tour-my-row');
+                  if (myRow) {
+                      myRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      const alreadyExpanded = !!document.getElementById('tour-my-row-expanded');
+                      if (!alreadyExpanded) setTimeout(() => myRow.click(), 350);
+                  }
+              }, 450);
+          }
       } else if (stepId === 'live_tournament') {
-          setActiveTab('tournament'); setTournamentSubTab('schedule');
+          setActiveTab('tournament');
+          setTournamentSubTab('schedule');
+          setTimeout(() => {
+              document.getElementById('tour-schedule-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 500);
       } else if (stepId === 'live_manager' || stepId === 'live_second_chance') {
           setActiveTab('manager');
       } else if (stepId === 'live_analysis') {
