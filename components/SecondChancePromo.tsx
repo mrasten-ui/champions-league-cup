@@ -13,7 +13,7 @@ export const SecondChancePromo: React.FC<SecondChancePromoProps> = ({ hasTaken, 
   if (hasTaken || secondChanceStatus === 'PENDING' || secondChanceStatus === 'ACTIVE') return null;
 
   return (
-    <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+    <div id="tour-second-chance-promo" className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3">
             {/* Amber accent icon */}
             <div className="shrink-0 w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">

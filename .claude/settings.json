@@ -10,7 +10,9 @@
       "Bash(Remove-Item \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\\\\.github\\\\workflows\\\\fix-kickoff-times.yml\")",
       "Bash(node scripts/send-reminders.js --dry-run)",
       "Bash(FROM_EMAIL=\"The Rasten Cup <onboarding@resend.dev>\" node scripts/send-reminders.js)",
-      "Bash(node scripts/send-reminders.js)"
+      "Bash(node scripts/send-reminders.js)",
+      "Bash(node scripts/send-reminders.js --apology --dry-run)",
+      "Bash(node scripts/send-reminders.js --apology)"
     ]
   }
 }

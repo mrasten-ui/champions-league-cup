@@ -207,20 +207,41 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'none',
     audioFiles: {},
     display: {
-      en:      { title: "We're Live",  lines: ["The tournament is live!", "Predictions locked — here's what's new."] },
-      'en-US': { title: "It's Live!",  lines: ["The tournament has tipped off!", "Picks are locked — let's walk you through."] },
-      no:      { title: "Vi Er Live",  lines: ["Turneringen er i gang!", "Tipsene er låst — her er hva som er nytt."] },
-      sco:     { title: "We're Live",  lines: ["We're aff! Tournament is live!", "Picks locked — here's whit's changed."] },
+      en:      { title: "We're Live!",  lines: ["The tournament has kicked off.", "Your predictions are locked — let's show you around."] },
+      'en-US': { title: "It's Live!",   lines: ["The tournament has kicked off.", "Picks are locked — let's walk you through what's new."] },
+      no:      { title: "Vi Er Live!",  lines: ["Turneringen er i gang.", "Tipsene er låst — la oss vise deg rundt."] },
+      sco:     { title: "We're Live!",  lines: ["The tournament's kicked aff.", "Picks are locked — here's whit ye need tae know."] },
     },
     audioScript: {
-      en:      { host: "The tournament is live. Predictions locked.", pundit: "Forget the group stage — it's real football now." },
-      'en-US': { host: "It's live! Picks are locked in.", pundit: "Now we watch it all unfold." },
-      no:      { host: "Turneringen er i gang. Tipsene er låst.", pundit: "Glem gruppespillet. Ekte fotball nå." },
+      en:      { host: "The tournament is live. Predictions are locked.", pundit: "Forget the group stage. This is real football now." },
+      'en-US': { host: "It's live! Picks are locked in.", pundit: "Now we find out who actually knows their football." },
+      no:      { host: "Turneringen er i gang. Tipsene er låst.", pundit: "Glem planleggingen. Nå er det ekte fotball." },
       sco:     { host: "We're live. Predictions are locked.", pundit: "Actual fitba. Pay attention." },
     }
   },
 
-  // STOP 2: LEADERBOARD
+  // STOP 2: DAILY AI COACH BRIEF
+  {
+    id: 'live_coach_brief',
+    targetId: 'tour-ai-coach-brief',
+    position: 'bottom',
+    overlayType: 'sparkles',
+    audioFiles: {},
+    display: {
+      en:      { title: "Your Daily Brief",  lines: ["That card is your personal AI coach report.", "Your current rank, your closest rivals, and how your specific picks are performing — updated every day.", "Tap the portrait to get the full commentary."] },
+      'en-US': { title: "Your Daily Brief",  lines: ["That card is your personal AI coach report.", "Your rank, your rivals, and how your picks stack up — refreshed daily.", "Tap the portrait for the full breakdown."] },
+      no:      { title: "Din Daglige Rapport", lines: ["Det kortet er din personlige AI-trenerrapport.", "Din plassering, dine nærmeste rivaler og hvordan tipsene dine holder — oppdateres daglig.", "Trykk på portrettet for full kommentar."] },
+      sco:     { title: "Yer Daily Brief",   lines: ["That card is yer personal AI coach report.", "Yer rank, yer rivals, and how yer picks are haudin' up — updated every day.", "Tap the portrait for the full rundown."] },
+    },
+    audioScript: {
+      en:      { host: "That card is your daily brief from your Assistant Coach — your rank, your rivals, your picks. Updated every day.", pundit: "The AI has studied your predictions. It has concerns." },
+      'en-US': { host: "Your daily brief — rank, rivals, and how your picks are performing. Refreshed every day.", pundit: "Pochettino's reviewed your picks. He believes in you. Barely." },
+      no:      { host: "Det kortet er din daglige rapport — plassering, rivaler og tipsene dine. Oppdateres daglig.", pundit: "Assistenttrener har gransket tipsene dine. Han er bekymret." },
+      sco:     { host: "That card — yer daily brief. Rank, rivals, picks. Every day.", pundit: "Clarke's read yer picks. He's keepin' his thoughts tae himsel'. For now." },
+    }
+  },
+
+  // STOP 3: LEADERBOARD
   {
     id: 'live_leaderboard',
     targets: ['tour-leaderboard-top'],
@@ -228,61 +249,20 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Leaderboard",    lines: ["Your rank — live after every result.", "Toggle Live vs Banked at the top."] },
-      'en-US': { title: "Leaderboard",    lines: ["Live ranking — updates every result.", "Toggle Live vs Banked at the top."] },
-      no:      { title: "Tabell",         lines: ["Din plassering — live etter hvert resultat.", "Bytt Live vs Banket øverst."] },
-      sco:     { title: "Live Table",     lines: ["Yer rank — live after every result.", "Toggle Live vs Banked up top."] },
+      en:      { title: "Leaderboard",  lines: ["This is home base.", "Your rank updates live after every result.", "Banked = confirmed points from finished matches only.", "Live = your total including matches still being played.", "Toggle between them at the top to see where you really stand."] },
+      'en-US': { title: "Leaderboard",  lines: ["This is home base.", "Your rank updates live after every result.", "Banked = points from completed matches only.", "Live = total including games in progress.", "Toggle at the top to see both views."] },
+      no:      { title: "Tabell",       lines: ["Her er hjemmebasen din.", "Plasseringen oppdateres live etter hvert resultat.", "Banket = bekreftede poeng fra fullspilte kamper.", "Live = totalt inkludert kamper som pågår.", "Bytt mellom dem øverst for å se begge visningene."] },
+      sco:     { title: "Live Table",   lines: ["This is hame base.", "Yer rank updates live after every result.", "Banked = confirmed points fae finished matches.", "Live = total includin' games still bein' played.", "Toggle up top tae see where ye actually stand."] },
     },
     audioScript: {
-      en:      { host: "Leaderboard is home. Rank updates after every match — toggle Live and Banked to see where you stand.", pundit: "Up or down after every result. This is where it hurts." },
-      'en-US': { host: "Live rankings — update every result. Toggle Live vs Banked at the top.", pundit: "Is your name climbing or sinking?" },
-      no:      { host: "Poengtabellen — plassering oppdateres etter hvert resultat. Bytt mellom Live og Banket.", pundit: "Opp eller ned. Her gjør det vondt." },
-      sco:     { host: "Leaderboard is home. Rank updates every result — toggle Live vs Banked.", pundit: "Up or doon. This is where the banter starts." },
+      en:      { host: "The leaderboard updates after every match. Banked is confirmed points — Live includes games still in play. Toggle between them at the top.", pundit: "Up or down after every result. This is where it hurts." },
+      'en-US': { host: "Rankings update every result. Banked is locked-in points, Live includes games in progress.", pundit: "Is your name climbing or sinking? Check often." },
+      no:      { host: "Tabellen oppdateres etter hver kamp. Banket er bekreftede poeng — Live inkluderer pågående kamper.", pundit: "Opp eller ned. Det er her det gjør vondt." },
+      sco:     { host: "Leaderboard updates every result. Banked is confirmed points — Live's got the games still gaun.", pundit: "Up or doon. This is where the banter starts." },
     }
   },
 
-  // STOP 3: COACH BRIEF
-  {
-    id: 'live_coach_brief',
-    position: 'center',
-    overlayType: 'sparkles',
-    audioFiles: {},
-    display: {
-      en:      { title: "Your Brief",  lines: ["Meet Tuchel — your Assistant Coach.", "Your rank, rivals, picks. Personalised. Daily."] },
-      'en-US': { title: "Your Brief",  lines: ["Meet Pochettino — your Assistant Coach.", "Personal AI intel — rank, rivals, picks. Every day."] },
-      no:      { title: "Din Rapport", lines: ["Møt Solbakken — din assistenttrener.", "Din plassering, rivaler og tips. Personlig. Daglig."] },
-      sco:     { title: "Yer Brief",   lines: ["Meet Clarke — yer Assistant Coach.", "Yer rank, rivals, picks. Personal. Every day."] },
-    },
-    audioScript: {
-      en:      { host: "That card at the top is your daily brief from Tuchel — your Assistant Coach. Your rank, your rivals, your specific picks. Every day.", pundit: "Tuchel has studied your picks. He has thoughts." },
-      'en-US': { host: "Top card — daily brief from Pochettino. Your rank, rivals, and picks. Personal, every day.", pundit: "Pochettino believes in you. Whether he should is another matter." },
-      no:      { host: "Kortet øverst er din daglige rapport fra Solbakken. Din plassering, rivaler og tips. Oppdateres daglig.", pundit: "Solbakken har sett på tipsene dine. Han er stille. Det er ikke et godt tegn." },
-      sco:     { host: "That card at the top — yer daily brief from Clarke. Rank, rivals, picks. Every day.", pundit: "Clarke's read yer picks. He's no' saying much. Yet." },
-    }
-  },
-
-  // STOP 4: RULES & TOOLS
-  {
-    id: 'live_rules',
-    targetId: 'rules-scoring-section',
-    position: 'bottom',
-    overlayType: 'sparkles',
-    audioFiles: {},
-    display: {
-      en:      { title: "Rules & Tools",    lines: ["Exact: 5 · Result: 3 · Champion: 40.", "Subs · Spy · Second Chance — scroll down."] },
-      'en-US': { title: "Rules & Tools",    lines: ["Exact: 5 · Result: 3 · Champion: 40.", "Live tools: Subs · Spy · Second Chance below."] },
-      no:      { title: "Regler & Verktøy", lines: ["Eksakt: 5 · Utfall: 3 · Mester: 40.", "Bytter · Spion · Andre Sjanse — scroll ned."] },
-      sco:     { title: "Rules & Tools",    lines: ["Exact: 5 · Result: 3 · Champion: 40.", "Subs · Spy · Second Chance — scroll doon."] },
-    },
-    audioScript: {
-      en:      { host: "Full scoring at the top. Scroll down for your three live tools — subs, spy, and second chance.", pundit: "Know the system. Use the tools." },
-      'en-US': { host: "Scoring at the top. Subs, spy, second chance below.", pundit: "Know the points. Use the tools." },
-      no:      { host: "Poengsystem øverst. Scroll ned for bytter, spion og andre sjanse.", pundit: "Kjenn systemet. Bruk verktøyene." },
-      sco:     { host: "Full scoring at the top. Scroll doon for subs, spy, and second chance.", pundit: "Know the system. Use the tools." },
-    }
-  },
-
-  // STOP 5: TOURNAMENT
+  // STOP 4: TOURNAMENT
   {
     id: 'live_tournament',
     targets: ['tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
@@ -290,37 +270,58 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'swipe-hand',
     audioFiles: {},
     display: {
-      en:      { title: "Tournament",  lines: ["Schedule · Tables · Bracket.", "Bracket is where your picks live or die."] },
-      'en-US': { title: "Tournament",  lines: ["Schedule · Standings · Bracket.", "Bracket is everything — check it."] },
-      no:      { title: "Turnering",   lines: ["Kampplan · Tabeller · Brakett.", "Braketten er der alt avgjøres."] },
-      sco:     { title: "Tournament",  lines: ["Schedule · Tables · Bracket.", "The Bracket — that's where it all falls apart."] },
+      en:      { title: "Tournament",  lines: ["Three views — Schedule, Tables, and Bracket.", "Schedule shows live scores as they happen, plus links to watch every game.", "Tables tracks the group standings.", "Bracket is where your knockout picks live or die."] },
+      'en-US': { title: "Tournament",  lines: ["Three views — Schedule, Standings, and Bracket.", "Schedule shows live scores and links to watch the games.", "Standings tracks how groups are shaking out.", "Bracket is where your playoff picks succeed or collapse."] },
+      no:      { title: "Turnering",   lines: ["Tre visninger — Kampplan, Tabeller og Brakett.", "Kampplanen viser livescorer og lenker til å se kampene.", "Tabeller følger gruppestillingene.", "Braketten er der dine sluttspilltips lever eller dør."] },
+      sco:     { title: "Tournament",  lines: ["Three views — Schedule, Tables, and Bracket.", "Schedule has live scores and links tae watch every game.", "Tables tracks how the groups are shapin' up.", "The Bracket — that's where yer picks live or die."] },
     },
     audioScript: {
-      en:      { host: "Tournament tab — live schedule, group tables, and the full knockout bracket.", pundit: "The Bracket. Is your champion still standing?" },
-      'en-US': { host: "Schedule, standings, and the full bracket — all here.", pundit: "Bracket. Check it. Often." },
-      no:      { host: "Turnering-fanen — kampplan, tabeller og brakett.", pundit: "Braketten. Lever ditt mesterlags-valg?" },
-      sco:     { host: "Tournament tab — schedule, tables, and the full bracket.", pundit: "The Bracket. Is yer champion still breathing?" },
+      en:      { host: "Tournament tab — live schedule with game links, group tables, and the full knockout bracket.", pundit: "The Bracket. Is your champion still standing?" },
+      'en-US': { host: "Schedule with live scores and watch links, standings, and the full bracket — all here.", pundit: "Bracket. Check it. Often." },
+      no:      { host: "Turnering-fanen — kampplan med lenker, grupptabeller og hele sluttspillbraketten.", pundit: "Braketten. Lever din mester fortsatt?" },
+      sco:     { host: "Tournament tab — live schedule wi' game links, tables, and the full bracket.", pundit: "The Bracket. Is yer champion still breathin'?" },
     }
   },
 
-  // STOP 6: MANAGER
+  // STOP 5: MANAGER — SUBSTITUTIONS
   {
     id: 'live_manager',
-    targets: ['tour-manager-viewmode'],
+    targets: ['tour-manager-hub', 'tour-manager-viewmode'],
     position: 'bottom',
-    overlayType: 'swipe-hand',
+    overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Manager",  lines: ["Locked picks aren't final.", "Find the match — tap it — use a sub."] },
-      'en-US': { title: "Manager",  lines: ["Locked doesn't mean stuck.", "Find the match — tap it — spend a sub."] },
-      no:      { title: "Manager",  lines: ["Låste tips er ikke endelige.", "Finn kampen — trykk — bruk et bytte."] },
-      sco:     { title: "Manager",  lines: ["Locked picks arenae final.", "Find the match — tap it — use a sub."] },
+      en:      { title: "Substitutions",  lines: ["Locked predictions aren't final.", "You have a set number of substitutions — find any locked match in the Manager tab, tap it, and spend a sub to change your prediction.", "Use them wisely. They don't refill."] },
+      'en-US': { title: "Substitutions",  lines: ["Locked doesn't mean stuck.", "You have a set number of subs — find a locked match in the Manager tab, tap it, spend a sub to change your pick.", "Use them carefully. You won't get more."] },
+      no:      { title: "Bytter",          lines: ["Låste tips er ikke endelige.", "Du har et sett antall bytter — finn en låst kamp i Manager-fanen, trykk på den og bruk et bytte for å endre tipset.", "Bruk dem klokt. De fylles ikke opp igjen."] },
+      sco:     { title: "Substitutions",  lines: ["Locked picks arnae final.", "Ye've got a set number of subs — find any locked match in the Manager tab, tap it, spend a sub tae change yer pick.", "Use them wisely. They dinnae refill."] },
     },
     audioScript: {
-      en:      { host: "Manager tab — substitutions let you change locked predictions. Find a match, tap it, spend a sub.", pundit: "Save them for the games that still matter." },
-      'en-US': { host: "Locked picks can be changed. Find the match, tap it, use a sub.", pundit: "Don't waste subs on dead rubbers." },
+      en:      { host: "Manager tab — substitutions let you change locked predictions. Find the match, tap it, spend a sub.", pundit: "Save them for the games that still matter. Don't waste them early." },
+      'en-US': { host: "Locked picks can still be changed. Find the match in the Manager tab, tap it, use a sub.", pundit: "Don't waste subs on dead rubbers. Save them." },
       no:      { host: "Manager-fanen — bytter lar deg endre låste tips. Finn kampen, trykk på den, bruk et bytte.", pundit: "Spar bytter til kamper som fortsatt betyr noe." },
-      sco:     { host: "Manager tab — subs let ye change locked picks. Find the match, tap it, use yer sub.", pundit: "Save subs for the games that still matter." },
+      sco:     { host: "Manager tab — subs let ye change locked picks. Find the match, tap it, use yer sub.", pundit: "Save subs for games that still matter. Dinnae throw them awa'." },
+    }
+  },
+
+  // STOP 6: SECOND CHANCE
+  {
+    id: 'live_second_chance',
+    targetId: 'tour-second-chance-promo',
+    position: 'bottom',
+    overlayType: 'sparkles',
+    audioFiles: {},
+    display: {
+      en:      { title: "Second Chance",  lines: ["If the team you predicted to win the tournament gets knocked out — you get a Second Chance.", "Activate it to pick a new tournament winner from the teams still competing.", "One shot. Make it count."] },
+      'en-US': { title: "Second Chance",  lines: ["If your predicted tournament winner gets eliminated — you get a Second Chance.", "Activate it to pick a new winner from the teams still in it.", "One shot. Don't waste it."] },
+      no:      { title: "Andre Sjanse",   lines: ["Hvis laget du tippet til å vinne turneringen ryker ut — får du en Andre Sjanse.", "Aktiver den for å velge en ny turnerings-vinner blant de gjenværende lagene.", "Én sjanse. Bruk den klokt."] },
+      sco:     { title: "Second Chance",  lines: ["If the team ye tipped tae win the tournament gets knocked oot — ye get a Second Chance.", "Activate it tae pick a new winner fae the teams still in it.", "One shot. Make it count."] },
+    },
+    audioScript: {
+      en:      { host: "Second Chance — if your tournament winner gets knocked out, you can pick a new one from whoever's still in it.", pundit: "A lifeline. Try not to waste it on sentiment." },
+      'en-US': { host: "If your winner goes out, Second Chance lets you pick a new one from the remaining teams.", pundit: "A lifeline. Pick smart, not emotional." },
+      no:      { host: "Andre Sjanse — hvis din turneringsmester ryker ut, kan du velge en ny blant de gjenværende lagene.", pundit: "En livline. Ikke kast den bort på nostalgi." },
+      sco:     { host: "Second Chance — if yer winner gets knocked oot, ye can pick a new wan fae whoever's left.", pundit: "A lifeline. Dinnae waste it on sentiment." },
     }
   },
 
@@ -332,20 +333,41 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Analysis",  lines: ["AI insights + rival breakdowns.", "Swing matches — that's where the title's won."] },
-      'en-US': { title: "Analysis",  lines: ["AI intel + rival battle breakdowns.", "Swing matches — that's where you gain ground."] },
-      no:      { title: "Analyse",   lines: ["AI-innsikt + rivaloppgjør.", "Swing-kamper avgjør titler."] },
-      sco:     { title: "Analysis",  lines: ["AI insights + rival breakdowns.", "Swing matches — that's where it's won."] },
+      en:      { title: "Analysis",  lines: ["The Analysis tab shows you exactly what needs to happen for you to climb the table.", "Head-to-head breakdowns against your rivals, swing matches that could flip the standings, and AI-powered insights on every game.", "This is where you find your edge."] },
+      'en-US': { title: "Analysis",  lines: ["The Analysis tab shows exactly what you need to move up.", "Head-to-head with your rivals, swing matches that change everything, and AI intel on every game.", "This is your competitive edge."] },
+      no:      { title: "Analyse",   lines: ["Analyse-fanen viser deg nøyaktig hva som må til for å klatre på tabellen.", "Direkte oppgjør mot rivalene dine, avgjørende kamper som kan snu tabellen, og AI-innsikt om hver kamp.", "Her finner du forspranget ditt."] },
+      sco:     { title: "Analysis",  lines: ["The Analysis tab shows ye exactly whit needs tae happen for ye tae climb the table.", "Head-to-head wi' yer rivals, swing matches that can flip everything, and AI insights on every game.", "This is where ye find yer edge."] },
     },
     audioScript: {
-      en:      { host: "Analysis tab — AI insights and rival breakdowns. Swing matches show exactly where the tournament is won.", pundit: "Ignore this tab and you're flying blind." },
-      'en-US': { host: "Analysis — AI intel and rival battle breakdowns. Swing matches are everything.", pundit: "This is your edge. Use it." },
-      no:      { host: "Analyse-fanen — AI-innsikt og rivaloppgjør. Swing-kamper viser deg nøyaktig hva som avgjør.", pundit: "Ignorer denne fanen og du flyr i blinde." },
-      sco:     { host: "Analysis tab — AI insights and rival breakdowns. Swing matches tell ye where it's won.", pundit: "Ignore this and yer flying blind." },
+      en:      { host: "Analysis tab — what you need to climb, head-to-head rival breakdowns, and swing matches that decide the title.", pundit: "Ignore this tab and you're flying blind." },
+      'en-US': { host: "Analysis — what you need to move up, rival breakdowns, and swing matches. All here.", pundit: "This is your edge. Use it or lose." },
+      no:      { host: "Analyse-fanen — hva du trenger, rivaloppgjør og avgjørende kamper.", pundit: "Ignorer denne fanen og du er blind." },
+      sco:     { host: "Analysis tab — whit ye need, rival breakdowns, swing matches. All there.", pundit: "Ignore this and yer flying blind." },
     }
   },
 
-  // STOP 8: PROFILE / WRAP-UP
+  // STOP 8: RULES & POINTS
+  {
+    id: 'live_rules',
+    targetId: 'rules-scoring-section',
+    position: 'bottom',
+    overlayType: 'sparkles',
+    audioFiles: {},
+    display: {
+      en:      { title: "Points System",  lines: ["Exact score: 5 points. Correct result: 3 points. Tournament winner: 40 points.", "The full breakdown is right here — including how substitutions, spy scouts, and second chance work.", "Read it once. No excuses after."] },
+      'en-US': { title: "Points System",  lines: ["Exact score: 5 pts. Right result: 3 pts. Tournament winner: 40 pts.", "Full breakdown here — including subs, scouts, and second chance.", "Know the system. No excuses."] },
+      no:      { title: "Poengsystem",    lines: ["Eksakt resultat: 5 poeng. Riktig utfall: 3 poeng. Turneringsvinner: 40 poeng.", "Full oversikt er rett her — inkludert bytter, speider og andre sjanse.", "Les det én gang. Ingen unnskyldninger etter det."] },
+      sco:     { title: "Points System",  lines: ["Exact score: 5 points. Right result: 3 points. Tournament winner: 40 points.", "Full breakdown right here — subs, scouts, and second chance included.", "Read it once. Nae excuses after."] },
+    },
+    audioScript: {
+      en:      { host: "Exact score: 5 points. Correct result: 3 points. Tournament winner: 40 points. The full breakdown is right here.", pundit: "Know the system. No excuses for not reading it." },
+      'en-US': { host: "5 for exact, 3 for the result, 40 for the winner. Full breakdown here.", pundit: "No excuses for not knowing the scoring." },
+      no:      { host: "Eksakt: 5 poeng. Riktig utfall: 3 poeng. Turneringsvinner: 40 poeng. Full oversikt er her.", pundit: "Les den. Ingen unnskyldninger." },
+      sco:     { host: "Exact score: 5 points. Right result: 3. Tournament winner: 40. Full breakdown right here.", pundit: "Nae excuses. It's all there." },
+    }
+  },
+
+  // STOP 9: PROFILE / WRAP-UP
   {
     id: 'live_profile',
     targetId: 'btn-profile-menu',
@@ -353,16 +375,16 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     overlayType: 'none',
     audioFiles: {},
     display: {
-      en:      { title: "You're Ready", lines: ["Live tour done — now enjoy the ride.", "Replay from your Profile menu anytime."] },
-      'en-US': { title: "You're Ready", lines: ["Tour done — may your bracket survive.", "Replay from your Profile menu anytime."] },
-      no:      { title: "Du Er Klar",   lines: ["Liveomvisning ferdig — nyt turen.", "Gjennomspill via Profil-menyen."] },
-      sco:     { title: "Yer Set",      lines: ["Live tour done — enjoy the madness.", "Replay from yer Profile menu anytime."] },
+      en:      { title: "You're Set",   lines: ["That's the full live tour.", "You can replay this tour any time from your Profile menu.", "Good luck — may your picks hold up."] },
+      'en-US': { title: "You're Set",   lines: ["That's the full live tour.", "You can replay from your Profile menu any time.", "Good luck — may your bracket survive."] },
+      no:      { title: "Du Er Klar",   lines: ["Det var hele live-omvisningen.", "Du kan gjennomspille den når som helst fra Profil-menyen.", "Lykke til — håper tipsene dine holder."] },
+      sco:     { title: "Yer Set",      lines: ["That's the full live tour.", "Replay it any time fae yer Profile menu.", "Good luck — may yer picks hauld up."] },
     },
     audioScript: {
-      en:      { host: "That's the live briefing done.", pundit: "Watch the matches and obsess over the leaderboard." },
-      'en-US': { host: "That's a wrap! Good luck out there.", pundit: "Refresh the leaderboard. That's all that matters now." },
-      no:      { host: "Det var live-briefingen. Lykke til.", pundit: "Se kampene og sjekk tabellen manisk." },
-      sco:     { host: "That's yer live briefing done. Good luck.", pundit: "Watch the fitba and check that leaderboard. Every five minutes." },
+      en:      { host: "That's the live tour done. Replay any time from your Profile menu.", pundit: "Now watch the matches and obsess over the leaderboard. Good luck." },
+      'en-US': { host: "Tour's done. Find it again in your Profile menu any time.", pundit: "Refresh the leaderboard. That's all that matters now." },
+      no:      { host: "Live-omvisningen er ferdig. Finn den igjen i Profil-menyen.", pundit: "Se kampene og sjekk tabellen manisk. Lykke til." },
+      sco:     { host: "That's yer live tour done. Replay fae yer Profile menu any time.", pundit: "Watch the fitba and check that leaderboard. Every five minutes." },
     }
   },
 ];

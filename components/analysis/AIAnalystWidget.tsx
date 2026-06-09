@@ -304,7 +304,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
     );
 
     return (
-        <div className="relative overflow-hidden rounded-2xl px-4 py-3 shadow-lg bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700">
+        <div id="tour-ai-coach-brief" className="relative overflow-hidden rounded-2xl px-4 py-3 shadow-lg bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700">
             <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
                 <BrainCircuit size={80} />
             </div>

@@ -803,9 +803,9 @@ export const App = () => {
 
   const missingGroupPredictions = useMemo(() => {
     if (!user || tournamentPhase !== 'PRE_LIVE') return 0;
-    const groupMatchIds = matches.filter(m => m.groupId).map(m => m.id);
+    const allMatchIds = matches.map(m => m.id);
     const userPredMatchIds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
-    return groupMatchIds.filter(id => !userPredMatchIds.has(id)).length;
+    return allMatchIds.filter(id => !userPredMatchIds.has(id)).length;
   }, [user?.email, tournamentPhase, matches, allPredictions]);
 
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
