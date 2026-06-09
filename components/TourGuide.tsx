@@ -308,22 +308,22 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                             <>
                                 <button
                                     onClick={handleStartText}
-                                    className="w-full py-4 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                                    className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-[#0f2545] rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <VolumeX size={20} className="text-yellow-400" />
+                                    <VolumeX size={16} />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~1 min</span>
+                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~1 min</span>
                                     </div>
                                 </button>
                                 <button
                                     onClick={handleStart}
-                                    className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-[#0f2545] rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
                                 >
-                                    <Play size={16} fill="currentColor" />
+                                    <Play size={20} fill="currentColor" className="text-yellow-400" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
                                         <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~2 min</span>
+                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~2 min</span>
                                     </div>
                                 </button>
                             </>

@@ -244,8 +244,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 3: COACH BRIEF
   {
     id: 'live_coach_brief',
-    targets: ['tour-leaderboard-top'],
-    position: 'bottom',
+    position: 'center',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
@@ -283,7 +282,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 4: TOURNAMENT
+  // STOP 5: TOURNAMENT
   {
     id: 'live_tournament',
     targets: ['tour-subnav-schedule', 'tour-subnav-tables', 'tour-subnav-bracket'],
@@ -304,7 +303,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 5: MANAGER
+  // STOP 6: MANAGER
   {
     id: 'live_manager',
     targets: ['tour-manager-viewmode'],
@@ -325,7 +324,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 6: ANALYSIS
+  // STOP 7: ANALYSIS
   {
     id: 'live_analysis',
     targets: ['nav-analysis', 'nav-analysis-desk'],
@@ -346,7 +345,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     }
   },
 
-  // STOP 7: PROFILE / WRAP-UP
+  // STOP 8: PROFILE / WRAP-UP
   {
     id: 'live_profile',
     targetId: 'btn-profile-menu',

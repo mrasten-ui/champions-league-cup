@@ -19,7 +19,7 @@ const PERSONAS: Record<string, any> = {
         title: "Coach's Report",
         coachName: "Thomas Tuchel",
         coachShort: "Tuchel",
-        coachImage: "/coaches/tuchel.jpg",
+        coachImage: "/pundit/ass-uk.png",
         loading: "Reviewing game tape...",
         error: "Connection lost. Showing cached brief.",
         noGames: "No confirmed fixtures yet. We are waiting for the bracket to populate.",
@@ -31,7 +31,7 @@ const PERSONAS: Record<string, any> = {
         title: "Coach's Intel",
         coachName: "Mauricio Pochettino",
         coachShort: "Pochettino",
-        coachImage: "/coaches/pochettino.jpg",
+        coachImage: "/pundit/ass-us.png",
         loading: "Crunching numbers...",
         error: "Server timeout. Showing cached intel.",
         noGames: "No active matchups. Waiting for the playoffs to fill.",
@@ -43,7 +43,7 @@ const PERSONAS: Record<string, any> = {
         title: "The Gaffer's Word",
         coachName: "Steve Clarke",
         coachShort: "Clarke",
-        coachImage: "/coaches/clarke.jpg",
+        coachImage: "/pundit/ass-sc.png",
         loading: "Checkin' the tactics...",
         error: "The machine's gubbed. Showing last brief.",
         noGames: "Nae games yet, lad. Waitin' on the draw.",
@@ -55,7 +55,7 @@ const PERSONAS: Record<string, any> = {
         title: "Trenerens Rapport",
         coachName: "Ståle Solbakken",
         coachShort: "Solbakken",
-        coachImage: "/coaches/solbakken.jpg",
+        coachImage: "/pundit/ass-no.png",
         loading: "Kobler til studio...",
         error: "Teknisk feil. Viser siste rapport.",
         noGames: "Ingen kamper klare. Vi venter på at sluttspillet skal settes.",
@@ -167,59 +167,66 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
     const loading = isRefreshing || (!preloadedAnalysis && preloadedAnalysis !== '');
 
     const inner = (
-        <>
-            {/* Header row */}
-            <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                    {t.coachImage && (
-                        <img
-                            src={t.coachImage}
-                            alt={t.coachName}
-                            className="w-7 h-7 rounded-full object-cover border border-indigo-500/40 shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                    )}
-                    <Sparkles size={13} className="text-indigo-300 shrink-0" />
-                    <div className="min-w-0">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none">
-                            {userName ? `${userName}'s Brief` : t.title}
-                        </div>
-                        <div className="text-[8px] text-indigo-400/60 font-semibold tracking-wide mt-0.5">
-                            {t.coachShort} · Assistant Coach
+        <div className="flex gap-3 items-stretch">
+            {/* LEFT: header + commentary text */}
+            <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                        <Sparkles size={13} className="text-indigo-300 shrink-0" />
+                        <div className="min-w-0">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none">
+                                {userName ? `${userName}'s Brief` : t.title}
+                            </div>
+                            <div className="text-[8px] text-indigo-400/60 font-semibold tracking-wide mt-0.5">
+                                {t.coachShort} · Assistant Coach
+                            </div>
                         </div>
                     </div>
+                    {onRefresh && (
+                        <button
+                            onClick={onRefresh}
+                            disabled={loading}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
+                        >
+                            <RefreshCw size={11} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+                            <span className="text-[9px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
+                        </button>
+                    )}
                 </div>
-                {onRefresh && (
-                    <button
-                        onClick={onRefresh}
-                        disabled={loading}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
-                    >
-                        <RefreshCw size={11} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
-                        <span className="text-[9px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
-                    </button>
+
+                {/* Content */}
+                {loading ? (
+                    <div className="space-y-2 animate-pulse">
+                        <div className="text-center text-[10px] text-white/40">{t.loading}</div>
+                        <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
+                        <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
+                        <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
+                    </div>
+                ) : preloadedAnalysis ? (
+                    <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
+                        {preloadedAnalysis}
+                    </p>
+                ) : (
+                    <div className="flex items-center gap-2 text-white/40 text-xs">
+                        <WifiOff size={13} />
+                        <span>{t.error}</span>
+                    </div>
                 )}
             </div>
 
-            {/* Content */}
-            {loading ? (
-                <div className="space-y-2 animate-pulse">
-                    <div className="text-center text-[10px] text-white/40">{t.loading}</div>
-                    <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
-                    <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
-                    <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
-                </div>
-            ) : preloadedAnalysis ? (
-                <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
-                    {preloadedAnalysis}
-                </p>
-            ) : (
-                <div className="flex items-center gap-2 text-white/40 text-xs">
-                    <WifiOff size={13} />
-                    <span>{t.error}</span>
+            {/* RIGHT: pundit portrait */}
+            {t.coachImage && (
+                <div className="shrink-0 w-16 sm:w-20 min-h-[80px] relative overflow-hidden rounded-xl self-stretch">
+                    <img
+                        src={t.coachImage}
+                        alt={t.coachName}
+                        className="absolute inset-0 w-full h-full object-cover object-top"
+                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-[#1e1b4b] to-transparent pointer-events-none" />
                 </div>
             )}
-        </>
+        </div>
     );
 
     if (compact) return <div className="relative z-10">{inner}</div>;
