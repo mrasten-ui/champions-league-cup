@@ -429,7 +429,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
               </div>
 
               {/* THE BACKGROUND BOX LAYER (Z-100) */}
-              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex flex-col h-28 sm:h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
+              <div className="w-full bg-[#0f172a] border-t-4 border-yellow-400 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500 flex flex-col min-h-28 sm:min-h-36 relative z-[100] rounded-t-none sm:rounded-t-2xl">
                   {/* Progress bar */}
                   <div className="w-full h-0.5 bg-white/10 shrink-0">
                     <div
@@ -466,20 +466,35 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                           </div>
                       </div>
 
-                      {/* Headline + quip — no scroll, always fits */}
-                      <div className="flex flex-col gap-1" style={{ maxHeight: '58px', overflow: 'hidden' }}>
-                          <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
-                              {tourMode === 'text'
-                                  ? (audioScript?.host || content?.lines?.[0])
-                                  : (content?.lines?.[0] || audioScript?.host)
-                              }
-                          </p>
-                          <p className="text-slate-400 text-[11px] sm:text-[12px] leading-snug italic">
-                              {tourMode === 'text'
-                                  ? (audioScript?.pundit || content?.lines?.[1])
-                                  : content?.lines?.[1]
-                              }
-                          </p>
+                      {/* Headline + all content lines */}
+                      <div className="flex flex-col gap-0.5">
+                          {tourMode === 'text' ? (
+                              <>
+                                  <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
+                                      {audioScript?.host || content?.lines?.[0]}
+                                  </p>
+                                  {(audioScript?.pundit || content?.lines?.[1]) && (
+                                      <p className="text-slate-400 text-[11px] sm:text-[12px] leading-snug italic">
+                                          {audioScript?.pundit || content?.lines?.[1]}
+                                      </p>
+                                  )}
+                              </>
+                          ) : (
+                              <>
+                                  {content?.lines?.map((line, i) => (
+                                      <p
+                                          key={i}
+                                          className={
+                                              i === 0
+                                                  ? "text-white text-[13px] sm:text-[15px] font-black leading-tight"
+                                                  : "text-slate-300 text-[11px] sm:text-[12px] leading-snug"
+                                          }
+                                      >
+                                          {line}
+                                      </p>
+                                  ))}
+                              </>
+                          )}
                       </div>
                   </div>
 
