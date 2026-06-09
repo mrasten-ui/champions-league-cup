@@ -252,12 +252,14 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
           </div>
         )}
 
-        <SimulatedLeaderboardWidget 
-            simulatedUsers={combinedStats} 
-            currentUser={currentUser} 
-            lang={lang}
-            t={t} 
-        />
+        <div id="tour-analysis-simleaderboard">
+            <SimulatedLeaderboardWidget
+                simulatedUsers={combinedStats}
+                currentUser={currentUser}
+                lang={lang}
+                t={t}
+            />
+        </div>
 
         <div className="flex-1 p-4 space-y-4 pb-20">
             {Object.keys(simulation).length > 0 && (
@@ -268,27 +270,28 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {displayMatches.length > 0 ? (
-                    displayMatches.map(match => {
+                    displayMatches.map((match, matchIndex) => {
                         const standings = match.groupId ? calculateGroupStandings(match.groupId, simulatedMatches, teams) : undefined;
-                        
+
                         return (
-                            <SimRow 
-                                key={match.id}
-                                match={match}
-                                home={teams[match.homeTeamId]}
-                                away={teams[match.awayTeamId]}
-                                sim={simulation[match.id]}
-                                onUpdate={(h, a) => updateSim(match.id, h, a)}
-                                currentUser={currentUser}
-                                rivals={rivals}
-                                allPredictions={allPredictions}
-                                userBracketData={userBracketData}
-                                lang={lang}
-                                currentLang={currentLang}
-                                groupStandings={standings}
-                                teams={teams}
-                                qualifiedThirdsSet={qualifiedThirdsSet}
-                            />
+                            <div key={match.id} id={matchIndex === 0 ? 'tour-analysis-first-simrow' : undefined}>
+                                <SimRow
+                                    match={match}
+                                    home={teams[match.homeTeamId]}
+                                    away={teams[match.awayTeamId]}
+                                    sim={simulation[match.id]}
+                                    onUpdate={(h, a) => updateSim(match.id, h, a)}
+                                    currentUser={currentUser}
+                                    rivals={rivals}
+                                    allPredictions={allPredictions}
+                                    userBracketData={userBracketData}
+                                    lang={lang}
+                                    currentLang={currentLang}
+                                    groupStandings={standings}
+                                    teams={teams}
+                                    qualifiedThirdsSet={qualifiedThirdsSet}
+                                />
+                            </div>
                         );
                     })
                 ) : (

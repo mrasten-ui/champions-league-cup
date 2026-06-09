@@ -286,63 +286,63 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 5: MANAGER — SUBSTITUTIONS
   {
     id: 'live_manager',
-    targets: ['tour-manager-hub', 'tour-manager-viewmode', 'nav-manager', 'nav-manager-desk'],
+    targets: ['tour-manager-hub', 'tour-manager-first-group', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Manager",  lines: ["You're on the Manager tab — this is where you control your predictions during the live tournament.", "All your picks locked at kick-off, but you were given Substitution tokens at the start.", "A Substitution works just like in football — you swap out one prediction for a new one.", "Find any upcoming match in the list, tap it, and spend a token to change your pick before that match kicks off.", "Tokens are limited and don't refill, so use them on matches that really matter."] },
-      'en-US': { title: "Manager",  lines: ["You're on the Manager tab — your live prediction control room.", "All picks locked at kick-off, but you were given Substitution tokens at the start.", "A Sub works like a football substitution — you swap one prediction for a new one.", "Find any upcoming match, tap it, and spend a token to update your pick before it kicks off.", "Tokens are limited and don't come back, so use them wisely."] },
-      no:      { title: "Manager",  lines: ["Du er på Manager-fanen — her styrer du tipsene dine under turneringen.", "Alle tips ble låst ved kampstart, men du fikk Byttetoken ved starten.", "Et Bytte fungerer som i fotball — du bytter ut ett tips med et nytt.", "Finn en kommende kamp i listen, trykk på den, og bruk et token for å endre tipset ditt før kampen starter.", "Token er begrenset og fylles ikke opp igjen, så bruk dem på kamper som virkelig teller."] },
-      sco:     { title: "Manager",  lines: ["Ye're on the Manager tab — this is where ye control yer picks durin' the live tournament.", "Aw yer picks locked at kick-off, but ye were given Substitution tokens at the start.", "A Sub is like a fitba substitution — ye swap oot one pick for a new one.", "Find any comin' match in the list, tap it, and spend a token tae change yer pick before it kicks aff.", "Tokens are limited and dinnae refill, so use them on games that actually matter."] },
+      en:      { title: "Manager — Substitutions",  lines: ["These are your match cards — each one shows your locked prediction for that game.", "See the substitution icon on a card? Tap it and you'll be asked to spend one of your Substitution tokens.", "A Sub works like a football substitution — you swap your old prediction for a new one before the match kicks off.", "The number of tokens you have left is shown in the header at the top. They don't refill, so pick your moments."] },
+      'en-US': { title: "Manager — Substitutions",  lines: ["These are your match cards — each shows your locked pick for that game.", "See the sub icon on a card? Tap it and spend one of your Substitution tokens to change your pick.", "A Sub is a football-style substitution — swap your old prediction for a new one before kick-off.", "Your remaining tokens are shown in the header. They don't come back, so use them wisely."] },
+      no:      { title: "Manager — Bytter",          lines: ["Dette er kampkortene dine — hvert viser ditt låste tips for den kampen.", "Ser du bytte-ikonet på et kort? Trykk på det og bruk ett av Byttetokenene dine.", "Et Bytte fungerer som i fotball — du bytter ut det gamle tipset med et nytt før kampen starter.", "Antall token du har igjen vises i toppen. De fylles ikke opp, så velg øyeblikkene med omhu."] },
+      sco:     { title: "Manager — Substitutions",  lines: ["These are yer match cards — each shows yer locked pick for that game.", "See the sub icon on a card? Tap it and spend one o' yer Substitution tokens tae change yer pick.", "A Sub's like a fitba substitution — swap yer old pick for a new one before the match kicks aff.", "Yer remaining tokens are shown in the header up top. They dinnae refill, so pick yer moments."] },
     },
     audioScript: {
-      en:      { host: "Manager tab. Your picks are locked, but you have substitution tokens — spend one to swap a prediction on any upcoming match before it kicks off.", pundit: "Like a real manager. Use the sub at the right moment, not in a panic." },
-      'en-US': { host: "Manager tab. Picks are locked, but your sub tokens let you swap a prediction on any upcoming game before kick-off.", pundit: "Use the sub at the right moment. Not out of desperation." },
-      no:      { host: "Manager-fanen. Tipsene er låst, men byttetokenene lar deg bytte ett tips på en kommende kamp før den starter.", pundit: "Som en ekte manager. Bytt på riktig tidspunkt, ikke i panikk." },
-      sco:     { host: "Manager tab. Picks are locked, but yer sub tokens let ye swap a pick on any comin' match before it kicks aff.", pundit: "Like a real manager. Use the sub at the right time. No' in a panic." },
+      en:      { host: "These are your match cards with your locked predictions. Tap the sub icon on any upcoming match and spend a token to swap your pick before it kicks off.", pundit: "Like a real manager. Use the sub at the right moment, not in a panic." },
+      'en-US': { host: "Your match cards, your locked picks. Tap the sub icon and spend a token to change any prediction before kick-off.", pundit: "Use the sub at the right moment. Not out of desperation." },
+      no:      { host: "Her er kampkortene med låste tips. Trykk på bytte-ikonet og bruk et token for å endre tipset ditt før kampen.", pundit: "Som en ekte manager. Bytt på riktig tidspunkt, ikke i panikk." },
+      sco:     { host: "Yer match cards, yer locked picks. Tap the sub icon and spend a token tae change any pick before it kicks aff.", pundit: "Like a real manager. Use the sub at the right time. No' in a panic." },
     }
   },
 
-  // STOP 6: SECOND CHANCE
+  // STOP 6: SECOND CHANCE (Knockouts view of Manager)
   {
     id: 'live_second_chance',
-    targets: ['tour-second-chance-promo', 'nav-manager', 'nav-manager-desk'],
+    targets: ['tour-second-chance-promo', 'tour-knockout-btn', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
     display: {
-      en:      { title: "Second Chance",  lines: ["If the team you predicted to win the tournament gets knocked out — you get a Second Chance.", "Activate it to pick a new tournament winner from the teams still competing.", "One shot. Make it count."] },
-      'en-US': { title: "Second Chance",  lines: ["If your predicted tournament winner gets eliminated — you get a Second Chance.", "Activate it to pick a new winner from the teams still in it.", "One shot. Don't waste it."] },
-      no:      { title: "Andre Sjanse",   lines: ["Hvis laget du tippet til å vinne turneringen ryker ut — får du en Andre Sjanse.", "Aktiver den for å velge en ny turnerings-vinner blant de gjenværende lagene.", "Én sjanse. Bruk den klokt."] },
-      sco:     { title: "Second Chance",  lines: ["If the team ye tipped tae win the tournament gets knocked oot — ye get a Second Chance.", "Activate it tae pick a new winner fae the teams still in it.", "One shot. Make it count."] },
+      en:      { title: "Second Chance",  lines: ["You're now in the Knockouts view of the Manager tab — tap the Knockouts button at the top to get here any time.", "Second Chance is a one-off lifeline: if the team you predicted to win the whole tournament gets knocked out, you can activate this to pick a new winner from whoever's still in it.", "You only get one. Activate it here when — and if — you need it."] },
+      'en-US': { title: "Second Chance",  lines: ["You're now in the Knockouts view of the Manager tab — tap the Knockouts button to get here any time.", "Second Chance is a one-time lifeline: if your predicted tournament winner gets eliminated, activate this to pick a new winner from the remaining teams.", "One shot. Use it when you need it, not before."] },
+      no:      { title: "Andre Sjanse",   lines: ["Du er nå i Sluttspill-visningen i Manager-fanen — trykk på Sluttspill-knappen øverst for å komme hit.", "Andre Sjanse er en engangsredning: hvis laget du tippet til å vinne turneringen ryker ut, kan du aktivere dette for å velge en ny vinner blant de som fortsatt er med.", "Du får bare én. Aktiver den her når — og hvis — du trenger det."] },
+      sco:     { title: "Second Chance",  lines: ["Ye're now in the Knockouts view o' the Manager tab — tap the Knockouts button tae get here any time.", "Second Chance is a one-off lifeline: if the team ye tipped tae win the whole tournament gets knocked oot, activate this tae pick a new winner fae whoever's left.", "One shot. Use it when ye need it, no' before."] },
     },
     audioScript: {
-      en:      { host: "Second Chance — if your tournament winner gets knocked out, you can pick a new one from whoever's still in it.", pundit: "A lifeline. Try not to waste it on sentiment." },
-      'en-US': { host: "If your winner goes out, Second Chance lets you pick a new one from the remaining teams.", pundit: "A lifeline. Pick smart, not emotional." },
-      no:      { host: "Andre Sjanse — hvis din turneringsmester ryker ut, kan du velge en ny blant de gjenværende lagene.", pundit: "En livline. Ikke kast den bort på nostalgi." },
-      sco:     { host: "Second Chance — if yer winner gets knocked oot, ye can pick a new wan fae whoever's left.", pundit: "A lifeline. Dinnae waste it on sentiment." },
+      en:      { host: "Knockouts view of the Manager tab. Second Chance is right here — if your tournament winner gets knocked out, activate it to pick a new one from whoever's left.", pundit: "A lifeline. Don't waste it on sentiment." },
+      'en-US': { host: "Knockouts view. Second Chance is here — if your winner goes out, activate it to pick a new one.", pundit: "A lifeline. Pick smart, not emotional." },
+      no:      { host: "Sluttspill-visning i Manager. Andre Sjanse er her — hvis din turneringsvinner ryker ut, aktiver den for å velge en ny.", pundit: "En livline. Ikke kast den bort på nostalgi." },
+      sco:     { host: "Knockouts view. Second Chance is right here — if yer winner gets knocked oot, activate it tae pick a new wan.", pundit: "A lifeline. Dinnae waste it on sentiment." },
     }
   },
 
-  // STOP 7: ANALYSIS — TAB + CONTENT
+  // STOP 7: ANALYSIS — SIMULATION WIDGET + FIRST MATCH
   {
     id: 'live_analysis',
-    targets: ['nav-analysis', 'nav-analysis-desk'],
+    targets: ['tour-analysis-simleaderboard', 'tour-analysis-first-simrow', 'nav-analysis', 'nav-analysis-desk'],
     position: 'bottom',
     overlayType: 'tap-target',
     audioFiles: {},
     display: {
-      en:      { title: "Analysis",  lines: ["The Analysis tab shows you exactly what needs to happen for you to climb the table.", "Head-to-head breakdowns against your rivals, swing matches that could flip the standings, and AI-powered insights on every game.", "This is where you find your edge."] },
-      'en-US': { title: "Analysis",  lines: ["The Analysis tab shows exactly what you need to move up.", "Head-to-head with your rivals, swing matches that change everything, and AI intel on every game.", "This is your competitive edge."] },
-      no:      { title: "Analyse",   lines: ["Analyse-fanen viser deg nøyaktig hva som må til for å klatre på tabellen.", "Direkte oppgjør mot rivalene dine, avgjørende kamper som kan snu tabellen, og AI-innsikt om hver kamp.", "Her finner du forspranget ditt."] },
-      sco:     { title: "Analysis",  lines: ["The Analysis tab shows ye exactly whit needs tae happen for ye tae climb the table.", "Head-to-head wi' yer rivals, swing matches that can flip everything, and AI insights on every game.", "This is where ye find yer edge."] },
+      en:      { title: "Analysis — Play Out Scenarios",  lines: ["The sticky bar at the top shows your simulated rank — updating live as you adjust scores below.", "Each match card has score adjusters. Change the result and watch your leaderboard position react in real time.", "Play out 'what if' scenarios — if these matches go my way, where do I end up?", "Your simulated rank resets when you leave, so nothing here affects your real score."] },
+      'en-US': { title: "Analysis — Run Your Scenarios",  lines: ["The bar at the top shows your simulated rank — it updates as you adjust scores below.", "Tap the score adjusters on each match card and watch your leaderboard position change in real time.", "Run 'what if' scenarios — if these results go my way, where do I finish?", "Your simulated rank resets when you leave. Nothing here touches your real score."] },
+      no:      { title: "Analyse — Spill ut scenarioer",   lines: ["Feltet øverst viser din simulerte rangering — oppdateres i sanntid når du justerer resultater.", "Hvert kampkort har poengvippere. Endre resultatet og se rangeringen din reagere umiddelbart.", "Spill ut 'hva om'-scenarioer — hvis disse kampene går min vei, hvor havner jeg?", "Simulert rangering nullstilles når du forlater siden — ingenting her påvirker poengsummen din."] },
+      sco:     { title: "Analysis — Play Out Scenarios",  lines: ["The bar at the top shows yer simulated rank — updating as ye change scores below.", "Each match card has score vipples. Shift a result and watch yer leaderboard move in real time.", "Play out 'what if' scenarios — if these go yer way, where dae ye end up?", "Yer simulated rank resets when ye leave. Nothing here touches yer real score."] },
     },
     audioScript: {
-      en:      { host: "Analysis tab — what you need to climb, head-to-head rival breakdowns, and swing matches that decide the title.", pundit: "Ignore this tab and you're flying blind." },
-      'en-US': { host: "Analysis — what you need to move up, rival breakdowns, and swing matches. All here.", pundit: "This is your edge. Use it or lose." },
-      no:      { host: "Analyse-fanen — hva du trenger, rivaloppgjør og avgjørende kamper.", pundit: "Ignorer denne fanen og du er blind." },
-      sco:     { host: "Analysis tab — whit ye need, rival breakdowns, swing matches. All there.", pundit: "Ignore this and yer flying blind." },
+      en:      { host: "The Analysis tab lets you play out scenarios. Change match scores with the adjusters and your simulated rank updates live at the top. None of it affects your real score.", pundit: "The optimist's tab. Everyone ends up winning in the simulation." },
+      'en-US': { host: "Analysis — adjust match scores and watch your simulated rank react in real time. Your actual score is untouched.", pundit: "Everyone's a genius in the sim. Real life's the hard part." },
+      no:      { host: "Analyse-fanen lar deg spille ut scenarioer. Juster resultater og se simulert rangering oppdateres i sanntid. Påvirker ikke poengsummen din.", pundit: "Optimistenes fane. Alle vinner i simuleringen." },
+      sco:     { host: "Analysis tab — adjust match scores and yer simulated rank updates live at the top. Disnae touch yer real score.", pundit: "The optimist's tab. Everyone wins in the sim." },
     }
   },
 

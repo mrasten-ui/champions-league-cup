@@ -660,10 +660,24 @@ export const App = () => {
           setTimeout(() => {
               document.getElementById('tour-schedule-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 500);
-      } else if (stepId === 'live_manager' || stepId === 'live_second_chance') {
+      } else if (stepId === 'live_manager') {
           setActiveTab('manager');
+          setTimeout(() => {
+              document.getElementById('tour-manager-first-group')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 450);
+      } else if (stepId === 'live_second_chance') {
+          setActiveTab('manager');
+          setTimeout(() => {
+              document.getElementById('tour-knockout-btn')?.click();
+              setTimeout(() => {
+                  document.getElementById('tour-second-chance-promo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 350);
+          }, 450);
       } else if (stepId === 'live_analysis') {
           setActiveTab('analysis');
+          setTimeout(() => {
+              document.getElementById('tour-analysis-simleaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 500);
       } else if (stepId === 'live_rules') {
           setActiveTab('rules');
       } else if (stepId === 'live_profile') {

@@ -202,6 +202,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                       <LayoutGrid size={11} /> {lang.groups || "Groups"}
                   </button>
                   <button
+                      id="tour-knockout-btn"
                       onClick={() => setViewMode('knockout')}
                       disabled={!hasKnockouts}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[11px] font-black uppercase tracking-widest transition-all ${
@@ -285,10 +286,10 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {viewMode === 'groups' && (
           <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
-              {Object.entries(groupedMatches.groups).map(([groupId, groupMatches]) => {
+              {Object.entries(groupedMatches.groups).map(([groupId, groupMatches], groupIndex) => {
                   const standings = calculateGroupStandings(groupId, userMatches, teams);
                   return (
-                      <div key={groupId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div key={groupId} id={groupIndex === 0 ? 'tour-manager-first-group' : undefined} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                           <div className="bg-[#0f2545] p-3 flex flex-col gap-3 border-b border-slate-700/50">
                               <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
