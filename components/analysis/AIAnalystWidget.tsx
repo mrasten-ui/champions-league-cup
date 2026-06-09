@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProfile, Match, Prediction, Team, LanguageCode } from '../../types';
-import { Sparkles, RefreshCw, BrainCircuit, WifiOff } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, WifiOff, X } from 'lucide-react';
 
 export interface AIAnalystProps {
     currentLang: LanguageCode;
@@ -164,6 +164,8 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
     const langKey = resolveLanguage(currentLang || 'EN');
     const t = PERSONAS[langKey];
 
+    const [portraitOpen, setPortraitOpen] = useState(false);
+
     const loading = isRefreshing || (!preloadedAnalysis && preloadedAnalysis !== '');
 
     const inner = (
@@ -214,9 +216,12 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                 )}
             </div>
 
-            {/* RIGHT: pundit portrait */}
+            {/* RIGHT: pundit portrait — click to expand */}
             {t.coachImage && (
-                <div className="shrink-0 w-16 sm:w-20 min-h-[80px] relative overflow-hidden rounded-xl self-stretch">
+                <div
+                    className="shrink-0 w-16 sm:w-20 min-h-[80px] relative overflow-hidden rounded-xl self-stretch cursor-pointer"
+                    onClick={() => setPortraitOpen(true)}
+                >
                     <img
                         src={t.coachImage}
                         alt={t.coachName}
@@ -234,7 +239,69 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
         </div>
     );
 
-    if (compact) return <div className="relative z-10">{inner}</div>;
+    const portraitModal = portraitOpen ? (
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+            onClick={() => setPortraitOpen(false)}
+        >
+            <div
+                className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#0f172a]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <img
+                    src={t.coachImage}
+                    alt={t.coachName}
+                    className="w-full object-cover object-top max-h-56"
+                />
+                <div className="px-5 pt-4 pb-2 border-b border-white/10 text-center">
+                    <div className="text-base font-black uppercase tracking-widest text-white">{t.coachName}</div>
+                    <div className="text-xs text-indigo-400/70 font-semibold tracking-wide mt-0.5">Assistant Coach</div>
+                </div>
+                <div className="px-5 py-4">
+                    {loading ? (
+                        <div className="space-y-2 animate-pulse">
+                            <div className="text-center text-xs text-white/40">{t.loading}</div>
+                            <div className="h-2 bg-white/10 rounded w-3/4 mx-auto" />
+                            <div className="h-2 bg-white/10 rounded w-5/6 mx-auto" />
+                            <div className="h-2 bg-white/10 rounded w-1/2 mx-auto" />
+                        </div>
+                    ) : preloadedAnalysis ? (
+                        <p className="text-sm text-white/90 leading-relaxed">{preloadedAnalysis}</p>
+                    ) : (
+                        <div className="flex items-center gap-2 text-white/40 text-sm justify-center">
+                            <WifiOff size={14} />
+                            <span>{t.error}</span>
+                        </div>
+                    )}
+                </div>
+                {onRefresh && (
+                    <div className="px-5 pb-5">
+                        <button
+                            onClick={onRefresh}
+                            disabled={loading}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 transition-all disabled:opacity-40"
+                        >
+                            <RefreshCw size={13} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+                            <span className="text-xs font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
+                        </button>
+                    </div>
+                )}
+                <button
+                    onClick={() => setPortraitOpen(false)}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white/70 hover:text-white transition-colors"
+                >
+                    <X size={14} strokeWidth={3} />
+                </button>
+            </div>
+        </div>
+    ) : null;
+
+    if (compact) return (
+        <>
+            <div className="relative z-10">{inner}</div>
+            {portraitModal}
+        </>
+    );
 
     return (
         <div className="relative overflow-hidden rounded-2xl px-4 py-3 shadow-lg bg-gradient-to-br from-[#1e1b4b] to-[#312e81] border border-indigo-700">
@@ -242,6 +309,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                 <BrainCircuit size={80} />
             </div>
             <div className="relative z-10">{inner}</div>
+            {portraitModal}
         </div>
     );
 };
