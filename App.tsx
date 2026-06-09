@@ -23,6 +23,7 @@ import { ManagerHub } from './components/ManagerHub';
 import { GroupStageSummary } from './components/GroupStageSummary';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesPage } from './components/RulesPage';
+import { PredictionNudge } from './components/PredictionNudge';
 import { AvatarGenerator } from './components/AvatarGenerator';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useSwipe } from './hooks/useSwipe';
@@ -51,6 +52,7 @@ const STORAGE_KEYS = {
   AUTO_FILLED_PREFIX: 'rasten_autofill_v1_',
   KNOCKOUT_COMPLETION_TIME_PREFIX: 'rasten_knockout_done_v1_',
   KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX: 'rasten_knockout_reminder_v1_',
+  NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
 };
 
 export const App = () => {
@@ -799,6 +801,13 @@ export const App = () => {
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
 
+  const missingGroupPredictions = useMemo(() => {
+    if (!user || tournamentPhase !== 'PRE_LIVE') return 0;
+    const groupMatchIds = matches.filter(m => m.groupId).map(m => m.id);
+    const userPredMatchIds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
+    return groupMatchIds.filter(id => !userPredMatchIds.has(id)).length;
+  }, [user?.email, tournamentPhase, matches, allPredictions]);
+
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
   const runBriefGeneration = async () => {
       if (!user || !matches.length || !Object.keys(teamsData).length || !allPredictions) return;
@@ -957,6 +966,14 @@ export const App = () => {
       )}
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
+        {user && missingGroupPredictions > 0 && (
+          <PredictionNudge
+            missingCount={missingGroupPredictions}
+            userEmail={user.email}
+            onGoToPredictions={() => setActiveTab('groups')}
+            lang={t}
+          />
+        )}
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
         
@@ -1193,6 +1210,12 @@ export const App = () => {
           await supabase.from('profiles').update({ name: newName } as any).eq('email', email);
           setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], name: newName } }));
           if (user?.email === email) setUser(prev => prev ? { ...prev, name: newName } : null);
+        }}
+        onDeleteUser={async (email) => {
+          if (!supabase) return;
+          await supabase.from('predictions').delete().eq('user_id', email);
+          await supabase.from('profiles').delete().eq('email', email);
+          setUsersDb(prev => { const next = { ...prev }; delete next[email]; return next; });
         }}
         onUpdateUserLeagues={async (email, leagues) => {
           if (!supabase) return;

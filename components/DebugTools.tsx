@@ -15,6 +15,7 @@ interface DebugToolsProps {
   onUpdateLeagueLang: (slug: string, lang: LanguageCode) => Promise<void>;
   onToggleAdmin: (email: string, isAdmin: boolean) => Promise<void>;
   onRenameUser: (email: string, newName: string) => Promise<void>;
+  onDeleteUser: (email: string) => Promise<void>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -22,7 +23,7 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser
 }) => {
   if (!isOpen) return null;
 
@@ -31,6 +32,8 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [renamingEmail, setRenamingEmail] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [renameSaving, setRenameSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
 
   // Bulk channel state
   const [bulkLocale, setBulkLocale] = useState('NO');
@@ -297,6 +300,36 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                                     >
                                         {u.isAdmin ? '★ Admin' : 'Admin'}
                                     </button>
+                                    {pendingDelete === u.email ? (
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                disabled={deletingEmail === u.email}
+                                                onClick={async () => {
+                                                    setDeletingEmail(u.email);
+                                                    await onDeleteUser(u.email);
+                                                    setPendingDelete(null);
+                                                    setDeletingEmail(null);
+                                                }}
+                                                className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                                            >
+                                                {deletingEmail === u.email ? '…' : 'Confirm'}
+                                            </button>
+                                            <button
+                                                onClick={() => setPendingDelete(null)}
+                                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setPendingDelete(u.email)}
+                                            title="Delete account"
+                                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
+                                        >
+                                            <Trash2 size={12} strokeWidth={2.5} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex flex-wrap gap-1.5">

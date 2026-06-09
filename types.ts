@@ -66,6 +66,11 @@ export interface Translation {
   bracketAdjustedMsg: string;
   undo: string;
 
+  // --- Prediction nudge banner ---
+  nudgeTitle: string;
+  nudgeMsg: string;
+  nudgeCta: string;
+
   // --- Rules tab ---
   rulesPreSubtitle: string;
   rulesLiveSubtitle: string;
