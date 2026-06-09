@@ -69,14 +69,14 @@ export const useAppData = () => {
             }
 
             // First group match kickoff — drives automatic PRE_LIVE→LIVE transition.
-            // The lock time (kickoff - 15 min) matches the prediction-lock countdown,
-            // so the phase flips at exactly the same moment the countdown reaches zero.
+            // The lock time equals kickoff exactly, so the phase flips at the moment
+            // the first match starts.
             const firstGroupMatch = [...validMatches]
                 .filter(m => m.groupId)
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
             if (firstGroupMatch) {
                 const t0 = new Date(firstGroupMatch.date).getTime();
-                const lockTime = t0 - 15 * 60 * 1000;
+                const lockTime = t0;
                 setFirstMatchTime(t0);
                 setLockTimePassed(Date.now() >= lockTime);
                 if (Date.now() < lockTime) {
@@ -94,7 +94,7 @@ export const useAppData = () => {
             const firstMatch = sortedByDate[0];
             if (firstMatch) {
                 const firstKickoff = new Date(firstMatch.date).getTime();
-                const globalLockTime = firstKickoff - (15 * 60 * 1000); 
+                const globalLockTime = firstKickoff;
                 
                 if (Date.now() >= globalLockTime) {
                     mappedMatches = mappedMatches.map(m => ({ ...m, isLocked: true }));

@@ -565,12 +565,13 @@ export const App = () => {
       const groupMatches = matches.filter(m => m.groupId);
       const userGroupPreds = allPredictions.filter(p => p.userId === user.email && groupMatches.some(m => m.id === p.matchId));
 
-      // Only auto-fill if fewer than 20% of group matches are predicted
-      if (userGroupPreds.length > groupMatches.length * 0.2) return;
+      const qualifiesForSubsBonus = userGroupPreds.length < groupMatches.length * 0.5;
 
-      const simulated = simulateFullTournament(matches, teamsData, user.favorites || [], 'GROUPS');
+      const simulated = simulateFullTournament(matches, teamsData, user.favorites || [], 'GROUPS', 50);
       const toSave = simulated
           .filter(m => m.groupId && m.homeScore !== null && m.awayScore !== null
+              && !m.isLocked
+              && (m.status === 'UPCOMING' || m.status === 'NS')
               && !userGroupPreds.some(p => p.matchId === m.id))
           .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
 
@@ -584,7 +585,18 @@ export const App = () => {
                   const kept = prev.filter(p => p.userId === user.email && !toSave.some(s => s.match_id === p.matchId));
                   return [...others, ...kept, ...toSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }))];
               });
-              addToast('success', "You're in the game!", `We filled ${toSave.length} predictions so you can still compete.`);
+              if (qualifiesForSubsBonus) {
+                  const newSubCount = (user.substitutions ?? 5) + 3;
+                  setUser(prev => prev ? { ...prev, substitutions: newSubCount } : prev);
+                  supabase.from('profiles').update({ substitutions: newSubCount } as any).eq('email', user.email).then(() => {});
+              }
+              addToast(
+                  'success',
+                  "You're in the game!",
+                  qualifiesForSubsBonus
+                      ? `We filled ${toSave.length} predictions and gave you 3 bonus subs.`
+                      : `We filled ${toSave.length} predictions so you can still compete.`
+              );
           }
       });
   }, [user?.email, tournamentPhase, matches.length, Object.keys(teamsData).length, allPredictions.length]);

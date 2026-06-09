@@ -14,7 +14,7 @@ export const CountdownRibbon: React.FC<CountdownRibbonProps> = ({ matches, lang 
     const valid = matches.filter(m => m.date && m.date !== 'TBD');
     if (!valid.length) return null;
     const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
-    return new Date(earliest.date).getTime() - 15 * 60 * 1000;
+    return new Date(earliest.date).getTime();
   }, [matches]);
 
   const [remaining, setRemaining] = useState(() => deadline ? deadline - Date.now() : 0);

@@ -110,7 +110,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
     const valid = matches.filter(m => m.date && m.date !== 'TBD');
     if (valid.length === 0) return null;
     const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
-    const lockTime = new Date(new Date(earliest.date).getTime() - 15 * 60 * 1000);
+    const lockTime = new Date(earliest.date);
     return new Intl.DateTimeFormat(currentLocale, {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
@@ -190,7 +190,7 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
               <p className="text-[10px] text-slate-600 leading-relaxed">
                 {lang.deadlineBodyPre}{' '}
                 <span className="text-red-600 font-black">
-                  {deadlineFormatted || '15 minutes before kick-off'}
+                  {deadlineFormatted || 'At opening kick-off'}
                 </span>
                 {lang.deadlineBodyPost}
               </p>
