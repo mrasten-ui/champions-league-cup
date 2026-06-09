@@ -518,6 +518,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             else if (tab === 'tournament') tabId = 'nav-tournament';
             else if (tab === 'manager')   tabId = 'nav-manager';
             else if (tab === 'analysis')  tabId = 'nav-analysis';
+            else if (tab === 'rules')     tabId = 'nav-rules';
             else if (tab === 'groups')    tabId = 'nav-groups';
             else if (tab === 'knockout')  tabId = 'nav-knockout';
 

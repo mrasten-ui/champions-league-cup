@@ -223,7 +223,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 2: DAILY AI COACH BRIEF + STATS CARD
   {
     id: 'live_coach_brief',
-    targets: ['tour-leaderboard-top', 'nav-leaderboard', 'nav-leaderboard-desk'],
+    targets: ['tour-leaderboard-top'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
@@ -244,7 +244,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 3: LEADERBOARD — USER'S ROW EXPANDED
   {
     id: 'live_leaderboard',
-    targets: ['tour-my-row', 'tour-my-row-expanded', 'nav-leaderboard', 'nav-leaderboard-desk'],
+    targets: ['tour-my-row', 'tour-my-row-expanded'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
@@ -265,7 +265,7 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
   // STOP 4: TOURNAMENT — SCHEDULE / MATCH CARD
   {
     id: 'live_tournament',
-    targets: ['tour-schedule-hero', 'tour-subnav-schedule', 'nav-tournament', 'nav-tournament-desk'],
+    targets: ['tour-schedule-hero', 'nav-tournament', 'nav-tournament-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
     audioFiles: {},
