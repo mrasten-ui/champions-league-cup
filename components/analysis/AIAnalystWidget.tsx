@@ -224,6 +224,11 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                         onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
                     />
                     <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-[#1e1b4b] to-transparent pointer-events-none" />
+                    {/* name + role overlay at bottom */}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1 px-1 text-center">
+                        <div className="text-[7px] font-black uppercase tracking-widest text-white leading-none">{t.coachShort}</div>
+                        <div className="text-[6px] text-white/60 font-semibold tracking-wide mt-0.5">Asst. Coach</div>
+                    </div>
                 </div>
             )}
         </div>
