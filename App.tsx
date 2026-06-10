@@ -432,6 +432,12 @@ export const App = () => {
   const handlePledgeSecondChance = async () => {
       if (!user || !supabase) return;
       if (window.confirm(t.secondChanceConfirm)) {
+          // Wipe old knockout predictions so the bracket opens blank for re-picking
+          const knockoutMatchIds = matches.filter(m => !m.groupId && m.round).map(m => m.id);
+          if (knockoutMatchIds.length > 0) {
+              await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', knockoutMatchIds);
+              setAllPredictions(prev => prev.filter(p => !(p.userId === user.email && knockoutMatchIds.includes(p.matchId))));
+          }
           setUser({ ...user, secondChanceStatus: 'PENDING' });
           await supabase.from('profiles').update({ second_chance_status: 'PENDING' } as any).eq('email', user.email);
           addToast('info', t.pledgeLocked, t.pledgeToastMsg);
@@ -448,6 +454,30 @@ export const App = () => {
           addToast('success', t.bracketLockedIn, t.bracketLockedInMsg);
       }
   };
+
+  // Auto-cancel second chance if drafting window expired without locking in
+  useEffect(() => {
+      if (!user || !supabase || user.secondChanceStatus !== 'PENDING' || knockoutStartTime === 0) return;
+
+      const cancelExpired = async () => {
+          const knockoutMatchIds = matches.filter(m => !m.groupId && m.round).map(m => m.id);
+          setUser(prev => prev ? { ...prev, secondChanceStatus: 'NONE' } : null);
+          await supabase.from('profiles').update({ second_chance_status: 'NONE' } as any).eq('email', user.email);
+          if (knockoutMatchIds.length > 0) {
+              await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', knockoutMatchIds);
+              setAllPredictions(prev => prev.filter(p => !(p.userId === user.email && knockoutMatchIds.includes(p.matchId))));
+          }
+          addToast('error', t.secondChanceExpired || 'Second Chance Expired', t.secondChanceExpiredMsg || 'You did not lock in before the knockouts started. Your second chance has been cancelled.');
+      };
+
+      const remaining = knockoutStartTime - Date.now();
+      if (remaining <= 0) {
+          cancelExpired();
+      } else {
+          const timer = setTimeout(cancelExpired, remaining);
+          return () => clearTimeout(timer);
+      }
+  }, [user?.secondChanceStatus, knockoutStartTime]);
 
   const handleTimeTravel = (timestamp: number) => {
       const simulatedMatches = simulateTournamentAtDate(matches, teamsData, timestamp);
