@@ -14,7 +14,6 @@ interface LiveTickerProps {
 
 const LIVE_STATUSES     = new Set(['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT']);
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN', 'FINISHED']);
-const H24 = 24 * 60 * 60 * 1000;
 
 function Flag({ src, alt }: { src?: string; alt: string }) {
   if (!src) return <span className="text-[9px] font-black text-slate-400 uppercase">{alt}</span>;
@@ -23,29 +22,29 @@ function Flag({ src, alt }: { src?: string; alt: string }) {
 
 export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchClick, phase, addToast }) => {
   const [hidden, setHidden] = useState(() => localStorage.getItem(HIDDEN_KEY) === 'true');
-  const now = Date.now();
 
   const items = useMemo(() => {
-    const live: Match[] = [];
-    const recent: Match[] = [];
-    const upcoming: Match[] = [];
+    // en-CA gives YYYY-MM-DD in local timezone — sortable as a string
+    const todayStr = new Date().toLocaleDateString('en-CA');
 
-    for (const m of matches) {
-      if (LIVE_STATUSES.has(m.status)) {
-        live.push(m);
-      } else if (FINISHED_STATUSES.has(m.status) && m.homeScore !== null && m.awayScore !== null) {
-        const matchTime = m.date && m.date !== 'TBD' ? new Date(m.date).getTime() : 0;
-        if (matchTime && now - matchTime < H24) recent.push(m);
-      } else if ((m.status === 'UPCOMING' || m.status === 'NS') && m.date && m.date !== 'TBD') {
-        const t = new Date(m.date).getTime();
-        if (t > now) upcoming.push(m);
-      }
-    }
+    const valid = matches.filter(m => m.date && m.date !== 'TBD');
 
-    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const allGameDays = [...new Set(valid.map(m => new Date(m.date).toLocaleDateString('en-CA')))].sort();
+    const before = allGameDays.filter(d => d < todayStr);
+    const prevGameDay = before.length > 0 ? before[before.length - 1] : null;
+    const nextGameDay = allGameDays.find(d => d > todayStr) ?? null;
 
-    return [...live, ...recent, ...upcoming.slice(0, 12)];
-  }, [matches, now]);
+    const relevantDays = new Set([prevGameDay, todayStr, nextGameDay].filter(Boolean) as string[]);
+
+    const relevant = valid.filter(m => relevantDays.has(new Date(m.date).toLocaleDateString('en-CA')));
+
+    const live = relevant.filter(m => LIVE_STATUSES.has(m.status));
+    const rest = relevant
+      .filter(m => !LIVE_STATUSES.has(m.status))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return [...live, ...rest];
+  }, [matches]);
 
   if (items.length === 0) return null;
   if (phase === 'PRE_LIVE') return null;
@@ -99,7 +98,7 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
     // Upcoming — smart relative label (today=time only, tomorrow, weekday, or date)
     const d = new Date(m.date);
     const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const todayMidnight = new Date(now);
+    const todayMidnight = new Date();
     const diffDays = Math.floor(
       (d.getTime() - new Date(todayMidnight.getFullYear(), todayMidnight.getMonth(), todayMidnight.getDate()).getTime()) / 86_400_000
     );
@@ -127,7 +126,6 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
     const homeCode = home?.name?.slice(0, 3).toUpperCase() || m.homeTeamId;
     const awayCode = away?.name?.slice(0, 3).toUpperCase() || m.awayTeamId;
     const isLive = LIVE_STATUSES.has(m.status);
-    const isDone = FINISHED_STATUSES.has(m.status);
     const hasScore = m.homeScore !== null && m.awayScore !== null;
 
     return (
