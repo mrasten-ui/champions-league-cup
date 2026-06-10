@@ -31,10 +31,17 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
 
     const allGameDays = [...new Set(valid.map(m => new Date(m.date).toLocaleDateString('en-CA')))].sort();
     const before = allGameDays.filter(d => d < todayStr);
+    const after  = allGameDays.filter(d => d > todayStr);
     const prevGameDay = before.length > 0 ? before[before.length - 1] : null;
-    const nextGameDay = allGameDays.find(d => d > todayStr) ?? null;
+    const nextGameDay = after.length  > 0 ? after[0]                  : null;
 
-    const relevantDays = new Set([prevGameDay, todayStr, nextGameDay].filter(Boolean) as string[]);
+    const relevantDays = new Set<string>([todayStr]);
+    if (prevGameDay) relevantDays.add(prevGameDay);
+    if (nextGameDay) relevantDays.add(nextGameDay);
+    // At start of tournament (no prev): add one extra future game day
+    if (!prevGameDay && after.length >= 2) relevantDays.add(after[1]);
+    // At end of tournament (no next): add one extra past game day
+    if (!nextGameDay && before.length >= 2) relevantDays.add(before[before.length - 2]);
 
     const relevant = valid.filter(m => relevantDays.has(new Date(m.date).toLocaleDateString('en-CA')));
 
@@ -74,8 +81,12 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
     );
   }
 
-  // Duplicate for seamless loop
-  const doubled = [...items, ...items];
+  // Repeat enough times so the track always overflows even on wide screens.
+  // Each item is ~130px; a 1440px desktop needs ~11 items. We aim for at least 16 total.
+  const REPEAT = Math.max(4, Math.ceil(16 / Math.max(1, items.length)));
+  const repeated = Array.from({ length: REPEAT }, (_, r) => items.map(m => ({ m, k: `${r}-${m.id}` }))).flat();
+  // Animate by one copy-width: -100% / REPEAT of the total track width
+  const animPct = (100 / REPEAT).toFixed(2);
 
   const getStatusLabel = (m: Match) => {
     if (m.status === 'HT') return <span className="text-amber-400 font-black text-[9px]">HT</span>;
@@ -132,7 +143,7 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
       <button
         key={m.id}
         onClick={() => onMatchClick(m)}
-        className="flex items-center gap-1.5 px-3 shrink-0 hover:bg-white/5 transition-colors rounded h-full cursor-pointer"
+        className="flex items-center gap-2 px-5 shrink-0 hover:bg-white/5 transition-colors rounded h-full cursor-pointer"
       >
         {getStatusLabel(m)}
         <Flag src={home?.flag} alt={homeCode} />
@@ -154,7 +165,6 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
     );
   };
 
-  // Animation duration scales with number of items so speed stays consistent
   const duration = Math.max(20, items.length * 6);
 
   return (
@@ -162,7 +172,7 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
       <style>{`
         @keyframes ticker-scroll {
           0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(-${animPct}%); }
         }
         .ticker-track {
           animation: ticker-scroll ${duration}s linear infinite;
@@ -186,10 +196,10 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
         {/* Scrolling track */}
         <div className="flex-1 overflow-hidden h-full flex items-center min-w-0">
           <div className="ticker-track flex items-center h-full whitespace-nowrap">
-            {doubled.map((m, i) => (
-              <React.Fragment key={`${m.id}-${i}`}>
+            {repeated.map(({ m, k }) => (
+              <React.Fragment key={k}>
                 {renderScore(m)}
-                <span className="text-white/20 text-[9px] select-none shrink-0 px-0.5">|</span>
+                <span className="text-white/25 text-[8px] select-none shrink-0 px-3">◆</span>
               </React.Fragment>
             ))}
           </div>
