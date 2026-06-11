@@ -96,7 +96,8 @@ export interface Match {
   isLocked: boolean;
   channels?: Record<string, string>;
   minute?: number;
-  nextMatchId?: string; 
+  minuteExtra?: number | null;
+  nextMatchId?: string;
 }
 
 export interface Team {

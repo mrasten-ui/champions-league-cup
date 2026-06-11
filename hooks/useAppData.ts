@@ -53,7 +53,7 @@ export const useAppData = () => {
               homeScore: m.home_score, awayScore: m.away_score, status: (m.status as any) || 'UPCOMING',
               isLocked: !!m.is_locked, groupId: m.group_id || undefined, round: (m.round as any) || undefined,
               channels: m.channels as any, nextMatchId: m.next_match_id || undefined,
-              minute: m.minute ?? undefined
+              minute: m.minute ?? undefined, minuteExtra: m.minute_extra ?? undefined
             }));
 
             // --- CALCULATE TIMERS ---
@@ -285,6 +285,7 @@ export const useAppData = () => {
                                   homeTeamId:  m.home_team_id?.toUpperCase() || existing.homeTeamId,
                                   awayTeamId:  m.away_team_id?.toUpperCase() || existing.awayTeamId,
                                   minute:      m.minute ?? existing.minute,
+                                  minuteExtra: m.minute_extra ?? existing.minuteExtra,
                               }
                               : existing
                       ));

@@ -79,18 +79,20 @@ serve(async (req) => {
     const { fixture, goals, teams } = item
     const apiId    = fixture.id.toString()
     const status   = fixture.status.short
-    const isLocked = LOCKED_STATUSES.includes(status)
-    const minute   = fixture.status.elapsed ?? null
+    const isLocked    = LOCKED_STATUSES.includes(status)
+    const minute      = fixture.status.elapsed ?? null
+    const minuteExtra = fixture.status.extra   ?? null
 
     const homeId = TEAM_NAME_TO_ID[teams.home.name]
     const awayId = TEAM_NAME_TO_ID[teams.away.name]
 
     const payload: Record<string, unknown> = {
       status,
-      home_score: goals.home ?? null,
-      away_score: goals.away ?? null,
-      is_locked:  isLocked,
+      home_score:   goals.home ?? null,
+      away_score:   goals.away ?? null,
+      is_locked:    isLocked,
       minute,
+      minute_extra: minuteExtra,
       ...(fixture.date && { date: fixture.date }),
     }
 

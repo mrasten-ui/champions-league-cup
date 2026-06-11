@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent } from '../types';
-import { Clock, MapPin, Trophy, Star, Tv, Check } from 'lucide-react';
+import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
@@ -107,6 +107,19 @@ const TbdHeroSlot: React.FC<{
             </div>
         </div>
     );
+};
+
+const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string): string => {
+  if (minuteExtra != null && minuteExtra > 0) {
+    if (status === '1H') return `45+${minuteExtra}`;
+    if (status === '2H') return `90+${minuteExtra}`;
+    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${minuteExtra}`;
+  }
+  if (!minute) return '';
+  if (status === '1H' && minute > 45) return `45+${minute - 45}`;
+  if (status === '2H' && minute > 90) return `90+${minute - 90}`;
+  if ((status === 'ET' || status === 'BT') && minute > 105) return `105+${minute - 105}`;
+  return `${minute}`;
 };
 
 export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [] }) => {
@@ -234,21 +247,36 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         </div>
 
         {/* LIVE MINUTE BAR */}
-        {isLive && match.minute != null && match.minute > 0 && (() => {
-            const isET = match.status === 'ET' || match.status === 'BT' || match.minute > 90;
-            const colour = isET ? 'text-red-400' : 'text-amber-400';
+        {(() => {
+            const isHT = match.status === 'HT';
+            const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
+            const matchStartMs = new Date(match.date).getTime();
+            const isRecentlyFinished = isFinished && (Date.now() - matchStartMs) < 3.5 * 60 * 60 * 1000;
+            const minuteLabel = formatMinute(match.minute, match.minuteExtra, match.status);
+            const showMinute = isLive && !isHT && !!minuteLabel;
+
+            if (!isHT && !isRecentlyFinished && !showMinute) return null;
+
+            const colour = isRecentlyFinished ? 'text-slate-400'
+                : isHT ? 'text-amber-400'
+                : isET ? 'text-red-400'
+                : 'text-amber-400';
             const shimmer = isET ? 'via-red-400' : 'via-amber-400';
+            const label = isRecentlyFinished ? 'FT' : isHT ? 'HT' : minuteLabel;
+            const showTick = !isHT && !isRecentlyFinished;
+            const animate = !isRecentlyFinished && !isHT;
+
             return (
                 <div className="relative z-10 flex flex-col items-center py-2 border-b border-white/5 bg-black/20">
                     <style>{`@keyframes liveSlide { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }`}</style>
                     <div className="flex items-start leading-none">
-                        <span className={`text-2xl font-black tabular-nums ${colour}`}>{match.minute}</span>
-                        <span className={`text-sm font-black mt-0.5 ${colour}`}>′</span>
+                        <span className={`text-2xl font-black tabular-nums ${colour}`}>{label}</span>
+                        {showTick && <span className={`text-sm font-black mt-0.5 ${colour}`}>′</span>}
                     </div>
                     <div className="relative mt-1.5 w-24 h-px bg-white/10 rounded-full overflow-hidden">
                         <div
                             className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent`}
-                            style={{ animation: 'liveSlide 1.8s ease-in-out infinite' }}
+                            style={animate ? { animation: 'liveSlide 1.8s ease-in-out infinite' } : { left: '25%' }}
                         />
                     </div>
                 </div>
@@ -324,10 +352,20 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
         {/* MATCH EVENTS STRIP */}
         {(() => {
-          const sig = events.filter(e =>
+          const sigRaw = events.filter(e =>
             e.type === 'Goal' ||
             (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
           );
+          // A player can only receive one red card — deduplicate API artifact of second-yellow + red being two events
+          const redSeen = new Set<string>();
+          const sig = sigRaw.filter(e => {
+            if (e.type === 'Card' && e.detail === 'Red Card') {
+              const key = `${e.teamId}_${e.player}`;
+              if (redSeen.has(key)) return false;
+              redSeen.add(key);
+            }
+            return true;
+          });
           if (!sig.length) return null;
           const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
           const awayEvts = sig.filter(e => e.teamId === match.awayTeamId).sort((a, b) => a.minute - b.minute);

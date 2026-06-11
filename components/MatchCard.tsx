@@ -38,6 +38,19 @@ interface MatchCardProps {
 }
 
 
+const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string): string => {
+  if (minuteExtra != null && minuteExtra > 0) {
+    if (status === '1H') return `45+${minuteExtra}`;
+    if (status === '2H') return `90+${minuteExtra}`;
+    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${minuteExtra}`;
+  }
+  if (!minute) return '';
+  if (status === '1H' && minute > 45) return `45+${minute - 45}`;
+  if (status === '2H' && minute > 90) return `90+${minute - 90}`;
+  if ((status === 'ET' || status === 'BT') && minute > 105) return `105+${minute - 105}`;
+  return `${minute}`;
+};
+
 // --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({
@@ -243,11 +256,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
 
         if (isLive) {
-            const min = match.minute;
-            const isET = s === 'ET' || (min && min > 90);
-            const label = min
-                ? (isET ? `ET ${min}'` : `${min}'`)
-                : 'LIVE';
+            const minLabel = formatMinute(match.minute, match.minuteExtra, s);
+            const isET = s === 'ET' || s === 'BT' || (match.minute != null && match.minute > 90);
+            const label = minLabel ? `${minLabel}'` : 'LIVE';
             return (
                 <div className="flex items-center gap-1.5">
                     {liveDot}
@@ -369,20 +380,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
                                     {(isLive || isFinished) ? (
                                         <>
-                                            {isLive && match.minute != null && match.minute > 0 && (() => {
-                                                const isET = match.status === 'ET' || match.status === 'BT' || match.minute > 90;
-                                                const colour = isET ? 'text-red-400' : 'text-amber-400';
+                                            {isLive && (() => {
+                                                const isHT = match.status === 'HT';
+                                                const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
+                                                const minLabel = formatMinute(match.minute, match.minuteExtra, match.status);
+                                                if (!isHT && !minLabel) return null;
+                                                const colour = isHT ? 'text-amber-400' : isET ? 'text-red-400' : 'text-amber-400';
                                                 const shimmer = isET ? 'via-red-400' : 'via-amber-400';
                                                 return (
                                                     <div className="flex flex-col items-center mb-1">
                                                         <div className="flex items-start leading-none">
-                                                            <span className={`text-xl font-black tabular-nums ${colour}`}>{match.minute}</span>
-                                                            <span className={`text-xs font-black mt-0.5 ${colour}`}>′</span>
+                                                            <span className={`text-xl font-black tabular-nums ${colour}`}>{isHT ? 'HT' : minLabel}</span>
+                                                            {!isHT && <span className={`text-xs font-black mt-0.5 ${colour}`}>′</span>}
                                                         </div>
                                                         <div className="relative mt-1 w-10 h-px bg-white/20 rounded-full overflow-hidden">
                                                             <div
                                                                 className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent`}
-                                                                style={{ animation: 'liveSlide 1.8s ease-in-out infinite' }}
+                                                                style={isHT ? { left: '25%' } : { animation: 'liveSlide 1.8s ease-in-out infinite' }}
                                                             />
                                                         </div>
                                                     </div>
@@ -422,10 +436,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              {/* MATCH EVENTS: goals + cards — schedule view only, or live/finished */}
              {(() => {
-               const sig = events.filter(e =>
+               const sigRaw = events.filter(e =>
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
                );
+               // A player can only receive one red card — deduplicate API artifact of second-yellow + red being two events
+               const redSeen = new Set<string>();
+               const sig = sigRaw.filter(e => {
+                 if (e.type === 'Card' && e.detail === 'Red Card') {
+                   const key = `${e.teamId}_${e.player}`;
+                   if (redSeen.has(key)) return false;
+                   redSeen.add(key);
+                 }
+                 return true;
+               });
                if (!sig.length) return null;
                if (!isLive && !isFinished && variant !== 'official') return null;
                const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
