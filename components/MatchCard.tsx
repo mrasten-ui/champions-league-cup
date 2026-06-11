@@ -147,11 +147,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const CHANNEL_URLS: Record<string, string> = {
-        BBC: 'https://www.bbc.co.uk/iplayer/live/bbcone',
-        ITV: 'https://www.itv.com/watch/live',
+        BBC: 'https://www.bbc.co.uk/iplayer/event/fifa-world-cup',
+        ITV: 'https://www.itv.com/watch',
         STV: 'https://player.stv.tv/live',
-        NRK: 'https://www.nrk.no/sport',
-        TV2: 'https://play.tv2.no/direkte/',
+        NRK: 'https://tv.nrk.no/programmer/fotball-vm-2026',
+        TV2: 'https://play.tv2.no/direkte-tv',
         FOX: 'https://www.foxsports.com/live',
         FS1: 'https://www.foxsports.com/live',
     };
