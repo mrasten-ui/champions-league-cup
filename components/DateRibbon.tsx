@@ -36,11 +36,9 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
   const getRelativeLabel = (dateStr: string) => {
     const dateObj = new Date(dateStr);
     const now = new Date();
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
     const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
     
     if (dateObj.toDateString() === todayStr) return { main: lang.today || "Today", sub: "" };
-    if (dateObj.toDateString() === tomorrow.toDateString()) return { main: lang.tomorrow || "Tom", sub: "" };
     if (dateObj.toDateString() === yesterday.toDateString()) return { main: lang.yesterday || "Yest", sub: "" };
     
     return {
