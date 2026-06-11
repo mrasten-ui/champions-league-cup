@@ -1,5 +1,5 @@
 import React from 'react';
-import { Match, Team, Prediction, UserProfile, Translation, TournamentPhase } from '../types';
+import { Match, Team, Prediction, UserProfile, Translation } from '../types';
 import { MatchCard } from './MatchCard';
 import { X } from 'lucide-react';
 
@@ -67,6 +67,7 @@ export const SubstitutionModal: React.FC<SubstitutionModalProps> = ({
                         // Modal only opens after unlock confirmation — always treat as unlocked
                         isUnlockedBySub={true}
                         showStatusBadge={false}
+                        hideHeader={true}
                     />
                 </div>
                 

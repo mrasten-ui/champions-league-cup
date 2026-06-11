@@ -308,7 +308,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isHomeTBD && (
                     <div className="flex flex-col items-center">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[home.id] || home.name}</span>
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-2 sm:mb-1">{lang.teamNames[home.id] || home.name}</span>
                         {homeStats && <span className="text-[10px] font-bold text-amber-300 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-700/30">{homeStats.pts} PTS</span>}
                     </div>
                 )}
@@ -349,7 +349,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isAwayTBD && (
                     <div className="flex flex-col items-center">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-1">{lang.teamNames[away.id] || away.name}</span>
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-2 sm:mb-1">{lang.teamNames[away.id] || away.name}</span>
                         {awayStats && <span className="text-[10px] font-bold text-amber-300 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-700/30">{awayStats.pts} PTS</span>}
                     </div>
                 )}

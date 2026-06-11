@@ -35,6 +35,7 @@ interface MatchCardProps {
   context?: 'groups' | 'knockout' | 'carousel';
   cardId?: string;
   events?: MatchEvent[];
+  hideHeader?: boolean;
 }
 
 
@@ -61,7 +62,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = []
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], hideHeader = false
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -319,6 +320,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div id={cardId} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
              {/* HEADER */}
+             {!hideHeader && (
              <div className="bg-[#0f2545] border-b border-[#1a3a6c] py-2 px-3 flex justify-between items-center min-h-[48px] text-white">
                 <div className="w-1/3 flex items-center justify-start">{getLeftStatus()}</div>
                 <div className="w-1/3 flex items-center justify-center text-center">
@@ -343,13 +345,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {renderTopRight()}
                 </div>
              </div>
+             )}
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
                 {/* Home Team */}
                 <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && predictedWinnerId !== '__home__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isHomeTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>{match.groupId && homeTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isHomeTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>{match.groupId && homeTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-2 sm:mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>}</>}
                     </div>
                 </div>
 
@@ -363,24 +366,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     ) : (
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
-                                <div className="flex items-center gap-2">
-                                    <ScoreStepper
-                                        value={localHome}
-                                        onChange={(v) => handleScoreChange('home', v)}
-                                        isLocked={isLocked}
-                                        onActivate={handleActivate}
-                                        ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined}
-                                        saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
-                                    />
-                                    <span className="font-black text-slate-300 text-lg">-</span>
-                                    <ScoreStepper
-                                        value={localAway}
-                                        onChange={(v) => handleScoreChange('away', v)}
-                                        isLocked={isLocked}
-                                        onActivate={handleActivate}
-                                        ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined}
-                                        saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
-                                    />
+                                <div className="flex flex-col items-center gap-2 w-full">
+                                    <div className="flex items-center gap-2">
+                                        <ScoreStepper
+                                            value={localHome}
+                                            onChange={(v) => handleScoreChange('home', v)}
+                                            isLocked={isLocked}
+                                            onActivate={handleActivate}
+                                            ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined}
+                                            saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
+                                        />
+                                        <span className="font-black text-slate-300 text-lg">-</span>
+                                        <ScoreStepper
+                                            value={localAway}
+                                            onChange={(v) => handleScoreChange('away', v)}
+                                            isLocked={isLocked}
+                                            onActivate={handleActivate}
+                                            ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined}
+                                            saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
+                                        />
+                                    </div>
+                                    {isUnlockedBySub && <div className="w-full">{renderControlButtons()}</div>}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
@@ -435,7 +441,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && predictedWinnerId !== '__away__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[10px] font-bold text-slate-400 mt-2 sm:mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
                     </div>
                 </div>
              </div>
