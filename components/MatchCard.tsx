@@ -425,10 +425,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
                  return (
                    <span className="flex items-center gap-0.5 shrink-0">
-                     <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 shrink-0" fill="none">
-                       <circle cx="5" cy="5" r="4.5" fill="white" stroke="#94a3b8" strokeWidth="0.8"/>
-                       <path d="M5 1.8L6.3 2.8 5.9 4.6H4.1L3.7 2.8Z" fill="#334155"/>
-                       <path d="M5.9 4.6 7.3 5.1 7.8 6.8 6.4 7.8 5 7.1 3.6 7.8 2.2 6.8 2.7 5.1 4.1 4.6Z" fill="#334155"/>
+                     <svg viewBox="0 0 20 20" className="w-3 h-3 shrink-0" fill="none">
+                       <circle cx="10" cy="10" r="9" fill="white" stroke="#94a3b8" strokeWidth="0.5"/>
+                       <polygon points="10,3 12.9,5 11.8,8.2 8.2,8.2 7.1,5" fill="#111827"/>
+                       <polygon points="12.9,5 16.5,6.5 17,10 13.8,11.5 11.8,8.2" fill="#111827"/>
+                       <polygon points="7.1,5 3.5,6.5 3,10 6.2,11.5 8.2,8.2" fill="#111827"/>
+                       <polygon points="17,10 17.5,13.8 14.5,16 11.5,13.5 13.8,11.5" fill="#111827"/>
+                       <polygon points="3,10 2.5,13.8 5.5,16 8.5,13.5 6.2,11.5" fill="#111827"/>
+                       <polygon points="14.5,16 13,18.5 10,18 7,18.5 5.5,16 8.5,13.5 11.5,13.5" fill="#111827"/>
                      </svg>
                      {suffix && <span className="text-[7px] font-bold text-slate-500">{suffix}</span>}
                    </span>
