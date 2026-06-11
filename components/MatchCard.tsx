@@ -371,9 +371,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         <>
                                             {isLive && match.minute != null && match.minute > 0 && (() => {
                                                 const isET = match.status === 'ET' || match.status === 'BT' || match.minute > 90;
+                                                const colour = isET ? 'text-red-400' : 'text-amber-400';
+                                                const shimmer = isET ? 'via-red-400' : 'via-amber-400';
                                                 return (
-                                                    <div className={`mb-1 text-xl font-black tracking-widest ${isET ? 'text-red-400' : 'text-amber-400'}`}>
-                                                        {match.minute}'
+                                                    <div className="flex flex-col items-center mb-1">
+                                                        <div className="flex items-start leading-none">
+                                                            <span className={`text-xl font-black tabular-nums ${colour}`}>{match.minute}</span>
+                                                            <span className={`text-xs font-black mt-0.5 ${colour}`}>′</span>
+                                                        </div>
+                                                        <div className="relative mt-1 w-10 h-px bg-white/20 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent`}
+                                                                style={{ animation: 'liveSlide 1.8s ease-in-out infinite' }}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 );
                                             })()}
@@ -547,11 +558,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 justify-end w-1/3">
-                        {pointsEarned !== null && !isAdminMode
-                            ? <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-400'}`}>{pointsEarned > 0 ? <Check size={10} /> : null}<span>+{pointsEarned} PTS</span></div>
-                            : (() => { const ch = getTvChannelName(); const url = ch ? getChannelUrl(ch) : null; return ch ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-300 hover:text-blue-400 transition-colors" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></a> : <div className="flex items-center gap-1 text-blue-300" title={`Watch on ${ch}`}><Tv size={10} /><span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[60px] sm:max-w-[80px]">{ch}</span></div>) : null; })()
-                        }
+                    <div className="flex items-center gap-2 justify-end w-1/3">
+                        {(isLive || isFinished) && pointsEarned !== null && !isAdminMode && (() => {
+                            const isExact = prediction && match.homeScore !== null && prediction.home === match.homeScore && prediction.away === match.awayScore;
+                            const style = isExact
+                                ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                                : pointsEarned > 0
+                                ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                                : 'bg-white/5 border-white/10 text-slate-500';
+                            return (
+                                <div className={`px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wide flex items-center gap-1 ${style}`}>
+                                    {isLive && <div className="w-1 h-1 rounded-full bg-current animate-pulse shrink-0" />}
+                                    {pointsEarned} PTS
+                                </div>
+                            );
+                        })()}
                         {match.isLocked && <LockIcon size={10} className="text-slate-400" />}
                     </div>
                 </div>

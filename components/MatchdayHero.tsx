@@ -115,7 +115,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
 
-  const pointsEarned = isFinished && match.homeScore !== null && match.awayScore !== null && userPrediction
+  const pointsEarned = (isFinished || isLive) && match.homeScore !== null && match.awayScore !== null && userPrediction
       ? calculatePoints(userPrediction.home, userPrediction.away, match.homeScore, match.awayScore, !!currentUser?.hasTakenSecondChance, match.round)
       : null;
 
@@ -236,11 +236,21 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         {/* LIVE MINUTE BAR */}
         {isLive && match.minute != null && match.minute > 0 && (() => {
             const isET = match.status === 'ET' || match.status === 'BT' || match.minute > 90;
+            const colour = isET ? 'text-red-400' : 'text-amber-400';
+            const shimmer = isET ? 'via-red-400' : 'via-amber-400';
             return (
-                <div className="relative z-10 flex justify-center items-center py-2 border-b border-white/5 bg-black/20">
-                    <span className={`text-2xl font-black tracking-widest ${isET ? 'text-red-400' : 'text-amber-400'}`}>
-                        {match.minute}'
-                    </span>
+                <div className="relative z-10 flex flex-col items-center py-2 border-b border-white/5 bg-black/20">
+                    <style>{`@keyframes liveSlide { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }`}</style>
+                    <div className="flex items-start leading-none">
+                        <span className={`text-2xl font-black tabular-nums ${colour}`}>{match.minute}</span>
+                        <span className={`text-sm font-black mt-0.5 ${colour}`}>′</span>
+                    </div>
+                    <div className="relative mt-1.5 w-24 h-px bg-white/10 rounded-full overflow-hidden">
+                        <div
+                            className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent`}
+                            style={{ animation: 'liveSlide 1.8s ease-in-out infinite' }}
+                        />
+                    </div>
                 </div>
             );
         })()}
@@ -385,15 +395,21 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             </div>
 
             {/* Right: Points earned */}
-            <div className="w-1/3 flex justify-end items-center gap-1">
-                {pointsEarned !== null && (
-                    <>
-                        {pointsEarned > 0 && <Check size={10} className="text-green-400" />}
-                        <span className={`font-black ${pointsEarned > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                            {pointsEarned > 0 ? `+${pointsEarned} PTS` : '+0 PTS'}
-                        </span>
-                    </>
-                )}
+            <div className="w-1/3 flex justify-end items-center">
+                {pointsEarned !== null && (() => {
+                    const isExact = userPrediction && match.homeScore !== null && userPrediction.home === match.homeScore && userPrediction.away === match.awayScore;
+                    const style = isExact
+                        ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                        : pointsEarned > 0
+                        ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                        : 'bg-white/5 border-white/10 text-slate-500';
+                    return (
+                        <div className={`px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wide flex items-center gap-1 ${style}`}>
+                            {isLive && <div className="w-1 h-1 rounded-full bg-current animate-pulse shrink-0" />}
+                            {pointsEarned} PTS
+                        </div>
+                    );
+                })()}
             </div>
         </div>
       </div>

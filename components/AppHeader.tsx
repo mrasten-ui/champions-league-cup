@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2 } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES, GROUP_CONFIG } from '../constants';
@@ -88,6 +88,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   }, [deadline]);
 
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   const deadlineFormatted = useMemo(() => {
     if (!deadline) return '';
@@ -343,9 +344,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                           <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 transition-colors"><Bot size={16} /> Management</button>
                                       </div>
                                   )}
-                                  {props.onInstallApp && (
-                                      <button onClick={() => { props.onInstallApp!(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg flex items-center gap-2 transition-colors"><Smartphone size={16} /> Install App</button>
-                                  )}
+                                  <button onClick={() => { setShowInstallGuide(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-sky-50 hover:text-sky-600 rounded-lg flex items-center gap-2 transition-colors"><Smartphone size={16} /> Add to Phone</button>
                                   <button onClick={props.handleLogout} className="w-full text-left px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors mt-1"><LogOut size={16} /> {t.logout}</button>
                               </div>
                            </div>
@@ -506,6 +505,83 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
         </div>
       )}
     </header>
+
+    {/* INSTALL GUIDE MODAL */}
+    {showInstallGuide && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowInstallGuide(false)}>
+            <div className="w-full max-w-sm bg-[#0f2545] rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <Smartphone size={20} className="text-blue-400" />
+                        </div>
+                        <div>
+                            <div className="font-black text-white text-sm uppercase tracking-wide">Add to Home Screen</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">Get the app on your phone</div>
+                        </div>
+                    </div>
+                    <button onClick={() => setShowInstallGuide(false)} className="p-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"><X size={14} /></button>
+                </div>
+
+                {/* Native install if available */}
+                {props.onInstallApp && (
+                    <div className="px-5 pt-4">
+                        <button
+                            onClick={() => { props.onInstallApp!(); setShowInstallGuide(false); }}
+                            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-900/40"
+                        >
+                            <Smartphone size={15} /> Install Now
+                        </button>
+                        <p className="text-center text-[10px] text-slate-500 mt-3">— or follow the steps below —</p>
+                    </div>
+                )}
+
+                {/* iOS */}
+                <div className="px-5 pt-4 pb-2">
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="text-base">🍎</span> iPhone / iPad (Safari)
+                    </div>
+                    <div className="space-y-2.5">
+                        {[
+                            { text: 'Open this page in Safari' },
+                            { text: 'Tap the Share button (⬆ box with arrow) at the bottom of the screen' },
+                            { text: 'Scroll down and tap "Add to Home Screen"' },
+                            { text: 'Tap "Add" in the top right corner' },
+                        ].map(({ text }, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                                <span className="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-500/30 text-[10px] font-black text-blue-400 flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                                <span className="text-xs text-white/70 leading-relaxed">{text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="h-px bg-white/5 mx-5 my-4" />
+
+                {/* Android */}
+                <div className="px-5 pb-5">
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="text-base">🤖</span> Android (Chrome)
+                    </div>
+                    <div className="space-y-2.5">
+                        {[
+                            { text: 'Open this page in Chrome' },
+                            { text: 'Tap the three-dot menu (⋮) in the top right' },
+                            { text: 'Tap "Add to Home Screen"' },
+                            { text: 'Tap "Add" to confirm' },
+                        ].map(({ text }, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                                <span className="w-5 h-5 rounded-full bg-green-600/20 border border-green-500/30 text-[10px] font-black text-green-400 flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                                <span className="text-xs text-white/70 leading-relaxed">{text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )}
 
     {/* MOBILE BOTTOM NAV BAR */}
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f2545] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
