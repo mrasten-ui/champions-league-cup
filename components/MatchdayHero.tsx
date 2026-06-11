@@ -169,6 +169,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
       );
   };
 
+  const CHANNEL_URLS: Record<string, string> = {
+      BBC: 'https://www.bbc.co.uk/iplayer/event/fifa-world-cup',
+      ITV: 'https://www.itv.com/watch',
+      STV: 'https://player.stv.tv/live',
+      NRK: 'https://tv.nrk.no/programmer/fotball-vm-2026',
+      TV2: 'https://play.tv2.no/direkte-tv',
+      FOX: 'https://www.foxsports.com/live',
+      FS1: 'https://www.foxsports.com/live',
+  };
+
   const getTvChannel = () => {
       let regionKey = 'US';
       const loc = (locale || 'en-GB').toLowerCase();
@@ -182,14 +192,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
       const channel = specific ? String(specific) : (BROADCAST_CHANNELS[regionKey] || null);
 
       if (!channel) return null;
-      return (
-          <div className="flex items-center gap-1.5 text-blue-300" title={`Watch on ${channel}`}>
+      const url = CHANNEL_URLS[channel.toUpperCase()] ?? null;
+      const inner = (
+          <>
               <Tv size={12} />
-              <span className="text-[10px] font-black uppercase tracking-wide truncate max-w-[80px]">
-                  {channel}
-              </span>
-          </div>
+              <span className="text-[10px] font-black uppercase tracking-wide truncate max-w-[80px]">{channel}</span>
+          </>
       );
+      return url
+          ? <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-300 hover:text-blue-100 transition-colors" title={`Watch on ${channel}`}>{inner}</a>
+          : <div className="flex items-center gap-1.5 text-blue-300">{inner}</div>;
   };
 
   return (
