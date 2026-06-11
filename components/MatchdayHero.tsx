@@ -233,6 +233,18 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             <div className="w-1/3 flex justify-end">{getTvChannel()}</div>
         </div>
 
+        {/* LIVE MINUTE BAR */}
+        {isLive && match.minute != null && match.minute > 0 && (() => {
+            const isET = match.status === 'ET' || match.status === 'BT' || match.minute > 90;
+            return (
+                <div className="relative z-10 flex justify-center items-center py-2 border-b border-white/5 bg-black/20">
+                    <span className={`text-2xl font-black tracking-widest ${isET ? 'text-red-400' : 'text-amber-400'}`}>
+                        {match.minute}'
+                    </span>
+                </div>
+            );
+        })()}
+
         {/* Main Content */}
         <div className="relative z-10 p-6 sm:p-8 flex items-center justify-between">
             
@@ -260,11 +272,6 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
             {/* Scoreboard */}
             <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
-                {isLive && match.minute != null && match.minute > 0 && (
-                    <div className="mb-1 text-red-400 text-[11px] font-black tracking-widest">
-                        {match.minute}'
-                    </div>
-                )}
                 {match.homeScore !== null ? (
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
                         <span>{match.homeScore}</span>
