@@ -867,6 +867,11 @@ export const App = () => {
   }, [matchEvents]);
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
+  const leagueRivalsList = useMemo(() => {
+    const userLeagues = user?.leagues ?? [];
+    if (userLeagues.length === 0) return rivalsList;
+    return rivalsList.filter(u => u.leagues?.some(l => userLeagues.includes(l)));
+  }, [rivalsList, user?.leagues]);
 
   const missingGroupPredictions = useMemo(() => {
     if (!user || tournamentPhase !== 'PRE_LIVE') return 0;
@@ -1041,7 +1046,7 @@ export const App = () => {
             lang={t}
           />
         )}
-        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={rivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
+        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={leagueRivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
         
         {/* TOURNAMENT HUB */}
