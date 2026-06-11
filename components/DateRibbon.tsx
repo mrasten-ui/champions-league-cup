@@ -35,19 +35,17 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
 
   const getRelativeLabel = (dateStr: string) => {
     const dateObj = new Date(dateStr);
-    const now = new Date();
-    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
-    
+
     if (dateObj.toDateString() === todayStr) return { main: lang.today || "Today", sub: "" };
-    if (dateObj.toDateString() === yesterday.toDateString()) return { main: lang.yesterday || "Yest", sub: "" };
-    
+
     return {
         main: dateObj.getDate(),
         sub: dateObj.toLocaleDateString(locale, { weekday: 'short' })
     };
   };
 
-  const isToday = (dateStr: string) => dateStr === todayStr;
+  const isToday = (dateStr: string) => new Date(dateStr).toDateString() === todayStr;
+  const todayInDates = dates.find(d => isToday(d));
 
   return (
     <div className="bg-[#0f2545] border-b border-white/10 sticky top-0 z-30 shadow-xl">
@@ -119,12 +117,23 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         </div>
 
         {/* Right Arrow (Desktop) */}
-        <button 
+        <button
             onClick={() => handleScroll('right')}
             className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-l border-white/10"
         >
             <ChevronRight size={24} />
         </button>
+
+        {/* Back to Today */}
+        {todayInDates && selectedDate !== todayInDates && (
+            <button
+                onClick={() => onDateSelect(todayInDates)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 mx-2 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 hover:text-red-200 transition-all text-[9px] font-black uppercase tracking-widest whitespace-nowrap shrink-0 animate-in fade-in duration-200"
+            >
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse shrink-0" />
+                {lang.today || "Today"}
+            </button>
+        )}
       </div>
     </div>
   );

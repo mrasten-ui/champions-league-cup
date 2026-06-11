@@ -179,11 +179,9 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       const dateObj = new Date(dateStr);
       const today = new Date();
       const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-      const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
 
       if (dateObj.toDateString() === today.toDateString()) return lang.today || "Today";
       if (dateObj.toDateString() === tomorrow.toDateString()) return lang.tomorrow || "Tomorrow";
-      if (dateObj.toDateString() === yesterday.toDateString()) return lang.yesterday || "Yesterday";
 
       return dateObj.toLocaleDateString(activeLocale, { 
           weekday: 'long', month: 'long', day: 'numeric' 
