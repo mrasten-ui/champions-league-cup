@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, Match, Prediction, Team, LanguageCode } from '../../types';
-import { Sparkles, RefreshCw, BrainCircuit, WifiOff, X } from 'lucide-react';
+import { Sparkles, RefreshCw, BrainCircuit, WifiOff, X, ZoomIn } from 'lucide-react';
 
 export interface AIAnalystProps {
     currentLang: LanguageCode;
@@ -186,7 +186,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                     </div>
                     {onRefresh && (
                         <button
-                            onClick={onRefresh}
+                            onClick={(e) => { e.stopPropagation(); onRefresh(); }}
                             disabled={loading}
                             className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
                         >
@@ -196,24 +196,29 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                     )}
                 </div>
 
-                {/* Content */}
-                {loading ? (
-                    <div className="space-y-2 animate-pulse">
-                        <div className="text-center text-[10px] text-white/40">{t.loading}</div>
-                        <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
-                        <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
-                        <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
+                {/* Content — clickable to expand modal */}
+                <div className="flex-1 cursor-pointer" onClick={() => setPortraitOpen(true)}>
+                    {loading ? (
+                        <div className="space-y-2 animate-pulse">
+                            <div className="text-center text-[10px] text-white/40">{t.loading}</div>
+                            <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
+                            <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
+                            <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
+                        </div>
+                    ) : preloadedAnalysis ? (
+                        <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
+                            {preloadedAnalysis}
+                        </p>
+                    ) : (
+                        <div className="flex items-center gap-2 text-white/40 text-xs">
+                            <WifiOff size={13} />
+                            <span>{t.error}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-end mt-1.5">
+                        <ZoomIn size={11} className="text-indigo-300/40" />
                     </div>
-                ) : preloadedAnalysis ? (
-                    <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
-                        {preloadedAnalysis}
-                    </p>
-                ) : (
-                    <div className="flex items-center gap-2 text-white/40 text-xs">
-                        <WifiOff size={13} />
-                        <span>{t.error}</span>
-                    </div>
-                )}
+                </div>
             </div>
 
             {/* RIGHT: pundit portrait — click to expand */}
