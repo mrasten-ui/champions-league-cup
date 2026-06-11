@@ -92,7 +92,7 @@ export interface Match {
   awayScore: number | null;
   date: string;
   venue: string;
-  status: 'UPCOMING' | 'LIVE' | 'HT' | 'FT' | 'AET' | 'PEN' | 'FINISHED' | '1H' | '2H' | 'NS' | 'ET' | 'BT' | 'P' | 'INT' | 'ABD' | 'AWD' | 'WO';
+  status: 'UPCOMING' | 'LIVE' | 'HT' | 'BT' | 'FT' | 'AET' | 'PEN' | 'FINISHED' | '1H' | '2H' | 'NS' | 'ET' | 'P' | 'INT' | 'ABD' | 'AWD' | 'WO';
   isLocked: boolean;
   channels?: Record<string, string>;
   minute?: number;

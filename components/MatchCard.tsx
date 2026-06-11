@@ -257,7 +257,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
         if (isLive) {
             const minLabel = formatMinute(match.minute, match.minuteExtra, s);
-            const isET = s === 'ET' || s === 'BT' || (match.minute != null && match.minute > 90);
+            const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
             const label = minLabel ? `${minLabel}'` : 'LIVE';
             return (
                 <div className="flex items-center gap-1.5">
