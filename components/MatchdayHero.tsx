@@ -150,7 +150,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           return (
               <span className="flex items-center gap-1.5 text-[10px] font-black text-red-400 uppercase tracking-widest animate-pulse">
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]"></div>
-                  {match.minute ? `${match.minute}'` : 'LIVE'}
+                  LIVE
               </span>
           );
       }
@@ -260,6 +260,11 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
             {/* Scoreboard */}
             <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
+                {isLive && match.minute != null && match.minute > 0 && (
+                    <div className="mb-1 text-red-400 text-[11px] font-black tracking-widest">
+                        {match.minute}'
+                    </div>
+                )}
                 {match.homeScore !== null ? (
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
                         <span>{match.homeScore}</span>
@@ -269,7 +274,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 ) : (
                     <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
                 )}
-                
+
                 {match.status === 'PEN' && (
                     <div className="mt-2 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-md border border-white/5">
                         Penalties

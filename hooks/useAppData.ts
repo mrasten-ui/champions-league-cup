@@ -52,7 +52,8 @@ export const useAppData = () => {
               awayTeamId: m.away_team_id ? m.away_team_id.toUpperCase() : 'TBD',
               homeScore: m.home_score, awayScore: m.away_score, status: (m.status as any) || 'UPCOMING',
               isLocked: !!m.is_locked, groupId: m.group_id || undefined, round: (m.round as any) || undefined,
-              channels: m.channels as any, nextMatchId: m.next_match_id || undefined
+              channels: m.channels as any, nextMatchId: m.next_match_id || undefined,
+              minute: m.minute ?? undefined
             }));
 
             // --- CALCULATE TIMERS ---

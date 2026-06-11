@@ -369,6 +369,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
                                     {(isLive || isFinished) ? (
                                         <>
+                                            {isLive && match.minute != null && match.minute > 0 && (
+                                                <div className="mb-1 text-red-400 text-[10px] font-black tracking-widest">
+                                                    {match.minute}'
+                                                </div>
+                                            )}
                                             <div className={`px-4 py-2 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${isLive ? 'bg-red-600 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-xl mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
                                         </>
