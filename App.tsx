@@ -1257,6 +1257,31 @@ export const App = () => {
 
       <DebugTools
         isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)}
+        onAutoFillAllUsers={async () => {
+          if (!supabase) return { filled: 0, users: 0 };
+          const groupMatches = matches.filter(m => m.groupId);
+          const allUpserts: { user_id: string; match_id: string; home: number; away: number }[] = [];
+          for (const [email, profile] of Object.entries(usersDb)) {
+            const userPreds = allPredictions.filter(p => p.userId === email);
+            const simulated = simulateFullTournament(matches, teamsData, profile.favorites || [], 'GROUPS', 50);
+            const toSave = simulated.filter(m =>
+              m.groupId && m.homeScore !== null && m.awayScore !== null &&
+              !m.isLocked && (m.status === 'UPCOMING' || m.status === 'NS') &&
+              groupMatches.some(gm => gm.id === m.id) &&
+              !userPreds.some(p => p.matchId === m.id)
+            ).map(m => ({ user_id: email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
+            allUpserts.push(...toSave);
+          }
+          if (allUpserts.length === 0) return { filled: 0, users: 0 };
+          const { error } = await supabase.from('predictions').upsert(allUpserts as any, { onConflict: 'user_id,match_id', ignoreDuplicates: true });
+          if (error) throw error;
+          setAllPredictions(prev => {
+            const newPreds = allUpserts.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
+            const kept = prev.filter(p => !allUpserts.some(u => u.user_id === p.userId && u.match_id === p.matchId));
+            return [...kept, ...newPreds];
+          });
+          return { filled: allUpserts.length, users: new Set(allUpserts.map(u => u.user_id)).size };
+        }}
         onClear={() => { localStorage.clear(); window.location.reload(); }}
         onTimeTravel={handleTimeTravel}
         lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}

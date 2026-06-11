@@ -16,6 +16,7 @@ interface DebugToolsProps {
   onToggleAdmin: (email: string, isAdmin: boolean) => Promise<void>;
   onRenameUser: (email: string, newName: string) => Promise<void>;
   onDeleteUser: (email: string) => Promise<void>;
+  onAutoFillAllUsers: () => Promise<{ filled: number; users: number }>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -23,7 +24,7 @@ interface DebugToolsProps {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers
 }) => {
   if (!isOpen) return null;
 
@@ -34,6 +35,9 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [renameSaving, setRenameSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
+  const [filling, setFilling] = useState(false);
+  const [fillResult, setFillResult] = useState<{ filled: number; users: number } | null>(null);
+  const [fillConfirm, setFillConfirm] = useState(false);
 
   // Bulk channel state
   const [bulkLocale, setBulkLocale] = useState('NO');
@@ -447,7 +451,71 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 5. DANGER ZONE */}
+            {/* 5. PREDICTIONS */}
+            <div className="space-y-3 pt-4 border-t border-slate-200">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Users size={14} /> Predictions
+                </h4>
+                {(() => {
+                    const upcoming = matches.filter(m => m.groupId && (m.status === 'UPCOMING' || m.status === 'NS') && !m.isLocked);
+                    const incomplete = users.filter(u => {
+                        const userPreds = predictions.filter(p => p.userId === u.email);
+                        return upcoming.some(m => !userPreds.some(p => p.matchId === m.id));
+                    });
+                    return (
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-3">
+                            <div className="text-xs text-slate-600">
+                                <span className="font-black text-slate-800">{incomplete.length}</span> of {users.length} players have incomplete group-stage picks
+                                {incomplete.length > 0 && (
+                                    <div className="mt-1 text-[10px] text-slate-500 truncate">
+                                        {incomplete.map(u => u.name || u.email.split('@')[0]).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                            {fillResult ? (
+                                <div className="flex items-center gap-2 text-xs font-black text-emerald-700">
+                                    <Check size={13} /> Filled {fillResult.filled} predictions across {fillResult.users} players
+                                </div>
+                            ) : fillConfirm ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] text-amber-700 font-bold">Only UPCOMING matches get filled. Already-played matches stay empty (0 pts — they missed the deadline). Confirm?</p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                setFilling(true);
+                                                try {
+                                                    const result = await onAutoFillAllUsers();
+                                                    setFillResult(result);
+                                                } finally {
+                                                    setFilling(false);
+                                                    setFillConfirm(false);
+                                                }
+                                            }}
+                                            disabled={filling}
+                                            className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                                        >
+                                            {filling ? 'Filling…' : 'Yes, Fill Now'}
+                                        </button>
+                                        <button onClick={() => setFillConfirm(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-black uppercase tracking-widest transition-colors">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setFillConfirm(true)}
+                                    disabled={incomplete.length === 0}
+                                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-40"
+                                >
+                                    Auto-fill missing predictions
+                                </button>
+                            )}
+                        </div>
+                    );
+                })()}
+            </div>
+
+            {/* 6. DANGER ZONE */}
             <div className="space-y-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
                     <Database size={14} /> Danger Zone

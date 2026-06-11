@@ -12,7 +12,8 @@
       "Bash(FROM_EMAIL=\"The Rasten Cup <onboarding@resend.dev>\" node scripts/send-reminders.js)",
       "Bash(node scripts/send-reminders.js)",
       "Bash(node scripts/send-reminders.js --apology --dry-run)",
-      "Bash(node scripts/send-reminders.js --apology)"
+      "Bash(node scripts/send-reminders.js --apology)",
+      "Bash(npm run *)"
     ]
   }
 }
