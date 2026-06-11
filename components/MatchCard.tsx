@@ -38,11 +38,17 @@ interface MatchCardProps {
 }
 
 
-const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string): string => {
-  if (minuteExtra != null && minuteExtra > 0) {
-    if (status === '1H') return `45+${minuteExtra}`;
-    if (status === '2H') return `90+${minuteExtra}`;
-    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${minuteExtra}`;
+const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string, evts?: MatchEvent[]): string => {
+  // API-Football keeps elapsed=90 during stoppage time with extra=null; fall back to the highest minuteExtra seen in events
+  const extra = (minuteExtra != null && minuteExtra > 0)
+    ? minuteExtra
+    : (minute != null && evts?.length)
+      ? (evts.filter(e => e.minute === minute && (e.minuteExtra ?? 0) > 0).reduce((m, e) => Math.max(m, e.minuteExtra ?? 0), 0) || null)
+      : null;
+  if (extra != null && extra > 0) {
+    if (status === '1H') return `45+${extra}`;
+    if (status === '2H') return `90+${extra}`;
+    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${extra}`;
   }
   if (!minute) return '';
   if (status === '1H' && minute > 45) return `45+${minute - 45}`;
@@ -256,7 +262,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
 
         if (isLive) {
-            const minLabel = formatMinute(match.minute, match.minuteExtra, s);
+            const minLabel = formatMinute(match.minute, match.minuteExtra, s, events);
             const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
             const label = minLabel ? `${minLabel}'` : 'LIVE';
             return (
@@ -383,7 +389,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             {isLive && (() => {
                                                 const isHT = match.status === 'HT';
                                                 const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
-                                                const minLabel = formatMinute(match.minute, match.minuteExtra, match.status);
+                                                const minLabel = formatMinute(match.minute, match.minuteExtra, match.status, events);
                                                 if (!isHT && !minLabel) return null;
                                                 const colour = isHT ? 'text-amber-400' : isET ? 'text-red-400' : 'text-amber-400';
                                                 const shimmer = isET ? 'via-red-400' : 'via-amber-400';

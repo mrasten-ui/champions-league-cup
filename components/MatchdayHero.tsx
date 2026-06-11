@@ -109,11 +109,17 @@ const TbdHeroSlot: React.FC<{
     );
 };
 
-const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string): string => {
-  if (minuteExtra != null && minuteExtra > 0) {
-    if (status === '1H') return `45+${minuteExtra}`;
-    if (status === '2H') return `90+${minuteExtra}`;
-    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${minuteExtra}`;
+const formatMinute = (minute?: number | null, minuteExtra?: number | null, status?: string, evts?: MatchEvent[]): string => {
+  // API-Football keeps elapsed=90 during stoppage time with extra=null; fall back to the highest minuteExtra seen in events
+  const extra = (minuteExtra != null && minuteExtra > 0)
+    ? minuteExtra
+    : (minute != null && evts?.length)
+      ? (evts.filter(e => e.minute === minute && (e.minuteExtra ?? 0) > 0).reduce((m, e) => Math.max(m, e.minuteExtra ?? 0), 0) || null)
+      : null;
+  if (extra != null && extra > 0) {
+    if (status === '1H') return `45+${extra}`;
+    if (status === '2H') return `90+${extra}`;
+    if (status === 'ET' || status === 'BT') return `${minute ?? 105}+${extra}`;
   }
   if (!minute) return '';
   if (status === '1H' && minute > 45) return `45+${minute - 45}`;
@@ -252,7 +258,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
             const matchStartMs = new Date(match.date).getTime();
             const isRecentlyFinished = isFinished && (Date.now() - matchStartMs) < 3.5 * 60 * 60 * 1000;
-            const minuteLabel = formatMinute(match.minute, match.minuteExtra, match.status);
+            const minuteLabel = formatMinute(match.minute, match.minuteExtra, match.status, events);
             const showMinute = isLive && !isHT && !!minuteLabel;
 
             if (!isHT && !isRecentlyFinished && !showMinute) return null;

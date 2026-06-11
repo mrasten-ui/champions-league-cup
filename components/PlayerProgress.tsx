@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Prediction, Translation } from '../types';
-import { Users, CheckCircle2, Globe, X } from 'lucide-react';
+import { Users, CheckCircle2, X } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LEAGUES, TOTAL_MATCHES } from '../constants';
 
@@ -20,23 +20,18 @@ const LANG_LABELS: Record<string, string> = {
 };
 
 export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredictions, lang, currentUserLeagues = [], currentUserEmail, currentLang }) => {
-  // 'global' tab shows everyone; league slugs show filtered views
-  const tabs = currentUserLeagues.length > 0
-    ? ['global', ...currentUserLeagues]
-    : ['global'];
-  const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues[0] || 'global');
+  const tabs = [...currentUserLeagues];
+  const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues[0] ?? '');
   const [profileModal, setProfileModal] = useState<UserProfile | null>(null);
 
-  const getLeagueName = (slug: string) => {
-    if (slug === 'global') return 'All';
-    return LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
-  };
+  const getLeagueName = (slug: string) =>
+    LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 
   // Filter users to only those in the active league
   const filteredUsers = useMemo(() => {
-      if (activeLeague === 'global' || !activeLeague) return users;
+      if (!activeLeague || currentUserLeagues.length === 0) return users;
       return users.filter(u => u.leagues?.includes(activeLeague));
-  }, [users, activeLeague]);
+  }, [users, activeLeague, currentUserLeagues]);
 
   // FIX: Force total matches to 104 (Full 2026 Tournament) instead of relying on loaded props
   // This ensures the progress bar tracks the complete journey (Group + Knockout)
@@ -104,7 +99,6 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                                     : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-white/60'
                             }`}
                         >
-                            {slug === 'global' && <Globe size={11} />}
                             {getLeagueName(slug)}
                         </button>
                     );

@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Globe, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { INITIAL_MATCHES, LEAGUES } from '../constants';
 
@@ -266,7 +266,7 @@ const QualifiedTeamsGrid: React.FC<{
 export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPredictions, lang, currentUserEmail, currentUserLeagues = [], teams, onTeamClick, preloadedAnalysis, onRefreshBrief, briefRefreshing, currentLang }) => {
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
-  const [activeLeague, setActiveLeague] = useState<string>('global');
+  const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues?.[0] ?? '');
   
   // Stats Modal State
   const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
@@ -275,9 +275,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
   // Filter users based on league selection
   const filteredUsers = useMemo(() => {
-      if (activeLeague === 'global') return users;
+      if (!activeLeague || currentUserLeagues.length === 0) return users;
       return users.filter(u => u.leagues?.includes(activeLeague));
-  }, [users, activeLeague]);
+  }, [users, activeLeague, currentUserLeagues]);
 
   // 1. Calculate Scores for Everyone
   const userStats = filteredUsers.map(user => {
@@ -537,15 +537,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                 </button>
             </div>
 
-            {/* League tabs inline */}
-            {currentUserLeagues.length > 0 && (
+            {/* League tabs inline — only shown when user is in multiple leagues */}
+            {currentUserLeagues.length > 1 && (
                 <div className="flex overflow-x-auto no-scrollbar gap-1 relative z-20">
-                    <button
-                        onClick={() => setActiveLeague('global')}
-                        className={`shrink-0 px-3 py-1.5 rounded-t-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${activeLeague === 'global' ? 'bg-white/10 text-white border-yellow-400' : 'text-slate-400 border-transparent hover:text-white'}`}
-                    >
-                        <Globe size={10} className="inline mr-1 -mt-0.5" />{lang.lbGlobal || 'All'}
-                    </button>
                     {currentUserLeagues.map(slug => (
                         <button
                             key={slug}
