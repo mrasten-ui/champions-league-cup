@@ -657,6 +657,7 @@ export const LEAGUES: Record<string, string> = {
   armchair_gaffers:   'The Armchair Gaffers',
   beeline:            'Beeline World Cup 2026',
   sofa_ekspertene:    'Rasten-ligaen avd Sofa-ekspertene',
+  infantinos_hustle:  "Infantino's Side Hustle",
 };
 
 // Default language shown when joining via each league's invite link.
@@ -665,6 +666,7 @@ export const LEAGUE_DEFAULT_LANGS: Record<string, LanguageCode> = {
   armchair_gaffers:   'SCO',
   beeline:            'EN',
   sofa_ekspertene:    'NO',
+  infantinos_hustle:  'SCO',
 };
 
 // --- DATA EXPORTS ---
