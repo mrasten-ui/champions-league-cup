@@ -81,9 +81,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       };
 
       userMatches.forEach(m => {
-          if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
-
           if (m.groupId) {
+              if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
               if (!groups[m.groupId]) groups[m.groupId] = [];
               groups[m.groupId].push(m);
           } else if (m.round) {
