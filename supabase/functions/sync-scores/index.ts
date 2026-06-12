@@ -80,7 +80,7 @@ serve(async (req) => {
   const ftStart   = new Date(now.getTime() - 210 * 60 * 1000).toISOString() // 3.5h ago
   const liveStart = new Date(now.getTime() -  36 * 60 * 60 * 1000).toISOString() // 36h ago — catches cross-day stale matches
 
-  const { data: windowCheck } = await supabase
+  const { data: windowCheck, error: wcError } = await supabase
     .from('matches')
     .select('id')
     .or(
@@ -90,6 +90,13 @@ serve(async (req) => {
     )
     .limit(1)
 
+  if (wcError) {
+    console.error(`[${today}] windowCheck failed:`, wcError.message)
+    return new Response(JSON.stringify({ error: 'window_check_failed', detail: wcError.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   if (!windowCheck?.length) {
     console.log(`[${today}] Skipped — no active match window`)
     return new Response(JSON.stringify({ skipped: true, reason: 'no active match window' }), {
@@ -98,7 +105,13 @@ serve(async (req) => {
   }
 
   // Pre-fetch all DB matches so we can detect stale live-status matches from previous days
-  const { data: dbMatches } = await supabase.from('matches').select('id, api_id, home_team_id, away_team_id, date, status')
+  const { data: dbMatches, error: dbError } = await supabase.from('matches').select('id, api_id, home_team_id, away_team_id, date, status')
+  if (dbError) {
+    console.error(`[${today}] dbMatches fetch failed:`, dbError.message)
+    return new Response(JSON.stringify({ error: 'db_fetch_failed', detail: dbError.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    })
+  }
   const linkedByApiId = new Map((dbMatches ?? []).filter((m: any) => m.api_id).map((m: any) => [m.api_id, m]))
   const unlinked      = (dbMatches ?? []).filter((m: any) => !m.api_id)
 
@@ -121,7 +134,15 @@ serve(async (req) => {
       `https://v3.football.api-sports.io/fixtures?date=${date}&league=1&season=2026`,
       { headers: { 'x-apisports-key': API_KEY } }
     )
+    if (!res.ok) {
+      console.error(`  API HTTP error ${res.status} for date ${date}`)
+      continue
+    }
     const data = await res.json()
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      console.error(`  API returned errors for ${date}:`, JSON.stringify(data.errors))
+      continue
+    }
     if (data.response?.length) allFixtures.push(...data.response)
   }
 
@@ -268,7 +289,11 @@ serve(async (req) => {
         assist:       event.assist?.name  ?? null,
       }, { onConflict: 'match_id,api_event_id', ignoreDuplicates: true })
 
-      if (!error) eventsUpserted++
+      if (error) {
+        console.error(`  ✗ Event upsert (match ${matchId}, ${event.time?.elapsed}'):`, error.message)
+      } else {
+        eventsUpserted++
+      }
     }
   }
 
