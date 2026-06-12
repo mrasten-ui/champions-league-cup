@@ -1447,10 +1447,23 @@ export const App = () => {
           setLateJoinerCutoff(cutoff);
         }}
         onPreviewLateInvites={async () => {
-          if (!supabase) return { recipients: [], cutoff: null };
-          const { data, error } = await supabase.functions.invoke('send-late-invites', { body: { dry_run: true } });
-          if (error) throw error;
-          return data;
+          const usersWithPreds = new Set(allPredictions.map(p => p.userId));
+          const recipients = Object.values(usersDb as Record<string, any>)
+            .filter(u => !usersWithPreds.has(u.email))
+            .map(u => {
+              const league = u.leagues?.[0] ?? null;
+              const lang = league ? (LEAGUE_DEFAULT_LANGS[league] ?? 'EN') : 'EN';
+              return {
+                name: u.name || '',
+                email: u.email,
+                league,
+                lang,
+                url: league
+                  ? `${window.location.origin}?invite=${league}&late=1`
+                  : `${window.location.origin}?late=1`,
+              };
+            });
+          return { recipients, cutoff: lateJoinerCutoff };
         }}
         onSendLateInvites={async () => {
           if (!supabase) return { sent: 0, failed: 0 };
