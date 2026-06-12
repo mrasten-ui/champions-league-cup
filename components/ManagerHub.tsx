@@ -165,7 +165,19 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   );
 
   const { rank, totalPoints } = useMemo(() => {
-      const scores = allUsers.map(u => {
+      // Scope rank to the user's biggest league (most members). Fall back to global if no leagues.
+      const userLeagues = currentUser.leagues ?? [];
+      let leagueUsers = allUsers;
+      if (userLeagues.length > 0) {
+          const countByLeague = userLeagues.map(slug => ({
+              slug,
+              count: allUsers.filter(u => u.leagues?.includes(slug)).length,
+          }));
+          const biggestLeague = countByLeague.sort((a, b) => b.count - a.count)[0].slug;
+          leagueUsers = allUsers.filter(u => u.leagues?.includes(biggestLeague));
+      }
+
+      const scores = leagueUsers.map(u => {
           const score = finishedMatches.reduce((sum, m) => {
               const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
               if (!pred) return sum;
@@ -177,7 +189,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const myScore = scores.find(s => s.email === currentUser.email)?.score ?? 0;
       const myRank  = scores.findIndex(s => s.email === currentUser.email) + 1 || scores.length;
       return { rank: myRank, totalPoints: myScore };
-  }, [allUsers, allPredictions, finishedMatches, currentUser.email]);
+  }, [allUsers, allPredictions, finishedMatches, currentUser.email, currentUser.leagues]);
 
   return (
     <div className="pb-24 animate-fade-in space-y-3">
