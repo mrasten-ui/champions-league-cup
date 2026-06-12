@@ -41,15 +41,26 @@ serve(async (req) => {
   const API_KEY = Deno.env.get('API_FOOTBALL_KEY')!
   const today   = new Date().toISOString().slice(0, 10) // YYYY-MM-DD UTC
 
-  // Guard: skip API call entirely on days with no matches (saves quota)
-  const { data: todayCheck } = await supabase
+  // Guard: skip API call when outside an active match window
+  // Covers: live matches, HT/BT breaks, NS within [-60min,+45min] for late starts,
+  // and recently finished matches (kickoff within last 3.5h for AET/PEN lag).
+  const now = new Date()
+  const nsStart = new Date(now.getTime() -  60 * 60 * 1000).toISOString() // 60 min ago
+  const nsEnd   = new Date(now.getTime() +  45 * 60 * 1000).toISOString() // 45 min ahead
+  const ftStart = new Date(now.getTime() - 210 * 60 * 1000).toISOString() // 3.5h ago
+
+  const { data: windowCheck } = await supabase
     .from('matches')
     .select('id')
-    .gte('date', `${today}T00:00:00Z`)
-    .lte('date', `${today}T23:59:59Z`)
+    .or(
+      `status.in.(1H,HT,2H,ET,P,BT,LIVE,INT),` +
+      `and(status.in.(FT,AET,PEN),date.gte.${ftStart}),` +
+      `and(status.eq.NS,date.gte.${nsStart},date.lte.${nsEnd})`
+    )
+    .limit(1)
 
-  if (!todayCheck?.length) {
-    return new Response(JSON.stringify({ skipped: true, reason: 'no matches today' }), {
+  if (!windowCheck?.length) {
+    return new Response(JSON.stringify({ skipped: true, reason: 'no active match window' }), {
       headers: { 'Content-Type': 'application/json' }
     })
   }

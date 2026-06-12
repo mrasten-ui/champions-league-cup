@@ -5,6 +5,7 @@ import { Team } from '../types';
 
 export interface GoalNotification {
   eventId: number;
+  eventType: 'Goal' | 'Var';
   teamId: string;
   player?: string;
   detail?: string;
@@ -52,15 +53,16 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
 
   if (!notification) return null;
 
-  const isOG  = notification.detail === 'Own Goal';
-  const isPen = notification.detail === 'Penalty';
+  const isVAR = notification.eventType === 'Var';
+  const isOG  = !isVAR && notification.detail === 'Own Goal';
+  const isPen = !isVAR && notification.detail === 'Penalty';
   const min   = `${notification.minute}${notification.minuteExtra ? `+${notification.minuteExtra}` : ''}'`;
 
-  const label     = isOG ? 'OWN GOAL ⚽' : isPen ? 'PENALTY ⚽' : 'GOAL ⚽';
-  const accentCol = isOG ? 'border-orange-500' : 'border-red-500';
-  const dotCol    = isOG ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.9)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]';
-  const labelCol  = isOG ? 'text-orange-400' : isPen ? 'text-yellow-400' : 'text-red-400';
-  const barCol    = isOG ? 'bg-orange-500' : 'bg-red-500';
+  const label     = isVAR ? 'GOAL DISALLOWED 🚫' : isOG ? 'OWN GOAL ⚽' : isPen ? 'PENALTY ⚽' : 'GOAL ⚽';
+  const accentCol = isVAR ? 'border-purple-500' : isOG ? 'border-orange-500' : 'border-red-500';
+  const dotCol    = isVAR ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.9)]' : isOG ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.9)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]';
+  const labelCol  = isVAR ? 'text-purple-400' : isOG ? 'text-orange-400' : isPen ? 'text-yellow-400' : 'text-red-400';
+  const barCol    = isVAR ? 'bg-purple-500' : isOG ? 'bg-orange-500' : 'bg-red-500';
 
   return createPortal(
     <div

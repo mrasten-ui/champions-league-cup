@@ -108,8 +108,9 @@ export const App = () => {
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
-  const [goalNotification, setGoalNotification] = useState<GoalNotification | null>(null);
-  const seenEventIdsRef = useRef<Set<number> | null>(null);
+  const [goalQueue, setGoalQueue] = useState<GoalNotification[]>([]);
+  const seenEventIdsRef = useRef<Set<number>>(new Set());
+  const goalNotification = goalQueue[0] ?? null;
   const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
@@ -835,35 +836,43 @@ export const App = () => {
   };
 
   // --- GOAL BANNER ---
-  // First time matchEvents arrives (initial DB load), mark all as seen — don't notify.
-  // Any new INSERT after that fires the banner.
+  // Uses createdAt freshness (3 min) to prevent stale events from notifying on reload.
+  // Queue-based so rapid goals all show rather than dropping all but the first.
   useEffect(() => {
-    if (seenEventIdsRef.current === null) {
-      seenEventIdsRef.current = new Set(matchEvents.map(e => e.id));
-      return;
-    }
-    const newGoals = matchEvents.filter(
-      e => e.type === 'Goal' && !seenEventIdsRef.current!.has(e.id)
-    );
-    newGoals.forEach(e => seenEventIdsRef.current!.add(e.id));
-    if (newGoals.length > 0 && !goalNotification) {
-      const goal = newGoals[0];
-      const match = matches.find(m => m.id === goal.matchId);
-      if (match && match.homeScore !== null && match.awayScore !== null) {
-        setGoalNotification({
-          eventId: goal.id,
-          teamId: goal.teamId || '',
-          player: goal.player,
-          detail: goal.detail,
-          minute: goal.minute,
-          minuteExtra: goal.minuteExtra,
-          homeTeamId: match.homeTeamId,
-          awayTeamId: match.awayTeamId,
-          homeScore: match.homeScore,
-          awayScore: match.awayScore,
-        });
-      }
-    }
+    const STALE_MS = 3 * 60 * 1000;
+    const now = Date.now();
+
+    const fresh = matchEvents.filter(e => {
+      if (seenEventIdsRef.current.has(e.id)) return false;
+      seenEventIdsRef.current.add(e.id);
+      const isGoal = e.type === 'Goal';
+      const isVarCancel = e.type === 'Var' && e.detail === 'Goal Disallowed';
+      if (!isGoal && !isVarCancel) return false;
+      if (!e.createdAt) return false;
+      return (now - new Date(e.createdAt).getTime()) < STALE_MS;
+    });
+
+    if (!fresh.length) return;
+
+    const banners: GoalNotification[] = fresh.flatMap(e => {
+      const match = matches.find(m => m.id === e.matchId);
+      if (!match || match.homeScore === null || match.awayScore === null) return [];
+      return [{
+        eventId: e.id,
+        eventType: e.type as 'Goal' | 'Var',
+        teamId: e.teamId || '',
+        player: e.player,
+        detail: e.detail,
+        minute: e.minute,
+        minuteExtra: e.minuteExtra,
+        homeTeamId: match.homeTeamId,
+        awayTeamId: match.awayTeamId,
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+      }];
+    });
+
+    if (banners.length) setGoalQueue(prev => [...prev, ...banners]);
   }, [matchEvents]);
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
@@ -1221,7 +1230,7 @@ export const App = () => {
         homeTeam={goalNotification ? teamsData[goalNotification.homeTeamId] : undefined}
         awayTeam={goalNotification ? teamsData[goalNotification.awayTeamId] : undefined}
         scoringTeam={goalNotification ? teamsData[goalNotification.teamId] : undefined}
-        onDismiss={() => setGoalNotification(null)}
+        onDismiss={() => setGoalQueue(prev => prev.slice(1))}
       />
 
       {showAvatarEditor && (

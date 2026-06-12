@@ -34,26 +34,40 @@ const TEAM_NAME_TO_ID = {
   "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
 };
 
-const LOCKED_STATUSES = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
+const LOCKED_STATUSES    = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
+const LIVE_LOOP_STATUSES = ['1H', '2H', 'ET', 'P', 'LIVE', 'INT'];
+
+// Determine which polling tier applies right now.
+// Returns 'live' | 'window' | 'skip' — no API calls, only DB queries.
+async function checkTier() {
+  const now = new Date();
+
+  const { data: live } = await supabase
+    .from('matches').select('id').in('status', LIVE_LOOP_STATUSES).limit(1);
+  if (live?.length) return 'live';
+
+  const nsStart = new Date(now - 60  * 60 * 1000).toISOString(); // 60 min ago (late-start buffer)
+  const nsEnd   = new Date(now + 45  * 60 * 1000).toISOString(); // 45 min ahead
+  const ftStart = new Date(now - 210 * 60 * 1000).toISOString(); // 3.5h ago (covers AET/PEN lag)
+  const { data: window } = await supabase
+    .from('matches').select('id')
+    .or(
+      `status.in.(HT,BT),` +
+      `and(status.eq.NS,date.gte.${nsStart},date.lte.${nsEnd}),` +
+      `and(status.in.(FT,AET,PEN),date.gte.${ftStart})`
+    )
+    .limit(1);
+  if (window?.length) return 'window';
+
+  return 'skip';
+}
 
 async function syncScores() {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
   console.log(`[${new Date().toISOString()}] Starting score sync for ${today}...`);
 
   try {
-    // 0. Guard: skip the API call entirely on days with no matches (saves quota)
-    const { data: todayDbMatches } = await supabase
-      .from('matches')
-      .select('id')
-      .gte('date', `${today}T00:00:00Z`)
-      .lte('date', `${today}T23:59:59Z`);
-
-    if (!todayDbMatches?.length) {
-      console.log('No matches scheduled today — skipping API call.');
-      return;
-    }
-
-    // 1. Fetch only today's fixtures from API-Football (conserves daily quota)
+    // 1. Fetch only today's fixtures from API-Football
     const response = await fetch(
       `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&date=${today}`,
       { headers: { 'x-apisports-key': API_KEY } }
@@ -200,9 +214,23 @@ async function syncScores() {
     console.log(`Done. Updated: ${updated} (${autoLinked} newly auto-linked), Skipped/Errors: ${skipped}`);
 
   } catch (err) {
-    console.error('Critical error:', err);
-    process.exit(1);
+    console.error('Sync error:', err);
+    throw err; // let orchestrator handle — keeps live loop running on transient failures
   }
 }
 
-syncScores();
+// --- Adaptive orchestration ---
+const tier = await checkTier();
+
+if (tier === 'live') {
+  console.log('[TIER] Live — syncing every 20 s (12 iterations)');
+  for (let i = 0; i < 12; i++) {
+    try { await syncScores(); } catch { /* logged inside syncScores */ }
+    if (i < 11) await new Promise(r => setTimeout(r, 20_000));
+  }
+} else if (tier === 'window') {
+  console.log('[TIER] Window — single sync');
+  await syncScores();
+} else {
+  console.log('[TIER] Silent — no active match window, skipping API call');
+}

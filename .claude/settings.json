@@ -15,7 +15,8 @@
       "Bash(node scripts/send-reminders.js --apology)",
       "Bash(npm run *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node scripts/backfill-events.js)"
     ]
   }
 }

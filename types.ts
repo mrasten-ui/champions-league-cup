@@ -217,6 +217,7 @@ export interface MatchEvent {
   teamId?: string;
   player?: string;
   assist?: string;
+  createdAt?: string; // ISO timestamp from DB — used for notification staleness check
 }
 
 // --- NEW: Broadcast & Lore Types ---
