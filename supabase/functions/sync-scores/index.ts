@@ -77,13 +77,14 @@ serve(async (req) => {
   const now = new Date()
   const nsStart = new Date(now.getTime() -  60 * 60 * 1000).toISOString() // 60 min ago
   const nsEnd   = new Date(now.getTime() +  45 * 60 * 1000).toISOString() // 45 min ahead
-  const ftStart = new Date(now.getTime() - 210 * 60 * 1000).toISOString() // 3.5h ago
+  const ftStart   = new Date(now.getTime() - 210 * 60 * 1000).toISOString() // 3.5h ago
+  const liveStart = new Date(now.getTime() -  36 * 60 * 60 * 1000).toISOString() // 36h ago — catches cross-day stale matches
 
   const { data: windowCheck } = await supabase
     .from('matches')
     .select('id')
     .or(
-      `status.in.(1H,HT,2H,ET,P,BT,LIVE,INT),` +
+      `and(status.in.(1H,HT,2H,ET,P,BT,LIVE,INT),date.gte.${liveStart}),` +
       `and(status.in.(FT,AET,PEN),date.gte.${ftStart}),` +
       `and(status.eq.NS,date.gte.${nsStart},date.lte.${nsEnd})`
     )
@@ -95,28 +96,41 @@ serve(async (req) => {
     })
   }
 
-  // Fetch today's fixtures from API-Football (1 API call)
-  const fixturesRes = await fetch(
-    `https://v3.football.api-sports.io/fixtures?date=${today}&league=1&season=2026`,
-    { headers: { 'x-apisports-key': API_KEY } }
-  )
-  const fixturesData = await fixturesRes.json()
+  // Pre-fetch all DB matches so we can detect stale live-status matches from previous days
+  const { data: dbMatches } = await supabase.from('matches').select('id, api_id, home_team_id, away_team_id, date, status')
+  const linkedByApiId = new Map((dbMatches ?? []).filter((m: any) => m.api_id).map((m: any) => [m.api_id, m]))
+  const unlinked      = (dbMatches ?? []).filter((m: any) => !m.api_id)
 
-  if (!fixturesData.response?.length) {
+  // Collect all dates to fetch: today + any previous days with stale live statuses
+  const datesToFetch = new Set<string>([today])
+  for (const m of (dbMatches ?? [])) {
+    if (LIVE_STATUSES.includes((m as any).status) && (m as any).date?.slice(0, 10) < today) {
+      datesToFetch.add((m as any).date.slice(0, 10))
+    }
+  }
+
+  // Fetch fixtures for all needed dates (usually just today; adds a date only when a match
+  // got stuck in a live status overnight and needs catching up)
+  const allFixtures: any[] = []
+  for (const date of datesToFetch) {
+    const res  = await fetch(
+      `https://v3.football.api-sports.io/fixtures?date=${date}&league=1&season=2026`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    )
+    const data = await res.json()
+    if (data.response?.length) allFixtures.push(...data.response)
+  }
+
+  if (!allFixtures.length) {
     return new Response(JSON.stringify({ ok: true, updated: 0, reason: 'no api response' }), {
       headers: { 'Content-Type': 'application/json' }
     })
   }
 
-  // Pre-fetch all DB matches for linking
-  const { data: dbMatches } = await supabase.from('matches').select('id, api_id, home_team_id, away_team_id, date')
-  const linkedByApiId = new Map((dbMatches ?? []).filter((m: any) => m.api_id).map((m: any) => [m.api_id, m]))
-  const unlinked      = (dbMatches ?? []).filter((m: any) => !m.api_id)
-
   let updated = 0
   const eventsQueue: Array<{ apiId: string; matchId: string }> = []
 
-  for (const item of fixturesData.response) {
+  for (const item of allFixtures) {
     const { fixture, goals, teams } = item
     const apiId    = fixture.id.toString()
     const status   = fixture.status.short
@@ -196,7 +210,7 @@ serve(async (req) => {
 
     // For this match, find the fixture item so we can compare numeric API team IDs directly.
     // This is the most reliable method — API team names vary by endpoint, numeric IDs never do.
-    const fixtureItem = fixturesData.response.find((f: any) => String(f.fixture.id) === apiId)
+    const fixtureItem = allFixtures.find((f: any) => String(f.fixture.id) === apiId)
     const dbMatch     = linkedByApiId.get(apiId) as any
     const homeApiId   = fixtureItem?.teams?.home?.id ? String(fixtureItem.teams.home.id) : null
     const awayApiId   = fixtureItem?.teams?.away?.id ? String(fixtureItem.teams.away.id) : null

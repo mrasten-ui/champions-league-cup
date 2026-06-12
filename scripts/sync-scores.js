@@ -53,8 +53,12 @@ const LIVE_LOOP_STATUSES = ['1H', '2H', 'ET', 'P', 'LIVE', 'INT'];
 async function checkTier() {
   const now = new Date();
 
+  const liveStart = new Date(now - 36 * 60 * 60 * 1000).toISOString(); // 36h ago (guards against stale cross-day matches)
   const { data: live } = await supabase
-    .from('matches').select('id').in('status', LIVE_LOOP_STATUSES).limit(1);
+    .from('matches').select('id')
+    .in('status', LIVE_LOOP_STATUSES)
+    .gte('date', liveStart)
+    .limit(1);
   if (live?.length) return 'live';
 
   const nsStart = new Date(now - 60  * 60 * 1000).toISOString(); // 60 min ago (late-start buffer)
@@ -78,44 +82,61 @@ async function syncScores() {
   console.log(`[${new Date().toISOString()}] Starting score sync for ${today}...`);
 
   try {
-    // 1. Fetch only today's fixtures from API-Football
-    const response = await fetch(
-      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&date=${today}`,
-      { headers: { 'x-apisports-key': API_KEY } }
-    );
-
-    const data = await response.json();
-
-    console.log(`API HTTP status: ${response.status}`);
-    console.log(`API remaining requests: ${response.headers.get('x-ratelimit-requests-remaining') ?? 'unknown'}`);
-    console.log(`API errors:`, JSON.stringify(data.errors));
-    console.log(`API results count: ${data.results ?? 'undefined'}`);
-    // Log live match states so we can see what the API is actually returning
-    (data.response ?? []).filter(i => ['1H','HT','2H','ET','P','BT','LIVE'].includes(i.fixture?.status?.short)).forEach(i => {
-      console.log(`  LIVE: ${i.teams.home.name} ${i.goals.home ?? '-'}:${i.goals.away ?? '-'} ${i.teams.away.name} [${i.fixture.status.short} ${i.fixture.status.elapsed ?? '?'}']`);
-    });
-
-    if (data.errors && Object.keys(data.errors).length > 0) {
-      console.error('API returned errors:', JSON.stringify(data.errors));
-      return;
-    }
-
-    if (!data.response || data.response.length === 0) {
-      console.log('No fixtures returned — check API key and plan tier.');
-      return;
-    }
-
-    console.log(`Fetched ${data.response.length} fixtures from API.`);
-
-    // 2. Pre-fetch all DB matches so we can auto-link knockout fixtures as teams become known
+    // 1. Pre-fetch all DB matches so we can detect stale live-status matches from previous days
     const { data: dbMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, api_id, home_team_id, away_team_id, date');
+      .select('id, api_id, home_team_id, away_team_id, date, status');
 
     if (dbError) {
       console.error('Failed to fetch DB matches:', dbError.message);
       return;
     }
+
+    // 2. Collect all dates to fetch: today + any previous days with stale live statuses
+    const LIVE_STATUSES = ['1H', 'HT', '2H', 'ET', 'P', 'BT', 'LIVE', 'INT'];
+    const datesToFetch = new Set([today]);
+    for (const m of dbMatches) {
+      if (LIVE_STATUSES.includes(m.status) && m.date?.slice(0, 10) < today) {
+        datesToFetch.add(m.date.slice(0, 10));
+      }
+    }
+    if (datesToFetch.size > 1) {
+      console.log(`Also fetching stale dates: ${[...datesToFetch].filter(d => d !== today).join(', ')}`);
+    }
+
+    // 3. Fetch fixtures for all needed dates (usually just today)
+    const allFixtures = [];
+    let lastResponse = null;
+    for (const date of datesToFetch) {
+      const response = await fetch(
+        `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&date=${date}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const data = await response.json();
+      if (date === today) {
+        lastResponse = { response, data };
+        console.log(`API HTTP status: ${response.status}`);
+        console.log(`API remaining requests: ${response.headers.get('x-ratelimit-requests-remaining') ?? 'unknown'}`);
+        console.log(`API errors:`, JSON.stringify(data.errors));
+        console.log(`API results count: ${data.results ?? 'undefined'}`);
+        if (data.errors && Object.keys(data.errors).length > 0) {
+          console.error('API returned errors:', JSON.stringify(data.errors));
+          return;
+        }
+      }
+      if (data.response?.length) allFixtures.push(...data.response);
+    }
+
+    if (!allFixtures.length) {
+      console.log('No fixtures returned — check API key and plan tier.');
+      return;
+    }
+
+    console.log(`Fetched ${allFixtures.length} fixtures from API (${datesToFetch.size} date(s)).`);
+    // Log live match states so we can see what the API is actually returning
+    allFixtures.filter(i => ['1H','HT','2H','ET','P','BT','LIVE'].includes(i.fixture?.status?.short)).forEach(i => {
+      console.log(`  LIVE: ${i.teams.home.name} ${i.goals.home ?? '-'}:${i.goals.away ?? '-'} ${i.teams.away.name} [${i.fixture.status.short} ${i.fixture.status.elapsed ?? '?'}']`);
+    });
 
     // Fast lookup for already-linked fixtures
     const linkedByApiId = new Map(
@@ -130,7 +151,7 @@ async function syncScores() {
     let autoLinked = 0;
     let skipped = 0;
 
-    for (const item of data.response) {
+    for (const item of allFixtures) {
       const { fixture, goals, teams } = item;
       const apiId   = fixture.id.toString();
       const apiDate = fixture.date?.slice(0, 10);
@@ -233,7 +254,7 @@ async function syncScores() {
     // 4. Sync match events for live + recently-finished matches
     const EVENTS_STATUSES = ['1H', 'HT', '2H', 'ET', 'P', 'BT', 'LIVE', 'INT', 'FT', 'AET', 'PEN'];
     const eventsQueue = [];
-    for (const item of data.response) {
+    for (const item of allFixtures) {
       const apiId  = item.fixture.id.toString();
       const status = item.fixture.status.short;
       const dbMatch = linkedByApiId.get(apiId);
