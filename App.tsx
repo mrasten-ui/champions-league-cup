@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import { 
@@ -81,6 +81,8 @@ export const App = () => {
   const [nameSaving, setNameSaving] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [lateWindowCleared, setLateWindowCleared] = useState(false);
+  const [lateWindowRemaining, setLateWindowRemaining] = useState(0);
   const [showAdminBanner, setShowAdminBanner] = useState(false);
 
   // Derived from match data — flips to LIVE the moment any group match leaves UPCOMING/NS.
@@ -196,10 +198,10 @@ export const App = () => {
   };
 
   const isInLateWindow = useMemo(() => {
-    if (!user?.email) return false;
+    if (lateWindowCleared || !user?.email) return false;
     const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
     return Date.now() < until;
-  }, [user?.email]);
+  }, [user?.email, lateWindowCleared]);
 
   const effectiveTournamentPhase: TournamentPhase = isInLateWindow ? 'PRE_LIVE' : tournamentPhase;
 
@@ -591,6 +593,24 @@ export const App = () => {
     sessionStorage.removeItem('pending_late_joiner');
     addToast('success', 'Welcome, late joiner!', 'You have 4 hours to fill in your predictions. Past matches count as 0 pts.');
   }, [user?.email]);
+
+  // Countdown ticker for late joiner banner
+  useEffect(() => {
+    if (!isInLateWindow || !user?.email) return;
+    const tick = () => {
+      const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
+      setLateWindowRemaining(Math.max(0, until - Date.now()));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isInLateWindow, user?.email]);
+
+  const handleGoLive = () => {
+    if (!user?.email) return;
+    localStorage.removeItem('rasten_late_until_' + user.email);
+    setLateWindowCleared(true);
+  };
 
   // --- TOUR GUIDE CONTROLS ---
   useEffect(() => {
@@ -1082,6 +1102,33 @@ export const App = () => {
             lang={t}
           />
         )}
+
+        {isInLateWindow && (() => {
+          const totalSec = Math.floor(lateWindowRemaining / 1000);
+          const h = Math.floor(totalSec / 3600);
+          const m = Math.floor((totalSec % 3600) / 60);
+          const s = totalSec % 60;
+          const timeStr = h > 0
+            ? `${h}h ${m.toString().padStart(2, '0')}m`
+            : `${m}m ${s.toString().padStart(2, '0')}s`;
+          return (
+            <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <Clock size={16} className="text-amber-600 shrink-0" />
+                <span className="text-sm font-bold text-amber-800 truncate">
+                  Setup window closes in <span className="font-black tabular-nums">{timeStr}</span>
+                </span>
+              </div>
+              <button
+                onClick={handleGoLive}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
+              >
+                <Zap size={12} />
+                Go Live
+              </button>
+            </div>
+          );
+        })()}
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={leagueRivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
         
