@@ -87,8 +87,13 @@ async function syncScores() {
     const data = await response.json();
 
     console.log(`API HTTP status: ${response.status}`);
+    console.log(`API remaining requests: ${response.headers.get('x-ratelimit-requests-remaining') ?? 'unknown'}`);
     console.log(`API errors:`, JSON.stringify(data.errors));
     console.log(`API results count: ${data.results ?? 'undefined'}`);
+    // Log live match states so we can see what the API is actually returning
+    (data.response ?? []).filter(i => ['1H','HT','2H','ET','P','BT','LIVE'].includes(i.fixture?.status?.short)).forEach(i => {
+      console.log(`  LIVE: ${i.teams.home.name} ${i.goals.home ?? '-'}:${i.goals.away ?? '-'} ${i.teams.away.name} [${i.fixture.status.short} ${i.fixture.status.elapsed ?? '?'}']`);
+    });
 
     if (data.errors && Object.keys(data.errors).length > 0) {
       console.error('API returned errors:', JSON.stringify(data.errors));
