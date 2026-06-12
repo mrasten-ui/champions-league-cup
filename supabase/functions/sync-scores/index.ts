@@ -156,8 +156,8 @@ serve(async (req) => {
 
     for (const event of eventsData.response) {
       const teamId     = TEAM_NAME_TO_ID[event.team?.name] ?? null
-      // Stable dedup key: match + minute + extra + type + player
-      const apiEventId = `${matchId}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.player?.name ?? '').replace(/\s/g, '_')}`
+      // Stable dedup key: match + team + minute + extra + type + detail (no player name — API returns same event with different name formats)
+      const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`
 
       const { error } = await supabase.from('match_events').upsert({
         match_id:     matchId,

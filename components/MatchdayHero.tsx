@@ -362,14 +362,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             e.type === 'Goal' ||
             (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
           );
-          // A player can only receive one red card — deduplicate API artifact of second-yellow + red being two events
-          const redSeen = new Set<string>();
+          // Deduplicate: API-Football returns same event twice with different player name formats
+          const seen = new Set<string>();
           const sig = sigRaw.filter(e => {
-            if (e.type === 'Card' && e.detail === 'Red Card') {
-              const key = `${e.teamId}_${e.player}`;
-              if (redSeen.has(key)) return false;
-              redSeen.add(key);
-            }
+            const key = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.type}_${e.detail ?? ''}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
             return true;
           });
           if (!sig.length) return null;
