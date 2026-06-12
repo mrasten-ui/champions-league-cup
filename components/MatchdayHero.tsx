@@ -403,7 +403,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
             return (
               <span className="flex items-center gap-0.5 shrink-0">
-                <img src="/wc26-ball.png" className="w-3 h-3 shrink-0 object-contain" alt="" />
+                <img src="/wc26-ball.png" className="w-4 h-4 shrink-0 object-contain" alt="" />
                 {suffix && <span className="text-[7px] font-bold text-white/60">{suffix}</span>}
               </span>
             );
@@ -415,7 +415,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                   <span key={e.id} className="flex items-center gap-1.5 text-white/70 min-w-0">
                     <Icon e={e} />
                     <span className="font-bold text-white/90 shrink-0">{fmtMin(e)}</span>
-                    <span className="truncate">{e.player}</span>
+                    <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-white' : ''}`}>{e.player}</span>
                   </span>
                 ))}
               </div>
@@ -423,7 +423,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               <div className="flex-1 flex flex-col gap-1 items-end min-w-0">
                 {awayEvts.map(e => (
                   <span key={e.id} className="flex items-center justify-end gap-1.5 text-white/70 min-w-0">
-                    <span className="truncate">{e.player}</span>
+                    <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-white' : ''}`}>{e.player}</span>
                     <span className="font-bold text-white/90 shrink-0">{fmtMin(e)}</span>
                     <Icon e={e} />
                   </span>
