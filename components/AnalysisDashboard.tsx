@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, 
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
 import { SimRow } from './analysis/SimRow';
+import { HeadToHead } from './analysis/HeadToHead';
 
 // HELPER: Map App Language Code to Dictionary Key
 const getLocKey = (code: LanguageCode): string => {
@@ -65,10 +66,15 @@ const TEXT: Record<string, any> = {
 const SimulatedLeaderboardWidget: React.FC<{
     simulatedUsers: { user: UserProfile, score: number, diff: number, rank: number }[];
     currentUser: UserProfile;
+    rivals: UserProfile[];
+    matches: Match[];
+    allPredictions: Prediction[];
+    teams: Record<string, Team>;
     lang: Translation;
     t: any; // Local translations
-}> = ({ simulatedUsers, currentUser, lang, t }) => {
+}> = ({ simulatedUsers, currentUser, rivals, matches, allPredictions, teams, lang, t }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [h2hOpen, setH2hOpen] = useState(false);
 
     const chunkedUsers = useMemo(() => {
         const chunks = [];
@@ -82,7 +88,10 @@ const SimulatedLeaderboardWidget: React.FC<{
 
     return (
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-lg">
-            <div onClick={() => setIsExpanded(!isExpanded)} className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors">
+            <div
+                onClick={() => { if (h2hOpen) { setH2hOpen(false); } else { setIsExpanded(!isExpanded); } }}
+                className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+            >
                 <div className="flex flex-col">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.simRank}</span>
                     <div className="flex items-center gap-2">
@@ -97,10 +106,40 @@ const SimulatedLeaderboardWidget: React.FC<{
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">{isExpanded ? t.hideTable : t.fullTable}</span>
-                    {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const opening = !h2hOpen;
+                            setH2hOpen(opening);
+                            if (opening) setIsExpanded(false);
+                        }}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors
+                            ${h2hOpen
+                                ? 'bg-[#0f2545] text-white border-[#0f2545]'
+                                : 'border-slate-300 text-slate-500 hover:border-slate-400'}`}
+                    >
+                        H2H
+                    </button>
+                    {!h2hOpen && (
+                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">
+                            {isExpanded ? t.hideTable : t.fullTable}
+                        </span>
+                    )}
+                    {isExpanded || h2hOpen
+                        ? <ChevronUp size={20} className="text-slate-400" />
+                        : <ChevronDown size={20} className="text-slate-400" />}
                 </div>
             </div>
+
+            {h2hOpen && (
+                <HeadToHead
+                    currentUser={currentUser}
+                    rivals={rivals}
+                    matches={matches}
+                    allPredictions={allPredictions}
+                    teams={teams}
+                />
+            )}
 
             {isExpanded && (
                 <div className="border-t border-slate-100 animate-in slide-in-from-top-2 bg-slate-50/50">
@@ -256,6 +295,10 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
             <SimulatedLeaderboardWidget
                 simulatedUsers={combinedStats}
                 currentUser={currentUser}
+                rivals={rivals}
+                matches={matches}
+                allPredictions={allPredictions}
+                teams={teams}
                 lang={lang}
                 t={t}
             />
