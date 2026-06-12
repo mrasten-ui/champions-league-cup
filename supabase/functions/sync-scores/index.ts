@@ -2,25 +2,55 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const TEAM_NAME_TO_ID: Record<string, string> = {
-  "Mexico": "MEX", "South Africa": "RSA", "Korea Republic": "KOR",
-  "South Korea": "KOR", "Czech Republic": "CZE", "Czechia": "CZE",
-  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia": "BIH",
-  "Qatar": "QAT", "Switzerland": "SUI",
-  "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
-  "United States": "USA", "USA": "USA", "Paraguay": "PAR",
-  "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",
-  "Germany": "GER", "Curacao": "CUW", "Curaçao": "CUW",
-  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Ecuador": "ECU",
-  "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
-  "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "IR Iran": "IRN",
+  // North & Central America
+  "Mexico": "MEX", "Canada": "CAN",
+  "United States": "USA", "USA": "USA", "US": "USA",
+  "Honduras": "HON", "Costa Rica": "CRC",
+  "Jamaica": "JAM", "Panama": "PAN", "Haiti": "HAI",
+  "Trinidad and Tobago": "TRI", "Trinidad & Tobago": "TRI",
+  "El Salvador": "SLV", "Guatemala": "GUA",
+  // South America
+  "Argentina": "ARG", "Brazil": "BRA", "Colombia": "COL",
+  "Uruguay": "URU", "Ecuador": "ECU", "Paraguay": "PAR",
+  "Venezuela": "VEN", "Chile": "CHI", "Peru": "PER",
+  "Bolivia": "BOL",
+  // Europe
+  "England": "ENG", "France": "FRA", "Spain": "ESP",
+  "Germany": "GER", "Portugal": "POR", "Netherlands": "NED",
+  "Belgium": "BEL", "Croatia": "CRO", "Switzerland": "SUI",
+  "Austria": "AUT", "Denmark": "DEN", "Sweden": "SWE",
+  "Norway": "NOR", "Scotland": "SCO", "Wales": "WAL",
+  "Ireland": "IRL", "Republic of Ireland": "IRL",
+  "Serbia": "SRB", "Ukraine": "UKR", "Hungary": "HUN",
+  "Romania": "ROU", "Slovakia": "SVK", "Slovenia": "SVN",
+  "Czech Republic": "CZE", "Czechia": "CZE",
+  "Poland": "POL", "Greece": "GRE", "Turkey": "TUR", "Türkiye": "TUR",
+  "Albania": "ALB", "Georgia": "GEO", "Iceland": "ISL",
+  "Finland": "FIN", "Bulgaria": "BUL", "North Macedonia": "MKD",
+  "Bosnia and Herzegovina": "BIH", "Bosnia & Herzegovina": "BIH", "Bosnia": "BIH",
+  // Africa
+  "Morocco": "MAR", "Senegal": "SEN", "Nigeria": "NGA",
+  "Egypt": "EGY", "Ghana": "GHA", "Cameroon": "CMR",
+  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Côte d'Ivoire": "CIV",
+  "South Africa": "RSA", "Tunisia": "TUN", "Algeria": "ALG",
+  "Mali": "MLI", "Guinea": "GUI", "Cabo Verde": "CPV", "Cape Verde": "CPV",
+  "Mozambique": "MOZ", "Tanzania": "TAN", "Comoros": "COM",
+  "Benin": "BEN", "Zambia": "ZAM", "DR Congo": "COD", "Congo DR": "COD",
+  "Democratic Republic of Congo": "COD", "Congo": "COG",
+  // Asia
+  "Japan": "JPN", "Korea Republic": "KOR", "South Korea": "KOR",
+  "Saudi Arabia": "KSA", "Iran": "IRN", "IR Iran": "IRN",
+  "Australia": "AUS", "Uzbekistan": "UZB", "Jordan": "JOR",
+  "Iraq": "IRQ", "Qatar": "QAT", "UAE": "UAE",
+  "United Arab Emirates": "UAE", "Oman": "OMA",
+  "Indonesia": "IDN", "Thailand": "THA", "Vietnam": "VIE",
+  "China": "CHN", "China PR": "CHN",
   "New Zealand": "NZL",
-  "Spain": "ESP", "Cabo Verde": "CPV", "Cape Verde": "CPV",
-  "Saudi Arabia": "KSA", "Uruguay": "URU",
-  "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
-  "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
-  "Portugal": "POR", "DR Congo": "COD", "Congo DR": "COD",
-  "Uzbekistan": "UZB", "Colombia": "COL",
-  "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
+  // Caribbean / Other
+  "Curacao": "CUW", "Curaçao": "CUW",
+  "Suriname": "SUR",
+  // Misc API-Football variations
+  "Scotland": "SCO", "Haiti": "HAI", "New Zealand": "NZL",
 }
 
 const LOCKED_STATUSES = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO']
