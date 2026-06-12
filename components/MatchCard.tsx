@@ -412,9 +412,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                             <span className={`text-xl font-black tabular-nums ${colour}`}>{isHT ? 'HT' : minLabel}</span>
                                                             {!isHT && <span className={`text-xs font-black mt-0.5 ${colour}`}>′</span>}
                                                         </div>
-                                                        <div className="relative mt-1 w-10 h-px bg-white/20 rounded-full overflow-hidden">
+                                                        <div className="relative mt-1.5 w-16 h-1 bg-white/20 rounded-full overflow-hidden">
                                                             <div
-                                                                className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent`}
+                                                                className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent opacity-80`}
                                                                 style={isHT ? { left: '25%' } : { animation: 'liveSlide 1.8s ease-in-out infinite' }}
                                                             />
                                                         </div>

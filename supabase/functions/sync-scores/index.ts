@@ -174,6 +174,9 @@ serve(async (req) => {
     const eventsData = await eventsRes.json()
     if (!eventsData.response?.length) continue
 
+    // Remove stale null-team records so they get re-inserted with correct team attribution
+    await supabase.from('match_events').delete().eq('match_id', matchId).is('team_id', null)
+
     for (const event of eventsData.response) {
       const teamId     = TEAM_NAME_TO_ID[event.team?.name] ?? apiNumericToInternalId.get(String(event.team?.id)) ?? null
       // Stable dedup key: match + team + minute + extra + type + detail (no player name — API returns same event with different name formats)
