@@ -57,6 +57,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [invitePreviewing, setInvitePreviewing] = useState(false);
   const [inviteSending, setInviteSending] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Bulk channel state
   const [bulkLocale, setBulkLocale] = useState('NO');
@@ -361,10 +362,16 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                                     <div className="px-3 py-2 border-t border-amber-100 flex gap-2">
                                         <button
                                             onClick={async () => {
+                                                setInviteError(null);
                                                 setInviteSending(true);
-                                                const result = await onSendLateInvites();
-                                                setInviteResult(result);
-                                                setInviteSending(false);
+                                                try {
+                                                    const result = await onSendLateInvites();
+                                                    setInviteResult(result);
+                                                } catch (e: any) {
+                                                    setInviteError(e?.message ?? 'Send failed');
+                                                } finally {
+                                                    setInviteSending(false);
+                                                }
                                             }}
                                             disabled={inviteSending}
                                             className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
@@ -384,14 +391,28 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                     </div>
                 )}
 
+                {/* Error banner */}
+                {inviteError && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs font-bold text-red-700 flex items-start justify-between gap-2">
+                        <span>⚠ {inviteError}</span>
+                        <button onClick={() => setInviteError(null)} className="shrink-0 text-red-400 hover:text-red-600 font-black">✕</button>
+                    </div>
+                )}
+
                 {/* Preview button */}
                 {!invitePreview && !inviteResult && (
                     <button
                         onClick={async () => {
+                            setInviteError(null);
                             setInvitePreviewing(true);
-                            const { recipients } = await onPreviewLateInvites();
-                            setInvitePreview(recipients);
-                            setInvitePreviewing(false);
+                            try {
+                                const { recipients } = await onPreviewLateInvites();
+                                setInvitePreview(recipients);
+                            } catch (e: any) {
+                                setInviteError(e?.message ?? 'Preview failed — is the edge function deployed?');
+                            } finally {
+                                setInvitePreviewing(false);
+                            }
                         }}
                         disabled={invitePreviewing}
                         className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-700 border border-amber-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
