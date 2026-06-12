@@ -195,6 +195,14 @@ export const App = () => {
       setTimeout(() => setHighlightedMatchId(null), 2000);
   };
 
+  const isInLateWindow = useMemo(() => {
+    if (!user?.email) return false;
+    const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
+    return Date.now() < until;
+  }, [user?.email]);
+
+  const effectiveTournamentPhase: TournamentPhase = isInLateWindow ? 'PRE_LIVE' : tournamentPhase;
+
   // --- CORE LOGIC WITH 3-STAGE SECOND CHANCE OVERRIDE ---
   const userMatches = useMemo(() => {
       if (!user) return matches;
@@ -583,14 +591,6 @@ export const App = () => {
     sessionStorage.removeItem('pending_late_joiner');
     addToast('success', 'Welcome, late joiner!', 'You have 4 hours to fill in your predictions. Past matches count as 0 pts.');
   }, [user?.email]);
-
-  const isInLateWindow = useMemo(() => {
-    if (!user?.email) return false;
-    const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
-    return Date.now() < until;
-  }, [user?.email]);
-
-  const effectiveTournamentPhase: TournamentPhase = isInLateWindow ? 'PRE_LIVE' : tournamentPhase;
 
   // --- TOUR GUIDE CONTROLS ---
   useEffect(() => {
