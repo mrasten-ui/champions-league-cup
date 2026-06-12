@@ -490,17 +490,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  return true;
                });
 
-               // Convert a second yellow card for the same player into a red card
-               const yellowsByPlayer = new Map<string, boolean>();
-               const sig = deduped.map(e => {
+               // Drop duplicate yellow cards for the same player (API sometimes sends the same booking twice)
+               const yellowsByPlayer = new Set<string>();
+               const sig = deduped.filter(e => {
                  if (e.type === 'Card' && e.detail === 'Yellow Card' && e.player) {
                    const pKey = `${e.teamId}::${e.player}`;
-                   if (yellowsByPlayer.has(pKey)) {
-                     return { ...e, detail: 'Red Card' };
-                   }
-                   yellowsByPlayer.set(pKey, true);
+                   if (yellowsByPlayer.has(pKey)) return false;
+                   yellowsByPlayer.add(pKey);
                  }
-                 return e;
+                 return true;
                });
                if (!sig.length) return null;
                if (!isLive && !isFinished && variant !== 'official') return null;
