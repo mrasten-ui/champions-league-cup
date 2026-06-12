@@ -1186,12 +1186,12 @@ export const App = () => {
                         onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime} 
                     />
                 ) : (
-                    <KnockoutBracket 
-                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} 
-                        onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase} 
-                        isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup} 
+                    <KnockoutBracket
+                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
+                        onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase}
+                        isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup}
                         onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
-                        matchEvents={matchEvents}
+                        matchEvents={matchEvents} isLateJoiner={isInLateWindow}
                     />
                 )}
                 <div className="mt-8 flex justify-center pb-8">

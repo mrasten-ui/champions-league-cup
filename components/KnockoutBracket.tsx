@@ -22,10 +22,11 @@ interface KnockoutBracketProps {
   activeRound: Round;
   matchEvents?: MatchEvent[];
   allMatches?: Match[];
+  isLateJoiner?: boolean;
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
-  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = [], allMatches
+  matches, teams, onUpdate, lang, user, onSecondChance, rivals, allPredictions, phase, isGroupStageComplete, firstIncompleteGroup, onGoToGroup, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = [], allMatches, isLateJoiner = false
 }) => {
   
   // Filter matches for the active round
@@ -97,6 +98,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                             events={matchEvents.filter(e => String(e.matchId) === String(match.id))}
                             allMatches={allMatches ?? matches}
                             allTeams={teams}
+                            isLateJoiner={isLateJoiner}
                         />
                     </div>
                 );

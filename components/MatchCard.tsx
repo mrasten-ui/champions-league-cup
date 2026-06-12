@@ -147,7 +147,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
     const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
-    const showRivals = isSpied || isRealLifeLocked;
+    const showRivals = !isLateJoiner && (isSpied || isRealLifeLocked);
 
     const getContextLabel = () => {
         if (match.round) {
