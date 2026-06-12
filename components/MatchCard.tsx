@@ -206,25 +206,30 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const renderTopRight = () => {
-        // Upcoming: show TV channel link. Live/finished: show venue.
-        if (!isLive && !isFinished) {
-            const ch = getTvChannelName();
-            const url = ch ? getChannelUrl(ch) : null;
-            if (ch) return url
-                ? <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-slate-300 hover:text-blue-400 transition-colors" title={`Watch on ${ch}`}>
-                    <Tv size={10} /><span className="text-[10px] font-black uppercase tracking-widest">{ch}</span>
-                  </a>
-                : <div className="flex items-center gap-1 text-slate-300"><Tv size={10} /><span className="text-[10px] font-black uppercase tracking-widest">{ch}</span></div>;
+        const ch = getTvChannelName();
+        const url = ch ? getChannelUrl(ch) : null;
+
+        // Always show TV channel when one is available (upcoming, live, or finished)
+        if (ch) return url
+            ? <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-slate-300 hover:text-blue-400 transition-colors" title={`Watch on ${ch}`}>
+                <Tv size={10} /><span className="text-[10px] font-black uppercase tracking-widest">{ch}</span>
+              </a>
+            : <div className="flex items-center gap-1 text-slate-300"><Tv size={10} /><span className="text-[10px] font-black uppercase tracking-widest">{ch}</span></div>;
+
+        // No channel: show venue only if the footer status bar isn't already showing it
+        const venueInFooter = showStatusBadge && (isLive || isFinished);
+        if (!venueInFooter) {
+            const cityString = getShortVenue(match.venue);
+            return (
+                <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
+                    <MapPin size={10} />
+                    <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px]">
+                        {cityString}
+                    </span>
+                </div>
+            );
         }
-        const cityString = getShortVenue(match.venue);
-        return (
-            <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
-                <MapPin size={10} />
-                <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px]">
-                    {cityString}
-                </span>
-            </div>
-        );
+        return null;
     };
 
     // DEFENSIVE FIX: Check for 'TBD' before parsing Date
@@ -268,14 +273,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
 
         if (isLive) {
-            const minLabel = formatMinute(match.minute, match.minuteExtra, s, events);
-            const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
-            const label = minLabel ? `${minLabel}'` : 'LIVE';
             return (
                 <div className="flex items-center gap-1.5">
                     {liveDot}
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${isET ? 'text-sky-400' : 'text-red-400'}`}>
-                        {label}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-400 animate-pulse">
+                        LIVE
                     </span>
                 </div>
             );
@@ -419,7 +421,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                     </div>
                                                 );
                                             })()}
-                                            <div className={`px-4 py-2 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${isLive ? 'bg-red-600 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-xl mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
+                                            <div className={`px-4 py-2 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-xl mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
                                         </>
                                     ) : (
@@ -478,14 +480,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    if (target) cancelledIds.add(target.id);
                  }
                }
-               // Deduplicate: API-Football returns same event twice with different player name formats
+               // Deduplicate: API-Football sometimes returns the same event twice
                const seen = new Set<string>();
-               const sig = sigRaw.filter(e => {
+               const deduped = sigRaw.filter(e => {
                  if (cancelledIds.has(e.id)) return false;
                  const key = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.type}_${e.detail ?? ''}`;
                  if (seen.has(key)) return false;
                  seen.add(key);
                  return true;
+               });
+
+               // Convert a second yellow card for the same player into a red card
+               const yellowsByPlayer = new Map<string, boolean>();
+               const sig = deduped.map(e => {
+                 if (e.type === 'Card' && e.detail === 'Yellow Card' && e.player) {
+                   const pKey = `${e.teamId}::${e.player}`;
+                   if (yellowsByPlayer.has(pKey)) {
+                     return { ...e, detail: 'Red Card' };
+                   }
+                   yellowsByPlayer.set(pKey, true);
+                 }
+                 return e;
                });
                if (!sig.length) return null;
                if (!isLive && !isFinished && variant !== 'official') return null;
@@ -512,7 +527,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                        <span key={e.id} className="flex items-center gap-1 text-slate-500 min-w-0">
                          <Icon e={e} />
                          <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                         <span className="truncate">{e.player}</span>
+                         <span className="truncate">{e.player || <span className="italic text-slate-400">—</span>}</span>
                        </span>
                      ))}
                    </div>
@@ -520,7 +535,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    <div className="flex-1 flex flex-col gap-0.5 items-end min-w-0">
                      {awayEvts.map(e => (
                        <span key={e.id} className="flex items-center justify-end gap-1 text-slate-500 min-w-0">
-                         <span className="truncate">{e.player}</span>
+                         <span className="truncate">{e.player || <span className="italic text-slate-400">—</span>}</span>
                          <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
                          <Icon e={e} />
                        </span>
