@@ -21,10 +21,22 @@ interface DebugToolsProps {
   users: UserProfile[];
   predictions: Prediction[];
   matches: Match[];
+  lateJoinerCutoff: string | null;
+  onSetLateJoinerCutoff: (cutoff: string | null) => Promise<void>;
+  onPreviewLateInvites: () => Promise<{ recipients: LateInviteRecipient[]; cutoff: string | null }>;
+  onSendLateInvites: () => Promise<{ sent: number; failed: number }>;
+}
+
+interface LateInviteRecipient {
+  name: string;
+  email: string;
+  league: string | null;
+  lang: string;
+  url: string;
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
 }) => {
   if (!isOpen) return null;
 
@@ -38,6 +50,13 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [filling, setFilling] = useState(false);
   const [fillResult, setFillResult] = useState<{ filled: number; users: number } | null>(null);
   const [fillConfirm, setFillConfirm] = useState(false);
+
+  const [cutoffInput, setCutoffInput] = useState('');
+  const [cutoffSaving, setCutoffSaving] = useState(false);
+  const [invitePreview, setInvitePreview] = useState<LateInviteRecipient[] | null>(null);
+  const [invitePreviewing, setInvitePreviewing] = useState(false);
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{ sent: number; failed: number } | null>(null);
 
   // Bulk channel state
   const [bulkLocale, setBulkLocale] = useState('NO');
@@ -250,7 +269,139 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 4. LEAGUE MEMBER MANAGER */}
+            {/* 4. LATE ENTRY DEADLINE */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <UserPlus size={14} /> Late Entry Deadline
+                </h4>
+                <p className="text-[10px] text-slate-400 leading-snug">
+                    Set a cutoff after which the late-join link stops working. Leave blank for no deadline.
+                </p>
+                {lateJoinerCutoff && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                        <div>
+                            <div className="text-[10px] font-black text-red-700 uppercase tracking-widest">Current deadline</div>
+                            <div className="text-xs font-bold text-red-800 mt-0.5">
+                                {new Date(lateJoinerCutoff).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC
+                            </div>
+                        </div>
+                        <button
+                            onClick={async () => { setCutoffSaving(true); await onSetLateJoinerCutoff(null); setCutoffSaving(false); }}
+                            className="shrink-0 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                        >
+                            {cutoffSaving ? '…' : 'Clear'}
+                        </button>
+                    </div>
+                )}
+                <div className="flex gap-2">
+                    <input
+                        type="datetime-local"
+                        value={cutoffInput}
+                        onChange={e => setCutoffInput(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-amber-200 rounded-xl text-xs font-bold text-slate-700 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    />
+                    <button
+                        disabled={!cutoffInput || cutoffSaving}
+                        onClick={async () => {
+                            if (!cutoffInput) return;
+                            setCutoffSaving(true);
+                            await onSetLateJoinerCutoff(new Date(cutoffInput).toISOString());
+                            setCutoffInput('');
+                            setCutoffSaving(false);
+                        }}
+                        className="shrink-0 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                    >
+                        {cutoffSaving ? '…' : 'Set'}
+                    </button>
+                </div>
+            </div>
+
+            {/* 5. SEND LATE INVITE EMAILS */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <UserPlus size={14} /> Send Late Invite Emails
+                </h4>
+                <p className="text-[10px] text-slate-400 leading-snug">
+                    Emails registered users with zero predictions. Preview first, then confirm to send.
+                </p>
+
+                {/* Result banner */}
+                {inviteResult && (
+                    <div className={`rounded-xl px-3 py-2 border text-xs font-bold ${inviteResult.failed === 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                        ✅ Sent {inviteResult.sent} · ❌ Failed {inviteResult.failed}
+                        <button onClick={() => { setInviteResult(null); setInvitePreview(null); }} className="ml-3 text-slate-400 hover:text-slate-600 font-black">Reset</button>
+                    </div>
+                )}
+
+                {/* Preview list */}
+                {invitePreview && !inviteResult && (
+                    <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+                        {invitePreview.length === 0 ? (
+                            <div className="px-4 py-3 text-xs font-bold text-slate-500">Everyone has predictions — no emails needed.</div>
+                        ) : (
+                            <>
+                                <div className="bg-amber-50 px-3 py-2 border-b border-amber-100 text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                    {invitePreview.length} recipient{invitePreview.length !== 1 ? 's' : ''} — review before sending
+                                </div>
+                                <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                                    {invitePreview.map(r => (
+                                        <div key={r.email} className="px-3 py-2 flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="text-xs font-black text-slate-700 truncate">{r.name || <span className="text-slate-400 italic">No name</span>}</div>
+                                                <div className="text-[10px] text-slate-400 truncate">{r.email}</div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{r.lang}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 truncate max-w-[70px]">{r.league ?? 'no league'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {invitePreview.length > 0 && (
+                                    <div className="px-3 py-2 border-t border-amber-100 flex gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                setInviteSending(true);
+                                                const result = await onSendLateInvites();
+                                                setInviteResult(result);
+                                                setInviteSending(false);
+                                            }}
+                                            disabled={inviteSending}
+                                            className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                                        >
+                                            {inviteSending ? 'Sending…' : `Send to ${invitePreview.length}`}
+                                        </button>
+                                        <button
+                                            onClick={() => setInvitePreview(null)}
+                                            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Preview button */}
+                {!invitePreview && !inviteResult && (
+                    <button
+                        onClick={async () => {
+                            setInvitePreviewing(true);
+                            const { recipients } = await onPreviewLateInvites();
+                            setInvitePreview(recipients);
+                            setInvitePreviewing(false);
+                        }}
+                        disabled={invitePreviewing}
+                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-700 border border-amber-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                    >
+                        {invitePreviewing ? 'Loading…' : 'Preview Recipients'}
+                    </button>
+                )}
+            </div>
+
+            {/* 6. LEAGUE MEMBER MANAGER */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Users size={14} /> League Members

@@ -71,6 +71,7 @@ export const App = () => {
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
   const [leagueLangs, setLeagueLangs] = useState<Record<string, LanguageCode>>(LEAGUE_DEFAULT_LANGS);
+  const [lateJoinerCutoff, setLateJoinerCutoff] = useState<string | null>(null);
   const [adminPhaseOverride, setAdminPhaseOverride] = useState<TournamentPhase | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
@@ -153,13 +154,20 @@ export const App = () => {
   // shows the right language even when the constants fallback is 'EN'.
   useEffect(() => {
     if (!supabase) return;
-    supabase.from('settings').select('value').eq('key', 'league_langs').maybeSingle()
+    supabase.from('settings').select('key, value').in('key', ['league_langs', 'late_joiner_cutoff'])
       .then(({ data }) => {
-        if (!data?.value) return;
-        const overrides = data.value as Record<string, LanguageCode>;
-        setLeagueLangs(prev => ({ ...prev, ...overrides }));
-        const pendingInvite = sessionStorage.getItem('pending_league_invite');
-        if (pendingInvite && overrides[pendingInvite]) setLanguage(overrides[pendingInvite]);
+        if (!data) return;
+        for (const row of data) {
+          if (row.key === 'league_langs' && row.value) {
+            const overrides = row.value as Record<string, LanguageCode>;
+            setLeagueLangs(prev => ({ ...prev, ...overrides }));
+            const pendingInvite = sessionStorage.getItem('pending_league_invite');
+            if (pendingInvite && overrides[pendingInvite]) setLanguage(overrides[pendingInvite]);
+          }
+          if (row.key === 'late_joiner_cutoff') {
+            setLateJoinerCutoff(row.value as string ?? null);
+          }
+        }
       })
       .catch(() => { /* settings table not yet created — silently ignore */ });
   }, []);
@@ -588,11 +596,15 @@ export const App = () => {
   useEffect(() => {
     if (!user?.email) return;
     if (sessionStorage.getItem('pending_late_joiner') !== '1') return;
+    sessionStorage.removeItem('pending_late_joiner');
+    if (lateJoinerCutoff && Date.now() > new Date(lateJoinerCutoff).getTime()) {
+      addToast('error', 'Registration closed', 'The late entry window has now closed. Better luck next tournament!');
+      return;
+    }
     const expiresAt = Date.now() + 4 * 60 * 60 * 1000;
     localStorage.setItem('rasten_late_until_' + user.email, String(expiresAt));
-    sessionStorage.removeItem('pending_late_joiner');
     addToast('success', 'Welcome, late joiner!', 'You have 4 hours to fill in your predictions. Past matches count as 0 pts.');
-  }, [user?.email]);
+  }, [user?.email, lateJoinerCutoff]);
 
   // Countdown ticker for late joiner banner
   useEffect(() => {
@@ -1423,6 +1435,28 @@ export const App = () => {
               ? { ...m, channels: { ...(m.channels || {}), [locale]: channel } }
               : m
           ));
+        }}
+        lateJoinerCutoff={lateJoinerCutoff}
+        onSetLateJoinerCutoff={async (cutoff) => {
+          if (!supabase) return;
+          if (cutoff) {
+            await supabase.from('settings').upsert({ key: 'late_joiner_cutoff', value: cutoff });
+          } else {
+            await supabase.from('settings').delete().eq('key', 'late_joiner_cutoff');
+          }
+          setLateJoinerCutoff(cutoff);
+        }}
+        onPreviewLateInvites={async () => {
+          if (!supabase) return { recipients: [], cutoff: null };
+          const { data, error } = await supabase.functions.invoke('send-late-invites', { body: { dry_run: true } });
+          if (error) throw error;
+          return data;
+        }}
+        onSendLateInvites={async () => {
+          if (!supabase) return { sent: 0, failed: 0 };
+          const { data, error } = await supabase.functions.invoke('send-late-invites', { body: { dry_run: false } });
+          if (error) throw error;
+          return data;
         }}
       />
 
