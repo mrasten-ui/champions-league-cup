@@ -146,9 +146,8 @@ async function syncScores() {
         home_score:   goals.home ?? null,
         away_score:   goals.away ?? null,
         is_locked:    isLocked,
-        minute:       fixture.status.elapsed ?? null,
-        minute_extra: fixture.status.extra   ?? null,
-        updated_at:   new Date().toISOString(),
+        minute:     fixture.status.elapsed ?? null,
+        updated_at: new Date().toISOString(),
       };
 
       // Populate team IDs whenever we can resolve them (fills TBD knockout slots)
