@@ -133,7 +133,6 @@ serve(async (req) => {
       away_score:   goals.away ?? null,
       is_locked:    isLocked,
       minute,
-      minute_extra: minuteExtra,
       ...(fixture.date && { date: fixture.date }),
     }
 
