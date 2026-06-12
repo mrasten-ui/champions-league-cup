@@ -185,15 +185,6 @@ serve(async (req) => {
     }
   }
 
-  // Build numeric API team ID → internal code from linked fixtures (handles teams not in TEAM_NAME_TO_ID)
-  const apiNumericToInternalId = new Map<string, string>()
-  for (const item of fixturesData.response) {
-    const dbMatch = linkedByApiId.get(String(item.fixture.id)) as any
-    if (!dbMatch) continue
-    if (dbMatch.home_team_id && item.teams?.home?.id) apiNumericToInternalId.set(String(item.teams.home.id), dbMatch.home_team_id)
-    if (dbMatch.away_team_id && item.teams?.away?.id) apiNumericToInternalId.set(String(item.teams.away.id), dbMatch.away_team_id)
-  }
-
   // Fetch goal events for each started match (1 API call per match)
   let eventsUpserted = 0
   for (const { apiId, matchId } of eventsQueue) {
@@ -204,12 +195,28 @@ serve(async (req) => {
     const eventsData = await eventsRes.json()
     if (!eventsData.response?.length) continue
 
-    // Remove stale null-team records so they get re-inserted with correct team attribution
+    // For this match, find the fixture item so we can compare numeric API team IDs directly.
+    // This is the most reliable method — API team names vary by endpoint, numeric IDs never do.
+    const fixtureItem = fixturesData.response.find((f: any) => String(f.fixture.id) === apiId)
+    const dbMatch     = linkedByApiId.get(apiId) as any
+    const homeApiId   = fixtureItem?.teams?.home?.id ? String(fixtureItem.teams.home.id) : null
+    const awayApiId   = fixtureItem?.teams?.away?.id ? String(fixtureItem.teams.away.id) : null
+    const homeCode    = dbMatch?.home_team_id ?? null
+    const awayCode    = dbMatch?.away_team_id ?? null
+
+    // Delete stale null-team records so they get re-inserted with correct attribution
     await supabase.from('match_events').delete().eq('match_id', matchId).is('team_id', null)
 
     for (const event of eventsData.response) {
-      const teamId     = TEAM_NAME_TO_ID[event.team?.name] ?? apiNumericToInternalId.get(String(event.team?.id)) ?? null
-      // Stable dedup key: match + team + minute + extra + type + detail (no player name — API returns same event with different name formats)
+      const eventApiTeamId = event.team?.id ? String(event.team.id) : null
+
+      // Primary: numeric ID match (reliable across all API endpoints)
+      let teamId: string | null = null
+      if (eventApiTeamId && homeApiId && eventApiTeamId === homeApiId)      teamId = homeCode
+      else if (eventApiTeamId && awayApiId && eventApiTeamId === awayApiId) teamId = awayCode
+      else teamId = TEAM_NAME_TO_ID[event.team?.name] ?? null  // fallback: name lookup
+
+      // Stable dedup key: match + team + minute + extra + type + detail
       const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`
 
       const { error } = await supabase.from('match_events').upsert({

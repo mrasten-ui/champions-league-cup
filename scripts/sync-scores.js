@@ -13,25 +13,36 @@ const SEASON    = 2026;
 // API-Football team name → our internal 3-letter ID
 // The /fixtures endpoint does not include a `code` field — only team names are available.
 const TEAM_NAME_TO_ID = {
-  "Mexico": "MEX", "South Africa": "RSA", "Korea Republic": "KOR",
-  "South Korea": "KOR", "Czech Republic": "CZE", "Czechia": "CZE",
-  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia": "BIH",
-  "Qatar": "QAT", "Switzerland": "SUI",
-  "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
-  "United States": "USA", "USA": "USA", "Paraguay": "PAR",
-  "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",
-  "Germany": "GER", "Curacao": "CUW", "Curaçao": "CUW",
-  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Ecuador": "ECU",
-  "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
-  "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "IR Iran": "IRN",
-  "New Zealand": "NZL",
-  "Spain": "ESP", "Cabo Verde": "CPV", "Cape Verde": "CPV",
-  "Saudi Arabia": "KSA", "Uruguay": "URU",
-  "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
-  "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
-  "Portugal": "POR", "DR Congo": "COD", "Congo DR": "COD",
-  "Uzbekistan": "UZB", "Colombia": "COL",
-  "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
+  "Mexico": "MEX", "Canada": "CAN", "United States": "USA", "USA": "USA",
+  "Honduras": "HON", "Costa Rica": "CRC", "Jamaica": "JAM", "Panama": "PAN",
+  "Haiti": "HAI", "Trinidad and Tobago": "TRI", "Trinidad & Tobago": "TRI",
+  "El Salvador": "SLV", "Guatemala": "GUA",
+  "Argentina": "ARG", "Brazil": "BRA", "Colombia": "COL", "Uruguay": "URU",
+  "Ecuador": "ECU", "Paraguay": "PAR", "Venezuela": "VEN", "Chile": "CHI",
+  "Peru": "PER", "Bolivia": "BOL",
+  "England": "ENG", "France": "FRA", "Spain": "ESP", "Germany": "GER",
+  "Portugal": "POR", "Netherlands": "NED", "Belgium": "BEL", "Croatia": "CRO",
+  "Switzerland": "SUI", "Austria": "AUT", "Denmark": "DEN", "Sweden": "SWE",
+  "Norway": "NOR", "Scotland": "SCO", "Wales": "WAL",
+  "Ireland": "IRL", "Republic of Ireland": "IRL",
+  "Serbia": "SRB", "Ukraine": "UKR", "Hungary": "HUN", "Romania": "ROU",
+  "Slovakia": "SVK", "Slovenia": "SVN",
+  "Czech Republic": "CZE", "Czechia": "CZE",
+  "Poland": "POL", "Greece": "GRE", "Turkey": "TUR", "Türkiye": "TUR",
+  "Albania": "ALB", "Georgia": "GEO", "Iceland": "ISL",
+  "Bosnia and Herzegovina": "BIH", "Bosnia & Herzegovina": "BIH", "Bosnia": "BIH",
+  "Morocco": "MAR", "Senegal": "SEN", "Nigeria": "NGA", "Egypt": "EGY",
+  "Ghana": "GHA", "Cameroon": "CMR",
+  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Côte d'Ivoire": "CIV",
+  "South Africa": "RSA", "Tunisia": "TUN", "Algeria": "ALG", "Mali": "MLI",
+  "Guinea": "GUI", "Cabo Verde": "CPV", "Cape Verde": "CPV",
+  "DR Congo": "COD", "Congo DR": "COD", "Democratic Republic of Congo": "COD",
+  "Japan": "JPN", "Korea Republic": "KOR", "South Korea": "KOR",
+  "Saudi Arabia": "KSA", "Iran": "IRN", "IR Iran": "IRN",
+  "Australia": "AUS", "Uzbekistan": "UZB", "Jordan": "JOR", "Iraq": "IRQ",
+  "Qatar": "QAT", "New Zealand": "NZL",
+  "Indonesia": "IDN", "China PR": "CHN", "China": "CHN",
+  "Curacao": "CUW", "Curaçao": "CUW",
 };
 
 const LOCKED_STATUSES    = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
@@ -212,6 +223,58 @@ async function syncScores() {
     }
 
     console.log(`Done. Updated: ${updated} (${autoLinked} newly auto-linked), Skipped/Errors: ${skipped}`);
+
+    // 4. Sync match events for live + recently-finished matches
+    const EVENTS_STATUSES = ['1H', 'HT', '2H', 'ET', 'P', 'BT', 'LIVE', 'INT', 'FT', 'AET', 'PEN'];
+    const eventsQueue = [];
+    for (const item of data.response) {
+      const apiId  = item.fixture.id.toString();
+      const status = item.fixture.status.short;
+      const dbMatch = linkedByApiId.get(apiId);
+      if (dbMatch && EVENTS_STATUSES.includes(status)) {
+        eventsQueue.push({ apiId, matchId: dbMatch.id, homeApiTeamId: String(item.teams.home.id), awayApiTeamId: String(item.teams.away.id), homeCode: dbMatch.home_team_id, awayCode: dbMatch.away_team_id });
+      }
+    }
+
+    let eventsUpserted = 0;
+    for (const { apiId, matchId, homeApiTeamId, awayApiTeamId, homeCode, awayCode } of eventsQueue) {
+      const evRes = await fetch(
+        `https://v3.football.api-sports.io/fixtures/events?fixture=${apiId}`,
+        { headers: { 'x-apisports-key': API_KEY } }
+      );
+      const evData = await evRes.json();
+      if (!evData.response?.length) continue;
+
+      // Delete stale null-team records so they get re-inserted with correct attribution
+      await supabase.from('match_events').delete().eq('match_id', matchId).is('team_id', null);
+
+      for (const event of evData.response) {
+        const eventApiTeamId = event.team?.id ? String(event.team.id) : null;
+
+        // Primary: numeric ID match — bypasses name inconsistencies across API endpoints
+        let teamId = null;
+        if (eventApiTeamId && eventApiTeamId === homeApiTeamId)      teamId = homeCode;
+        else if (eventApiTeamId && eventApiTeamId === awayApiTeamId) teamId = awayCode;
+        else teamId = TEAM_NAME_TO_ID[event.team?.name] ?? null;
+
+        const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`;
+
+        const { error } = await supabase.from('match_events').upsert({
+          match_id:     matchId,
+          api_event_id: apiEventId,
+          minute:       event.time?.elapsed ?? null,
+          minute_extra: event.time?.extra   ?? null,
+          type:         event.type,
+          detail:       event.detail        ?? null,
+          team_id:      teamId,
+          player:       event.player?.name  ?? null,
+          assist:       event.assist?.name  ?? null,
+        }, { onConflict: 'match_id,api_event_id', ignoreDuplicates: true });
+
+        if (!error) eventsUpserted++;
+      }
+    }
+    if (eventsQueue.length) console.log(`Events: synced ${eventsUpserted} events across ${eventsQueue.length} match(es).`);
 
   } catch (err) {
     console.error('Sync error:', err);
