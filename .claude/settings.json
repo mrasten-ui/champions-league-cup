@@ -17,7 +17,11 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(node scripts/backfill-events.js)",
-      "Bash(node scripts/verify-isolation.js)"
+      "Bash(node scripts/verify-isolation.js)",
+      "Bash(supabase functions *)",
+      "Bash(supabase projects *)",
+      "Bash(supabase link *)",
+      "Bash(supabase secrets *)"
     ]
   }
 }
