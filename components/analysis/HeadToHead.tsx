@@ -184,6 +184,31 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({
   const lastIdx = chartData.length - 1;
   const tickInterval = chartData.length <= 9 ? 0 : Math.floor((chartData.length - 1) / 8);
 
+  // Spread tied avatars horizontally so they don't stack on top of each other
+  const avatarOffsetsX = useMemo(() => {
+    const offsets: Record<string, number> = {};
+    const last = chartData[chartData.length - 1] as Record<string, string | number> | undefined;
+    if (!last) return offsets;
+
+    const byScore = new Map<number, string[]>();
+    activePlayers.forEach(p => {
+      const score = (last[p.email] as number) ?? 0;
+      const group = byScore.get(score) ?? [];
+      group.push(p.email);
+      byScore.set(score, group);
+    });
+
+    const SPACING = 28;
+    byScore.forEach(group => {
+      group.forEach((email, idx) => {
+        offsets[email] = group.length > 1
+          ? (idx - (group.length - 1) / 2) * SPACING
+          : 0;
+      });
+    });
+    return offsets;
+  }, [chartData, activePlayers]);
+
   // Custom two-line X-axis tick: date on top, match code below
   const renderMatchTick = (tickProps: any) => {
     const { x, y, index } = tickProps;
@@ -275,7 +300,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({
       ) : (
         <div className="h-[210px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 52, bottom: 60, left: 0 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 72, bottom: 60, left: 0 }}>
               <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
@@ -307,7 +332,7 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({
                     return (
                       <AvatarDot
                         key={dotProps.key}
-                        cx={dotProps.cx}
+                        cx={(dotProps.cx ?? 0) + (avatarOffsetsX[player.email] ?? 0)}
                         cy={dotProps.cy}
                         player={player}
                         color={H2H_COLORS[i]}
