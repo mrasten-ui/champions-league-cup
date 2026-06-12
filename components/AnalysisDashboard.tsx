@@ -3,7 +3,7 @@ import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from 
 import { calculateGroupStandings } from '../services/engine';
 import { DateRibbon } from './DateRibbon';
 import { AvatarDisplay } from './AvatarDisplay';
-import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, Info, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, Info, X, Swords } from 'lucide-react';
 
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
@@ -113,12 +113,13 @@ const SimulatedLeaderboardWidget: React.FC<{
                             setH2hOpen(opening);
                             if (opening) setIsExpanded(false);
                         }}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
                             ${h2hOpen
-                                ? 'bg-[#0f2545] text-white border-[#0f2545]'
-                                : 'border-slate-300 text-slate-500 hover:border-slate-400'}`}
+                                ? 'bg-violet-600 text-white shadow-md shadow-violet-200'
+                                : 'bg-violet-50 text-violet-700 hover:bg-violet-100'}`}
                     >
-                        H2H
+                        <Swords size={11} />
+                        Head to Head
                     </button>
                     {!h2hOpen && (
                         <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider hidden sm:inline">

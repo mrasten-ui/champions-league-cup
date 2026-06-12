@@ -22,7 +22,8 @@
       "Bash(supabase projects *)",
       "Bash(supabase link *)",
       "Bash(supabase secrets *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(node -e \"const l = require\\('./node_modules/lucide-react'\\); console.log\\('Swords:', !!l.Swords, 'Shield:', !!l.Shield, 'Sword:', !!l.Sword\\)\")"
     ]
   }
 }

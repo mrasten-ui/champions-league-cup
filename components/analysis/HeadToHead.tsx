@@ -182,8 +182,28 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({
   };
 
   const lastIdx = chartData.length - 1;
-  // Show roughly 8–10 date ticks regardless of total length
   const tickInterval = chartData.length <= 9 ? 0 : Math.floor((chartData.length - 1) / 8);
+
+  // Custom two-line X-axis tick: date on top, match code below
+  const renderMatchTick = (tickProps: any) => {
+    const { x, y, index } = tickProps;
+    const point = chartData[index] as Record<string, string | number> | undefined;
+    if (!point) return <g key={`tick-${index}`} />;
+    const date = point.date as string;
+    const match = (point.match as string) || '';
+    return (
+      <g key={`tick-${index}`} transform={`translate(${x},${y + 4})`}>
+        <text transform="rotate(-40)" textAnchor="end" fontSize={9} fill="#64748b" dominantBaseline="auto">
+          {date}
+        </text>
+        {match && (
+          <text transform="rotate(-40)" y={13} textAnchor="end" fontSize={8} fill="#94a3b8" dominantBaseline="auto">
+            {match}
+          </text>
+        )}
+      </g>
+    );
+  };
 
   return (
     <div className="p-4 space-y-4 border-t border-slate-100 bg-white">
@@ -255,13 +275,11 @@ export const HeadToHead: React.FC<HeadToHeadProps> = ({
       ) : (
         <div className="h-[210px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 36, bottom: 48, left: 0 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 52, bottom: 60, left: 0 }}>
               <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 9, fill: '#94a3b8' }}
-                angle={-45}
-                textAnchor="end"
+                tick={renderMatchTick}
                 interval={tickInterval}
                 tickLine={false}
                 axisLine={{ stroke: '#e2e8f0' }}
