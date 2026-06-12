@@ -155,6 +155,15 @@ serve(async (req) => {
     }
   }
 
+  // Build numeric API team ID → internal code from linked fixtures (handles teams not in TEAM_NAME_TO_ID)
+  const apiNumericToInternalId = new Map<string, string>()
+  for (const item of fixturesData.response) {
+    const dbMatch = linkedByApiId.get(String(item.fixture.id)) as any
+    if (!dbMatch) continue
+    if (dbMatch.home_team_id && item.teams?.home?.id) apiNumericToInternalId.set(String(item.teams.home.id), dbMatch.home_team_id)
+    if (dbMatch.away_team_id && item.teams?.away?.id) apiNumericToInternalId.set(String(item.teams.away.id), dbMatch.away_team_id)
+  }
+
   // Fetch goal events for each started match (1 API call per match)
   let eventsUpserted = 0
   for (const { apiId, matchId } of eventsQueue) {
@@ -166,7 +175,7 @@ serve(async (req) => {
     if (!eventsData.response?.length) continue
 
     for (const event of eventsData.response) {
-      const teamId     = TEAM_NAME_TO_ID[event.team?.name] ?? null
+      const teamId     = TEAM_NAME_TO_ID[event.team?.name] ?? apiNumericToInternalId.get(String(event.team?.id)) ?? null
       // Stable dedup key: match + team + minute + extra + type + detail (no player name — API returns same event with different name formats)
       const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`
 
