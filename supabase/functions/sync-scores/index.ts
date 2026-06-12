@@ -91,6 +91,7 @@ serve(async (req) => {
     .limit(1)
 
   if (!windowCheck?.length) {
+    console.log(`[${today}] Skipped — no active match window`)
     return new Response(JSON.stringify({ skipped: true, reason: 'no active match window' }), {
       headers: { 'Content-Type': 'application/json' }
     })
@@ -108,6 +109,9 @@ serve(async (req) => {
       datesToFetch.add((m as any).date.slice(0, 10))
     }
   }
+  if (datesToFetch.size > 1) {
+    console.log(`[${today}] Stale live matches detected — also fetching: ${[...datesToFetch].filter(d => d !== today).join(', ')}`)
+  }
 
   // Fetch fixtures for all needed dates (usually just today; adds a date only when a match
   // got stuck in a live status overnight and needs catching up)
@@ -122,12 +126,21 @@ serve(async (req) => {
   }
 
   if (!allFixtures.length) {
+    console.log(`[${today}] No fixtures returned from API`)
     return new Response(JSON.stringify({ ok: true, updated: 0, reason: 'no api response' }), {
       headers: { 'Content-Type': 'application/json' }
     })
   }
 
+  console.log(`[${today}] Fetched ${allFixtures.length} fixtures — ${linkedByApiId.size} linked, ${unlinked.length} unlinked in DB`)
+
+  // Log any live/in-progress matches so we can see what the API is returning
+  allFixtures
+    .filter((i: any) => ['1H','HT','2H','ET','P','BT','LIVE'].includes(i.fixture?.status?.short))
+    .forEach((i: any) => console.log(`  LIVE: ${i.teams.home.name} ${i.goals.home ?? '-'}:${i.goals.away ?? '-'} ${i.teams.away.name} [${i.fixture.status.short} ${i.fixture.status.elapsed ?? '?'}']`))
+
   let updated = 0
+  let errors  = 0
   const eventsQueue: Array<{ apiId: string; matchId: string }> = []
 
   for (const item of allFixtures) {
@@ -136,7 +149,6 @@ serve(async (req) => {
     const status   = fixture.status.short
     const isLocked    = LOCKED_STATUSES.includes(status)
     const minute      = fixture.status.elapsed ?? null
-    const minuteExtra = fixture.status.extra   ?? null
 
     const homeId = TEAM_NAME_TO_ID[teams.home.name]
     const awayId = TEAM_NAME_TO_ID[teams.away.name]
@@ -175,7 +187,13 @@ serve(async (req) => {
 
     if (linkedByApiId.has(apiId)) {
       const { error } = await supabase.from('matches').update(payload).eq('api_id', apiId)
-      if (!error) { matchId = (linkedByApiId.get(apiId) as any).id; updated++ }
+      if (!error) {
+        matchId = (linkedByApiId.get(apiId) as any).id
+        updated++
+      } else {
+        console.error(`  ✗ ${teams.home.name} vs ${teams.away.name} [${status}]: ${error.message}`)
+        errors++
+      }
     } else if (homeId && awayId) {
       const apiDate = fixture.date?.slice(0, 10)
       const match   = unlinked.find((m: any) =>
@@ -189,6 +207,10 @@ serve(async (req) => {
           matchId = (match as any).id
           linkedByApiId.set(apiId, match)
           updated++
+          console.log(`  Auto-linked: ${homeId} vs ${awayId} → api_id=${apiId}`)
+        } else {
+          console.error(`  ✗ Auto-link ${homeId} vs ${awayId}: ${error.message}`)
+          errors++
         }
       }
     }
@@ -197,6 +219,8 @@ serve(async (req) => {
       eventsQueue.push({ apiId, matchId })
     }
   }
+
+  console.log(`  Matches: updated=${updated}, errors=${errors}`)
 
   // Fetch goal events for each started match (1 API call per match)
   let eventsUpserted = 0
@@ -248,8 +272,12 @@ serve(async (req) => {
     }
   }
 
+  if (eventsQueue.length) {
+    console.log(`  Events: synced ${eventsUpserted} across ${eventsQueue.length} match(es)`)
+  }
+
   return new Response(
-    JSON.stringify({ ok: true, updated, liveMatches: eventsQueue.length, eventsUpserted }),
+    JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted }),
     { headers: { 'Content-Type': 'application/json' } }
   )
 })
