@@ -452,9 +452,31 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
                );
+               // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
+               // goal scored at or before the VAR minute (decision often comes minutes after the goal)
+               const varCancels = new Map<string, number[]>();
+               for (const e of events) {
+                 if (e.type === 'Var' && e.detail === 'Goal Disallowed' && e.teamId) {
+                   if (!varCancels.has(e.teamId)) varCancels.set(e.teamId, []);
+                   varCancels.get(e.teamId)!.push(e.minute);
+                 }
+               }
+               const cancelledIds = new Set<number>();
+               for (const [teamId, varMins] of varCancels) {
+                 const teamGoals = sigRaw
+                   .filter(e => e.type === 'Goal' && e.teamId === teamId)
+                   .sort((a, b) => a.minute - b.minute);
+                 for (const varMin of varMins) {
+                   const target = [...teamGoals].reverse().find(
+                     g => g.minute <= varMin && !cancelledIds.has(g.id)
+                   );
+                   if (target) cancelledIds.add(target.id);
+                 }
+               }
                // Deduplicate: API-Football returns same event twice with different player name formats
                const seen = new Set<string>();
                const sig = sigRaw.filter(e => {
+                 if (cancelledIds.has(e.id)) return false;
                  const key = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.type}_${e.detail ?? ''}`;
                  if (seen.has(key)) return false;
                  seen.add(key);
