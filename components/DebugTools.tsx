@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe } from 'lucide-react';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe, UserPlus } from 'lucide-react';
 import { Match, UserProfile, Prediction, Translation, LanguageCode } from '../types';
 import { LEAGUES, BROADCAST_CHANNELS, LANGUAGES } from '../constants';
 
@@ -224,7 +224,33 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 </div>
             </div>
 
-            {/* 3. LEAGUE MEMBER MANAGER */}
+            {/* 3. LATE JOINER BACKDOOR LINKS */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <UserPlus size={14} /> Late Joiner Links
+                </h4>
+                <p className="text-[10px] text-slate-400 leading-snug">
+                    4-hour window to fill in upcoming matches. Past matches score 0 automatically.
+                </p>
+                <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden divide-y divide-amber-100">
+                    {Object.entries(LEAGUES).map(([slug, name]) => (
+                        <div key={slug} className="p-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-black text-slate-700">{name}</div>
+                                <div className="text-[10px] font-mono text-slate-400">?invite={slug}&amp;late=1</div>
+                            </div>
+                            <button
+                                onClick={() => navigator.clipboard.writeText(`${window.location.origin}?invite=${slug}&late=1`)}
+                                className="shrink-0 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors"
+                            >
+                                Copy Link
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* 4. LEAGUE MEMBER MANAGER */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Users size={14} /> League Members

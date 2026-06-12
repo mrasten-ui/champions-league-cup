@@ -640,7 +640,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                         <td className="w-[20%] px-4 py-4 text-center align-middle hidden sm:table-cell">
                             <div className="flex items-center justify-center gap-1">
                                 {user.form.map((p, i) => (
-                                    <div key={i} className={`w-1.5 h-6 rounded-full ${p >= 5 ? 'bg-green-400' : p > 0 ? 'bg-blue-400' : 'bg-red-300'}`} title={`Match ${i+1}: ${p} pts`}></div>
+                                    <div key={i} className={`w-1.5 h-6 rounded-full ${p === -1 ? 'bg-slate-300' : p >= 5 ? 'bg-green-400' : p > 0 ? 'bg-blue-400' : 'bg-red-300'}`} title={`Match ${i+1}: ${p === -1 ? 'No prediction' : p + ' pts'}`}></div>
                                 ))}
                             </div>
                         </td>

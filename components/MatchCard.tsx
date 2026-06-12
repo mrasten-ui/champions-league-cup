@@ -22,6 +22,7 @@ interface MatchCardProps {
   allPredictions: Prediction[];
   phase: TournamentPhase;
   isAdminMode: boolean;
+  isLateJoiner?: boolean;
   onSubstitute?: () => void;
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
@@ -61,7 +62,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 // --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
+    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
     homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], hideHeader = false
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
@@ -107,8 +108,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     const isStarted = isLive || isFinished; 
     
-    // Only lock if it's actually locked, live, or finished
-    const isRealLifeLocked = match.isLocked || isLive || isFinished;
+    // Only lock if it's actually locked, live, or finished.
+    // Late joiners bypass the global lock for matches that haven't started yet.
+    const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
+    const isRealLifeLocked = (isLateJoiner && matchNotStarted)
+      ? false
+      : (match.isLocked || isLive || isFinished);
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
     
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;

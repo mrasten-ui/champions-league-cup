@@ -105,11 +105,12 @@ export const getManagerStats = (
     const pred = allPredictions.find(p => p.userId === user.email && p.matchId === m.id);
     if (!pred || m.homeScore === null || m.awayScore === null) {
       if (currentStreakAlive) currentStreakAlive = false;
+      if (form.length < 5 && m.homeScore !== null && m.awayScore !== null) form.push(-1); // -1 = no prediction
       return;
     }
 
     const pts = calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!user.hasTakenSecondChance, m.round);
-    
+
     if (form.length < 5) form.push(pts);
 
     if (currentStreakAlive) {

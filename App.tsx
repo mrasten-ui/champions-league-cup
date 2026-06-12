@@ -121,17 +121,19 @@ export const App = () => {
   const currentLocale = localeMap[language];
 
   // --- INVITE LINK HANDLER ---
-  // Reads ?invite=slug from URL on first load and stores in sessionStorage.
+  // Reads ?invite=slug and ?late=1 from URL on first load and stores in sessionStorage.
   // Also applies the league's default language immediately (for the login screen).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const invite = params.get('invite');
+    const late   = params.get('late');
     if (invite) {
       sessionStorage.setItem('pending_league_invite', invite);
-      window.history.replaceState({}, '', window.location.pathname);
       const defaultLang = LEAGUE_DEFAULT_LANGS[invite];
       if (defaultLang) setLanguage(defaultLang);
     }
+    if (late === '1') sessionStorage.setItem('pending_late_joiner', '1');
+    if (invite || late) window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
   // Keep ?invite=slug in the URL while the user is logged in with a league,
@@ -296,7 +298,9 @@ export const App = () => {
     const match = matches.find(m => m.id === matchId);
 
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
-    if (!match || (match.isLocked && !isWhitelisted)) return;
+    const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
+    const effectiveLock = isInLateWindow && matchNotStarted ? false : match.isLocked;
+    if (!match || (effectiveLock && !isWhitelisted)) return;
 
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
 
@@ -566,6 +570,25 @@ export const App = () => {
     return () => clearTimeout(t);
   }, [isAdminMode, usersDb]);
 
+  // --- LATE JOINER WINDOW ---
+  // Activates a 4-hour PRE_LIVE window for users who signed up via /?late=1.
+  useEffect(() => {
+    if (!user?.email) return;
+    if (sessionStorage.getItem('pending_late_joiner') !== '1') return;
+    const expiresAt = Date.now() + 4 * 60 * 60 * 1000;
+    localStorage.setItem('rasten_late_until_' + user.email, String(expiresAt));
+    sessionStorage.removeItem('pending_late_joiner');
+    addToast('success', 'Welcome, late joiner!', 'You have 4 hours to fill in your predictions. Past matches count as 0 pts.');
+  }, [user?.email]);
+
+  const isInLateWindow = useMemo(() => {
+    if (!user?.email) return false;
+    const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
+    return Date.now() < until;
+  }, [user?.email]);
+
+  const effectiveTournamentPhase: TournamentPhase = isInLateWindow ? 'PRE_LIVE' : tournamentPhase;
+
   // --- TOUR GUIDE CONTROLS ---
   useEffect(() => {
       const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
@@ -577,7 +600,7 @@ export const App = () => {
 
   useEffect(() => {
       const localLiveTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live') : null;
-      if (user && tournamentPhase === 'LIVE' && !user.toursCompleted?.liveSeason && !localLiveTourCompleted) {
+      if (user && tournamentPhase === 'LIVE' && !isInLateWindow && !user.toursCompleted?.liveSeason && !localLiveTourCompleted) {
           const timer = setTimeout(() => setShowLiveSplash(true), 1500);
           return () => clearTimeout(timer);
       }
@@ -592,6 +615,7 @@ export const App = () => {
   // Auto-fill predictions for late-joining users in LIVE phase
   useEffect(() => {
       if (!user || !supabase || tournamentPhase !== 'LIVE') return;
+      if (isInLateWindow) return; // late joiners predict manually
       if (!matches.length || !Object.keys(teamsData).length) return;
       const alreadyFilled = localStorage.getItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email);
       if (alreadyFilled) return;
@@ -765,16 +789,16 @@ export const App = () => {
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   
   const navTabs = useMemo(() => {
-      if (tournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
+      if (effectiveTournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
       return ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
-  }, [tournamentPhase]);
+  }, [effectiveTournamentPhase]);
 
   useEffect(() => {
       const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
-      if (tournamentPhase === 'LIVE' && !liveTabs.includes(activeTab)) {
+      if (effectiveTournamentPhase === 'LIVE' && !liveTabs.includes(activeTab)) {
           setActiveTab('tournament');
       }
-  }, [tournamentPhase]);
+  }, [effectiveTournamentPhase]);
 
   // Record the moment group stage is fully predicted (once, never overwrites)
   useEffect(() => {
@@ -963,7 +987,7 @@ export const App = () => {
   }, [user, activeTab, matches]);
 
   const showMagicWand = (
-      (tournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'analysis') ||
+      (effectiveTournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'analysis') ||
       (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout'))
   );
 
@@ -1090,7 +1114,7 @@ export const App = () => {
         )}
 
         {/* GROUPS TAB */}
-        {activeTab === 'groups' && tournamentPhase === 'PRE_LIVE' && (
+        {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
             <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
                 {showOverview ? (
                    <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
@@ -1117,6 +1141,7 @@ export const App = () => {
                                 allPredictions={allPredictions}
                                 phase={tournamentPhase}
                                 isAdminMode={isAdminMode}
+                                isLateJoiner={isInLateWindow}
                                 onSubstitute={() => handleSubstitute(match.id)}
                                 substitutionsLeft={user?.substitutions || 0}
                                 isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
@@ -1409,7 +1434,12 @@ export const App = () => {
                 const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !!m.groupId; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
 
                 if (user && supabase) {
-                    const predictionsToSave = relevantMatches.filter(m => m.homeScore !== null && m.awayScore !== null).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore, away: m.awayScore }));
+                    const predictionsToSave = relevantMatches.filter(m => {
+                        if (m.homeScore === null || m.awayScore === null) return false;
+                        // Late joiners: only predict future matches — no retroactive picks on played matches
+                        if (isInLateWindow && m.status !== 'NS' && m.status !== 'UPCOMING') return false;
+                        return true;
+                    }).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
                     if (predictionsToSave.length > 0) {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
