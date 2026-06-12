@@ -247,23 +247,20 @@ async function syncScores() {
       const evData = await evRes.json();
       if (!evData.response?.length) continue;
 
-      // Delete stale null-team records so they get re-inserted with correct attribution
+      // Delete stale null-team records (1 DB call)
       await supabase.from('match_events').delete().eq('match_id', matchId).is('team_id', null);
 
-      for (const event of evData.response) {
+      // Build all rows then upsert in one batch (1 DB call instead of N)
+      const rows = evData.response.map(event => {
         const eventApiTeamId = event.team?.id ? String(event.team.id) : null;
-
-        // Primary: numeric ID match — bypasses name inconsistencies across API endpoints
         let teamId = null;
         if (eventApiTeamId && eventApiTeamId === homeApiTeamId)      teamId = homeCode;
         else if (eventApiTeamId && eventApiTeamId === awayApiTeamId) teamId = awayCode;
         else teamId = TEAM_NAME_TO_ID[event.team?.name] ?? null;
 
-        const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`;
-
-        const { error } = await supabase.from('match_events').upsert({
+        return {
           match_id:     matchId,
-          api_event_id: apiEventId,
+          api_event_id: `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`,
           minute:       event.time?.elapsed ?? null,
           minute_extra: event.time?.extra   ?? null,
           type:         event.type,
@@ -271,10 +268,11 @@ async function syncScores() {
           team_id:      teamId,
           player:       event.player?.name  ?? null,
           assist:       event.assist?.name  ?? null,
-        }, { onConflict: 'match_id,api_event_id', ignoreDuplicates: true });
+        };
+      });
 
-        if (!error) eventsUpserted++;
-      }
+      const { error } = await supabase.from('match_events').upsert(rows, { onConflict: 'match_id,api_event_id', ignoreDuplicates: true });
+      if (!error) eventsUpserted += rows.length;
     }
     if (eventsQueue.length) console.log(`Events: synced ${eventsUpserted} events across ${eventsQueue.length} match(es).`);
 
