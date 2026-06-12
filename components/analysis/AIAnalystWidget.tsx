@@ -123,13 +123,14 @@ export const generateDailyBrief = async (
 
     if (upcoming.length === 0) return t.noGames;
 
+    const leagueMemberEmails = new Set(combinedStats.map(s => s.user.email));
     const matchLines = upcoming.map(m => {
         const hTeam = teams[m.homeTeamId]?.name ?? m.homeTeamId;
         const aTeam = teams[m.awayTeamId]?.name ?? m.awayTeamId;
         const myPred = allPredictions.find(p => p.userId === currentUser.email && p.matchId === m.id);
         const pick = myPred ? `${myPred.home}-${myPred.away}` : 'no pick yet';
 
-        const rivalPreds = allPredictions.filter(p => p.matchId === m.id && p.userId !== currentUser.email);
+        const rivalPreds = allPredictions.filter(p => p.matchId === m.id && p.userId !== currentUser.email && leagueMemberEmails.has(p.userId));
         let rivalry = '';
         if (rivalPreds.length > 0) {
             const homeWins = rivalPreds.filter(p => p.home > p.away).length;

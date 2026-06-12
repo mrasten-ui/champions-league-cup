@@ -921,7 +921,7 @@ export const App = () => {
       if (cached) { setDailyBrief(cached); return; }
       setBriefRefreshing(true);
       try {
-          const allUsers = [user, ...rivalsList];
+          const allUsers = [user, ...leagueRivalsList];
           const finishedMatches = matches.filter(m =>
               ['FINISHED', 'FT', 'AET', 'PEN'].includes(m.status) &&
               m.homeScore !== null && m.awayScore !== null
