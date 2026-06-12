@@ -207,8 +207,11 @@ export const App = () => {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
       }
-      return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
-  }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
+      const matchesForBracket = isInLateWindow
+          ? matches.map(m => (m.status === 'NS' || m.status === 'UPCOMING') ? { ...m, isLocked: false } : m)
+          : matches;
+      return applyPredictionsToBracket(matchesForBracket, teamsData, userSpecificPreds);
+  }, [matches, teamsData, allPredictions, user, groupStageEndTime, isInLateWindow]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
