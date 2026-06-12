@@ -513,7 +513,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
                  return (
                    <span className="flex items-center gap-0.5 shrink-0">
-                     <img src="/wc26-ball.png" className="w-3 h-3 shrink-0 object-contain" alt="" />
+                     <img src="/wc26-ball.png" className="w-4 h-4 shrink-0 object-contain" alt="" />
                      {suffix && <span className="text-[7px] font-bold text-slate-500">{suffix}</span>}
                    </span>
                  );
@@ -525,7 +525,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                        <span key={e.id} className="flex items-center gap-1 text-slate-500 min-w-0">
                          <Icon e={e} />
                          <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                         <span className="truncate">{e.player || <span className="italic text-slate-400">—</span>}</span>
+                         <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>
                        </span>
                      ))}
                    </div>
@@ -533,7 +533,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    <div className="flex-1 flex flex-col gap-0.5 items-end min-w-0">
                      {awayEvts.map(e => (
                        <span key={e.id} className="flex items-center justify-end gap-1 text-slate-500 min-w-0">
-                         <span className="truncate">{e.player || <span className="italic text-slate-400">—</span>}</span>
+                         <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>
                          <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
                          <Icon e={e} />
                        </span>
