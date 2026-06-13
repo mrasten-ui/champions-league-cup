@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
-import { Match, Team, Prediction, UserProfile, MatchEvent } from '../types';
+import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
@@ -18,6 +18,7 @@ export const useAppData = () => {
   const [menPresets, setMenPresets] = useState<string[]>([]);
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
+  const [matchLineups, setMatchLineups] = useState<MatchLineup[]>([]);
 
   const fetchingProfileRef = useRef(false);
 
@@ -130,6 +131,16 @@ export const useAppData = () => {
               type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
               player: e.player ?? undefined, assist: e.assist ?? undefined,
               createdAt: e.created_at ?? undefined,
+            })));
+          }
+
+          const { data: lineups } = await supabase.from('match_lineups').select('*');
+          if (lineups) {
+            setMatchLineups(lineups.map((l: any) => ({
+              id: l.id, matchId: l.match_id, teamId: l.team_id,
+              playerName: l.player_name, playerNumber: l.player_number ?? null,
+              position: l.position ?? null, grid: l.grid ?? null,
+              isStarting: l.is_starting, formation: l.formation ?? null,
             })));
           }
 
@@ -307,6 +318,20 @@ export const useAppData = () => {
                       setMatchEvents(prev => prev.some(ev => ev.id === event.id) ? prev : [...prev, event]);
                   }
               )
+              .on(
+                  'postgres_changes',
+                  { event: 'INSERT', schema: 'public', table: 'match_lineups' },
+                  (payload: any) => {
+                      const l = payload.new as any;
+                      const lineup: MatchLineup = {
+                          id: l.id, matchId: l.match_id, teamId: l.team_id,
+                          playerName: l.player_name, playerNumber: l.player_number ?? null,
+                          position: l.position ?? null, grid: l.grid ?? null,
+                          isStarting: l.is_starting, formation: l.formation ?? null,
+                      };
+                      setMatchLineups(prev => prev.some(x => x.id === lineup.id) ? prev : [...prev, lineup]);
+                  }
+              )
               .subscribe();
 
           return () => {
@@ -321,6 +346,6 @@ export const useAppData = () => {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
     groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed,
-    matchEvents,
+    matchEvents, matchLineups,
   };
 };

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent } from '../types';
+import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -16,6 +16,7 @@ interface MatchdayHeroProps {
   userPrediction?: Prediction;
   currentUser?: UserProfile | null;
   events?: MatchEvent[];
+  lineups?: MatchLineup[];
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -128,7 +129,8 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [] }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [] }) => {
+  const [lineupsOpen, setLineupsOpen] = React.useState(false);
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
@@ -140,10 +142,6 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
-
-  // Calculate points for display under team name
-  const homeStats = groupStandings?.find(g => g.teamId === match.homeTeamId);
-  const awayStats = groupStandings?.find(g => g.teamId === match.awayTeamId);
 
   const getContextLabel = () => {
       if (match.round) {
@@ -308,8 +306,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isHomeTBD && (
                     <div className="flex flex-col items-center">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-2 sm:mb-1">{lang.teamNames[home.id] || home.name}</span>
-                        {homeStats && <span className="text-[10px] font-bold text-amber-300 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-700/30">{homeStats.pts} PTS</span>}
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>
                     </div>
                 )}
             </div>
@@ -331,6 +328,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         Penalties
                     </div>
                 )}
+                {(() => {
+                  const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
+                  if (lineups.length > 0 && minsToKick <= 55) {
+                    return (
+                      <button onClick={() => setLineupsOpen(o => !o)} className="mt-2 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white/70 border border-white/10 transition-colors">
+                        {lineupsOpen ? '▲' : '▼'} Lineups
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
             </div>
 
             {/* Away Team */}
@@ -349,18 +357,63 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isAwayTBD && (
                     <div className="flex flex-col items-center">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none mb-2 sm:mb-1">{lang.teamNames[away.id] || away.name}</span>
-                        {awayStats && <span className="text-[10px] font-bold text-amber-300 bg-amber-900/30 px-2 py-0.5 rounded border border-amber-700/30">{awayStats.pts} PTS</span>}
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>
                     </div>
                 )}
             </div>
         </div>
 
+        {/* LINEUP PANEL */}
+        {lineupsOpen && (() => {
+          const homeLineups = lineups.filter(l => l.teamId === match.homeTeamId);
+          const awayLineups = lineups.filter(l => l.teamId === match.awayTeamId);
+          const homeFormation = homeLineups.find(l => l.isStarting)?.formation ?? null;
+          const awayFormation = awayLineups.find(l => l.isStarting)?.formation ?? null;
+          const sortByGrid = (a: MatchLineup, b: MatchLineup) => {
+            if (!a.grid && !b.grid) return 0;
+            if (!a.grid) return 1;
+            if (!b.grid) return -1;
+            const [ar, ac] = a.grid.split(':').map(Number);
+            const [br, bc] = b.grid.split(':').map(Number);
+            return ar !== br ? ar - br : ac - bc;
+          };
+          const homeXI = homeLineups.filter(l => l.isStarting).sort(sortByGrid);
+          const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
+          const homeSubs = homeLineups.filter(l => !l.isStarting);
+          const awaySubs = awayLineups.filter(l => !l.isStarting);
+          const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => (
+            <div className={`flex items-center gap-1.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+              <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+              <span className="text-[10px] text-white/80 truncate">{p.playerName}</span>
+            </div>
+          );
+          return (
+            <div className="relative z-10 bg-black/40 border-t border-white/5 px-6 py-3">
+              <div className="flex gap-4">
+                <div className="flex-1 min-w-0">
+                  {homeFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">{homeFormation}</div>}
+                  {homeXI.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                  {homeSubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
+                  {homeSubs.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                </div>
+                <div className="w-px bg-white/10 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {awayFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">{awayFormation}</div>}
+                  {awayXI.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                  {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5 text-right">Bench</div>}
+                  {awaySubs.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* MATCH EVENTS STRIP */}
         {(() => {
           const sigRaw = events.filter(e =>
             e.type === 'Goal' ||
-            (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
+            (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
+            (e.type === 'Subst' && e.detail === 'Substitution 1')
           );
           // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
           // goal scored at or before the VAR minute
@@ -399,6 +452,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const Icon = ({ e }: { e: MatchEvent }) => {
             if (e.type === 'Card') {
               return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${e.detail === 'Red Card' ? 'bg-red-500' : 'bg-yellow-400'}`} />;
+            }
+            if (e.type === 'Subst') {
+              return <span className="text-[10px] text-green-400 font-black shrink-0">⇄</span>;
             }
             const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
             return (

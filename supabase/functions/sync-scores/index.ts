@@ -314,8 +314,65 @@ serve(async (req) => {
     console.log(`  Events: synced ${eventsUpserted} across ${eventsQueue.length} match(es)`)
   }
 
+  // Lineup sync: fetch starting XIs at 55/45/30/15 min before kickoff (±1 min tolerance)
+  const LINEUP_OFFSETS = [55, 45, 30, 15]
+  const lineupTargets: Array<{ apiId: string; matchId: string }> = []
+  for (const m of (dbMatches ?? [])) {
+    if (!['NS', 'UPCOMING'].includes((m as any).status) || !(m as any).api_id) continue
+    const minsUntil = (new Date((m as any).date).getTime() - now.getTime()) / 60_000
+    if (LINEUP_OFFSETS.some(o => Math.abs(minsUntil - o) <= 1)) {
+      lineupTargets.push({ apiId: (m as any).api_id, matchId: (m as any).id })
+    }
+  }
+
+  let lineupsUpserted = 0
+  for (const { apiId, matchId } of lineupTargets) {
+    const lineupRes = await fetch(
+      `https://v3.football.api-sports.io/fixtures/lineups?fixture=${apiId}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    )
+    if (!lineupRes.ok) {
+      console.error(`  Lineups HTTP ${lineupRes.status} for fixture ${apiId}`)
+      continue
+    }
+    const lineupData = await lineupRes.json()
+    if (!lineupData.response?.length) {
+      console.log(`  Lineups: no data yet for fixture ${apiId}`)
+      continue
+    }
+
+    const fixtureItem = allFixtures.find((f: any) => String(f.fixture.id) === apiId)
+    const dbM = linkedByApiId.get(apiId) as any
+    const rows: any[] = []
+
+    for (const teamData of lineupData.response) {
+      const apiTeamId = String(teamData.team?.id)
+      const isHome = fixtureItem && String(fixtureItem.teams.home.id) === apiTeamId
+      const teamId = isHome ? dbM?.home_team_id : dbM?.away_team_id
+      if (!teamId) continue
+      const formation = teamData.formation ?? null
+
+      for (const { player: p } of (teamData.startXI ?? [])) {
+        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: p.grid ?? null, is_starting: true, formation })
+      }
+      for (const { player: p } of (teamData.substitutes ?? [])) {
+        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: null, is_starting: false, formation: null })
+      }
+    }
+
+    if (rows.length) {
+      const { error } = await supabase.from('match_lineups').upsert(rows, { onConflict: 'match_id,team_id,player_name', ignoreDuplicates: false })
+      if (error) {
+        console.error(`  ✗ Lineup upsert fixture ${apiId}:`, error.message)
+      } else {
+        lineupsUpserted += rows.length
+        console.log(`  Lineups: ${rows.length} rows upserted for fixture ${apiId}`)
+      }
+    }
+  }
+
   return new Response(
-    JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted }),
+    JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted, lineupsUpserted }),
     { headers: { 'Content-Type': 'application/json' } }
   )
 })

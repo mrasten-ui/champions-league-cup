@@ -237,6 +237,18 @@ export interface BroadcastTeam {
   pundit: CastMember;
 }
 
+export interface MatchLineup {
+  id: number;
+  matchId: string;
+  teamId: string;
+  playerName: string;
+  playerNumber?: number | null;
+  position?: string | null;
+  grid?: string | null;
+  isStarting: boolean;
+  formation?: string | null;
+}
+
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;

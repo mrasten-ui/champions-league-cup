@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent } from '../types';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup } from '../types';
 import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -36,6 +36,7 @@ interface MatchCardProps {
   context?: 'groups' | 'knockout' | 'carousel';
   cardId?: string;
   events?: MatchEvent[];
+  lineups?: MatchLineup[];
   hideHeader?: boolean;
 }
 
@@ -63,7 +64,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], hideHeader = false
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], hideHeader = false
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -73,7 +74,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [rivalsOpen, setRivalsOpen] = useState(true);
-
+    const [lineupsOpen, setLineupsOpen] = useState(false);
 
     const isKnockout = !!match.round; 
 
@@ -357,9 +358,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
                 {/* Home Team */}
                 <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && predictedWinnerId !== '__home__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-                    {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
+                    {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none group-hover/team:scale-105 transition-transform duration-200"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{homeTeam?.flag ? <img src={homeTeam.flag} alt={homeName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{homeTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{homeTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isHomeTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>{match.groupId && homeTeamPoints !== undefined && <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mt-1">{homeTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isHomeTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>}
                     </div>
                 </div>
 
@@ -427,6 +428,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-4 py-2 rounded-xl font-mono text-2xl font-bold tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-2"><span>-</span><span className="opacity-50 text-lg mx-1">:</span><span>-</span></div>
+                                             {(() => {
+                                               const matchLineups = lineups.filter(l => l.matchId === match.id);
+                                               const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
+                                               if (matchLineups.length > 0 && minsToKick <= 55) {
+                                                 return (
+                                                   <button onClick={() => setLineupsOpen(o => !o)} className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
+                                                     {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                                     Lineups
+                                                   </button>
+                                                 );
+                                               }
+                                               return null;
+                                             })()}
                                              {/* Sub Button Lives Here */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
@@ -446,18 +460,65 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                 {/* Away Team */}
                 <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && predictedWinnerId !== '__away__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-                    {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
+                    {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : <div className="relative shadow-sm rounded-lg overflow-visible w-14 h-10 sm:w-16 sm:h-12 pointer-events-none group-hover/team:scale-105 transition-transform duration-200"><div className="w-full h-full rounded-lg overflow-hidden border border-slate-200 bg-white">{awayTeam?.flag ? <img src={awayTeam.flag} alt={awayName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-100"></div>}</div>{awayTeam?.rank && <div className="absolute -bottom-2 -right-2 bg-[#0f2545] text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-md z-20">#{awayTeam.rank}</div>}</div>}
                     <div className="flex flex-col items-center">
-                        {!isAwayTBD && <><span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>{match.groupId && awayTeamPoints !== undefined && <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mt-1">{awayTeamPoints} {lang.pts || 'pts'}</span>}</>}
+                        {!isAwayTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>}
                     </div>
                 </div>
              </div>
+
+             {/* LINEUP PANEL */}
+             {lineupsOpen && (() => {
+               const matchLineups = lineups.filter(l => l.matchId === match.id);
+               const homeLineups = matchLineups.filter(l => l.teamId === match.homeTeamId);
+               const awayLineups = matchLineups.filter(l => l.teamId === match.awayTeamId);
+               const homeFormation = homeLineups.find(l => l.isStarting)?.formation ?? null;
+               const awayFormation = awayLineups.find(l => l.isStarting)?.formation ?? null;
+               const sortByGrid = (a: MatchLineup, b: MatchLineup) => {
+                 if (!a.grid && !b.grid) return 0;
+                 if (!a.grid) return 1;
+                 if (!b.grid) return -1;
+                 const [ar, ac] = a.grid.split(':').map(Number);
+                 const [br, bc] = b.grid.split(':').map(Number);
+                 return ar !== br ? ar - br : ac - bc;
+               };
+               const homeXI = homeLineups.filter(l => l.isStarting).sort(sortByGrid);
+               const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
+               const homeSubs = homeLineups.filter(l => !l.isStarting);
+               const awaySubs = awayLineups.filter(l => !l.isStarting);
+               const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => (
+                 <div className={`flex items-center gap-1 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+                   <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+                   <span className="text-[9px] text-slate-700 truncate">{p.playerName}</span>
+                 </div>
+               );
+               return (
+                 <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
+                   <div className="flex gap-2">
+                     <div className="flex-1 min-w-0">
+                       {homeFormation && <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{homeFormation}</div>}
+                       {homeXI.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                       {homeSubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1">Bench</div>}
+                       {homeSubs.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                     </div>
+                     <div className="w-px bg-slate-200 shrink-0" />
+                     <div className="flex-1 min-w-0">
+                       {awayFormation && <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">{awayFormation}</div>}
+                       {awayXI.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                       {awaySubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-right">Bench</div>}
+                       {awaySubs.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                     </div>
+                   </div>
+                 </div>
+               );
+             })()}
 
              {/* MATCH EVENTS: goals + cards — schedule view only, or live/finished */}
              {(() => {
                const sigRaw = events.filter(e =>
                  e.type === 'Goal' ||
-                 (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card'))
+                 (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
+                 (e.type === 'Subst' && e.detail === 'Substitution 1')
                );
                // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
                // goal scored at or before the VAR minute (decision often comes minutes after the goal)
@@ -509,6 +570,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  if (e.type === 'Card') {
                    const isRed = e.detail === 'Red Card';
                    return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${isRed ? 'bg-red-500' : 'bg-yellow-400'}`} />;
+                 }
+                 if (e.type === 'Subst') {
+                   return <span className="text-[10px] text-green-500 font-black shrink-0">⇄</span>;
                  }
                  const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
                  return (

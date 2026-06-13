@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Match, Team, Translation, Prediction, UserProfile, MatchEvent } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -18,6 +18,7 @@ interface TournamentScheduleProps {
   onJumpToBracket?: (matchId: string) => void;
   jumpToMatchId?: string;
   matchEvents?: MatchEvent[];
+  matchLineups?: MatchLineup[];
 }
 
 // MAPPING: Language Code -> Team ID
@@ -40,7 +41,7 @@ const LOCALE_MAP: Record<string, string> = {
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = []
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = []
 }) => {
   
   // Get the correct BCP 47 locale string
@@ -255,6 +256,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
                         currentUser={user}
                         events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
+                        lineups={matchLineups.filter(l => l.matchId === heroMatch.id)}
                     />
                 </div>
             )}
@@ -294,6 +296,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     variant="official"
                                     cardId={`schedule-match-${match.id}`}
                                     events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
+                                    lineups={matchLineups.filter(l => l.matchId === match.id)}
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
