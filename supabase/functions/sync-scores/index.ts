@@ -121,8 +121,18 @@ serve(async (req) => {
   for (const m of (dbMatches ?? [])) {
     const ms = (m as any).status
     const mdate = (m as any).date?.slice(0, 10)
+    // Stale live/NS/UPCOMING match from a previous UTC date
     if (([...LIVE_STATUSES, 'NS', 'UPCOMING'].includes(ms)) && mdate < today) {
       datesToFetch.add(mdate)
+    }
+    // UPCOMING/NS whose scheduled time has passed — API may index under local venue date
+    // (e.g. 18:00 Los Angeles = 01:00 UTC next day, so API stores it under the earlier date)
+    if (['NS', 'UPCOMING'].includes(ms)) {
+      const matchTime = new Date((m as any).date)
+      if (!isNaN(matchTime.getTime()) && matchTime < now) {
+        const prevDate = new Date(matchTime.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        if (prevDate !== mdate) datesToFetch.add(prevDate)
+      }
     }
   }
   if (datesToFetch.size > 1) {
