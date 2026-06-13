@@ -288,7 +288,10 @@ serve(async (req) => {
       else teamId = TEAM_NAME_TO_ID[event.team?.name] ?? null  // fallback: name lookup
 
       // Stable dedup key: match + team + minute + extra + type + detail
-      const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`
+      const normPlayer = (event.player?.name ?? '')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase().replace(/[^a-z]/g, '_')
+      const apiEventId = `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}_${normPlayer}`
 
       const { error } = await supabase.from('match_events').upsert({
         match_id:     matchId,

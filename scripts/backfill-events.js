@@ -94,8 +94,12 @@ async function backfillMatch(match) {
     const elapsed = event.time?.elapsed ?? 0;
     const extra   = event.time?.extra   ?? 0;
 
-    // New stable key: no player name (fixes duplicate-name API variants)
-    const apiEventId = `${matchId}_${teamId ?? ''}_${elapsed}_${extra}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`;
+    // Normalized player name in key: handles same-minute multi-subs while
+    // collapsing duplicate API name variants (diacritics etc.)
+    const normPlayer = (event.player?.name ?? '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z]/g, '_');
+    const apiEventId = `${matchId}_${teamId ?? ''}_${elapsed}_${extra}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}_${normPlayer}`;
 
     if (seen.has(apiEventId)) {
       console.log(`  [${matchId}] Dedup skipped: ${event.type} ${event.detail} ${elapsed}'`);
