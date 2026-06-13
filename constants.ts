@@ -272,6 +272,7 @@ const EN_TRANSLATION: Translation = {
 
 const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
+    isScotland: true,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
     group: "Group", groups: "The Groups", lineups: "Team Sheet", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
