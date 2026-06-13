@@ -249,6 +249,8 @@ export interface MatchLineup {
   grid?: string | null;
   isStarting: boolean;
   formation?: string | null;
+  kitBg?: string | null;
+  kitText?: string | null;
 }
 
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---

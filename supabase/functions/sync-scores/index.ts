@@ -351,12 +351,15 @@ serve(async (req) => {
       const teamId = isHome ? dbM?.home_team_id : dbM?.away_team_id
       if (!teamId) continue
       const formation = teamData.formation ?? null
+      const rawColors = teamData.team?.colors?.player
+      const kitBg   = rawColors?.primary ? `#${rawColors.primary}` : null
+      const kitText  = rawColors?.number  ? `#${rawColors.number}`  : null
 
       for (const { player: p } of (teamData.startXI ?? [])) {
-        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: p.grid ?? null, is_starting: true, formation })
+        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: p.grid ?? null, is_starting: true, formation, kit_bg: kitBg, kit_text: kitText })
       }
       for (const { player: p } of (teamData.substitutes ?? [])) {
-        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: null, is_starting: false, formation: null })
+        rows.push({ match_id: matchId, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: null, is_starting: false, formation: null, kit_bg: kitBg, kit_text: kitText })
       }
     }
 

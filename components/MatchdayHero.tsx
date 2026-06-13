@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
-import { BROADCAST_CHANNELS } from '../constants';
+import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 import { JerseyIcon } from './JerseyIcon';
@@ -388,10 +388,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
             const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
             const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
-            const playerTeam = teams[p.teamId];
+            const jersey = TEAMS[p.teamId];
+            const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
+            const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';
             return (
               <div className="flex items-center gap-1.5 min-w-0">
-                <JerseyIcon bg={playerTeam?.jerseyBg} text={playerTeam?.jerseyText} number={p.playerNumber} size={22} className="shrink-0" />
+                <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={22} className="shrink-0" />
                 <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
                 {playerGoals.map(g => (
                   <span key={g.id} className="flex items-center gap-0.5 shrink-0">
@@ -408,14 +410,24 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             <div className="relative z-10 bg-black/40 border-t border-white/5 px-6 py-3">
               <div className="flex gap-4">
                 <div className="flex-1 min-w-0">
-                  {homeFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">{homeFormation}</div>}
+                  {homeFormation && (
+                    <div className="mb-1.5">
+                      <div className="text-[7px] font-bold text-white/20 uppercase tracking-widest leading-none">Formation</div>
+                      <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{homeFormation}</div>
+                    </div>
+                  )}
                   {homeXI.map(p => <PlayerRow key={p.id} p={p} />)}
                   {homeSubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
                   {homeSubs.map(p => <PlayerRow key={p.id} p={p} />)}
                 </div>
                 <div className="w-px bg-white/10 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  {awayFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">{awayFormation}</div>}
+                  {awayFormation && (
+                    <div className="mb-1.5">
+                      <div className="text-[7px] font-bold text-white/20 uppercase tracking-widest leading-none">Formation</div>
+                      <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{awayFormation}</div>
+                    </div>
+                  )}
                   {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
                   {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
                   {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}

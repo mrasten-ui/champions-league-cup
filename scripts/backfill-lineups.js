@@ -57,13 +57,16 @@ for (const match of matches) {
     if (!teamId) { console.warn(`  Could not resolve team for ${teamData.team?.name}`); continue; }
 
     const formation = teamData.formation ?? null;
-    console.log(`  ${teamData.team?.name} (${teamId}) — ${teamData.startXI?.length ?? 0} starters, ${teamData.substitutes?.length ?? 0} subs — formation: ${formation ?? 'n/a'}`);
+    const rawColors = teamData.team?.colors?.player;
+    const kitBg   = rawColors?.primary ? `#${rawColors.primary}` : null;
+    const kitText  = rawColors?.number  ? `#${rawColors.number}`  : null;
+    console.log(`  ${teamData.team?.name} (${teamId}) — ${teamData.startXI?.length ?? 0} starters, ${teamData.substitutes?.length ?? 0} subs — formation: ${formation ?? 'n/a'} — kit: ${kitBg ?? 'n/a'}`);
 
     for (const { player: p } of (teamData.startXI ?? [])) {
-      rows.push({ match_id: match.id, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: p.grid ?? null, is_starting: true, formation });
+      rows.push({ match_id: match.id, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: p.grid ?? null, is_starting: true, formation, kit_bg: kitBg, kit_text: kitText });
     }
     for (const { player: p } of (teamData.substitutes ?? [])) {
-      rows.push({ match_id: match.id, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: null, is_starting: false, formation: null });
+      rows.push({ match_id: match.id, team_id: teamId, player_name: p.name, player_number: p.number ?? null, position: p.pos ?? null, grid: null, is_starting: false, formation: null, kit_bg: kitBg, kit_text: kitText });
     }
   }
 

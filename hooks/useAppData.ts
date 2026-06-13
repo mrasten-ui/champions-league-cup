@@ -141,6 +141,7 @@ export const useAppData = () => {
               playerName: l.player_name, playerNumber: l.player_number ?? null,
               position: l.position ?? null, grid: l.grid ?? null,
               isStarting: l.is_starting, formation: l.formation ?? null,
+              kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
             })));
           }
 
@@ -328,6 +329,7 @@ export const useAppData = () => {
                           playerName: l.player_name, playerNumber: l.player_number ?? null,
                           position: l.position ?? null, grid: l.grid ?? null,
                           isStarting: l.is_starting, formation: l.formation ?? null,
+                          kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
                       };
                       setMatchLineups(prev => prev.some(x => x.id === lineup.id) ? prev : [...prev, lineup]);
                   }

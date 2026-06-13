@@ -272,6 +272,14 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
                         return (
                             <div key={match.id} className="relative">
+                                {searchTerm && match.date && match.date !== 'TBD' && (
+                                    <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                                        <CalendarDays size={10} className="text-slate-400" />
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            {new Date(match.date).toLocaleDateString(activeLocale, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                        </span>
+                                    </div>
+                                )}
                                 <MatchCard
                                     match={readOnlyMatch}
                                     homeTeam={teams[match.homeTeamId]}
