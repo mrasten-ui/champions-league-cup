@@ -521,7 +521,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awaySubs = awayLineups.filter(l => !l.isStarting);
                const PlayerRow = ({ p }: { p: MatchLineup }) => {
                  const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
-                 const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
+                 const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
                  const jersey = TEAMS[p.teamId];
@@ -578,7 +578,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const sigRaw = events.filter(e =>
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
-                 (e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1')
+                 e.type?.toLowerCase() === 'subst'
                );
                // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
                // goal scored at or before the VAR minute (decision often comes minutes after the goal)
