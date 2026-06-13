@@ -494,11 +494,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awaySubs = awayLineups.filter(l => !l.isStarting);
                const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
                  const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
-                 const subbedOut = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (
-                   (e.detail === 'Substitution 2' && e.player === p.playerName) ||
-                   (e.detail === 'Substitution 1' && e.assist === p.playerName)
-                 ));
-                 const subbedIn = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
+                 const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player === p.playerName || e.assist === p.playerName));
+                 const subbedOut = subEvent?.assist === p.playerName ? subEvent : undefined;
+                 const subbedIn = subEvent?.player === p.playerName ? subEvent : undefined;
                  return (
                    <div className={`flex items-center gap-1 min-w-0 ${align === 'right' ? 'justify-end' : ''}`}>
                      <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
@@ -593,9 +591,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    const isRed = e.detail === 'Red Card';
                    return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${isRed ? 'bg-red-500' : 'bg-yellow-400'}`} />;
                  }
-                 if (e.type?.toLowerCase() === 'subst') {
-                   return <span className="text-[10px] text-green-500 font-black shrink-0">⇄</span>;
-                 }
                  const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
                  return (
                    <span className="flex items-center gap-0.5 shrink-0">
@@ -604,26 +599,44 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    </span>
                  );
                };
+               const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
+                 if (e.type?.toLowerCase() === 'subst') {
+                   const rows = [];
+                   if (e.assist) rows.push(
+                     <span key={`${e.id}-out`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                       {side === 'away' && <span className="truncate text-slate-500">{e.assist}</span>}
+                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                       <span className="text-red-500 font-bold shrink-0">↓</span>
+                       {side === 'home' && <span className="truncate text-slate-500">{e.assist}</span>}
+                     </span>
+                   );
+                   rows.push(
+                     <span key={`${e.id}-in`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                       {side === 'away' && <span className="truncate text-slate-500">{e.player}</span>}
+                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                       <span className="text-green-600 font-bold shrink-0">↑</span>
+                       {side === 'home' && <span className="truncate text-slate-500">{e.player}</span>}
+                     </span>
+                   );
+                   return rows;
+                 }
+                 return [
+                   <span key={e.id} className={`flex items-center gap-1 text-slate-500 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                     {side === 'away' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>}
+                     <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                     {side === 'home' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>}
+                     <Icon e={e} />
+                   </span>
+                 ];
+               };
                return (
                  <div className="px-3 pt-1.5 pb-2 border-t border-slate-100 flex gap-2 text-[9px]">
                    <div className="flex-1 flex flex-col gap-0.5 min-w-0">
-                     {homeEvts.map(e => (
-                       <span key={e.id} className="flex items-center gap-1 text-slate-500 min-w-0">
-                         <Icon e={e} />
-                         <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                         <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>
-                       </span>
-                     ))}
+                     {homeEvts.flatMap(e => renderEvt(e, 'home'))}
                    </div>
                    {(homeEvts.length > 0 || awayEvts.length > 0) && <div className="w-px bg-slate-100 shrink-0" />}
                    <div className="flex-1 flex flex-col gap-0.5 items-end min-w-0">
-                     {awayEvts.map(e => (
-                       <span key={e.id} className="flex items-center justify-end gap-1 text-slate-500 min-w-0">
-                         <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>
-                         <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                         <Icon e={e} />
-                       </span>
-                     ))}
+                     {awayEvts.flatMap(e => renderEvt(e, 'away'))}
                    </div>
                  </div>
                );
