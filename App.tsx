@@ -1516,6 +1516,15 @@ export const App = () => {
           if (error) throw error;
           return data;
         }}
+        onSyncNow={async () => {
+          try {
+            const { error } = await supabase.functions.invoke('sync-scores');
+            if (error) return { ok: false, message: error.message };
+            return { ok: true };
+          } catch (e: any) {
+            return { ok: false, message: e?.message ?? 'Unknown error' };
+          }
+        }}
         onTestNotification={(type) => {
           const id = Date.now();
           if (type === 'kit') {

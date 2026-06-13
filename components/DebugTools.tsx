@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe, UserPlus, Bell } from 'lucide-react';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe, UserPlus, Bell, RefreshCw } from 'lucide-react';
 import { Match, UserProfile, Prediction, Translation, LanguageCode } from '../types';
 import { LEAGUES, BROADCAST_CHANNELS, LANGUAGES } from '../constants';
 
@@ -18,6 +18,7 @@ interface DebugToolsProps {
   onDeleteUser: (email: string) => Promise<void>;
   onAutoFillAllUsers: () => Promise<{ filled: number; users: number }>;
   onTestNotification: (type: 'goal' | 'var' | 'og' | 'pen' | 'kit') => void;
+  onSyncNow: () => Promise<{ ok: boolean; message?: string }>;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -37,7 +38,7 @@ interface LateInviteRecipient {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, onTestNotification, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, onTestNotification, onSyncNow, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
 }) => {
   if (!isOpen) return null;
 
@@ -52,6 +53,8 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [fillResult, setFillResult] = useState<{ filled: number; users: number } | null>(null);
   const [fillConfirm, setFillConfirm] = useState(false);
   const [lastFiredNotif, setLastFiredNotif] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ ok: boolean; message?: string } | null>(null);
 
   const [cutoffInput, setCutoffInput] = useState('');
   const [cutoffSaving, setCutoffSaving] = useState(false);
@@ -132,6 +135,37 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto space-y-8 bg-slate-50">
+
+            {/* SYNC NOW */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <RefreshCw size={14} /> Live Sync
+                </h4>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                        Manually trigger the sync-scores function — pulls live scores, lineups and kit colours right now without waiting for the next scheduled run.
+                    </p>
+                    {syncResult && (
+                        <div className={`rounded-lg px-3 py-2 text-[10px] font-bold border ${syncResult.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                            {syncResult.ok ? '✅ Sync complete' : `⚠ ${syncResult.message || 'Sync failed'}`}
+                        </div>
+                    )}
+                    <button
+                        onClick={async () => {
+                            setSyncing(true);
+                            setSyncResult(null);
+                            const result = await onSyncNow();
+                            setSyncResult(result);
+                            setSyncing(false);
+                        }}
+                        disabled={syncing}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    >
+                        <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                        {syncing ? 'Syncing…' : 'Sync Now'}
+                    </button>
+                </div>
+            </div>
 
             {/* 0. UNASSIGNED PLAYERS */}
             {(() => {
