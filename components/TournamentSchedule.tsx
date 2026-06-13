@@ -21,12 +21,12 @@ interface TournamentScheduleProps {
   matchLineups?: MatchLineup[];
 }
 
-// MAPPING: Language Code -> Team ID
+// MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
 const LANG_TEAM_MAP: Record<string, string> = {
-    'NO': 'Norway',
-    'SCO': 'Scotland',
+    'NO': 'NOR',
+    'SCO': 'SCO',
     'US': 'USA',
-    'EN': 'England' 
+    'EN': 'ENG',
 };
 
 // LOCALE MAPPING: Ensure correct time formatting (24h vs 12h)
@@ -177,21 +177,30 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   }, [heroMatch, matches, teams]);
 
   // Date Headline Helper
+  // User's timezone abbreviation (e.g. "BST", "EDT", "CEST") for the headline callout
+  const userTzAbbr = useMemo(() =>
+    Intl.DateTimeFormat(activeLocale, { timeZoneName: 'short' })
+      .formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value ?? ''
+  , [activeLocale]);
+
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
       const today = utcDay(new Date());
       const tomorrowDate = new Date(); tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
       const tomorrow = utcDay(tomorrowDate);
 
-      if (dateStr === today) return lang.today || "Today";
-      if (dateStr === tomorrow) return lang.tomorrow || "Tomorrow";
+      const tzTag = userTzAbbr ? ` · ${userTzAbbr}` : '';
+
+      if (dateStr === today) return `${lang.today || "Today"}${tzTag}`;
+      if (dateStr === tomorrow) return `${lang.tomorrow || "Tomorrow"}${tzTag}`;
 
       // Parse as UTC noon for display so the day number never shifts
       const [y, mo, d] = dateStr.split('-').map(Number);
       const dateObj = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
       return dateObj.toLocaleDateString(activeLocale, {
           weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC'
-      });
+      }) + tzTag;
   };
 
   // Click Handler Generator

@@ -32,11 +32,11 @@ function kitPath(teamId: string, type: 'home' | 'away') {
 
 const SIZE_CLASS = {
   xs: 'w-[18px] h-[26px]',
-  sm: 'w-[29px] h-[40px]',
-  md: 'w-[34px] h-[48px]',
+  sm: 'w-[46px] h-[64px]',
+  md: 'w-[58px] h-[82px]',
 } as const;
 
-const JERSEY_SIZE = { xs: 22, sm: 38, md: 46 } as const;
+const JERSEY_SIZE = { xs: 22, sm: 62, md: 78 } as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
