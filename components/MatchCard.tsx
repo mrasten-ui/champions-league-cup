@@ -494,15 +494,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awaySubs = awayLineups.filter(l => !l.isStarting);
                const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
                  const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
-                 const subbedOut = events.find(e => e.type === 'Subst' && e.teamId === p.teamId && (
+                 const subbedOut = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (
                    (e.detail === 'Substitution 2' && e.player === p.playerName) ||
                    (e.detail === 'Substitution 1' && e.assist === p.playerName)
                  ));
-                 const subbedIn = events.find(e => e.type === 'Subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
+                 const subbedIn = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
                  return (
-                   <div className={`flex items-center gap-1 min-w-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+                   <div className={`flex items-center gap-1 min-w-0 ${align === 'right' ? 'justify-end' : ''}`}>
                      <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
-                     <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                     <span className={`text-[9px] truncate ${align === 'left' ? 'flex-1' : 'max-w-[90px]'} ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                      {playerGoals.map(g => (
                        <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                          <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
@@ -540,7 +540,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const sigRaw = events.filter(e =>
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
-                 (e.type === 'Subst' && e.detail === 'Substitution 1')
+                 (e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1')
                );
                // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
                // goal scored at or before the VAR minute (decision often comes minutes after the goal)
@@ -593,7 +593,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    const isRed = e.detail === 'Red Card';
                    return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${isRed ? 'bg-red-500' : 'bg-yellow-400'}`} />;
                  }
-                 if (e.type === 'Subst') {
+                 if (e.type?.toLowerCase() === 'subst') {
                    return <span className="text-[10px] text-green-500 font-black shrink-0">⇄</span>;
                  }
                  const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';

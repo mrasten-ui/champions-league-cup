@@ -383,15 +383,15 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const awaySubs = awayLineups.filter(l => !l.isStarting);
           const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
             const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
-            const subbedOut = events.find(e => e.type === 'Subst' && e.teamId === p.teamId && (
+            const subbedOut = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (
               (e.detail === 'Substitution 2' && e.player === p.playerName) ||
               (e.detail === 'Substitution 1' && e.assist === p.playerName)
             ));
-            const subbedIn = events.find(e => e.type === 'Subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
+            const subbedIn = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
             return (
-              <div className={`flex items-center gap-1.5 min-w-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-1.5 min-w-0 ${align === 'right' ? 'justify-end' : ''}`}>
                 <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
-                <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
+                <span className={`text-[10px] truncate ${align === 'left' ? 'flex-1' : 'max-w-[110px]'} ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
                 {playerGoals.map(g => (
                   <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                     <img src="/wc26-ball.png" className="w-3 h-3 object-contain" alt="" />
@@ -429,7 +429,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const sigRaw = events.filter(e =>
             e.type === 'Goal' ||
             (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
-            (e.type === 'Subst' && e.detail === 'Substitution 1')
+            (e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1')
           );
           // VAR: collect Goal Disallowed decisions per team, find and cancel the most-recent
           // goal scored at or before the VAR minute
@@ -469,7 +469,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             if (e.type === 'Card') {
               return <span className={`inline-block w-2 h-2.5 rounded-[1px] shrink-0 ${e.detail === 'Red Card' ? 'bg-red-500' : 'bg-yellow-400'}`} />;
             }
-            if (e.type === 'Subst') {
+            if (e.type?.toLowerCase() === 'subst') {
               return <span className="text-[10px] text-green-400 font-black shrink-0">⇄</span>;
             }
             const suffix = e.detail === 'Own Goal' ? 'OG' : e.detail === 'Penalty' ? 'P' : '';
