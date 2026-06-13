@@ -613,11 +613,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                // Drop duplicate yellow cards for the same player (API sometimes sends the same booking twice)
                const yellowsByPlayer = new Set<string>();
-               const sig = deduped.filter(e => {
+               const dedupedYellow = deduped.filter(e => {
                  if (e.type === 'Card' && e.detail === 'Yellow Card' && e.player) {
                    const pKey = `${e.teamId}::${e.player}`;
                    if (yellowsByPlayer.has(pKey)) return false;
                    yellowsByPlayer.add(pKey);
+                 }
+                 return true;
+               });
+               // Drop near-duplicate events where the same player appears in the same
+               // event type within ±2 minutes (API sometimes stores a sub as 65' and 66',
+               // or 90+4' and 90+5', producing visible double entries in the strip).
+               const seenPlayerMin = new Map<string, number>();
+               const sig = dedupedYellow.filter(e => {
+                 const totalMin = (e.minute ?? 0) + (e.minuteExtra ?? 0);
+                 for (const name of [e.player, e.assist]) {
+                   if (!name) continue;
+                   const k = `${e.teamId}::${e.type}::${name}`;
+                   const prev = seenPlayerMin.get(k);
+                   if (prev !== undefined && Math.abs(totalMin - prev) <= 2) return false;
+                 }
+                 for (const name of [e.player, e.assist]) {
+                   if (!name) continue;
+                   seenPlayerMin.set(`${e.teamId}::${e.type}::${name}`, totalMin);
                  }
                  return true;
                });
