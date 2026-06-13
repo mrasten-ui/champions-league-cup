@@ -381,12 +381,28 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
           const homeSubs = homeLineups.filter(l => !l.isStarting);
           const awaySubs = awayLineups.filter(l => !l.isStarting);
-          const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => (
-            <div className={`flex items-center gap-1.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-              <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
-              <span className="text-[10px] text-white/80 truncate">{p.playerName}</span>
-            </div>
-          );
+          const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
+            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
+            const subbedOut = events.find(e => e.type === 'Subst' && e.teamId === p.teamId && (
+              (e.detail === 'Substitution 2' && e.player === p.playerName) ||
+              (e.detail === 'Substitution 1' && e.assist === p.playerName)
+            ));
+            const subbedIn = events.find(e => e.type === 'Subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
+            return (
+              <div className={`flex items-center gap-1.5 min-w-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+                <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+                <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
+                {playerGoals.map(g => (
+                  <span key={g.id} className="flex items-center gap-0.5 shrink-0">
+                    <img src="/wc26-ball.png" className="w-3 h-3 object-contain" alt="" />
+                    <span className="text-[8px] text-white/50">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
+                  </span>
+                ))}
+                {subbedOut && <span className="text-[9px] text-red-400 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
+                {subbedIn && <span className="text-[9px] text-green-400 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+              </div>
+            );
+          };
           return (
             <div className="relative z-10 bg-black/40 border-t border-white/5 px-6 py-3">
               <div className="flex gap-4">

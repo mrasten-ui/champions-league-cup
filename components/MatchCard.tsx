@@ -424,6 +424,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             })()}
                                             <div className={`px-4 py-2 rounded-xl font-mono text-3xl font-bold tracking-widest shadow-lg border-2 flex items-center gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-xl mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
+                                            {lineups.filter(l => l.matchId === match.id).length > 0 && (
+                                              <button onClick={() => setLineupsOpen(o => !o)} className="mt-1 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
+                                                {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                                Lineups
+                                              </button>
+                                            )}
                                         </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
@@ -486,12 +492,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
                const homeSubs = homeLineups.filter(l => !l.isStarting);
                const awaySubs = awayLineups.filter(l => !l.isStarting);
-               const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => (
-                 <div className={`flex items-center gap-1 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-                   <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
-                   <span className="text-[9px] text-slate-700 truncate">{p.playerName}</span>
-                 </div>
-               );
+               const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
+                 const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
+                 const subbedOut = events.find(e => e.type === 'Subst' && e.teamId === p.teamId && (
+                   (e.detail === 'Substitution 2' && e.player === p.playerName) ||
+                   (e.detail === 'Substitution 1' && e.assist === p.playerName)
+                 ));
+                 const subbedIn = events.find(e => e.type === 'Subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && e.player === p.playerName);
+                 return (
+                   <div className={`flex items-center gap-1 min-w-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+                     <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+                     <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                     {playerGoals.map(g => (
+                       <span key={g.id} className="flex items-center gap-0.5 shrink-0">
+                         <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
+                         <span className="text-[7px] text-slate-500">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
+                       </span>
+                     ))}
+                     {subbedOut && <span className="text-[8px] text-red-500 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
+                     {subbedIn && <span className="text-[8px] text-green-600 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+                   </div>
+                 );
+               };
                return (
                  <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
                    <div className="flex gap-2">
