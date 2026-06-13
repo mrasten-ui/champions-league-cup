@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { Team } from '../types';
 import { TEAMS } from '../constants';
 import { JerseyIcon } from './JerseyIcon';
+import { KitImage } from './KitImage';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -303,15 +304,17 @@ function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
       <div className="flex items-center gap-3 pl-4 pr-2.5 py-3">
         {/* jersey icons */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <JerseyIcon
-            bg={notification.homeKitBg}
-            text={notification.homeKitText}
-            size={34}
+          <KitImage
+            teamId={notification.homeTeamId}
+            kitBg={notification.homeKitBg}
+            kitText={notification.homeKitText}
+            size="sm"
           />
-          <JerseyIcon
-            bg={notification.awayKitBg}
-            text={notification.awayKitText}
-            size={34}
+          <KitImage
+            teamId={notification.awayTeamId}
+            kitBg={notification.awayKitBg}
+            kitText={notification.awayKitText}
+            size="sm"
           />
         </div>
 
