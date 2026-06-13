@@ -5,6 +5,7 @@ import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 import { JerseyIcon } from './JerseyIcon';
+import { KitImage, resolveKitType } from './KitImage';
 import { namesMatch } from '../utils/nameMatch';
 
 interface MatchdayHeroProps {
@@ -144,6 +145,11 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   const isHomeTBD = match.homeTeamId === 'TBD' || !home;
   const isAwayTBD = match.awayTeamId === 'TBD' || !away;
+
+  const heroHomeKitBg   = lineups.find(l => l.teamId === match.homeTeamId)?.kitBg ?? null;
+  const heroAwayKitBg   = lineups.find(l => l.teamId === match.awayTeamId)?.kitBg ?? null;
+  const heroHomeKitType = resolveKitType(match.homeTeamId, heroHomeKitBg);
+  const heroAwayKitType = resolveKitType(match.awayTeamId, heroAwayKitBg);
 
   const getContextLabel = () => {
       if (match.round) {
@@ -297,13 +303,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {isHomeTBD ? (
                     <TbdHeroSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
-                    <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
-                        <img src={home?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
-                        {home?.rank && (
-                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
-                                #{home.rank}
-                            </div>
-                        )}
+                    <div className="flex items-center gap-1.5 transform transition-transform group-hover/team:scale-110 duration-300">
+                        {heroHomeKitBg && <KitImage teamId={match.homeTeamId} kitType={heroHomeKitType} size="md" />}
+                        <div className={`relative ${heroHomeKitBg ? 'w-14 h-10 sm:w-20 sm:h-14' : 'w-16 h-12 sm:w-24 sm:h-16'}`}>
+                            <img src={home?.flag} className="w-full h-full object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
+                            {home?.rank && (
+                                <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
+                                    #{home.rank}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
                 {!isHomeTBD && (
@@ -348,13 +357,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {isAwayTBD ? (
                     <TbdHeroSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
-                    <div className="relative transform transition-transform group-hover/team:scale-110 duration-300">
-                        <img src={away?.flag} className="w-16 h-12 sm:w-24 sm:h-16 object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
-                        {away?.rank && (
-                            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
-                                #{away.rank}
-                            </div>
-                        )}
+                    <div className="flex items-center gap-1.5 transform transition-transform group-hover/team:scale-110 duration-300">
+                        <div className={`relative ${heroAwayKitBg ? 'w-14 h-10 sm:w-20 sm:h-14' : 'w-16 h-12 sm:w-24 sm:h-16'}`}>
+                            <img src={away?.flag} className="w-full h-full object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={away?.name} />
+                            {away?.rank && (
+                                <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-[#0f2545]" title="FIFA Ranking">
+                                    #{away.rank}
+                                </div>
+                            )}
+                        </div>
+                        {heroAwayKitBg && <KitImage teamId={match.awayTeamId} kitType={heroAwayKitType} size="md" />}
                     </div>
                 )}
                 {!isAwayTBD && (

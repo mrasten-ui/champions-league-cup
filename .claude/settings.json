@@ -27,7 +27,12 @@
       "Bash(git add *)",
       "Bash(npx supabase *)",
       "Bash(node scripts/backfill-lineups.js)",
-      "Bash(node -e \"import\\('dotenv/config'\\).then\\(\\(\\) => console.log\\('API_FOOTBALL_KEY:', process.env.API_FOOTBALL_KEY ? 'SET' : 'MISSING', '| keys:', Object.keys\\(process.env\\).filter\\(k => k.includes\\('API'\\) || k.includes\\('FOOT'\\) || k.includes\\('SPORT'\\)\\).join\\(', '\\)\\)\\)\")"
+      "Bash(node -e \"import\\('dotenv/config'\\).then\\(\\(\\) => console.log\\('API_FOOTBALL_KEY:', process.env.API_FOOTBALL_KEY ? 'SET' : 'MISSING', '| keys:', Object.keys\\(process.env\\).filter\\(k => k.includes\\('API'\\) || k.includes\\('FOOT'\\) || k.includes\\('SPORT'\\)\\).join\\(', '\\)\\)\\)\")",
+      "Bash(gh api *)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:media.api-sports.io)",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:en.m.wikipedia.org)"
     ]
   }
 }
