@@ -68,7 +68,8 @@ async function checkTier() {
     .from('matches').select('id')
     .or(
       `status.in.(HT,BT),` +
-      `and(status.eq.NS,date.gte.${nsStart},date.lte.${nsEnd}),` +
+      `and(status.in.(NS,UPCOMING),date.gte.${nsStart},date.lte.${nsEnd}),` +
+      `and(status.in.(NS,UPCOMING),date.gte.${new Date(now - 36 * 60 * 60 * 1000).toISOString()},date.lt.${now.toISOString()}),` +
       `and(status.in.(FT,AET,PEN),date.gte.${ftStart})`
     )
     .limit(1);

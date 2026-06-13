@@ -86,7 +86,8 @@ serve(async (req) => {
     .or(
       `and(status.in.(1H,HT,2H,ET,P,BT,LIVE,INT),date.gte.${liveStart}),` +
       `and(status.in.(FT,AET,PEN),date.gte.${ftStart}),` +
-      `and(status.eq.NS,date.gte.${nsStart},date.lte.${nsEnd})`
+      `and(status.in.(NS,UPCOMING),date.gte.${nsStart},date.lte.${nsEnd}),` +
+      `and(status.in.(NS,UPCOMING),date.gte.${liveStart},date.lt.${now.toISOString()})`
     )
     .limit(1)
 
@@ -118,8 +119,10 @@ serve(async (req) => {
   // Collect all dates to fetch: today + any previous days with stale live statuses
   const datesToFetch = new Set<string>([today])
   for (const m of (dbMatches ?? [])) {
-    if (LIVE_STATUSES.includes((m as any).status) && (m as any).date?.slice(0, 10) < today) {
-      datesToFetch.add((m as any).date.slice(0, 10))
+    const ms = (m as any).status
+    const mdate = (m as any).date?.slice(0, 10)
+    if (([...LIVE_STATUSES, 'NS', 'UPCOMING'].includes(ms)) && mdate < today) {
+      datesToFetch.add(mdate)
     }
   }
   if (datesToFetch.size > 1) {
