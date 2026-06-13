@@ -4,6 +4,7 @@ import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
 import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
+import { JerseyIcon } from './JerseyIcon';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -387,9 +388,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
             const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
             const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
+            const playerTeam = teams[p.teamId];
             return (
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+                <JerseyIcon bg={playerTeam?.jerseyBg} text={playerTeam?.jerseyText} number={p.playerNumber} size={22} className="shrink-0" />
                 <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
                 {playerGoals.map(g => (
                   <span key={g.id} className="flex items-center gap-0.5 shrink-0">
@@ -413,9 +415,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 </div>
                 <div className="w-px bg-white/10 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  {awayFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">{awayFormation}</div>}
+                  {awayFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">{awayFormation}</div>}
                   {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
-                  {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5 text-right">Bench</div>}
+                  {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
                   {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { calculatePoints } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
+import { JerseyIcon } from './JerseyIcon';
 
 interface MatchCardProps {
   match: Match;
@@ -498,9 +499,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
                  const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
                  const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
+                 const playerTeam = p.teamId === match.homeTeamId ? homeTeam : awayTeam;
                  return (
                    <div className="flex items-center gap-1 min-w-0">
-                     <span className="text-[9px] font-black text-slate-400 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
+                     <JerseyIcon bg={playerTeam?.jerseyBg} text={playerTeam?.jerseyText} number={p.playerNumber} size={20} className="shrink-0" />
                      <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                      {playerGoals.map(g => (
                        <span key={g.id} className="flex items-center gap-0.5 shrink-0">
@@ -524,9 +526,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                      </div>
                      <div className="w-px bg-slate-200 shrink-0" />
                      <div className="flex-1 min-w-0">
-                       {awayFormation && <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">{awayFormation}</div>}
+                       {awayFormation && <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{awayFormation}</div>}
                        {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
-                       {awaySubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-right">Bench</div>}
+                       {awaySubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1">Bench</div>}
                        {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}
                      </div>
                    </div>
