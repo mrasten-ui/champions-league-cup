@@ -108,7 +108,7 @@ export const GroupStageSummary: React.FC<GroupStageSummaryProps> = ({
                                        <span className="text-sm font-black text-white">{groupId}</span>
                                     </div>
                                     <span className="text-lg font-black text-white italic tracking-tighter uppercase drop-shadow-md">
-                                        {lang.groups} {groupId}
+                                        {lang.group || 'Group'} {groupId}
                                     </span>
                                 </div>
                                 <div className={`w-2.5 h-2.5 rounded-full shadow-sm border border-slate-900/20 ${dotColor}`} title="Prediction Status"></div>

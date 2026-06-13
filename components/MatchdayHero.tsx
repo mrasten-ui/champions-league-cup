@@ -5,6 +5,7 @@ import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 import { JerseyIcon } from './JerseyIcon';
+import { namesMatch } from '../utils/nameMatch';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -156,7 +157,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           };
           return rounds[match.round] || match.round;
       }
-      if (match.groupId) return `${lang.groups || 'GROUP'} ${match.groupId}`;
+      if (match.groupId) return `${lang.group || 'GROUP'} ${match.groupId}`;
       return match.venue || 'FRIENDLY';
   };
 
@@ -334,7 +335,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                   if (lineups.length > 0 && minsToKick <= 55) {
                     return (
                       <button onClick={() => setLineupsOpen(o => !o)} className="mt-2 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white/70 border border-white/10 transition-colors">
-                        {lineupsOpen ? '▲' : '▼'} Lineups
+                        {lineupsOpen ? '▲' : '▼'} {lang.lineups || 'Line-up'}
                       </button>
                     );
                   }
@@ -383,11 +384,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const homeSubs = homeLineups.filter(l => !l.isStarting);
           const awaySubs = awayLineups.filter(l => !l.isStarting);
           const PlayerRow = ({ p }: { p: MatchLineup }) => {
-            const nameLower = p.playerName.toLowerCase();
-            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player?.toLowerCase() === nameLower && e.detail !== 'Own Goal');
-            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
-            const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
-            const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
+            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
+            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
+            const subbedOut = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
+            const subbedIn = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
             const jersey = TEAMS[p.teamId];
             const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
             const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';

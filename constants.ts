@@ -136,7 +136,7 @@ const TEAM_NAMES_NO: Record<string, string> = {
 
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
-    groups: "Groups", knockout: "Knockout", myPredictions: "My Picks",
+    group: "Group", groups: "Groups", lineups: "Line-up", knockout: "Knockout", myPredictions: "My Picks",
     
     competition: "The Competition", 
     leaderboard: "Leaderboard",     
@@ -273,7 +273,7 @@ const EN_TRANSLATION: Translation = {
 const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
-    groups: "The Groups", knockout: "The Knockoots", myPredictions: "Ma Guesses",
+    group: "Group", groups: "The Groups", lineups: "Team Sheet", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
     competition: "The Opposition",
     leaderboard: "Big Table",
@@ -396,7 +396,7 @@ const SCO_TRANSLATION: Translation = {
 const US_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Male Coach", genderWoman: "Female Coach", genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...", credits: "Tokens",
-    groups: "Group Play", knockout: "The Playoffs", myPredictions: "My Picks",
+    group: "Group", groups: "Group Play", lineups: "Lineup", knockout: "The Playoffs", myPredictions: "My Picks",
     
     competition: "The Field",
     leaderboard: "Power Rankings",
@@ -519,7 +519,7 @@ const US_TRANSLATION: Translation = {
 const NO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
-    groups: "Gruppene", knockout: "Sluttspill", myPredictions: "Mine Tips",
+    group: "Gruppe", groups: "Gruppene", lineups: "Lagoppstilling", knockout: "Sluttspill", myPredictions: "Mine Tips",
     
     competition: "Konkurrentene",
     leaderboard: "Resultatliste",

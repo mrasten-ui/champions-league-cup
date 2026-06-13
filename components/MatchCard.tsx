@@ -7,6 +7,7 @@ import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
 import { JerseyIcon } from './JerseyIcon';
+import { namesMatch } from '../utils/nameMatch';
 
 interface MatchCardProps {
   match: Match;
@@ -428,7 +429,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             {lineups.filter(l => l.matchId === match.id).length > 0 && (
                                               <button onClick={() => setLineupsOpen(o => !o)} className="mt-1 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
                                                 {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                                                Lineups
+                                                {lang.lineups || 'Line-up'}
                                               </button>
                                             )}
                                         </>
@@ -442,7 +443,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                  return (
                                                    <button onClick={() => setLineupsOpen(o => !o)} className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
                                                      {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                                                     Lineups
+                                                     {lang.lineups || 'Line-up'}
                                                    </button>
                                                  );
                                                }
@@ -494,11 +495,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const homeSubs = homeLineups.filter(l => !l.isStarting);
                const awaySubs = awayLineups.filter(l => !l.isStarting);
                const PlayerRow = ({ p }: { p: MatchLineup }) => {
-                 const nameLower = p.playerName.toLowerCase();
-                 const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player?.toLowerCase() === nameLower && e.detail !== 'Own Goal');
-                 const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
-                 const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
-                 const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
+                 const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
+                 const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
+                 const subbedOut = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
+                 const subbedIn = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const jersey = TEAMS[p.teamId];
                  const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
                  const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';

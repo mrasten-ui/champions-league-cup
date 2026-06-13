@@ -314,7 +314,7 @@ export const TeamPulse: React.FC<TeamPulseProps> = ({
                     {pulseData.groupsData.map(g => (
                         <div key={g.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                             <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
-                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{lang.groups} {g.id}</span>
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{lang.group || 'Group'} {g.id}</span>
                             </div>
                             <div className="p-2 space-y-1">
                                 {g.rows.map((row: any, idx: number) => {
