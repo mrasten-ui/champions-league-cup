@@ -304,7 +304,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     <TbdHeroSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
                     <div className="flex items-center gap-1.5 transform transition-transform group-hover/team:scale-110 duration-300">
-                        <KitImage teamId={match.homeTeamId} kitBg={heroHomeKitBg} kitText={lineups.find(l => l.teamId === match.homeTeamId)?.kitText} kitType={heroHomeKitType} size="md" />
+                        {heroHomeKitBg && <KitImage teamId={match.homeTeamId} kitBg={heroHomeKitBg} kitText={lineups.find(l => l.teamId === match.homeTeamId)?.kitText} kitType={heroHomeKitType} size="md" />}
                         <div className={`relative ${heroHomeKitBg ? 'w-14 h-10 sm:w-20 sm:h-14' : 'w-16 h-12 sm:w-24 sm:h-16'}`}>
                             <img src={home?.flag} className="w-full h-full object-cover rounded-xl shadow-lg border-2 border-white/10 bg-white" alt={home?.name} />
                             {home?.rank && (
@@ -366,7 +366,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                                 </div>
                             )}
                         </div>
-                        <KitImage teamId={match.awayTeamId} kitBg={heroAwayKitBg} kitText={lineups.find(l => l.teamId === match.awayTeamId)?.kitText} kitType={heroAwayKitType} size="md" />
+                        {heroAwayKitBg && <KitImage teamId={match.awayTeamId} kitBg={heroAwayKitBg} kitText={lineups.find(l => l.teamId === match.awayTeamId)?.kitText} kitType={heroAwayKitType} size="md" />}
                     </div>
                 )}
                 {!isAwayTBD && (
