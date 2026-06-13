@@ -57,9 +57,14 @@ const LOCKED_STATUSES = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 
 const LIVE_STATUSES   = ['1H', 'HT', '2H', 'ET', 'P', 'BT', 'LIVE', 'INT']
 const EVENTS_STATUSES = [...LIVE_STATUSES, 'FT', 'AET', 'PEN'] // fetch events for live + just-finished
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-sync-secret, content-type',
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-sync-secret, content-type' } })
+    return new Response('ok', { headers: corsHeaders })
   }
 
 
@@ -94,14 +99,14 @@ serve(async (req) => {
   if (wcError) {
     console.error(`[${today}] windowCheck failed:`, wcError.message)
     return new Response(JSON.stringify({ error: 'window_check_failed', detail: wcError.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders }
     })
   }
 
   if (!windowCheck?.length) {
     console.log(`[${today}] Skipped — no active match window`)
     return new Response(JSON.stringify({ skipped: true, reason: 'no active match window' }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     })
   }
 
@@ -110,7 +115,7 @@ serve(async (req) => {
   if (dbError) {
     console.error(`[${today}] dbMatches fetch failed:`, dbError.message)
     return new Response(JSON.stringify({ error: 'db_fetch_failed', detail: dbError.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders }
     })
   }
   const linkedByApiId = new Map((dbMatches ?? []).filter((m: any) => m.api_id).map((m: any) => [m.api_id, m]))
@@ -162,7 +167,7 @@ serve(async (req) => {
   if (!allFixtures.length) {
     console.log(`[${today}] No fixtures returned from API`)
     return new Response(JSON.stringify({ ok: true, updated: 0, reason: 'no api response' }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     })
   }
 
@@ -379,6 +384,6 @@ serve(async (req) => {
 
   return new Response(
     JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted, lineupsUpserted }),
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
   )
 })
