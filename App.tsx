@@ -43,7 +43,7 @@ import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
-import { GoalBanner, GoalNotification } from './components/GoalBanner';
+import { GoalBanner, GoalNotification, KitNotification } from './components/GoalBanner';
 import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
@@ -114,6 +114,10 @@ export const App = () => {
   const [goalQueue, setGoalQueue] = useState<GoalNotification[]>([]);
   const seenEventIdsRef = useRef<Set<number>>(new Set());
   const goalNotification = goalQueue[0] ?? null;
+  const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
+  const kitNotification = kitQueue[0] ?? null;
+  const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
+  const kitInitializedRef = useRef(false);
   const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
@@ -934,6 +938,45 @@ export const App = () => {
     if (banners.length) setGoalQueue(prev => [...prev, ...banners]);
   }, [matchEvents]);
 
+  // --- KIT NOTIFICATION ---
+  // Fires when lineups arrive with kit colors for a live/upcoming match.
+  // On first run: silently marks all already-loaded matches as seen.
+  // On subsequent runs: only fires for genuinely new lineup arrivals.
+  useEffect(() => {
+    const LIVE_STATUSES = new Set(['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
+    const byMatch = new Map<string, typeof matchLineups>();
+    matchLineups.forEach(l => {
+      if (!byMatch.has(l.matchId)) byMatch.set(l.matchId, []);
+      byMatch.get(l.matchId)!.push(l);
+    });
+
+    const newKits: KitNotification[] = [];
+    byMatch.forEach((lineups, matchId) => {
+      if (kitNotifiedMatchesRef.current.has(matchId)) return;
+      const match = matches.find(m => m.id === matchId);
+      if (!match) return;
+      const homeRow = lineups.find(l => l.teamId === match.homeTeamId && l.kitBg);
+      const awayRow = lineups.find(l => l.teamId === match.awayTeamId && l.kitBg);
+      kitNotifiedMatchesRef.current.add(matchId);
+      if (!homeRow?.kitBg || !awayRow?.kitBg) return;
+      if (!kitInitializedRef.current) return; // suppress on initial page load
+      if (!LIVE_STATUSES.has(match.status ?? '')) return;
+      newKits.push({
+        id: `kit_${matchId}_${Date.now()}`,
+        matchId,
+        homeTeamId: match.homeTeamId,
+        awayTeamId: match.awayTeamId,
+        homeKitBg: homeRow.kitBg!,
+        homeKitText: homeRow.kitText ?? '#FFFFFF',
+        awayKitBg: awayRow.kitBg!,
+        awayKitText: awayRow.kitText ?? '#FFFFFF',
+      });
+    });
+
+    kitInitializedRef.current = true;
+    if (newKits.length) setKitQueue(prev => [...prev, ...newKits]);
+  }, [matchLineups, matches]);
+
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   const leagueRivalsList = useMemo(() => {
     const userLeagues = user?.leagues ?? [];
@@ -1318,6 +1361,8 @@ export const App = () => {
         awayTeam={goalNotification ? teamsData[goalNotification.awayTeamId] : undefined}
         scoringTeam={goalNotification ? teamsData[goalNotification.teamId] : undefined}
         onDismiss={() => setGoalQueue(prev => prev.slice(1))}
+        kitNotification={kitNotification}
+        onKitDismiss={() => setKitQueue(prev => prev.slice(1))}
       />
 
       {showAvatarEditor && (
