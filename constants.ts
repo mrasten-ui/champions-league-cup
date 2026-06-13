@@ -747,9 +747,38 @@ const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: 
   TBD: { rank: 99, att: 50, mid: 50, def: 50 }
 };
 
+const TEAM_JERSEYS: Record<string, { bg: string; text: string }> = {
+  MEX: { bg: '#006847', text: '#FFFFFF' }, RSA: { bg: '#FFB81C', text: '#007749' },
+  KOR: { bg: '#E03A3E', text: '#FFFFFF' }, CZE: { bg: '#ED1B24', text: '#FFFFFF' },
+  CAN: { bg: '#C5281C', text: '#FFFFFF' }, BIH: { bg: '#002F6C', text: '#FFFFFF' },
+  QAT: { bg: '#8A1538', text: '#FFFFFF' }, SUI: { bg: '#D52B1E', text: '#FFFFFF' },
+  BRA: { bg: '#FEE123', text: '#009B3A' }, MAR: { bg: '#C1272D', text: '#FFFFFF' },
+  HAI: { bg: '#00205B', text: '#FFFFFF' }, SCO: { bg: '#001B49', text: '#FFFFFF' },
+  USA: { bg: '#FFFFFF', text: '#002868' }, PAR: { bg: '#D52B1E', text: '#FFFFFF' },
+  AUS: { bg: '#FFCD00', text: '#008751' }, TUR: { bg: '#E30A17', text: '#FFFFFF' },
+  GER: { bg: '#FFFFFF', text: '#000000' }, CUW: { bg: '#002868', text: '#FFFFFF' },
+  CIV: { bg: '#F77F00', text: '#FFFFFF' }, ECU: { bg: '#FFD100', text: '#00205B' },
+  NED: { bg: '#F36C21', text: '#FFFFFF' }, JPN: { bg: '#000555', text: '#FFFFFF' },
+  SWE: { bg: '#FFF200', text: '#006AA7' }, TUN: { bg: '#FFFFFF', text: '#E70013' },
+  BEL: { bg: '#E30613', text: '#FDDA24' }, EGY: { bg: '#CE1126', text: '#FFFFFF' },
+  IRN: { bg: '#FFFFFF', text: '#DA0000' }, NZL: { bg: '#FFFFFF', text: '#000000' },
+  ESP: { bg: '#AA151B', text: '#F1BF00' }, CPV: { bg: '#003893', text: '#FFFFFF' },
+  KSA: { bg: '#006C35', text: '#FFFFFF' }, URU: { bg: '#55B5E5', text: '#000000' },
+  FRA: { bg: '#002654', text: '#FFFFFF' }, SEN: { bg: '#FFFFFF', text: '#00853F' },
+  IRQ: { bg: '#007A3D', text: '#FFFFFF' }, NOR: { bg: '#C8102E', text: '#FFFFFF' },
+  ARG: { bg: '#43A1D5', text: '#000000' }, ALG: { bg: '#FFFFFF', text: '#006233' },
+  AUT: { bg: '#ED2939', text: '#FFFFFF' }, JOR: { bg: '#FFFFFF', text: '#E30A17' },
+  POR: { bg: '#E42518', text: '#FFFFFF' }, COD: { bg: '#007FFF', text: '#FFFFFF' },
+  UZB: { bg: '#005EAB', text: '#FFFFFF' }, COL: { bg: '#FCD116', text: '#003893' },
+  ENG: { bg: '#FFFFFF', text: '#000040' }, CRO: { bg: '#ED1C24', text: '#FFFFFF' },
+  GHA: { bg: '#FFFFFF', text: '#000000' }, PAN: { bg: '#DA291C', text: '#FFFFFF' },
+  TBD: { bg: '#E2E8F0', text: '#64748B' },
+};
+
 export const TEAMS: Record<string, Team> = {};
 Object.keys(BASE_TEAM_NAMES).forEach(id => {
   const stats = TEAM_STATS[id] || { rank: 50, att: 75, mid: 75, def: 75 };
+  const jersey = TEAM_JERSEYS[id] || { bg: '#E2E8F0', text: '#64748B' };
   TEAMS[id] = {
     id,
     name: BASE_TEAM_NAMES[id],
@@ -761,7 +790,9 @@ Object.keys(BASE_TEAM_NAMES).forEach(id => {
     def: stats.def,
     overview: "Team overview unavailable.",
     starPlayer: "Star Player",
-    form: ['D', 'D', 'D', 'D', 'D']
+    form: ['D', 'D', 'D', 'D', 'D'],
+    jerseyBg: jersey.bg,
+    jerseyText: jersey.text,
   };
 });
 

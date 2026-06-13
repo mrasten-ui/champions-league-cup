@@ -381,15 +381,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
           const homeSubs = homeLineups.filter(l => !l.isStarting);
           const awaySubs = awayLineups.filter(l => !l.isStarting);
-          const PlayerRow = ({ p, align }: { p: MatchLineup; align: 'left' | 'right' }) => {
-            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player === p.playerName && e.detail !== 'Own Goal');
-            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player === p.playerName || e.assist === p.playerName));
-            const subbedOut = subEvent?.assist === p.playerName ? subEvent : undefined;
-            const subbedIn = subEvent?.player === p.playerName ? subEvent : undefined;
+          const PlayerRow = ({ p }: { p: MatchLineup }) => {
+            const nameLower = p.playerName.toLowerCase();
+            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && e.player?.toLowerCase() === nameLower && e.detail !== 'Own Goal');
+            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (e.player?.toLowerCase() === nameLower || e.assist?.toLowerCase() === nameLower));
+            const subbedOut = subEvent?.assist?.toLowerCase() === nameLower ? subEvent : undefined;
+            const subbedIn = subEvent?.player?.toLowerCase() === nameLower ? subEvent : undefined;
             return (
-              <div className={`flex items-center gap-1.5 min-w-0 ${align === 'right' ? 'justify-end' : ''}`}>
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-[10px] font-black text-white/40 w-4 shrink-0 text-center">{p.playerNumber ?? ''}</span>
-                <span className={`text-[10px] truncate ${align === 'left' ? 'flex-1' : 'max-w-[110px]'} ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
+                <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
                 {playerGoals.map(g => (
                   <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                     <img src="/wc26-ball.png" className="w-3 h-3 object-contain" alt="" />
@@ -406,16 +407,16 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               <div className="flex gap-4">
                 <div className="flex-1 min-w-0">
                   {homeFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5">{homeFormation}</div>}
-                  {homeXI.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                  {homeXI.map(p => <PlayerRow key={p.id} p={p} />)}
                   {homeSubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
-                  {homeSubs.map(p => <PlayerRow key={p.id} p={p} align="left" />)}
+                  {homeSubs.map(p => <PlayerRow key={p.id} p={p} />)}
                 </div>
                 <div className="w-px bg-white/10 shrink-0" />
                 <div className="flex-1 min-w-0">
                   {awayFormation && <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1.5 text-right">{awayFormation}</div>}
-                  {awayXI.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                  {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
                   {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5 text-right">Bench</div>}
-                  {awaySubs.map(p => <PlayerRow key={p.id} p={p} align="right" />)}
+                  {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}
                 </div>
               </div>
             </div>

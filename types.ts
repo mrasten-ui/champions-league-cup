@@ -116,6 +116,8 @@ export interface Team {
   code?: string;
   form?: string[];
   eloRating?: number;
+  jerseyBg?: string;
+  jerseyText?: string;
 }
 
 export interface Prediction {
