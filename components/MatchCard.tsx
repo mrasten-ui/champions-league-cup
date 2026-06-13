@@ -497,8 +497,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const PlayerRow = ({ p }: { p: MatchLineup }) => {
                  const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
                  const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
-                 const subbedOut = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
-                 const subbedIn = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
+                 const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
+                 const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
                  const jersey = TEAMS[p.teamId];
                  const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
                  const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';
@@ -617,20 +617,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
                  if (e.type?.toLowerCase() === 'subst') {
                    const rows = [];
-                   if (e.assist) rows.push(
+                   if (e.player) rows.push(
                      <span key={`${e.id}-out`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
-                       {side === 'away' && <span className="truncate text-slate-500">{e.assist}</span>}
-                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                       <span className="text-red-500 font-bold shrink-0">↓</span>
-                       {side === 'home' && <span className="truncate text-slate-500">{e.assist}</span>}
-                     </span>
-                   );
-                   rows.push(
-                     <span key={`${e.id}-in`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
                        {side === 'away' && <span className="truncate text-slate-500">{e.player}</span>}
                        <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                       <span className="text-green-600 font-bold shrink-0">↑</span>
+                       <span className="text-red-500 font-bold shrink-0">↓</span>
                        {side === 'home' && <span className="truncate text-slate-500">{e.player}</span>}
+                     </span>
+                   );
+                   if (e.assist) rows.push(
+                     <span key={`${e.id}-in`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                       {side === 'away' && <span className="truncate text-slate-500">{e.assist}</span>}
+                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                       <span className="text-green-600 font-bold shrink-0">↑</span>
+                       {side === 'home' && <span className="truncate text-slate-500">{e.assist}</span>}
                      </span>
                    );
                    return rows;
