@@ -4,6 +4,19 @@ import { JerseyIcon } from './JerseyIcon';
 
 // ── Kit type resolver ─────────────────────────────────────────────────────────
 
+function hexHue(hex: string): number {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d === 0) return 0;
+  const hue = max === r ? ((g - b) / d + (g < b ? 6 : 0))
+            : max === g ? ((b - r) / d + 2)
+            :             ((r - g) / d + 4);
+  return hue * 60;
+}
+
 export function resolveKitType(
   teamId: string,
   kitBg: string | null | undefined,
@@ -11,9 +24,9 @@ export function resolveKitType(
   if (!kitBg) return 'home';
   const staticBg = TEAMS[teamId]?.jerseyBg;
   if (!staticBg) return 'home';
-  return staticBg.replace('#', '').toUpperCase() === kitBg.replace('#', '').toUpperCase()
-    ? 'home'
-    : 'away';
+  const h1 = hexHue(staticBg), h2 = hexHue(kitBg);
+  const diff = Math.abs(h1 - h2);
+  return Math.min(diff, 360 - diff) <= 40 ? 'home' : 'away';
 }
 
 // ── File name overrides where the PNG name differs from the app team ID ───────
