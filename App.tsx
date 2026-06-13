@@ -1516,6 +1516,35 @@ export const App = () => {
           if (error) throw error;
           return data;
         }}
+        onTestNotification={(type) => {
+          const id = Date.now();
+          if (type === 'kit') {
+            setKitQueue(prev => [...prev, {
+              id: `kit_test_${id}`,
+              matchId: 'TEST',
+              homeTeamId: 'BRA',
+              awayTeamId: 'SCO',
+              homeKitBg: '#F7E016',
+              homeKitText: '#033A75',
+              awayKitBg: '#003380',
+              awayKitText: '#FFFFFF',
+            }]);
+          } else {
+            setGoalQueue(prev => [...prev, {
+              eventId: id,
+              eventType: type === 'var' ? 'Var' : 'Goal',
+              teamId: type === 'og' ? 'SCO' : 'BRA',
+              player: type === 'var' ? 'G. Jesus' : type === 'og' ? 'A. Robertson' : type === 'pen' ? 'Vinícius Jr.' : 'R. Firmino',
+              detail: type === 'var' ? 'Goal Disallowed' : type === 'og' ? 'Own Goal' : type === 'pen' ? 'Penalty' : 'Normal Goal',
+              minute: 67,
+              minuteExtra: null,
+              homeTeamId: 'BRA',
+              awayTeamId: 'SCO',
+              homeScore: type === 'og' ? 1 : 2,
+              awayScore: 1,
+            }]);
+          }
+        }}
       />
 
       {/* Admin Password Modal */}

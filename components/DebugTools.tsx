@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe, UserPlus } from 'lucide-react';
+import { X, Database, Calendar, ShieldAlert, Link, Users, Trash2, Tv, Check, Globe, UserPlus, Bell } from 'lucide-react';
 import { Match, UserProfile, Prediction, Translation, LanguageCode } from '../types';
 import { LEAGUES, BROADCAST_CHANNELS, LANGUAGES } from '../constants';
 
@@ -17,6 +17,7 @@ interface DebugToolsProps {
   onRenameUser: (email: string, newName: string) => Promise<void>;
   onDeleteUser: (email: string) => Promise<void>;
   onAutoFillAllUsers: () => Promise<{ filled: number; users: number }>;
+  onTestNotification: (type: 'goal' | 'var' | 'og' | 'pen' | 'kit') => void;
   lang: Translation;
   users: UserProfile[];
   predictions: Prediction[];
@@ -36,7 +37,7 @@ interface LateInviteRecipient {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
+  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, onTestNotification, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
 }) => {
   if (!isOpen) return null;
 
@@ -50,6 +51,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
   const [filling, setFilling] = useState(false);
   const [fillResult, setFillResult] = useState<{ filled: number; users: number } | null>(null);
   const [fillConfirm, setFillConfirm] = useState(false);
+  const [lastFiredNotif, setLastFiredNotif] = useState<string | null>(null);
 
   const [cutoffInput, setCutoffInput] = useState('');
   const [cutoffSaving, setCutoffSaving] = useState(false);
@@ -713,7 +715,45 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                 })()}
             </div>
 
-            {/* 6. DANGER ZONE */}
+            {/* 6. NOTIFICATION TESTER */}
+            <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Bell size={14} /> Notification Tester
+                </h4>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                        Fire a test notification to preview how they appear. Uses Brazil vs Scotland as a sample fixture.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {([
+                            { type: 'goal', label: '⚽ Regular Goal',    color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' },
+                            { type: 'pen',  label: '⚽ Penalty Goal',    color: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' },
+                            { type: 'og',   label: '⚽ Own Goal',        color: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
+                            { type: 'var',  label: '🚫 VAR Disallowed', color: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' },
+                            { type: 'kit',  label: '🎽 Kits Locked In', color: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100', wide: true },
+                        ] as Array<{ type: 'goal'|'var'|'og'|'pen'|'kit'; label: string; color: string; wide?: boolean }>).map(({ type, label, color, wide }) => (
+                            <button
+                                key={type}
+                                onClick={() => {
+                                    onTestNotification(type);
+                                    setLastFiredNotif(label);
+                                    setTimeout(() => setLastFiredNotif(null), 3000);
+                                }}
+                                className={`${wide ? 'col-span-2' : ''} px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 ${color}`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    {lastFiredNotif && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold">
+                            <Check size={11} /> Fired: {lastFiredNotif}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 7. DANGER ZONE */}
             <div className="space-y-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
                     <Database size={14} /> Danger Zone
