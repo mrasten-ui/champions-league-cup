@@ -17,9 +17,10 @@ export function resolveKitType(
 }
 
 // ── File name overrides where the PNG name differs from the app team ID ───────
-// e.g. app uses HAI but file is HTI-home.png
 const FILE_ID_OVERRIDE: Record<string, string> = {
-  HAI: 'HTI',
+  HAI: 'HTI', // app ID → PNG filename prefix
+  PAR: 'PRY',
+  SUI: 'CHE',
 };
 
 function kitPath(teamId: string, type: 'home' | 'away') {
@@ -31,11 +32,11 @@ function kitPath(teamId: string, type: 'home' | 'away') {
 
 const SIZE_CLASS = {
   xs: 'w-[18px] h-[26px]',
-  sm: 'w-[22px] h-[32px]',
-  md: 'w-[30px] h-[44px]',
+  sm: 'w-[29px] h-[40px]',
+  md: 'w-[34px] h-[48px]',
 } as const;
 
-const JERSEY_SIZE = { xs: 22, sm: 28, md: 38 } as const;
+const JERSEY_SIZE = { xs: 22, sm: 38, md: 46 } as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
