@@ -40,28 +40,32 @@ const LOCALE_MAP: Record<string, string> = {
 // OTHER SUPPORTED TEAMS (Priority Tier 2)
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
+// UTC date key — "YYYY-MM-DD" so all users see the same date buckets regardless of timezone
+const utcDay = (d: string | Date): string =>
+  (typeof d === 'string' ? new Date(d) : d).toISOString().slice(0, 10);
+
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = []
 }) => {
-  
+
   // Get the correct BCP 47 locale string
   const activeLocale = LOCALE_MAP[currentLang] || 'en-GB';
 
-  // 1. SMART DEFAULT: Check if today has matches. 
+  // 1. SMART DEFAULT: Check if today has matches.
   // If NOT, find the next available day with matches.
   const [filterDate, setFilterDate] = useState<string>(() => {
       const now = new Date();
-      const todayStr = now.toDateString();
-      
-      const hasMatchesToday = matches.some(m => m.date && new Date(m.date).toDateString() === todayStr);
-      if (hasMatchesToday) return todayStr;
+      const today = utcDay(now);
+
+      const hasMatchesToday = matches.some(m => m.date && m.date !== 'TBD' && utcDay(m.date) === today);
+      if (hasMatchesToday) return today;
 
       // Fallback: Find closest future match
       const nextMatch = matches
         .filter(m => m.date && m.date !== 'TBD' && new Date(m.date) > now)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
-      if (nextMatch) return new Date(nextMatch.date).toDateString();
+      if (nextMatch) return utcDay(nextMatch.date);
 
       return 'ALL';
   });
@@ -72,7 +76,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     if (!jumpToMatchId) return;
     const match = matches.find(m => m.id === jumpToMatchId);
     if (match?.date) {
-      setFilterDate(new Date(match.date).toDateString());
+      setFilterDate(utcDay(match.date));
       setTimeout(() => {
         const el = document.getElementById(`schedule-match-${jumpToMatchId}`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -80,15 +84,13 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     }
   }, [jumpToMatchId]);
 
-  // 2. Extract unique dates for the Ribbon
+  // 2. Extract unique dates for the Ribbon (UTC "YYYY-MM-DD" keys)
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>();
     matches.forEach(m => {
-        if (m.date && m.date !== 'TBD') {
-            dates.add(new Date(m.date).toDateString());
-        }
+        if (m.date && m.date !== 'TBD') dates.add(utcDay(m.date));
     });
-    return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    return Array.from(dates).sort();
   }, [matches]);
 
   // 3. FILTERING LOGIC (For the list below the hero)
@@ -97,7 +99,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
           const home = teams[m.homeTeamId] || { name: 'TBD' };
           const away = teams[m.awayTeamId] || { name: 'TBD' };
           
-          const dateMatch = filterDate === 'ALL' || (m.date && new Date(m.date).toDateString() === filterDate);
+          const dateMatch = filterDate === 'ALL' || (m.date && utcDay(m.date) === filterDate);
           const searchMatch = searchTerm === '' || 
               home.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
               away.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -177,15 +179,18 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   // Date Headline Helper
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
-      const dateObj = new Date(dateStr);
-      const today = new Date();
-      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+      const today = utcDay(new Date());
+      const tomorrowDate = new Date(); tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+      const tomorrow = utcDay(tomorrowDate);
 
-      if (dateObj.toDateString() === today.toDateString()) return lang.today || "Today";
-      if (dateObj.toDateString() === tomorrow.toDateString()) return lang.tomorrow || "Tomorrow";
+      if (dateStr === today) return lang.today || "Today";
+      if (dateStr === tomorrow) return lang.tomorrow || "Tomorrow";
 
-      return dateObj.toLocaleDateString(activeLocale, { 
-          weekday: 'long', month: 'long', day: 'numeric' 
+      // Parse as UTC noon for display so the day number never shifts
+      const [y, mo, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+      return dateObj.toLocaleDateString(activeLocale, {
+          weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC'
       });
   };
 
@@ -265,7 +270,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
             <div className="space-y-4">
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
-                        if (filterDate !== 'ALL' && match.id === heroMatch?.id && new Date(match.date).toDateString() === filterDate) return null;
+                        if (filterDate !== 'ALL' && match.id === heroMatch?.id && utcDay(match.date) === filterDate) return null;
 
                         const isHighStakes = !match.groupId && match.round !== 'R32';
                         const readOnlyMatch = { ...match, isLocked: true };

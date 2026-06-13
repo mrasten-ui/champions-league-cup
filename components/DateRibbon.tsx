@@ -12,7 +12,8 @@ interface DateRibbonProps {
 
 export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onDateSelect, lang, locale = 'en-GB' }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const todayStr = new Date().toDateString();
+  // UTC "YYYY-MM-DD" — matches the keys used by TournamentSchedule
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   // Auto-scroll to active date
   useEffect(() => {
@@ -34,17 +35,17 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
   };
 
   const getRelativeLabel = (dateStr: string) => {
-    const dateObj = new Date(dateStr);
-
-    if (dateObj.toDateString() === todayStr) return { main: lang.today || "Today", sub: "" };
-
+    if (dateStr === todayStr) return { main: lang.today || "Today", sub: "" };
+    // Parse as UTC noon to avoid any local-timezone date shift when formatting
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
     return {
-        main: dateObj.getDate(),
-        sub: dateObj.toLocaleDateString(locale, { weekday: 'short' })
+        main: dateObj.getUTCDate(),
+        sub: dateObj.toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })
     };
   };
 
-  const isToday = (dateStr: string) => new Date(dateStr).toDateString() === todayStr;
+  const isToday = (dateStr: string) => dateStr === todayStr;
   const todayInDates = dates.find(d => isToday(d));
 
   return (
