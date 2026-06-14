@@ -114,25 +114,31 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
   const isPen = !isVAR && notification.detail === 'Penalty';
   const min   = `${notification.minute}${notification.minuteExtra ? `+${notification.minuteExtra}` : ''}'`;
 
-  const staticTeam = TEAMS[notification.teamId];
+  // For own goals show the BENEFITING team's colors, not the team who scored it
+  const benefitingTeamId = isOG
+    ? (notification.teamId === notification.homeTeamId ? notification.awayTeamId : notification.homeTeamId)
+    : notification.teamId;
+
+  const staticTeam = TEAMS[benefitingTeamId];
   const scoringFlag = staticTeam?.flag;
-  const scoringName = staticTeam?.name ?? notification.teamId;
+  const scoringName = staticTeam?.name ?? benefitingTeamId;
   const teamColor   = staticTeam?.jerseyBg ?? (isVAR ? '#8B5CF6' : '#C9A84C');
 
   const eventLabel = isVAR ? 'GOAL DISALLOWED' : isOG ? 'OWN GOAL' : isPen ? 'PENALTY GOAL' : 'GOAL';
   const labelColor  = isVAR ? '#A78BFA' : isOG ? '#F97316' : '#C9A84C';
   const emoji       = isVAR ? '🚫' : '⚽';
 
+  const ogPlayer = notification.player ?? 'Defender';
   const narrative = (() => {
     if (isVAR)  return `Video review overturns the goal · ${notification.player ?? scoringName}`;
-    if (isOG)   return `Unfortunate own goal · ${notification.player ?? 'Defender'}`;
+    if (isOG)   return `${ogPlayer} puts it in his own net — lucky ${scoringName}!`;
     if (isPen)  return `${notification.player ?? scoringName} converts from the spot`;
     return notification.player
       ? `${notification.player} finds the net in the ${notification.minute}th minute`
       : `${scoringName} take the lead at ${min}`;
   })();
 
-  const isHomeTeam   = notification.teamId === notification.homeTeamId;
+  const isHomeTeam   = benefitingTeamId === notification.homeTeamId;
   const scoringKitBg   = isHomeTeam ? notification.homeKitBg   : notification.awayKitBg;
   const scoringKitText = isHomeTeam ? notification.homeKitText : notification.awayKitText;
 
