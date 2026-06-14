@@ -1557,6 +1557,10 @@ export const App = () => {
               awayTeamId: 'SCO',
               homeScore: type === 'og' ? 1 : 2,
               awayScore: 1,
+              homeKitBg:   '#F7E016',
+              homeKitText: '#033A75',
+              awayKitBg:   '#003380',
+              awayKitText: '#FFFFFF',
             }]);
           }
         }}
