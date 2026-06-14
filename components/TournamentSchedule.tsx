@@ -5,6 +5,7 @@ import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
 import { MatchdayHero } from './MatchdayHero';
 import { calculateGroupStandings, getAllGroupStandings } from '../services/engine';
+import { utcDay } from '../utils/date';
 
 interface TournamentScheduleProps {
   matches: Match[];
@@ -40,9 +41,6 @@ const LOCALE_MAP: Record<string, string> = {
 // OTHER SUPPORTED TEAMS (Priority Tier 2)
 const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
-// UTC date key — "YYYY-MM-DD" so all users see the same date buckets regardless of timezone
-const utcDay = (d: string | Date): string =>
-  (typeof d === 'string' ? new Date(d) : d).toISOString().slice(0, 10);
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = []

@@ -70,14 +70,20 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
   // When hidden: show a small restore pill in the bottom-right corner
   if (hidden) {
     return (
-      <button
-        onClick={handleRestore}
-        className="fixed bottom-[64px] md:bottom-3 right-3 z-[95] flex items-center gap-1.5 px-3 py-1.5 bg-[#08111f]/95 backdrop-blur-sm border border-white/15 rounded-full shadow-lg text-slate-400 hover:text-white hover:border-white/30 transition-all active:scale-95"
-        title="Show live scores ticker"
-      >
-        <Tv size={12} />
-        <span className="text-[10px] font-black uppercase tracking-widest">Scores</span>
-      </button>
+      <>
+        <style>{`
+          .ticker-restore { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+          @media (min-width: 768px) { .ticker-restore { bottom: 12px; } }
+        `}</style>
+        <button
+          onClick={handleRestore}
+          className="ticker-restore fixed right-3 z-[95] flex items-center gap-1.5 px-3 py-1.5 bg-[#08111f]/95 backdrop-blur-sm border border-white/15 rounded-full shadow-lg text-slate-400 hover:text-white hover:border-white/30 transition-all active:scale-95"
+          title="Show live scores ticker"
+        >
+          <Tv size={12} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Scores</span>
+        </button>
+      </>
     );
   }
 
@@ -181,11 +187,12 @@ export const LiveTicker: React.FC<LiveTickerProps> = ({ matches, teams, onMatchC
         .ticker-track:focus-within {
           animation-play-state: paused;
         }
+        .ticker-wrap { bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+        @media (min-width: 768px) { .ticker-wrap { bottom: 0; } }
       `}</style>
 
-      {/* Mobile: above bottom nav. Desktop: at very bottom */}
-      <div className="fixed bottom-[56px] md:bottom-0 left-0 right-0 z-[95] h-9 bg-[#08111f]/95 backdrop-blur-sm border-t border-white/10 overflow-hidden flex items-center"
-           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* Mobile: above bottom nav (safe-area-aware). Desktop: at very bottom */}
+      <div className="ticker-wrap fixed left-0 right-0 z-[95] h-9 bg-[#08111f]/95 backdrop-blur-sm border-t border-white/10 overflow-hidden flex items-center">
 
         {/* "LIVE" label badge — static left anchor */}
         <div className="shrink-0 flex items-center gap-1.5 px-3 h-full border-r border-white/10 bg-[#0f2545]">

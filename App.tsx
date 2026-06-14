@@ -994,7 +994,7 @@ export const App = () => {
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
   const runBriefGeneration = async () => {
       if (!user || !matches.length || !Object.keys(teamsData).length || !allPredictions) return;
-      const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`;
+      const cacheKey = `rasten_brief_${user.email}_${new Date().toISOString().slice(0, 10)}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) { setDailyBrief(cached); return; }
       setBriefRefreshing(true);

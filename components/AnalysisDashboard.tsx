@@ -5,6 +5,8 @@ import { DateRibbon } from './DateRibbon';
 import { AvatarDisplay } from './AvatarDisplay';
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Calendar, RefreshCw, Info, X, Swords } from 'lucide-react';
 
+import { utcDay } from '../utils/date';
+
 // Imported from Refactored Files
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
 import { SimRow } from './analysis/SimRow';
@@ -218,8 +220,8 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       // If we have upcoming matches, use the first one. Otherwise use real today.
-      if (upcoming.length > 0) return new Date(upcoming[0].date).toDateString();
-      return new Date().toDateString();
+      if (upcoming.length > 0) return utcDay(upcoming[0].date);
+      return utcDay(new Date());
   }, [matches]);
 
   const [filterDate, setFilterDate] = useState<string>(defaultDate);
@@ -256,7 +258,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       simulatedMatches.forEach(m => {
           if (m.date && m.date !== 'TBD') {
               const d = new Date(m.date);
-              if (d >= cutoff || m.status === 'UPCOMING') dates.add(d.toDateString());
+              if (d >= cutoff || m.status === 'UPCOMING') dates.add(utcDay(d));
           }
       });
       return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
@@ -267,7 +269,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
       
       if (filterDate !== 'ALL') {
-          filtered = filtered.filter(m => new Date(m.date).toDateString() === filterDate);
+          filtered = filtered.filter(m => utcDay(m.date) === filterDate);
       } else {
           const now = Date.now();
           filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
