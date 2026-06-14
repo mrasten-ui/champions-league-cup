@@ -621,17 +621,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  }
                  return true;
                });
-               // Drop near-duplicate events where the same player appears in the same
-               // event type within ±2 minutes (API sometimes stores a sub as 65' and 66',
-               // or 90+4' and 90+5', producing visible double entries in the strip).
+               // Subs: deduplicate absolutely — a player can only be subbed once per game.
+               // Goals/cards: drop near-dupes within ±2 minutes (API sometimes sends same
+               // event at 65' and 66', or 90+4' and 90+5').
                const seenPlayerMin = new Map<string, number>();
                const sig = dedupedYellow.filter(e => {
                  const totalMin = (e.minute ?? 0) + (e.minuteExtra ?? 0);
+                 const isSub = e.type?.toLowerCase() === 'subst';
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
                    const k = `${e.teamId}::${e.type}::${name}`;
                    const prev = seenPlayerMin.get(k);
-                   if (prev !== undefined && Math.abs(totalMin - prev) <= 2) return false;
+                   if (prev !== undefined && (isSub || Math.abs(totalMin - prev) <= 2)) return false;
                  }
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
