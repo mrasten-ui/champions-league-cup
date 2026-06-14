@@ -148,12 +148,13 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
       }`}
     >
-      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]">
+      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
+           style={{ background: '#0a1628' }}>
 
-        {/* Team-color gradient background bleed */}
+        {/* Team-color tint overlay — card base is always solid dark */}
         <div
           className="absolute inset-0"
-          style={{ background: `linear-gradient(135deg, ${teamColor}25 0%, #060e1a 55%, #06111d 100%)` }}
+          style={{ background: `linear-gradient(135deg, ${teamColor}30 0%, transparent 55%)` }}
         />
         {/* Subtle team-color border */}
         <div
