@@ -36,7 +36,7 @@ const FILE_ID_OVERRIDE: Record<string, string> = {
   SUI: 'CHE',
 };
 
-function kitPath(teamId: string, type: 'home' | 'away') {
+function kitPath(teamId: string, type: 'home' | 'away' | 'third') {
   const fileId = FILE_ID_OVERRIDE[teamId] ?? teamId;
   return `/kits/${fileId}-${type}.png`;
 }
@@ -58,7 +58,7 @@ export interface KitImageProps {
   /** Live API kit hex — used to auto-resolve home/away */
   kitBg?: string | null;
   kitText?: string | null;
-  kitType?: 'home' | 'away';
+  kitType?: 'home' | 'away' | 'third';
   size?: 'xs' | 'sm' | 'md';
   className?: string;
 }
@@ -71,13 +71,18 @@ export const KitImage: React.FC<KitImageProps> = ({
   size = 'sm',
   className = '',
 }) => {
-  const [failed, setFailed] = useState(false);
+  // 'primary' → try home/away; 'third' → try third kit; 'svg' → SVG fallback
+  const [phase, setPhase] = useState<'primary' | 'third' | 'svg'>('primary');
 
-  const type = kitType ?? resolveKitType(teamId, kitBg);
-  const src  = kitPath(teamId, type);
+  const resolvedType = kitType ?? resolveKitType(teamId, kitBg);
+  const src = phase === 'primary' ? kitPath(teamId, resolvedType) : kitPath(teamId, 'third');
 
-  if (failed) {
-    // No PNG for this team yet — fall back to the SVG jersey with API colors
+  const handleError = () => {
+    if (phase === 'primary') setPhase('third');
+    else setPhase('svg');
+  };
+
+  if (phase === 'svg') {
     if (!kitBg) return null;
     return (
       <JerseyIcon
@@ -93,7 +98,7 @@ export const KitImage: React.FC<KitImageProps> = ({
     <img
       src={src}
       className={`shrink-0 object-contain ${SIZE_CLASS[size]} ${className}`}
-      onError={() => setFailed(true)}
+      onError={handleError}
       loading="lazy"
       decoding="async"
       alt=""
