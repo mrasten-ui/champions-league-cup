@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Team } from '../types';
 import { TEAMS } from '../constants';
-import { JerseyIcon } from './JerseyIcon';
-import { KitImage } from './KitImage';
+import { KitImage, resolveKitType } from './KitImage';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,6 +19,10 @@ export interface GoalNotification {
   awayTeamId: string;
   homeScore: number;
   awayScore: number;
+  homeKitBg?: string | null;
+  homeKitText?: string | null;
+  awayKitBg?: string | null;
+  awayKitText?: string | null;
 }
 
 export interface KitNotification {
@@ -68,44 +71,7 @@ function PillButton({
   );
 }
 
-function Card({
-  visible,
-  accentColor,
-  children,
-}: {
-  visible: boolean;
-  accentColor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={`transition-all duration-300 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-      }`}
-    >
-      <div
-        className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(8,17,31,0.98) 0%, rgba(10,22,40,0.96) 100%)',
-        }}
-      >
-        {/* gold border overlay */}
-        <div className="absolute inset-0 rounded-2xl border border-[#C9A84C]/20 pointer-events-none" />
-        {/* team color accent strip */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[3px]"
-          style={{
-            background: `linear-gradient(to bottom, ${accentColor}dd, ${accentColor}55)`,
-          }}
-        />
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ── Goal Card (Variant A + B combined) ───────────────────────────────────────
+// ── Goal Card ─────────────────────────────────────────────────────────────────
 
 const GOAL_DISPLAY_MS = 9000;
 
@@ -164,105 +130,128 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive }: G
       : `${scoringName} take the lead at ${min}`;
   })();
 
+  const isHomeTeam   = notification.teamId === notification.homeTeamId;
+  const scoringKitBg   = isHomeTeam ? notification.homeKitBg   : notification.awayKitBg;
+  const scoringKitText = isHomeTeam ? notification.homeKitText : notification.awayKitText;
+
   return (
-    <Card visible={visible} accentColor={teamColor}>
-      {/* shrinking progress bar */}
-      <div
-        className="absolute top-0 left-0 h-[2px] transition-all ease-linear"
-        style={{
-          width: `${barW}%`,
-          transitionDuration: `${GOAL_DISPLAY_MS}ms`,
-          background: `linear-gradient(to right, ${teamColor}99, ${teamColor})`,
-        }}
-      />
+    <div
+      className={`transition-all duration-300 ease-out ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
+      }`}
+    >
+      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]">
 
-      <div className="flex items-start gap-2.5 pl-4 pr-2.5 py-3">
-        {/* team flag */}
-        <div className="shrink-0 mt-0.5">
-          {scoringFlag ? (
-            <img
-              src={scoringFlag}
-              alt=""
-              className="w-10 h-7 object-cover rounded border border-white/15 shadow-md"
+        {/* Team-color gradient background bleed */}
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(135deg, ${teamColor}25 0%, #060e1a 55%, #06111d 100%)` }}
+        />
+        {/* Subtle team-color border */}
+        <div
+          className="absolute inset-0 rounded-2xl border pointer-events-none"
+          style={{ borderColor: `${teamColor}35` }}
+        />
+        {/* Left accent strip */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[5px]"
+          style={{ background: `linear-gradient(to bottom, ${teamColor}, ${teamColor}55)` }}
+        />
+        {/* Progress bar */}
+        <div
+          className="absolute top-0 left-0 h-[2px] transition-all ease-linear"
+          style={{
+            width: `${barW}%`,
+            transitionDuration: `${GOAL_DISPLAY_MS}ms`,
+            background: `linear-gradient(to right, ${teamColor}88, ${teamColor})`,
+          }}
+        />
+
+        {/* Kit image — large, anchored right */}
+        {scoringKitBg && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+            {/* Radial glow behind kit */}
+            <div
+              className="absolute inset-0 scale-[2]"
+              style={{ background: `radial-gradient(circle, ${teamColor}40 0%, transparent 65%)` }}
             />
-          ) : (
-            <div className="w-10 h-7 rounded bg-white/8 border border-white/10" />
-          )}
-        </div>
+            <KitImage
+              teamId={notification.teamId}
+              kitBg={scoringKitBg}
+              kitText={scoringKitText}
+              size="md"
+              className="relative drop-shadow-2xl"
+            />
+          </div>
+        )}
 
-        {/* main content */}
-        <div className="flex-1 min-w-0">
-          {/* label row */}
-          <div className="flex items-center gap-1.5 mb-[2px]">
+        {/* Text content */}
+        <div className={`relative z-10 pl-5 pt-3 pb-3 ${scoringKitBg ? 'pr-[74px]' : 'pr-3'}`}>
+
+          {/* Event label + minute */}
+          <div className="flex items-center gap-1.5 mb-1">
             <span
-              className="text-[9px] font-black uppercase tracking-widest"
+              className="text-[13px] font-black uppercase tracking-widest"
               style={{ color: labelColor }}
             >
               {emoji} {eventLabel}
             </span>
             <span className="text-white/25 text-[9px]">·</span>
-            <span className="text-white/45 text-[9px] font-bold">{min}</span>
+            <span className="text-white/50 text-[9px] font-bold">{min}</span>
             {!isVAR && <LiveBadge />}
           </div>
-          {/* team name */}
-          <div className="text-white text-[13px] font-black uppercase tracking-wide leading-tight truncate">
-            {scoringName}
+
+          {/* Team flag + name */}
+          <div className="flex items-center gap-2 mb-1">
+            {scoringFlag ? (
+              <img src={scoringFlag} alt="" className="w-8 h-[22px] object-cover rounded border border-white/15 shadow-sm shrink-0" />
+            ) : (
+              <div className="w-8 h-[22px] rounded bg-white/8 border border-white/10 shrink-0" />
+            )}
+            <span className="text-white text-[16px] font-black uppercase tracking-wide leading-tight truncate">
+              {scoringName}
+            </span>
           </div>
-          {/* narrative */}
-          <div className="text-white/40 text-[9px] mt-0.5 leading-snug line-clamp-1">
+
+          {/* Narrative */}
+          <div className="text-white/40 text-[9px] leading-snug line-clamp-1 mb-2.5">
             {narrative}
           </div>
-        </div>
 
-        {/* right column: score + buttons */}
-        <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
-          {/* score badge */}
-          <div className="flex items-center gap-1.5 bg-white/5 border border-white/8 rounded-lg px-2 py-1">
-            {homeTeam?.flag && (
-              <img
-                src={homeTeam.flag}
-                alt=""
-                className="w-4 h-[11px] object-cover rounded-sm"
-              />
-            )}
-            <span className="text-white font-black text-xs tabular-nums tracking-tight">
-              {notification.homeScore}–{notification.awayScore}
-            </span>
-            {awayTeam?.flag && (
-              <img
-                src={awayTeam.flag}
-                alt=""
-                className="w-4 h-[11px] object-cover rounded-sm"
-              />
-            )}
-          </div>
-          {/* actions */}
-          <div className="flex items-center gap-1">
+          {/* Score + actions row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-white/6 border border-white/10 rounded-lg px-2 py-1 shrink-0">
+              {homeTeam?.flag && (
+                <img src={homeTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />
+              )}
+              <span className="text-white font-black text-xs tabular-nums tracking-tight">
+                {notification.homeScore}–{notification.awayScore}
+              </span>
+              {awayTeam?.flag && (
+                <img src={awayTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />
+              )}
+            </div>
             {onShowLive && (
-              <PillButton onClick={onShowLive} gold>
-                Show Live
-              </PillButton>
+              <PillButton onClick={onShowLive} gold>Show Live</PillButton>
             )}
             <button
               onClick={dismiss}
-              className="p-1 text-white/25 hover:text-white/55 transition-colors"
+              className="ml-auto p-1 text-white/25 hover:text-white/55 transition-colors"
             >
               <X size={11} />
             </button>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-// ── Kit Card (Variant C) ──────────────────────────────────────────────────────
+// ── Kit Card ──────────────────────────────────────────────────────────────────
 
 function kitLabel(teamId: string, kitBg: string): string {
-  const staticBg = TEAMS[teamId]?.jerseyBg;
-  if (!staticBg) return 'Kit';
-  const norm = (s: string) => s.replace('#', '').toUpperCase();
-  return norm(staticBg) === norm(kitBg) ? 'Home Kit' : 'Away Kit';
+  const type = resolveKitType(teamId, kitBg);
+  return type === 'home' ? 'Home Kit' : type === 'away' ? 'Away Kit' : 'Third Kit';
 }
 
 interface KitCardProps {
@@ -271,20 +260,23 @@ interface KitCardProps {
   onDetails?: () => void;
 }
 
-const KIT_DISPLAY_MS = 10000;
+const KIT_DISPLAY_MS = 12000;
 
 function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
   const [visible, setVisible] = useState(false);
+  const [barW, setBarW] = useState(100);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 20);
+    const t1 = setTimeout(() => setVisible(true), 20);
+    const t2 = setTimeout(() => setBarW(0), 80);
     timerRef.current = setTimeout(() => {
       setVisible(false);
       setTimeout(onDismiss, 320);
     }, KIT_DISPLAY_MS);
     return () => {
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
@@ -294,59 +286,112 @@ function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
     setTimeout(onDismiss, 320);
   };
 
-  const homeName = TEAMS[notification.homeTeamId]?.name ?? notification.homeTeamId;
-  const awayName = TEAMS[notification.awayTeamId]?.name ?? notification.awayTeamId;
-  const homeKit  = kitLabel(notification.homeTeamId, notification.homeKitBg);
-  const awayKit  = kitLabel(notification.awayTeamId, notification.awayKitBg);
+  const homeStatic = TEAMS[notification.homeTeamId];
+  const awayStatic = TEAMS[notification.awayTeamId];
+  const homeName   = homeStatic?.name ?? notification.homeTeamId;
+  const awayName   = awayStatic?.name ?? notification.awayTeamId;
+  const homeKit    = kitLabel(notification.homeTeamId, notification.homeKitBg);
+  const awayKit    = kitLabel(notification.awayTeamId, notification.awayKitBg);
 
   return (
-    <Card visible={visible} accentColor="#C9A84C">
-      <div className="flex items-center gap-3 pl-4 pr-2.5 py-3">
-        {/* jersey icons */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <KitImage
-            teamId={notification.homeTeamId}
-            kitBg={notification.homeKitBg}
-            kitText={notification.homeKitText}
-            size="sm"
-          />
-          <KitImage
-            teamId={notification.awayTeamId}
-            kitBg={notification.awayKitBg}
-            kitText={notification.awayKitText}
-            size="sm"
-          />
-        </div>
+    <div
+      className={`transition-all duration-300 ease-out ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
+      }`}
+    >
+      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
+           style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060e1a 100%)' }}>
 
-        {/* content */}
-        <div className="flex-1 min-w-0">
-          <div className="text-[9px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">
+        {/* Gold border */}
+        <div className="absolute inset-0 rounded-2xl border border-[#C9A84C]/25 pointer-events-none" />
+
+        {/* Progress bar */}
+        <div
+          className="absolute top-0 left-0 h-[2px] bg-[#C9A84C] transition-all ease-linear"
+          style={{ width: `${barW}%`, transitionDuration: `${KIT_DISPLAY_MS}ms` }}
+        />
+
+        {/* Header strip */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/8">
+          <span className="text-[11px] font-black uppercase tracking-widest text-[#C9A84C]">
             🎽 Kits Locked In!
-          </div>
-          <div className="text-[10px] text-white/55 leading-snug">
-            <span className="text-white/85 font-bold">{homeName}</span>
-            <span className="text-white/30"> · </span>
-            {homeKit}
-          </div>
-          <div className="text-[10px] text-white/55 leading-snug">
-            <span className="text-white/85 font-bold">{awayName}</span>
-            <span className="text-white/30"> · </span>
-            {awayKit}
-          </div>
-        </div>
-
-        {/* actions */}
-        <div className="shrink-0 flex flex-col items-end gap-1.5">
-          {onDetails && <PillButton onClick={onDetails} gold>Details</PillButton>}
-          <button
-            onClick={dismiss}
-            className="p-1 text-white/25 hover:text-white/55 transition-colors"
-          >
+          </span>
+          <button onClick={dismiss} className="p-1 text-white/25 hover:text-white/55 transition-colors">
             <X size={11} />
           </button>
         </div>
+
+        {/* Two-column kit reveal */}
+        <div className="flex">
+
+          {/* Home team column */}
+          <div className="flex-1 flex flex-col items-center py-4 px-3 relative">
+            {/* Subtle kit color tint */}
+            <div
+              className="absolute inset-0"
+              style={{ background: `radial-gradient(ellipse at center top, ${notification.homeKitBg}20 0%, transparent 70%)` }}
+            />
+            <KitImage
+              teamId={notification.homeTeamId}
+              kitBg={notification.homeKitBg}
+              kitText={notification.homeKitText}
+              size="md"
+              className="relative drop-shadow-xl mb-2"
+            />
+            <div className="flex items-center gap-1.5 relative">
+              {homeStatic?.flag && (
+                <img src={homeStatic.flag} alt="" className="w-5 h-[14px] object-cover rounded-sm border border-white/15 shrink-0" />
+              )}
+              <span className="text-white text-[10px] font-black uppercase tracking-wide truncate">{homeName}</span>
+            </div>
+            <span
+              className="text-[8px] font-bold uppercase tracking-widest mt-0.5 relative"
+              style={{ color: `${notification.homeKitBg}cc` === notification.homeKitBg ? '#94a3b8' : notification.homeKitBg }}
+            >
+              {homeKit}
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-white/8 my-3" />
+
+          {/* Away team column */}
+          <div className="flex-1 flex flex-col items-center py-4 px-3 relative">
+            {/* Subtle kit color tint */}
+            <div
+              className="absolute inset-0"
+              style={{ background: `radial-gradient(ellipse at center top, ${notification.awayKitBg}20 0%, transparent 70%)` }}
+            />
+            <KitImage
+              teamId={notification.awayTeamId}
+              kitBg={notification.awayKitBg}
+              kitText={notification.awayKitText}
+              size="md"
+              className="relative drop-shadow-xl mb-2"
+            />
+            <div className="flex items-center gap-1.5 relative">
+              {awayStatic?.flag && (
+                <img src={awayStatic.flag} alt="" className="w-5 h-[14px] object-cover rounded-sm border border-white/15 shrink-0" />
+              )}
+              <span className="text-white text-[10px] font-black uppercase tracking-wide truncate">{awayName}</span>
+            </div>
+            <span
+              className="text-[8px] font-bold uppercase tracking-widest mt-0.5 relative"
+              style={{ color: notification.awayKitBg }}
+            >
+              {awayKit}
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        {onDetails && (
+          <div className="flex items-center px-4 pb-3">
+            <PillButton onClick={onDetails} gold>Details</PillButton>
+          </div>
+        )}
       </div>
-    </Card>
+    </div>
   );
 }
 

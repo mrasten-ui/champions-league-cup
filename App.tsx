@@ -920,6 +920,8 @@ export const App = () => {
     const banners: GoalNotification[] = fresh.flatMap(e => {
       const match = matches.find(m => m.id === e.matchId);
       if (!match || match.homeScore === null || match.awayScore === null) return [];
+      const homeRow = matchLineups.find(l => l.matchId === match.id && l.teamId === match.homeTeamId && l.kitBg);
+      const awayRow = matchLineups.find(l => l.matchId === match.id && l.teamId === match.awayTeamId && l.kitBg);
       return [{
         eventId: e.id,
         eventType: e.type as 'Goal' | 'Var',
@@ -932,11 +934,15 @@ export const App = () => {
         awayTeamId: match.awayTeamId,
         homeScore: match.homeScore,
         awayScore: match.awayScore,
+        homeKitBg:   homeRow?.kitBg   ?? null,
+        homeKitText: homeRow?.kitText ?? null,
+        awayKitBg:   awayRow?.kitBg   ?? null,
+        awayKitText: awayRow?.kitText ?? null,
       }];
     });
 
     if (banners.length) setGoalQueue(prev => [...prev, ...banners]);
-  }, [matchEvents]);
+  }, [matchEvents, matchLineups]);
 
   // --- KIT NOTIFICATION ---
   // Fires when lineups arrive with kit colors for a live/upcoming match.
