@@ -9,6 +9,7 @@ import { KitImage, resolveKitType } from './KitImage';
 
 export interface GoalNotification {
   eventId: number;
+  matchId: string;
   eventType: 'Goal' | 'Var';
   teamId: string;
   player?: string;
@@ -81,9 +82,10 @@ interface GoalCardProps {
   awayTeam?: Team;
   onDismiss: () => void;
   onShowLive?: () => void;
+  onNavigate?: () => void;
 }
 
-function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive }: GoalCardProps) {
+function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onNavigate }: GoalCardProps) {
   const [visible, setVisible] = useState(false);
   const [barW, setBarW] = useState(100);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -185,8 +187,11 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive }: G
           </div>
         )}
 
-        {/* Text content */}
-        <div className={`relative z-10 pl-5 pt-3 pb-3 ${scoringKitBg ? 'pr-[74px]' : 'pr-3'}`}>
+        {/* Text content — entire area is clickable to navigate to the match */}
+        <div
+          className={`relative z-10 pl-5 pt-3 pb-3 ${scoringKitBg ? 'pr-[74px]' : 'pr-3'} ${onNavigate ? 'cursor-pointer' : ''}`}
+          onClick={onNavigate}
+        >
 
           {/* Event label + minute */}
           <div className="flex items-center gap-1.5 mb-1">
@@ -231,11 +236,11 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive }: G
                 <img src={awayTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />
               )}
             </div>
-            {onShowLive && (
-              <PillButton onClick={onShowLive} gold>Show Live</PillButton>
+            {(onShowLive || onNavigate) && (
+              <PillButton onClick={onShowLive ?? onNavigate} gold>Show Live</PillButton>
             )}
             <button
-              onClick={dismiss}
+              onClick={(e) => { e.stopPropagation(); dismiss(); }}
               className="ml-auto p-1 text-white/25 hover:text-white/55 transition-colors"
             >
               <X size={11} />
@@ -258,11 +263,12 @@ interface KitCardProps {
   notification: KitNotification;
   onDismiss: () => void;
   onDetails?: () => void;
+  onNavigate?: () => void;
 }
 
 const KIT_DISPLAY_MS = 12000;
 
-function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
+function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProps) {
   const [visible, setVisible] = useState(false);
   const [barW, setBarW] = useState(100);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -316,13 +322,13 @@ function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
           <span className="text-[11px] font-black uppercase tracking-widest text-[#C9A84C]">
             🎽 Kits Locked In!
           </span>
-          <button onClick={dismiss} className="p-1 text-white/25 hover:text-white/55 transition-colors">
+          <button onClick={(e) => { e.stopPropagation(); dismiss(); }} className="p-1 text-white/25 hover:text-white/55 transition-colors">
             <X size={11} />
           </button>
         </div>
 
-        {/* Two-column kit reveal */}
-        <div className="flex">
+        {/* Two-column kit reveal — clickable to navigate to match */}
+        <div className={`flex ${onNavigate ? 'cursor-pointer' : ''}`} onClick={onNavigate}>
 
           {/* Home team column */}
           <div className="flex-1 flex flex-col items-center py-4 px-3 relative">
@@ -385,9 +391,9 @@ function KitCard({ notification, onDismiss, onDetails }: KitCardProps) {
         </div>
 
         {/* Footer */}
-        {onDetails && (
-          <div className="flex items-center px-4 pb-3">
-            <PillButton onClick={onDetails} gold>Details</PillButton>
+        {(onDetails || onNavigate) && (
+          <div className="flex items-center px-4 pb-3" onClick={(e) => e.stopPropagation()}>
+            <PillButton onClick={onDetails ?? onNavigate} gold>Details</PillButton>
           </div>
         )}
       </div>
@@ -404,9 +410,10 @@ interface GoalBannerProps {
   scoringTeam?: Team;
   onDismiss: () => void;
   onShowLive?: () => void;
+  onNavigate?: () => void;
   kitNotification?: KitNotification | null;
   onKitDismiss?: () => void;
-  onKitDetails?: () => void;
+  onKitNavigate?: () => void;
 }
 
 export const GoalBanner: React.FC<GoalBannerProps> = ({
@@ -415,9 +422,10 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
   awayTeam,
   onDismiss,
   onShowLive,
+  onNavigate,
   kitNotification,
   onKitDismiss,
-  onKitDetails,
+  onKitNavigate,
 }) => {
   if (!notification && !kitNotification) return null;
 
@@ -442,6 +450,7 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
             awayTeam={awayTeam}
             onDismiss={onDismiss}
             onShowLive={onShowLive}
+            onNavigate={onNavigate}
           />
         )}
         {kitNotification && (
@@ -449,7 +458,7 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
             key={kitNotification.id}
             notification={kitNotification}
             onDismiss={onKitDismiss ?? (() => {})}
-            onDetails={onKitDetails}
+            onNavigate={onKitNavigate}
           />
         )}
       </div>

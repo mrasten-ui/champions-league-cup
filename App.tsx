@@ -924,6 +924,7 @@ export const App = () => {
       const awayRow = matchLineups.find(l => l.matchId === match.id && l.teamId === match.awayTeamId && l.kitBg);
       return [{
         eventId: e.id,
+        matchId: match.id,
         eventType: e.type as 'Goal' | 'Var',
         teamId: e.teamId || '',
         player: e.player,
@@ -1367,8 +1368,18 @@ export const App = () => {
         awayTeam={goalNotification ? teamsData[goalNotification.awayTeamId] : undefined}
         scoringTeam={goalNotification ? teamsData[goalNotification.teamId] : undefined}
         onDismiss={() => setGoalQueue(prev => prev.slice(1))}
+        onNavigate={goalNotification ? () => {
+          const m = matches.find(m => m.id === goalNotification.matchId);
+          if (m) handleTickerMatchClick(m);
+          setGoalQueue(prev => prev.slice(1));
+        } : undefined}
         kitNotification={kitNotification}
         onKitDismiss={() => setKitQueue(prev => prev.slice(1))}
+        onKitNavigate={kitNotification ? () => {
+          const m = matches.find(m => m.id === kitNotification.matchId);
+          if (m) handleTickerMatchClick(m);
+          setKitQueue(prev => prev.slice(1));
+        } : undefined}
       />
 
       {showAvatarEditor && (
@@ -1547,6 +1558,7 @@ export const App = () => {
           } else {
             setGoalQueue(prev => [...prev, {
               eventId: id,
+              matchId: 'TEST',
               eventType: type === 'var' ? 'Var' : 'Goal',
               teamId: type === 'og' ? 'SCO' : 'BRA',
               player: type === 'var' ? 'G. Jesus' : type === 'og' ? 'A. Robertson' : type === 'pen' ? 'Vinícius Jr.' : 'R. Firmino',
