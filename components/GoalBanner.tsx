@@ -176,27 +176,25 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           }}
         />
 
-        {/* Kit image — large, anchored right */}
-        {scoringKitBg && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
-            {/* Radial glow behind kit */}
-            <div
-              className="absolute inset-0 scale-[2]"
-              style={{ background: `radial-gradient(circle, ${teamColor}40 0%, transparent 65%)` }}
-            />
-            <KitImage
-              teamId={notification.teamId}
-              kitBg={scoringKitBg}
-              kitText={scoringKitText}
-              size="md"
-              className="relative drop-shadow-2xl"
-            />
-          </div>
-        )}
+        {/* Kit image — always shown; falls back to home PNG when no live kit color available */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+          {/* Radial glow behind kit */}
+          <div
+            className="absolute inset-0 scale-[2]"
+            style={{ background: `radial-gradient(circle, ${teamColor}40 0%, transparent 65%)` }}
+          />
+          <KitImage
+            teamId={benefitingTeamId}
+            kitBg={scoringKitBg}
+            kitText={scoringKitText}
+            size="md"
+            className="relative drop-shadow-2xl"
+          />
+        </div>
 
         {/* Text content — entire area is clickable to navigate to the match */}
         <div
-          className={`relative z-10 pl-5 pt-3 pb-3 ${scoringKitBg ? 'pr-[74px]' : 'pr-3'} ${onNavigate ? 'cursor-pointer' : ''}`}
+          className={`relative z-10 pl-5 pt-3 pb-3 pr-[74px] ${onNavigate ? 'cursor-pointer' : ''}`}
           onClick={onNavigate}
         >
 
