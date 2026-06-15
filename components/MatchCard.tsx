@@ -157,8 +157,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const cardLineups = lineups.filter(l => l.matchId === match.id);
     const homeKitBg   = cardLineups.find(l => l.teamId === match.homeTeamId)?.kitBg ?? null;
     const awayKitBg   = cardLineups.find(l => l.teamId === match.awayTeamId)?.kitBg ?? null;
-    const homeKitType = resolveKitType(match.homeTeamId, homeKitBg);
-    const awayKitType = resolveKitType(match.awayTeamId, awayKitBg);
+    const homeKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.homeTeamId) ?? resolveKitType(match.homeTeamId, homeKitBg);
+    const awayKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.awayTeamId) ?? resolveKitType(match.awayTeamId, awayKitBg);
 
     const showRivals = !isLateJoiner && (isSpied || isRealLifeLocked);
 
