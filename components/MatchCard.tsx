@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup, MatchStats } from '../types';
 import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -10,6 +10,7 @@ import { JerseyIcon } from './JerseyIcon';
 import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch } from '../utils/nameMatch';
+import { StatsPanel } from './StatsPanel';
 
 interface MatchCardProps {
   match: Match;
@@ -41,6 +42,7 @@ interface MatchCardProps {
   cardId?: string;
   events?: MatchEvent[];
   lineups?: MatchLineup[];
+  stats?: MatchStats | null;
   hideHeader?: boolean;
 }
 
@@ -68,7 +70,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], hideHeader = false
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -78,7 +80,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [rivalsOpen, setRivalsOpen] = useState(true);
-    const [lineupsOpen, setLineupsOpen] = useState(false);
+    const [activePanel, setActivePanel] = useState<'events' | 'lineup' | 'stats' | null>(null);
+    const autoOpenedRef = useRef(false);
 
     const isKnockout = !!match.round; 
 
@@ -125,6 +128,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
     const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute && !isKnockout;
 
+    // Auto-open events panel once when match goes live/finished and has events
+    useEffect(() => {
+        if ((isLive || isFinished) && !autoOpenedRef.current && events.length > 0) {
+            autoOpenedRef.current = true;
+            setActivePanel('events');
+        }
+    }, [isLive, isFinished, events.length]);
+
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
@@ -159,6 +170,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const awayKitBg   = cardLineups.find(l => l.teamId === match.awayTeamId)?.kitBg ?? null;
     const homeKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.homeTeamId) ?? resolveKitType(match.homeTeamId, homeKitBg);
     const awayKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.awayTeamId) ?? resolveKitType(match.awayTeamId, awayKitBg);
+
+    const hasLineups = cardLineups.length > 0;
+    const hasEvents = events.length > 0;
+
+    const TabBtn = ({ panel, label }: { panel: 'events' | 'lineup' | 'stats'; label: string }) => (
+      <button
+        onClick={() => setActivePanel(p => p === panel ? null : panel)}
+        className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${
+          activePanel === panel ? 'bg-[#0f2545] text-white shadow-sm' : 'text-white/40 hover:text-white/70'
+        }`}
+      >
+        {label}
+      </button>
+    );
 
     const showRivals = !isLateJoiner && (isSpied || isRealLifeLocked);
 
@@ -444,23 +469,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             })()}
                                             <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex items-center gap-1 sm:gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
-                                            {lineups.filter(l => l.matchId === match.id).length > 0 && (
-                                              <button onClick={() => setLineupsOpen(o => !o)} className="mt-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
-                                                {lineupsOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-                                                {lang.lineups || 'Line-up'}
-                                              </button>
+                                            {(hasLineups || hasEvents) && (
+                                              <div className="mt-2 flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-blue-900/30">
+                                                {hasEvents && <TabBtn panel="events" label={lang.events || 'Events'} />}
+                                                {hasLineups && <TabBtn panel="lineup" label={lang.lineups || 'Lineup'} />}
+                                                <TabBtn panel="stats" label="Stats" />
+                                              </div>
                                             )}
                                         </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-2.5 sm:px-4 py-2 rounded-xl font-mono text-lg sm:text-2xl font-bold tracking-normal sm:tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-1 sm:gap-2"><span>-</span><span className="opacity-50 text-sm sm:text-lg mx-0.5 sm:mx-1">:</span><span>-</span></div>
                                              {(() => {
-                                               const matchLineups = lineups.filter(l => l.matchId === match.id);
                                                const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
-                                               if (matchLineups.length > 0 && minsToKick <= 55) {
+                                               if (hasLineups && minsToKick <= 55) {
                                                  return (
-                                                   <button onClick={() => setLineupsOpen(o => !o)} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
-                                                     {lineupsOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+                                                   <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
+                                                     {activePanel === 'lineup' ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
                                                      {lang.lineups || 'Line-up'}
                                                    </button>
                                                  );
@@ -502,7 +527,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              </div>
 
              {/* LINEUP PANEL */}
-             {lineupsOpen && (() => {
+             {activePanel === 'lineup' && (() => {
                const matchLineups = lineups.filter(l => l.matchId === match.id);
                const homeLineups = matchLineups.filter(l => l.teamId === match.homeTeamId);
                const awayLineups = matchLineups.filter(l => l.teamId === match.awayTeamId);
@@ -620,8 +645,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                );
              })()}
 
-             {/* MATCH EVENTS: goals + cards — schedule view only, or live/finished */}
-             {(() => {
+             {/* MATCH EVENTS: behind tab for live/finished; always-on for official variant */}
+             {(activePanel === 'events' || (!isLive && !isFinished && variant === 'official')) && (() => {
                const sigRaw = events.filter(e =>
                  e.type === 'Goal' ||
                  (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
@@ -688,7 +713,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  return true;
                });
                if (!sig.length) return null;
-               if (!isLive && !isFinished && variant !== 'official') return null;
                const homeEvts = sig.filter(e => e.teamId === match.homeTeamId).sort((a, b) => a.minute - b.minute);
                const awayEvts = sig.filter(e => e.teamId === match.awayTeamId).sort((a, b) => a.minute - b.minute);
                const fmtMin = (e: MatchEvent) => `${e.minute}${e.minuteExtra ? `+${e.minuteExtra}` : ''}'`;
@@ -747,6 +771,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  </div>
                );
              })()}
+
+             {/* STATS PANEL */}
+             {activePanel === 'stats' && (isLive || isFinished) && (
+               <StatsPanel stats={stats} homeTeam={homeTeam} awayTeam={awayTeam} />
+             )}
 
              {/* SAVE STATUS BAR */}
              {!isLocked && !isKnockout && (isSaving || isSaved) && (

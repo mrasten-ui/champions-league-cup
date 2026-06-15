@@ -383,8 +383,64 @@ serve(async (req) => {
     }
   }
 
+  // Fetch match statistics for live/finished matches
+  let statsUpserted = 0
+  for (const { apiId, matchId } of eventsQueue) {
+    const statsRes = await fetch(
+      `https://v3.football.api-sports.io/fixtures/statistics?fixture=${apiId}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    )
+    if (!statsRes.ok) continue
+    const statsData = await statsRes.json()
+    if (!statsData.response?.length) continue
+
+    const [home, away] = statsData.response
+    const pick = (team: any, type: string) => {
+      const val = team?.statistics?.find((s: any) => s.type === type)?.value
+      return val ?? null
+    }
+    const parsePct = (v: string | null): number | null => {
+      if (!v) return null
+      const n = parseInt(v)
+      return isNaN(n) ? null : n
+    }
+
+    const { error } = await supabase.from('match_stats').upsert({
+      match_id: matchId,
+      home_xg:                pick(home, 'expected_goals'),
+      away_xg:                pick(away, 'expected_goals'),
+      home_shots:             pick(home, 'Total Shots'),
+      away_shots:             pick(away, 'Total Shots'),
+      home_shots_on_target:   pick(home, 'Shots on Goal'),
+      away_shots_on_target:   pick(away, 'Shots on Goal'),
+      home_possession:        parsePct(pick(home, 'Ball Possession')),
+      away_possession:        parsePct(pick(away, 'Ball Possession')),
+      home_corners:           pick(home, 'Corner Kicks'),
+      away_corners:           pick(away, 'Corner Kicks'),
+      home_fouls:             pick(home, 'Fouls'),
+      away_fouls:             pick(away, 'Fouls'),
+      home_yellow:            pick(home, 'Yellow Cards'),
+      away_yellow:            pick(away, 'Yellow Cards'),
+      home_red:               pick(home, 'Red Cards'),
+      away_red:               pick(away, 'Red Cards'),
+      home_offsides:          pick(home, 'Offsides'),
+      away_offsides:          pick(away, 'Offsides'),
+      updated_at:             new Date().toISOString(),
+    }, { onConflict: 'match_id' })
+
+    if (error) {
+      console.error(`  ✗ Stats upsert fixture ${apiId}:`, error.message)
+    } else {
+      statsUpserted++
+    }
+  }
+
+  if (eventsQueue.length) {
+    console.log(`  Stats: upserted ${statsUpserted} across ${eventsQueue.length} match(es)`)
+  }
+
   return new Response(
-    JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted, lineupsUpserted }),
+    JSON.stringify({ ok: true, updated, errors, liveMatches: eventsQueue.length, eventsUpserted, lineupsUpserted, statsUpserted }),
     { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
   )
 })

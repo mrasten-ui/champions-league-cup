@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
+import React, { useMemo, useRef } from 'react';
+import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -7,6 +7,7 @@ import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracke
 import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch } from '../utils/nameMatch';
+import { StatsPanel } from './StatsPanel';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -20,6 +21,7 @@ interface MatchdayHeroProps {
   currentUser?: UserProfile | null;
   events?: MatchEvent[];
   lineups?: MatchLineup[];
+  stats?: MatchStats | null;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -132,12 +134,20 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [] }) => {
-  const [lineupsOpen, setLineupsOpen] = React.useState(false);
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null }) => {
+  const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
+  const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
+
+  React.useEffect(() => {
+    if ((isLive || isFinished) && !autoOpenedRef.current && events.length > 0) {
+      autoOpenedRef.current = true;
+      setActivePanel('events');
+    }
+  }, [isLive, isFinished, events.length]);
 
   const pointsEarned = (isFinished || isLive) && match.homeScore !== null && match.awayScore !== null && userPrediction
       ? calculatePoints(userPrediction.home, userPrediction.away, match.homeScore, match.awayScore, !!currentUser?.hasTakenSecondChance, match.round)
@@ -341,10 +351,32 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {(() => {
                   const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
-                  if (lineups.length > 0 && minsToKick <= 55) {
+                  const hasLineups = lineups.length > 0;
+                  const hasEvents = events.length > 0;
+                  if (isLive || isFinished) {
+                    if (!hasLineups && !hasEvents) return null;
                     return (
-                      <button onClick={() => setLineupsOpen(o => !o)} className="mt-2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors">
-                        {lineupsOpen ? <span className="text-[8px]">▲</span> : <span className="text-[8px]">▼</span>}
+                      <div className="mt-2 flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
+                        {hasEvents && (
+                          <button onClick={() => setActivePanel(p => p === 'events' ? null : 'events')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'events' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
+                            {lang.events || 'Events'}
+                          </button>
+                        )}
+                        {hasLineups && (
+                          <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'lineup' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
+                            {lang.lineups || 'Lineup'}
+                          </button>
+                        )}
+                        <button onClick={() => setActivePanel(p => p === 'stats' ? null : 'stats')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'stats' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
+                          Stats
+                        </button>
+                      </div>
+                    );
+                  }
+                  if (hasLineups && minsToKick <= 55) {
+                    return (
+                      <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className="mt-2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors">
+                        {activePanel === 'lineup' ? <span className="text-[8px]">▲</span> : <span className="text-[8px]">▼</span>}
                         {lang.lineups || 'Line-up'}
                       </button>
                     );
@@ -379,7 +411,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         </div>
 
         {/* LINEUP PANEL */}
-        {lineupsOpen && (() => {
+        {activePanel === 'lineup' && (() => {
           const homeLineups = lineups.filter(l => l.teamId === match.homeTeamId);
           const awayLineups = lineups.filter(l => l.teamId === match.awayTeamId);
           const homeFormation = homeLineups.find(l => l.isStarting)?.formation ?? null;
@@ -492,7 +524,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         })()}
 
         {/* MATCH EVENTS STRIP */}
-        {(() => {
+        {(activePanel === 'events' || (!isLive && !isFinished)) && (() => {
           const sigRaw = events.filter(e =>
             e.type === 'Goal' ||
             (e.type === 'Card' && (e.detail === 'Yellow Card' || e.detail === 'Red Card')) ||
@@ -586,6 +618,11 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             </div>
           );
         })()}
+
+        {/* STATS PANEL */}
+        {activePanel === 'stats' && (isLive || isFinished) && (
+          <StatsPanel stats={stats} homeTeam={home} awayTeam={away} dark />
+        )}
 
         {/* Footer: Stadium & User Prediction */}
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">

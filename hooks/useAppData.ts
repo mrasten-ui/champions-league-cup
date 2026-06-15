@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
-import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
+import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
@@ -19,6 +19,7 @@ export const useAppData = () => {
   const [womenPresets, setWomenPresets] = useState<string[]>([]);
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
   const [matchLineups, setMatchLineups] = useState<MatchLineup[]>([]);
+  const [matchStats, setMatchStats] = useState<MatchStats[]>([]);
 
   const fetchingProfileRef = useRef(false);
 
@@ -142,6 +143,22 @@ export const useAppData = () => {
               position: l.position ?? null, grid: l.grid ?? null,
               isStarting: l.is_starting, formation: l.formation ?? null,
               kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
+            })));
+          }
+
+          const { data: stats } = await supabase.from('match_stats').select('*');
+          if (stats) {
+            setMatchStats(stats.map((s: any) => ({
+              matchId: String(s.match_id),
+              homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
+              homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
+              homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
+              homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
+              homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
+              homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
+              homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
+              homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
+              homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
             })));
           }
 
@@ -334,6 +351,29 @@ export const useAppData = () => {
                       setMatchLineups(prev => prev.some(x => x.id === lineup.id) ? prev : [...prev, lineup]);
                   }
               )
+              .on(
+                  'postgres_changes',
+                  { event: '*', schema: 'public', table: 'match_stats' },
+                  (payload: any) => {
+                      const s = payload.new as any;
+                      const stat: MatchStats = {
+                          matchId: String(s.match_id),
+                          homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
+                          homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
+                          homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
+                          homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
+                          homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
+                          homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
+                          homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
+                          homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
+                          homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
+                      };
+                      setMatchStats(prev => {
+                          const idx = prev.findIndex(x => x.matchId === stat.matchId);
+                          return idx >= 0 ? prev.map((x, i) => i === idx ? stat : x) : [...prev, stat];
+                      });
+                  }
+              )
               .subscribe();
 
           return () => {
@@ -348,6 +388,6 @@ export const useAppData = () => {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
     groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed,
-    matchEvents, matchLineups,
+    matchEvents, matchLineups, matchStats,
   };
 };

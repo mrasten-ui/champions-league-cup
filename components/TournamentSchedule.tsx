@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -20,6 +20,7 @@ interface TournamentScheduleProps {
   jumpToMatchId?: string;
   matchEvents?: MatchEvent[];
   matchLineups?: MatchLineup[];
+  matchStats?: MatchStats[];
 }
 
 // MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
@@ -43,7 +44,7 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = []
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = []
 }) => {
 
   // Get the correct BCP 47 locale string
@@ -269,6 +270,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         currentUser={user}
                         events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
                         lineups={matchLineups.filter(l => l.matchId === heroMatch.id)}
+                        stats={matchStats.find(s => s.matchId === heroMatch.id) ?? null}
                     />
                 </div>
             )}
@@ -317,6 +319,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                     cardId={`schedule-match-${match.id}`}
                                     events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                                     lineups={matchLineups.filter(l => l.matchId === match.id)}
+                                    stats={matchStats.find(s => s.matchId === match.id) ?? null}
                                 />
                                 {isHighStakes && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">

@@ -32,7 +32,8 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:media.api-sports.io)",
       "WebFetch(domain:commons.wikimedia.org)",
-      "WebFetch(domain:en.m.wikipedia.org)"
+      "WebFetch(domain:en.m.wikipedia.org)",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

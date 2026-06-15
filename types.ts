@@ -253,6 +253,28 @@ export interface MatchLineup {
   kitText?: string | null;
 }
 
+export interface MatchStats {
+  matchId: string;
+  homeXg?: number | null;
+  awayXg?: number | null;
+  homeShots?: number | null;
+  awayShots?: number | null;
+  homeShotsOnTarget?: number | null;
+  awayShotsOnTarget?: number | null;
+  homePossession?: number | null;
+  awayPossession?: number | null;
+  homeCorners?: number | null;
+  awayCorners?: number | null;
+  homeFouls?: number | null;
+  awayFouls?: number | null;
+  homeYellow?: number | null;
+  awayYellow?: number | null;
+  homeRed?: number | null;
+  awayRed?: number | null;
+  homeOffsides?: number | null;
+  awayOffsides?: number | null;
+}
+
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;

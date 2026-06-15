@@ -59,7 +59,7 @@ export const App = () => {
   const {
     session, user, setUser, loading, matches, setMatches, teamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime, lockTimePassed, matchEvents, matchLineups,
+    groupStageEndTime, knockoutStartTime, lockTimePassed, matchEvents, matchLineups, matchStats,
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
@@ -1206,7 +1206,7 @@ export const App = () => {
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} />}
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
