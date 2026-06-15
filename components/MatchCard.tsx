@@ -519,7 +519,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
                const homeSubs = homeLineups.filter(l => !l.isStarting);
                const awaySubs = awayLineups.filter(l => !l.isStarting);
-               const PlayerRow = ({ p }: { p: MatchLineup }) => {
+               const PlayerRow = ({ p, side }: { p: MatchLineup; side: 'home' | 'away' }) => {
                  // Deduplicate goals within ±2 min (API sometimes sends same goal at 59' and 60')
                  const rawGoals = events
                    .filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal')
@@ -535,18 +535,30 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const jersey = TEAMS[p.teamId];
                  const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
                  const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';
+                 const goalBadges = playerGoals.map(g => (
+                   <span key={g.id} className="flex items-center gap-0.5 shrink-0">
+                     <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
+                     <span className="text-[7px] text-slate-500">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
+                   </span>
+                 ));
+                 const subBadges = <>
+                   {subbedOut && <span className="text-[8px] text-red-500 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
+                   {subbedIn && <span className="text-[8px] text-green-600 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+                 </>;
+                 if (side === 'away') {
+                   return (
+                     <div className="flex items-center gap-1 min-w-0">
+                       <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                       {goalBadges}{subBadges}
+                       <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={20} className="shrink-0" />
+                     </div>
+                   );
+                 }
                  return (
                    <div className="flex items-center gap-1 min-w-0">
                      <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={20} className="shrink-0" />
                      <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
-                     {playerGoals.map(g => (
-                       <span key={g.id} className="flex items-center gap-0.5 shrink-0">
-                         <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
-                         <span className="text-[7px] text-slate-500">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
-                       </span>
-                     ))}
-                     {subbedOut && <span className="text-[8px] text-red-500 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
-                     {subbedIn && <span className="text-[8px] text-green-600 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+                     {goalBadges}{subBadges}
                    </div>
                  );
                };
@@ -560,9 +572,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{homeFormation}</div>
                          </div>
                        )}
-                       {homeXI.map(p => <PlayerRow key={p.id} p={p} />)}
+                       {homeXI.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
                        {homeSubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-center">Bench</div>}
-                       {homeSubs.map(p => <PlayerRow key={p.id} p={p} />)}
+                       {homeSubs.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
                      </div>
                      <div className="w-px bg-slate-200 shrink-0" />
                      <div className="flex-1 min-w-0">
@@ -572,9 +584,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{awayFormation}</div>
                          </div>
                        )}
-                       {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
+                       {awayXI.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
                        {awaySubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-center">Bench</div>}
-                       {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}
+                       {awaySubs.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
                      </div>
                    </div>
                  </div>
