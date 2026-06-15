@@ -548,8 +548,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  if (side === 'away') {
                    return (
                      <div className="flex items-center gap-1 min-w-0">
-                       <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                        {goalBadges}{subBadges}
+                       <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                        <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={20} className="shrink-0" />
                      </div>
                    );
