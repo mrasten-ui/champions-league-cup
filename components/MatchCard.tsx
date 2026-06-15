@@ -547,18 +547,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    {subbedIn && <span className="text-[8px] text-green-600 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
                  </>;
                  const kitIcon = <KitImage teamId={p.teamId} kitBg={p.kitBg ?? undefined} kitText={p.kitText ?? undefined} kitType={kitType} size="xs" className="shrink-0" />;
+                 const numBadge = p.playerNumber != null
+                   ? <span className="text-[8px] font-black tabular-nums text-slate-400 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
+                   : null;
                  if (side === 'away') {
                    return (
                      <div className="flex items-center gap-1 min-w-0">
                        {subBadges}{goalBadges}
                        <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
-                       {kitIcon}
+                       {numBadge}{kitIcon}
                      </div>
                    );
                  }
                  return (
                    <div className="flex items-center gap-1 min-w-0">
-                     {kitIcon}
+                     {kitIcon}{numBadge}
                      <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                      {goalBadges}{subBadges}
                    </div>
