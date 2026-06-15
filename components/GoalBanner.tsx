@@ -176,25 +176,29 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           }}
         />
 
-        {/* Kit image — always shown; falls back to home PNG when no live kit color available */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
-          {/* Radial glow behind kit */}
+        {/* Big ball / disallowed icon — dominant visual anchor, top-right */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-1">
           <div
-            className="absolute inset-0 scale-[2]"
-            style={{ background: `radial-gradient(circle, ${teamColor}40 0%, transparent 65%)` }}
+            className="absolute inset-0 scale-[2.5]"
+            style={{ background: `radial-gradient(circle, ${teamColor}35 0%, transparent 65%)` }}
           />
+          {isVAR ? (
+            <span className="relative text-[52px] leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">🚫</span>
+          ) : (
+            <img src="/wc26-ball.png" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.7)]" alt="" />
+          )}
           <KitImage
             teamId={benefitingTeamId}
             kitBg={scoringKitBg}
             kitText={scoringKitText}
-            size="md"
-            className="relative drop-shadow-2xl"
+            size="xs"
+            className="relative opacity-70"
           />
         </div>
 
         {/* Text content — entire area is clickable to navigate to the match */}
         <div
-          className={`relative z-10 pl-5 pt-3 pb-3 pr-[74px] ${onNavigate ? 'cursor-pointer' : ''}`}
+          className={`relative z-10 pl-5 pt-3 pb-3 pr-[88px] ${onNavigate ? 'cursor-pointer' : ''}`}
           onClick={onNavigate}
         >
 
@@ -204,7 +208,7 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
               className="text-[13px] font-black uppercase tracking-widest"
               style={{ color: labelColor }}
             >
-              {emoji && `${emoji} `}{!isVAR && <img src="/wc26-ball.png" className="inline-block w-[14px] h-[14px] object-contain align-middle mr-0.5" alt="" />}{eventLabel}
+              {eventLabel}
             </span>
             <span className="text-white/25 text-[9px]">·</span>
             <span className="text-white/50 text-[9px] font-bold">{min}</span>

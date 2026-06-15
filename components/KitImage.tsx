@@ -34,6 +34,7 @@ const FILE_ID_OVERRIDE: Record<string, string> = {
   HAI: 'HTI', // app ID → PNG filename prefix
   PAR: 'PRY',
   SUI: 'CHE',
+  KSA: 'SAU',
 };
 
 function kitPath(teamId: string, type: 'home' | 'away' | 'third') {
