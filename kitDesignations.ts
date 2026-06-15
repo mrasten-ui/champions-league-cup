@@ -111,6 +111,19 @@ function hexHue(hex: string): number {
 }
 
 /**
+ * Returns the explicit FIFA kit designation for a team in a specific match,
+ * or undefined if the match isn't in the table. Use this when the API has
+ * provided a kit color but you want to override it with the known designation.
+ */
+export function lookupKitDesignation(
+  homeTeamId: string,
+  awayTeamId: string,
+  teamId: string,
+): KitType | undefined {
+  return MATCH_KITS[`${homeTeamId}-${awayTeamId}`]?.[teamId];
+}
+
+/**
  * When the API hasn't provided kit colors yet, determine what kit a team
  * is likely wearing. Checks the FIFA designation table first, then falls
  * back to home-kit hue clash detection for unlisted matches.

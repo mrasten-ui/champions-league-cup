@@ -8,7 +8,7 @@ import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
 import { JerseyIcon } from './JerseyIcon';
 import { KitImage, resolveKitType } from './KitImage';
-import { resolveKitFallback } from '../kitDesignations';
+import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch } from '../utils/nameMatch';
 
 interface MatchCardProps {
@@ -534,9 +534,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
                  const isHomeTeam = p.teamId === match.homeTeamId;
-                 const kitType: 'home' | 'away' | 'third' | undefined = p.kitBg
-                   ? undefined  // API gave us real color — resolveKitType inside KitImage decides
-                   : resolveKitFallback(match.homeTeamId, match.awayTeamId, p.teamId);
+                 // FIFA designation always wins; API color only used when no designation exists
+                 const kitType: 'home' | 'away' | 'third' | undefined =
+                   lookupKitDesignation(match.homeTeamId, match.awayTeamId, p.teamId)
+                   ?? (p.kitBg ? undefined : resolveKitFallback(match.homeTeamId, match.awayTeamId, p.teamId));
                  const goalBadges = playerGoals.map(g => (
                    <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                      <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />

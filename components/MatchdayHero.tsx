@@ -5,7 +5,7 @@ import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 import { KitImage, resolveKitType } from './KitImage';
-import { resolveKitFallback } from '../kitDesignations';
+import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch } from '../utils/nameMatch';
 
 interface MatchdayHeroProps {
@@ -409,9 +409,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
             const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
             const isHomeTeam = p.teamId === match.homeTeamId;
-            const kitType: 'home' | 'away' | 'third' | undefined = p.kitBg
-              ? undefined  // API gave us real color — resolveKitType inside KitImage decides
-              : resolveKitFallback(match.homeTeamId, match.awayTeamId, p.teamId);
+            // FIFA designation always wins; API color only used when no designation exists
+            const kitType: 'home' | 'away' | 'third' | undefined =
+              lookupKitDesignation(match.homeTeamId, match.awayTeamId, p.teamId)
+              ?? (p.kitBg ? undefined : resolveKitFallback(match.homeTeamId, match.awayTeamId, p.teamId));
             const kitIcon = <KitImage teamId={p.teamId} kitBg={p.kitBg ?? undefined} kitText={p.kitText ?? undefined} kitType={kitType} size="xs" className="shrink-0" />;
             const numBadge = p.playerNumber != null
               ? <span className="text-[8px] font-black tabular-nums text-white/40 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
