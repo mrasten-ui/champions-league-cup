@@ -162,11 +162,6 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           className="absolute inset-0 rounded-2xl border pointer-events-none"
           style={{ borderColor: `${teamColor}35` }}
         />
-        {/* Left accent strip */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[5px]"
-          style={{ background: `linear-gradient(to bottom, ${teamColor}, ${teamColor}55)` }}
-        />
         {/* Progress bar */}
         <div
           className="absolute top-0 left-0 h-[2px] transition-all ease-linear"
@@ -177,84 +172,97 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           }}
         />
 
-        {/* Big ball / disallowed icon — dominant visual anchor, top-right */}
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-1">
-          <div
-            className="absolute inset-0 scale-[2.5]"
-            style={{ background: `radial-gradient(circle, ${teamColor}35 0%, transparent 65%)` }}
-          />
-          {isVAR ? (
-            <span className="relative text-[52px] leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">🚫</span>
-          ) : (
-            <img src="/wc26-ball.png" className="relative w-14 h-14 object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.7)]" alt="" />
-          )}
-          <KitImage
-            teamId={benefitingTeamId}
-            kitBg={scoringKitBg}
-            kitText={scoringKitText}
-            size="xs"
-            className="relative opacity-70"
-          />
-        </div>
-
-        {/* Text content — entire area is clickable to navigate to the match */}
+        {/* Main content row */}
         <div
-          className={`relative z-10 pl-5 pt-3 pb-3 pr-[88px] ${onNavigate ? 'cursor-pointer' : ''}`}
+          className={`relative z-10 flex items-center ${onNavigate ? 'cursor-pointer' : ''}`}
           onClick={onNavigate}
         >
-
-          {/* Event label + minute */}
-          <div className="flex items-center gap-1.5 mb-1">
-            <span
-              className="text-[13px] font-black uppercase tracking-widest"
-              style={{ color: labelColor }}
+          {/* LEFT: ball / disallowed in team-color circle */}
+          <div className="flex items-center justify-center px-3 py-4 shrink-0">
+            <div
+              className="relative w-[58px] h-[58px] rounded-full flex items-center justify-center"
+              style={{ background: `${teamColor}20`, boxShadow: `0 0 0 2px ${teamColor}50` }}
             >
-              {eventLabel}
-            </span>
-            <span className="text-white/25 text-[9px]">·</span>
-            <span className="text-white/50 text-[9px] font-bold">{min}</span>
-            {!isVAR && <LiveBadge />}
-          </div>
-
-          {/* Team flag + name */}
-          <div className="flex items-center gap-2 mb-1">
-            {scoringFlag ? (
-              <img src={scoringFlag} alt="" className="w-8 h-[22px] object-cover rounded border border-white/15 shadow-sm shrink-0" />
-            ) : (
-              <div className="w-8 h-[22px] rounded bg-white/8 border border-white/10 shrink-0" />
-            )}
-            <span className="text-white text-[16px] font-black uppercase tracking-wide leading-tight truncate">
-              {scoringName}
-            </span>
-          </div>
-
-          {/* Narrative */}
-          <div className="text-white/40 text-[9px] leading-snug line-clamp-1 mb-2.5">
-            {narrative}
-          </div>
-
-          {/* Score + actions row */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-white/6 border border-white/10 rounded-lg px-2 py-1 shrink-0">
-              {homeTeam?.flag && (
-                <img src={homeTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />
-              )}
-              <span className="text-white font-black text-xs tabular-nums tracking-tight">
-                {notification.homeScore}–{notification.awayScore}
-              </span>
-              {awayTeam?.flag && (
-                <img src={awayTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{ background: `radial-gradient(circle, ${teamColor}35 0%, transparent 70%)` }}
+              />
+              {isVAR ? (
+                <span className="relative text-[30px] leading-none drop-shadow-lg">🚫</span>
+              ) : (
+                <img src="/wc26-ball.png" className="relative w-9 h-9 object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]" alt="" />
               )}
             </div>
-            {(onShowLive || onNavigate) && (
-              <PillButton onClick={onShowLive ?? onNavigate} gold>Show Live</PillButton>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); dismiss(); }}
-              className="ml-auto p-1 text-white/25 hover:text-white/55 transition-colors"
-            >
-              <X size={11} />
-            </button>
+          </div>
+
+          {/* MIDDLE: text */}
+          <div className="flex-1 min-w-0 py-3">
+            {/* Big event label + minute */}
+            <div className="flex items-baseline gap-2 mb-1">
+              <span
+                className="text-xl font-black uppercase tracking-tight leading-none"
+                style={{ color: labelColor }}
+              >
+                {eventLabel}
+              </span>
+              <span className="text-white/40 text-[9px] font-bold shrink-0">{min}</span>
+              {!isVAR && <LiveBadge />}
+            </div>
+
+            {/* Flag + team name */}
+            <div className="flex items-center gap-1.5 mb-0.5">
+              {scoringFlag ? (
+                <img src={scoringFlag} alt="" className="w-6 h-[16px] object-cover rounded border border-white/15 shrink-0" />
+              ) : (
+                <div className="w-6 h-[16px] rounded bg-white/8 border border-white/10 shrink-0" />
+              )}
+              <span className="text-white/90 text-[11px] font-black uppercase tracking-wide truncate">
+                {scoringName}
+              </span>
+            </div>
+
+            {/* Narrative */}
+            <div className="text-white/35 text-[8px] leading-snug line-clamp-1 mb-2">
+              {narrative}
+            </div>
+
+            {/* Score + actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 bg-white/6 border border-white/10 rounded-lg px-2 py-1 shrink-0">
+                {homeTeam?.flag && <img src={homeTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />}
+                <span className="text-white font-black text-xs tabular-nums tracking-tight">
+                  {notification.homeScore}–{notification.awayScore}
+                </span>
+                {awayTeam?.flag && <img src={awayTeam.flag} alt="" className="w-4 h-[11px] object-cover rounded-sm" />}
+              </div>
+              {(onShowLive || onNavigate) && (
+                <PillButton onClick={onShowLive ?? onNavigate} gold>Show Live</PillButton>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); dismiss(); }}
+                className="ml-auto p-1 text-white/25 hover:text-white/55 transition-colors"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          </div>
+
+          {/* RIGHT: kit shirt */}
+          <div className="flex items-center justify-center pr-3 pl-1 shrink-0">
+            <div className="relative">
+              <div
+                className="absolute inset-0 scale-[1.8]"
+                style={{ background: `radial-gradient(circle, ${teamColor}30 0%, transparent 65%)` }}
+              />
+              <KitImage
+                teamId={benefitingTeamId}
+                kitBg={scoringKitBg}
+                kitText={scoringKitText}
+                kitType={lookupKitDesignation(notification.homeTeamId, notification.awayTeamId, benefitingTeamId)}
+                size="sm"
+                className="relative drop-shadow-xl"
+              />
+            </div>
           </div>
         </div>
       </div>
