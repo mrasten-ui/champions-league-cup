@@ -520,7 +520,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const homeSubs = homeLineups.filter(l => !l.isStarting);
                const awaySubs = awayLineups.filter(l => !l.isStarting);
                const PlayerRow = ({ p }: { p: MatchLineup }) => {
-                 const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
+                 // Deduplicate goals within ±2 min (API sometimes sends same goal at 59' and 60')
+                 const rawGoals = events
+                   .filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal')
+                   .sort((a, b) => (a.minute + (a.minuteExtra ?? 0)) - (b.minute + (b.minuteExtra ?? 0)));
+                 const playerGoals: typeof rawGoals = [];
+                 for (const g of rawGoals) {
+                   const tot = g.minute + (g.minuteExtra ?? 0);
+                   if (!playerGoals.some(prev => Math.abs((prev.minute + (prev.minuteExtra ?? 0)) - tot) <= 2)) playerGoals.push(g);
+                 }
                  const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
