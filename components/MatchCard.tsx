@@ -577,35 +577,38 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  </div>
                );
                const hasBench = homeSubs.length > 0 || awaySubs.length > 0;
+               const SectionDivider = ({ label }: { label: string }) => (
+                 <div className="flex items-center gap-2 my-2">
+                   <div className="flex-1 border-t border-dashed border-slate-300" />
+                   <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 px-1">{label}</span>
+                   <div className="flex-1 border-t border-dashed border-slate-300" />
+                 </div>
+               );
                return (
                  <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
+                   {/* Starting XI header */}
+                   <SectionDivider label={lang.startingXi || 'Starting XI'} />
                    {/* Starting XI */}
                    <div className="flex gap-2">
                      <div className="flex-1 min-w-0">
                        {homeFormation && <FormationHeader formation={homeFormation} />}
                        {homeXI.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
                      </div>
-                     <div className="w-px bg-slate-200 shrink-0" />
+                     <div className="w-px border-l border-dashed border-slate-300 shrink-0" />
                      <div className="flex-1 min-w-0">
                        {awayFormation && <FormationHeader formation={awayFormation} />}
                        {awayXI.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
                      </div>
                    </div>
                    {/* Bench divider */}
-                   {hasBench && (
-                     <div className="flex items-center gap-2 my-2">
-                       <div className="flex-1 h-px bg-slate-200" />
-                       <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 px-1">Bench</span>
-                       <div className="flex-1 h-px bg-slate-200" />
-                     </div>
-                   )}
+                   {hasBench && <SectionDivider label={lang.benchLabel || 'Bench'} />}
                    {/* Bench */}
                    {hasBench && (
                      <div className="flex gap-2">
                        <div className="flex-1 min-w-0">
                          {homeSubs.map(p => <PlayerRow key={p.id} p={p} side="home" bench />)}
                        </div>
-                       <div className="w-px bg-slate-200 shrink-0" />
+                       <div className="w-px border-l border-dashed border-slate-300 shrink-0" />
                        <div className="flex-1 min-w-0">
                          {awaySubs.map(p => <PlayerRow key={p.id} p={p} side="away" bench />)}
                        </div>
