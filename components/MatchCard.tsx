@@ -519,7 +519,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
                const homeSubs = homeLineups.filter(l => !l.isStarting);
                const awaySubs = awayLineups.filter(l => !l.isStarting);
-               const PlayerRow = ({ p, side }: { p: MatchLineup; side: 'home' | 'away' }) => {
+               const PlayerRow = ({ p, side, bench }: { p: MatchLineup; side: 'home' | 'away'; bench?: boolean }) => {
                  // Deduplicate goals within ±2 min (API sometimes sends same goal at 59' and 60')
                  const rawGoals = events
                    .filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal')
@@ -550,50 +550,67 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const numBadge = p.playerNumber != null
                    ? <span className="text-[8px] font-black tabular-nums text-slate-400 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
                    : null;
+                 const dimmed = bench && !subbedIn;
                  if (side === 'away') {
                    return (
-                     <div className="flex items-center gap-1 min-w-0">
+                     <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
+                       <span className="flex-1" />
                        {subBadges}{goalBadges}
-                       <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                       <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                        {numBadge}{kitIcon}
                      </div>
                    );
                  }
                  return (
-                   <div className="flex items-center gap-1 min-w-0">
+                   <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
                      {kitIcon}{numBadge}
-                     <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                     <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                      {goalBadges}{subBadges}
+                     <span className="flex-1" />
                    </div>
                  );
                };
+               const FormationHeader = ({ formation }: { formation: string }) => (
+                 <div className="mb-1 text-center">
+                   <div className="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none">Formation</div>
+                   <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{formation}</div>
+                 </div>
+               );
+               const hasBench = homeSubs.length > 0 || awaySubs.length > 0;
                return (
                  <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
+                   {/* Starting XI */}
                    <div className="flex gap-2">
                      <div className="flex-1 min-w-0">
-                       {homeFormation && (
-                         <div className="mb-1 text-center">
-                           <div className="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none">Formation</div>
-                           <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{homeFormation}</div>
-                         </div>
-                       )}
+                       {homeFormation && <FormationHeader formation={homeFormation} />}
                        {homeXI.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
-                       {homeSubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-center">Bench</div>}
-                       {homeSubs.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
                      </div>
                      <div className="w-px bg-slate-200 shrink-0" />
                      <div className="flex-1 min-w-0">
-                       {awayFormation && (
-                         <div className="mb-1 text-center">
-                           <div className="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none">Formation</div>
-                           <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{awayFormation}</div>
-                         </div>
-                       )}
+                       {awayFormation && <FormationHeader formation={awayFormation} />}
                        {awayXI.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
-                       {awaySubs.length > 0 && <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest my-1 text-center">Bench</div>}
-                       {awaySubs.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
                      </div>
                    </div>
+                   {/* Bench divider */}
+                   {hasBench && (
+                     <div className="flex items-center gap-2 my-2">
+                       <div className="flex-1 h-px bg-slate-200" />
+                       <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 px-1">Bench</span>
+                       <div className="flex-1 h-px bg-slate-200" />
+                     </div>
+                   )}
+                   {/* Bench */}
+                   {hasBench && (
+                     <div className="flex gap-2">
+                       <div className="flex-1 min-w-0">
+                         {homeSubs.map(p => <PlayerRow key={p.id} p={p} side="home" bench />)}
+                       </div>
+                       <div className="w-px bg-slate-200 shrink-0" />
+                       <div className="flex-1 min-w-0">
+                         {awaySubs.map(p => <PlayerRow key={p.id} p={p} side="away" bench />)}
+                       </div>
+                     </div>
+                   )}
                  </div>
                );
              })()}
