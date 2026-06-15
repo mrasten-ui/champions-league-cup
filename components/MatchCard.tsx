@@ -532,10 +532,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
-                 // When API kit color is unknown, use home/away position to pick the right PNG
                  const isHomeTeam = p.teamId === match.homeTeamId;
-                 const kitTypeFallback: 'home' | 'away' = isHomeTeam ? 'home' : 'away';
-                 const kitType: 'home' | 'away' | undefined = p.kitBg ? undefined : kitTypeFallback;
+                 const kitType: 'home' | 'away' | undefined = p.kitBg
+                   ? undefined  // API gave us real color — resolveKitType inside KitImage decides
+                   : (() => {
+                       if (isHomeTeam) return 'home';
+                       // No API color yet: check if away team's home kit would clash with home team's
+                       const homeStaticBg = TEAMS[match.homeTeamId]?.jerseyBg;
+                       const awayStaticBg = TEAMS[p.teamId]?.jerseyBg;
+                       if (!homeStaticBg || !awayStaticBg) return 'away';
+                       const hue = (hex: string) => { const h = hex.replace('#',''); const r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255; const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min; if(d===0)return 0; const hh=max===r?((g-b)/d+(g<b?6:0)):max===g?((b-r)/d+2):((r-g)/d+4); return hh*60; };
+                       const diff = Math.abs(hue(homeStaticBg) - hue(awayStaticBg));
+                       return Math.min(diff, 360 - diff) <= 40 ? 'away' : 'home';
+                     })();
                  const goalBadges = playerGoals.map(g => (
                    <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                      <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
