@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { Team } from '../types';
 import { TEAMS } from '../constants';
 import { KitImage, resolveKitType } from './KitImage';
+import { lookupKitDesignation } from '../kitDesignations';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,9 +264,8 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
 
 // ── Kit Card ──────────────────────────────────────────────────────────────────
 
-function kitLabel(teamId: string, kitBg: string): string {
-  const type = resolveKitType(teamId, kitBg);
-  return type === 'home' ? 'Home Kit' : type === 'away' ? 'Away Kit' : 'Third Kit';
+function kitLabel(kitType: 'home' | 'away' | 'third'): string {
+  return kitType === 'home' ? 'Home Kit' : kitType === 'away' ? 'Away Kit' : 'Third Kit';
 }
 
 interface KitCardProps {
@@ -305,8 +305,12 @@ function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProp
   const awayStatic = TEAMS[notification.awayTeamId];
   const homeName   = homeStatic?.name ?? notification.homeTeamId;
   const awayName   = awayStatic?.name ?? notification.awayTeamId;
-  const homeKit    = kitLabel(notification.homeTeamId, notification.homeKitBg);
-  const awayKit    = kitLabel(notification.awayTeamId, notification.awayKitBg);
+  const homeKitType = lookupKitDesignation(notification.homeTeamId, notification.awayTeamId, notification.homeTeamId)
+    ?? resolveKitType(notification.homeTeamId, notification.homeKitBg);
+  const awayKitType = lookupKitDesignation(notification.homeTeamId, notification.awayTeamId, notification.awayTeamId)
+    ?? resolveKitType(notification.awayTeamId, notification.awayKitBg);
+  const homeKit    = kitLabel(homeKitType);
+  const awayKit    = kitLabel(awayKitType);
 
   return (
     <div
@@ -350,6 +354,7 @@ function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProp
               teamId={notification.homeTeamId}
               kitBg={notification.homeKitBg}
               kitText={notification.homeKitText}
+              kitType={homeKitType}
               size="md"
               className="relative drop-shadow-xl mb-2"
             />
@@ -381,6 +386,7 @@ function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProp
               teamId={notification.awayTeamId}
               kitBg={notification.awayKitBg}
               kitText={notification.awayKitText}
+              kitType={awayKitType}
               size="md"
               className="relative drop-shadow-xl mb-2"
             />
