@@ -444,8 +444,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex items-center gap-1 sm:gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
                                             {lineups.filter(l => l.matchId === match.id).length > 0 && (
-                                              <button onClick={() => setLineupsOpen(o => !o)} className="mt-1 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
-                                                {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                              <button onClick={() => setLineupsOpen(o => !o)} className="mt-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
+                                                {lineupsOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
                                                 {lang.lineups || 'Line-up'}
                                               </button>
                                             )}
@@ -458,8 +458,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
                                                if (matchLineups.length > 0 && minsToKick <= 55) {
                                                  return (
-                                                   <button onClick={() => setLineupsOpen(o => !o)} className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200 transition-colors">
-                                                     {lineupsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                                   <button onClick={() => setLineupsOpen(o => !o)} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
+                                                     {lineupsOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
                                                      {lang.lineups || 'Line-up'}
                                                    </button>
                                                  );

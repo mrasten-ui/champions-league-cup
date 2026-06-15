@@ -126,7 +126,7 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
 
   const eventLabel = isVAR ? 'GOAL DISALLOWED' : isOG ? 'OWN GOAL' : isPen ? 'PENALTY GOAL' : 'GOAL';
   const labelColor  = isVAR ? '#A78BFA' : isOG ? '#F97316' : '#C9A84C';
-  const emoji       = isVAR ? '🚫' : '⚽';
+  const emoji       = isVAR ? '🚫' : null;
 
   const ogPlayer = notification.player ?? 'Defender';
   const narrative = (() => {
@@ -204,7 +204,7 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
               className="text-[13px] font-black uppercase tracking-widest"
               style={{ color: labelColor }}
             >
-              {emoji} {eventLabel}
+              {emoji && `${emoji} `}{!isVAR && <img src="/wc26-ball.png" className="inline-block w-[14px] h-[14px] object-contain align-middle mr-0.5" alt="" />}{eventLabel}
             </span>
             <span className="text-white/25 text-[9px]">·</span>
             <span className="text-white/50 text-[9px] font-bold">{min}</span>

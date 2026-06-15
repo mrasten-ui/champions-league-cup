@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
-import { BROADCAST_CHANNELS, TEAMS } from '../constants';
+import { BROADCAST_CHANNELS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
-import { JerseyIcon } from './JerseyIcon';
 import { KitImage, resolveKitType } from './KitImage';
 import { namesMatch } from '../utils/nameMatch';
 
@@ -343,8 +342,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                   const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
                   if (lineups.length > 0 && minsToKick <= 55) {
                     return (
-                      <button onClick={() => setLineupsOpen(o => !o)} className="mt-2 flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white/70 border border-white/10 transition-colors">
-                        {lineupsOpen ? '▲' : '▼'} {lang.lineups || 'Line-up'}
+                      <button onClick={() => setLineupsOpen(o => !o)} className="mt-2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors">
+                        {lineupsOpen ? <span className="text-[8px]">▲</span> : <span className="text-[8px]">▼</span>}
+                        {lang.lineups || 'Line-up'}
                       </button>
                     );
                   }
@@ -395,56 +395,94 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           const awayXI = awayLineups.filter(l => l.isStarting).sort(sortByGrid);
           const homeSubs = homeLineups.filter(l => !l.isStarting);
           const awaySubs = awayLineups.filter(l => !l.isStarting);
-          const PlayerRow = ({ p }: { p: MatchLineup }) => {
-            const playerGoals = events.filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal');
-            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.detail === 'Substitution 1' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
+          const PlayerRow = ({ p, side, bench }: { p: MatchLineup; side: 'home' | 'away'; bench?: boolean }) => {
+            const rawGoals = events
+              .filter(e => e.type === 'Goal' && e.teamId === p.teamId && namesMatch(e.player, p.playerName) && e.detail !== 'Own Goal')
+              .sort((a, b) => (a.minute + (a.minuteExtra ?? 0)) - (b.minute + (b.minuteExtra ?? 0)));
+            const playerGoals: typeof rawGoals = [];
+            for (const g of rawGoals) {
+              const tot = g.minute + (g.minuteExtra ?? 0);
+              if (!playerGoals.some(prev => Math.abs((prev.minute + (prev.minuteExtra ?? 0)) - tot) <= 2)) playerGoals.push(g);
+            }
+            const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
             const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
             const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
-            const jersey = TEAMS[p.teamId];
-            const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
-            const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';
+            const isHomeTeam = p.teamId === match.homeTeamId;
+            const kitType: 'home' | 'away' | undefined = p.kitBg ? undefined : (isHomeTeam ? 'home' : 'away');
+            const kitIcon = <KitImage teamId={p.teamId} kitBg={p.kitBg ?? undefined} kitText={p.kitText ?? undefined} kitType={kitType} size="xs" className="shrink-0" />;
+            const numBadge = p.playerNumber != null
+              ? <span className="text-[8px] font-black tabular-nums text-white/40 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
+              : null;
+            const goalBadges = playerGoals.map(g => (
+              <span key={g.id} className="flex items-center gap-0.5 shrink-0">
+                <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
+                <span className="text-[7px] text-white/40">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
+              </span>
+            ));
+            const subBadges = <>
+              {subbedOut && <span className="text-[8px] text-red-400 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
+              {subbedIn && <span className="text-[8px] text-green-400 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+            </>;
+            const dimmed = bench && !subbedIn;
+            if (side === 'away') {
+              return (
+                <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
+                  <span className="flex-1" />
+                  {subBadges}{goalBadges}
+                  <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-white/30' : 'text-white/75'}`}>{p.playerName}</span>
+                  {numBadge}{kitIcon}
+                </div>
+              );
+            }
             return (
-              <div className="flex items-center gap-1.5 min-w-0">
-                <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={22} className="shrink-0" />
-                <span className={`text-[10px] flex-1 truncate ${subbedOut ? 'text-white/30' : 'text-white/80'}`}>{p.playerName}</span>
-                {playerGoals.map(g => (
-                  <span key={g.id} className="flex items-center gap-0.5 shrink-0">
-                    <img src="/wc26-ball.png" className="w-3 h-3 object-contain" alt="" />
-                    <span className="text-[8px] text-white/50">{g.minute}{g.minuteExtra ? `+${g.minuteExtra}` : ''}'</span>
-                  </span>
-                ))}
-                {subbedOut && <span className="text-[9px] text-red-400 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
-                {subbedIn && <span className="text-[9px] text-green-400 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
+              <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
+                {kitIcon}{numBadge}
+                <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-white/30' : 'text-white/75'}`}>{p.playerName}</span>
+                {goalBadges}{subBadges}
+                <span className="flex-1" />
               </div>
             );
           };
+          const FormationHeader = ({ formation }: { formation: string }) => (
+            <div className="mb-1 text-center">
+              <div className="text-[7px] font-bold text-white/20 uppercase tracking-widest leading-none">Formation</div>
+              <div className="text-[9px] font-black text-white/40 uppercase tracking-widest">{formation}</div>
+            </div>
+          );
+          const SectionDivider = ({ label }: { label: string }) => (
+            <div className="flex items-center gap-2 my-2">
+              <div className="flex-1 border-t border-dashed border-white/15" />
+              <span className="text-[7px] font-black uppercase tracking-widest text-white/30 px-1">{label}</span>
+              <div className="flex-1 border-t border-dashed border-white/15" />
+            </div>
+          );
+          const hasBench = homeSubs.length > 0 || awaySubs.length > 0;
           return (
-            <div className="relative z-10 bg-black/40 border-t border-white/5 px-6 py-3">
-              <div className="flex gap-4">
+            <div className="relative z-10 bg-black/40 border-t border-white/5 px-4 py-3">
+              <SectionDivider label={lang.startingXi || 'Starting XI'} />
+              <div className="flex gap-3">
                 <div className="flex-1 min-w-0">
-                  {homeFormation && (
-                    <div className="mb-1.5">
-                      <div className="text-[7px] font-bold text-white/20 uppercase tracking-widest leading-none">Formation</div>
-                      <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{homeFormation}</div>
-                    </div>
-                  )}
-                  {homeXI.map(p => <PlayerRow key={p.id} p={p} />)}
-                  {homeSubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
-                  {homeSubs.map(p => <PlayerRow key={p.id} p={p} />)}
+                  {homeFormation && <FormationHeader formation={homeFormation} />}
+                  {homeXI.map(p => <PlayerRow key={p.id} p={p} side="home" />)}
                 </div>
-                <div className="w-px bg-white/10 shrink-0" />
+                <div className="w-px border-l border-dashed border-white/15 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  {awayFormation && (
-                    <div className="mb-1.5">
-                      <div className="text-[7px] font-bold text-white/20 uppercase tracking-widest leading-none">Formation</div>
-                      <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{awayFormation}</div>
-                    </div>
-                  )}
-                  {awayXI.map(p => <PlayerRow key={p.id} p={p} />)}
-                  {awaySubs.length > 0 && <div className="text-[8px] font-black text-white/20 uppercase tracking-widest my-1.5">Bench</div>}
-                  {awaySubs.map(p => <PlayerRow key={p.id} p={p} />)}
+                  {awayFormation && <FormationHeader formation={awayFormation} />}
+                  {awayXI.map(p => <PlayerRow key={p.id} p={p} side="away" />)}
                 </div>
               </div>
+              {hasBench && <SectionDivider label={lang.benchLabel || 'Bench'} />}
+              {hasBench && (
+                <div className="flex gap-3">
+                  <div className="flex-1 min-w-0">
+                    {homeSubs.map(p => <PlayerRow key={p.id} p={p} side="home" bench />)}
+                  </div>
+                  <div className="w-px border-l border-dashed border-white/15 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {awaySubs.map(p => <PlayerRow key={p.id} p={p} side="away" bench />)}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
