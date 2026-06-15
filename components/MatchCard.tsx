@@ -8,6 +8,7 @@ import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
 import { JerseyIcon } from './JerseyIcon';
 import { KitImage, resolveKitType } from './KitImage';
+import { resolveKitFallback } from '../kitDesignations';
 import { namesMatch } from '../utils/nameMatch';
 
 interface MatchCardProps {
@@ -533,18 +534,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
                  const isHomeTeam = p.teamId === match.homeTeamId;
-                 const kitType: 'home' | 'away' | undefined = p.kitBg
+                 const kitType: 'home' | 'away' | 'third' | undefined = p.kitBg
                    ? undefined  // API gave us real color — resolveKitType inside KitImage decides
-                   : (() => {
-                       if (isHomeTeam) return 'home';
-                       // No API color yet: check if away team's home kit would clash with home team's
-                       const homeStaticBg = TEAMS[match.homeTeamId]?.jerseyBg;
-                       const awayStaticBg = TEAMS[p.teamId]?.jerseyBg;
-                       if (!homeStaticBg || !awayStaticBg) return 'away';
-                       const hue = (hex: string) => { const h = hex.replace('#',''); const r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255; const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min; if(d===0)return 0; const hh=max===r?((g-b)/d+(g<b?6:0)):max===g?((b-r)/d+2):((r-g)/d+4); return hh*60; };
-                       const diff = Math.abs(hue(homeStaticBg) - hue(awayStaticBg));
-                       return Math.min(diff, 360 - diff) <= 40 ? 'away' : 'home';
-                     })();
+                   : resolveKitFallback(match.homeTeamId, match.awayTeamId, p.teamId);
                  const goalBadges = playerGoals.map(g => (
                    <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                      <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
