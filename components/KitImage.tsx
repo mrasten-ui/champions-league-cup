@@ -83,11 +83,13 @@ export const KitImage: React.FC<KitImageProps> = ({
   };
 
   if (phase === 'svg') {
-    if (!kitBg) return null;
+    const bg   = kitBg   ?? TEAMS[teamId]?.jerseyBg;
+    const text = kitText ?? TEAMS[teamId]?.jerseyText;
+    if (!bg) return null;
     return (
       <JerseyIcon
-        bg={kitBg}
-        text={kitText ?? '#ffffff'}
+        bg={bg}
+        text={text ?? '#ffffff'}
         size={JERSEY_SIZE[size]}
         className={`shrink-0 ${className}`}
       />

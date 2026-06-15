@@ -532,9 +532,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  const subEvent = events.find(e => e.type?.toLowerCase() === 'subst' && e.teamId === p.teamId && (namesMatch(e.player, p.playerName) || namesMatch(e.assist, p.playerName)));
                  const subbedOut = namesMatch(subEvent?.player, p.playerName) ? subEvent : undefined;
                  const subbedIn = namesMatch(subEvent?.assist, p.playerName) ? subEvent : undefined;
-                 const jersey = TEAMS[p.teamId];
-                 const kitBg  = p.kitBg  ?? jersey?.jerseyBg  ?? '#E2E8F0';
-                 const kitText = p.kitText ?? jersey?.jerseyText ?? '#64748B';
+                 // When API kit color is unknown, use home/away position to pick the right PNG
+                 const isHomeTeam = p.teamId === match.homeTeamId;
+                 const kitTypeFallback: 'home' | 'away' = isHomeTeam ? 'home' : 'away';
+                 const kitType: 'home' | 'away' | undefined = p.kitBg ? undefined : kitTypeFallback;
                  const goalBadges = playerGoals.map(g => (
                    <span key={g.id} className="flex items-center gap-0.5 shrink-0">
                      <img src="/wc26-ball.png" className="w-2.5 h-2.5 object-contain" alt="" />
@@ -545,18 +546,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    {subbedOut && <span className="text-[8px] text-red-500 font-bold shrink-0 leading-none">↓{subbedOut.minute}'</span>}
                    {subbedIn && <span className="text-[8px] text-green-600 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
                  </>;
+                 const kitIcon = <KitImage teamId={p.teamId} kitBg={p.kitBg ?? undefined} kitText={p.kitText ?? undefined} kitType={kitType} size="xs" className="shrink-0" />;
                  if (side === 'away') {
                    return (
                      <div className="flex items-center gap-1 min-w-0">
                        {subBadges}{goalBadges}
                        <span className={`text-[9px] flex-1 truncate text-right ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
-                       <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={20} className="shrink-0" />
+                       {kitIcon}
                      </div>
                    );
                  }
                  return (
                    <div className="flex items-center gap-1 min-w-0">
-                     <JerseyIcon bg={kitBg} text={kitText} number={p.playerNumber} size={20} className="shrink-0" />
+                     {kitIcon}
                      <span className={`text-[9px] flex-1 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
                      {goalBadges}{subBadges}
                    </div>
