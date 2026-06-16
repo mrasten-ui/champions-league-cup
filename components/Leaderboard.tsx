@@ -435,7 +435,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           });
 
       const next3 = matches
-          .filter(m => !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD' && new Date(m.date).getTime() >= now)
+          .filter(m => !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === m.id) ?? null }));
@@ -890,7 +890,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
         const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
         const now = Date.now();
         const next3 = matches
-          .filter(m => !finishedStatuses.includes(m.status) && new Date(m.date).getTime() >= now)
+          .filter(m => !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
