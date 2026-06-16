@@ -578,14 +578,15 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           };
           const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
             if (e.type?.toLowerCase() === 'subst') {
+              const nameSpanClass = `flex items-center gap-1 min-w-0 flex-1 ${side === 'away' ? 'justify-end' : ''}`;
               const outSpan = e.player && (
-                <span key="out" className="flex items-center gap-1 min-w-0 flex-1">
+                <span key="out" className={nameSpanClass}>
                   <span className="text-red-400 font-bold shrink-0">↓</span>
                   <span className="truncate text-white/60">{abbreviateName(e.player)}</span>
                 </span>
               );
               const inSpan = e.assist && (
-                <span key="in" className="flex items-center gap-1 min-w-0 flex-1">
+                <span key="in" className={nameSpanClass}>
                   <span className="text-green-400 font-bold shrink-0">↑</span>
                   <span className="truncate text-white/60">{abbreviateName(e.assist)}</span>
                 </span>
@@ -615,7 +616,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 {homeEvts.flatMap(e => renderEvt(e, 'home'))}
               </div>
               {(homeEvts.length > 0 || awayEvts.length > 0) && <div className="w-px bg-white/10 shrink-0" />}
-              <div className="flex-1 flex flex-col gap-1 items-end min-w-0">
+              <div className="flex-1 flex flex-col gap-1 min-w-0">
                 {awayEvts.flatMap(e => renderEvt(e, 'away'))}
               </div>
             </div>
