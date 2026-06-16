@@ -733,7 +733,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                };
                const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
                  if (e.type?.toLowerCase() === 'subst') {
-                   const nameSpanClass = `flex items-center gap-0.5 min-w-0 flex-1 ${side === 'away' ? 'justify-end' : ''}`;
+                   const nameSpanClass = 'flex items-center gap-0.5 min-w-0 flex-1';
                    const outSpan = e.player && (
                      <span key="out" className={nameSpanClass}>
                        <span className="text-red-500 font-bold shrink-0">↓</span>

@@ -578,7 +578,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
           };
           const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
             if (e.type?.toLowerCase() === 'subst') {
-              const nameSpanClass = `flex items-center gap-1 min-w-0 flex-1 ${side === 'away' ? 'justify-end' : ''}`;
+              const nameSpanClass = 'flex items-center gap-1 min-w-0 flex-1';
               const outSpan = e.player && (
                 <span key="out" className={nameSpanClass}>
                   <span className="text-red-400 font-bold shrink-0">↓</span>
