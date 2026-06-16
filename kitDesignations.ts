@@ -1,4 +1,5 @@
 import { TEAMS } from './constants';
+import { KIT_COLORS } from './kitColors';
 
 type KitType = 'home' | 'away' | 'third';
 
@@ -64,7 +65,7 @@ const MATCH_KITS: Record<string, Partial<Record<string, KitType>>> = {
 
   // ── GROUP H — Spain, Cabo Verde, Saudi Arabia, Uruguay ───────────────────────
   'ESP-CPV': { ESP: 'home', CPV: 'away' },          // M23: CPV debut in all white
-  'KSA-URU': { KSA: 'away', URU: 'home' },          // M24: KSA is fixture home but wears white away
+  'KSA-URU': { KSA: 'home', URU: 'home' },          // M24: KSA wore green home kit, no clash with URU sky blue
   'ESP-KSA': { ESP: 'home', KSA: 'away' },          // M51
   'URU-CPV': { URU: 'home', CPV: 'away' },          // M52: CPV in white away
 
@@ -143,4 +144,18 @@ export function resolveKitFallback(
   if (!homeBg || !awayBg) return 'away';
   const diff = Math.abs(hexHue(homeBg) - hexHue(awayBg));
   return Math.min(diff, 360 - diff) <= 40 ? 'away' : 'home';
+}
+
+/**
+ * The actual color a team's kit shows for a given kit type — the team's
+ * static (home) jerseyBg for 'home', or the extracted away/third kit color
+ * (sampled from the kit PNG, see scripts/extract-kit-colors.mjs) when available,
+ * falling back to jerseyBg if no away/third sample exists for that team.
+ */
+export function resolveKitColor(teamId: string, kitType: KitType): string | undefined {
+  if (kitType !== 'home') {
+    const sampled = KIT_COLORS[teamId]?.[kitType];
+    if (sampled) return sampled;
+  }
+  return TEAMS[teamId]?.jerseyBg;
 }

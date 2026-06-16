@@ -774,7 +774,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              {/* STATS PANEL */}
              {activePanel === 'stats' && (isLive || isFinished) && (
-               <StatsPanel stats={stats} homeTeam={homeTeam} awayTeam={awayTeam} />
+               <StatsPanel stats={stats} homeTeam={homeTeam} awayTeam={awayTeam} homeKitType={homeKitType} awayKitType={awayKitType} />
              )}
 
              {/* SAVE STATUS BAR */}

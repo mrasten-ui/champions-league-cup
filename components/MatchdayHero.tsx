@@ -158,8 +158,8 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
   const heroHomeKitBg   = lineups.find(l => l.teamId === match.homeTeamId)?.kitBg ?? null;
   const heroAwayKitBg   = lineups.find(l => l.teamId === match.awayTeamId)?.kitBg ?? null;
-  const heroHomeKitType = resolveKitType(match.homeTeamId, heroHomeKitBg);
-  const heroAwayKitType = resolveKitType(match.awayTeamId, heroAwayKitBg);
+  const heroHomeKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.homeTeamId) ?? resolveKitType(match.homeTeamId, heroHomeKitBg);
+  const heroAwayKitType = lookupKitDesignation(match.homeTeamId, match.awayTeamId, match.awayTeamId) ?? resolveKitType(match.awayTeamId, heroAwayKitBg);
 
   const getContextLabel = () => {
       if (match.round) {
@@ -621,7 +621,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
         {/* STATS PANEL */}
         {activePanel === 'stats' && (isLive || isFinished) && (
-          <StatsPanel stats={stats} homeTeam={home} awayTeam={away} dark />
+          <StatsPanel stats={stats} homeTeam={home} awayTeam={away} homeKitType={heroHomeKitType} awayKitType={heroAwayKitType} dark />
         )}
 
         {/* Footer: Stadium & User Prediction */}

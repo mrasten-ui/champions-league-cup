@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { INITIAL_MATCHES, LEAGUES } from '../constants';
 
@@ -106,44 +106,40 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
     );
 };
 
-const QualifiedTeamsGrid: React.FC<{ 
-    realMatches: Match[], 
-    userPredictions: Prediction[], 
+interface QualifiedRound {
+    key: string;
+    label: string;
+    correctTeams: string[];
+    pointsPerTeam: number;
+    totalSlots: number;
+    penaltyApplied: boolean;
+    totalPoints: number;
+}
+
+// Pure computation shared by QualifiedTeamsGrid and any caller that needs to know
+// up front whether there's anything to show (e.g. to hide an otherwise-empty panel
+// for weeks before the knockout stage produces any correct picks).
+const getQualifiedRounds = (
+    realMatches: Match[],
+    userPredictions: Prediction[],
     user: UserProfile,
-    teams: Record<string, Team>,
-    onTeamClick?: (teamId: string) => void
-}> = ({ realMatches, userPredictions, user, teams, onTeamClick }) => {
-    
-    // 1. Standard Bracket (from Group Predictions)
-    // Used for calculating R32 Qualifiers (Group performance)
-    const standardBracket = useMemo(() => {
-        return applyPredictionsToBracket(INITIAL_MATCHES, teams, userPredictions);
-    }, [userPredictions, teams]);
+    teams: Record<string, Team>
+): QualifiedRound[] => {
+    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, userPredictions);
+    const secondChanceBracket = user.hasTakenSecondChance
+        ? applyPredictionsToBracket(realMatches, teams, userPredictions)
+        : standardBracket;
 
-    // 2. Second Chance Bracket (from Real Matches)
-    // Used for calculating R16+ progression if user has taken second chance
-    // By starting with 'realMatches', we assume the user has the correct bracket start.
-    const secondChanceBracket = useMemo(() => {
-        if (!user.hasTakenSecondChance) return standardBracket;
-        return applyPredictionsToBracket(realMatches, teams, userPredictions);
-    }, [realMatches, userPredictions, user.hasTakenSecondChance, standardBracket, teams]);
-
-    // 2. Helper to get teams in a round
-    const getTeamsInRound = (matches: Match[], round: Round | 'R32_START') => {
-        const teams = new Set<string>();
-        const targetMatches = matches.filter(m => {
-            if (round === 'R32_START') return m.round === 'R32';
-            return m.round === round;
-        });
-
+    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
+        const teamSet = new Set<string>();
+        const targetMatches = matchList.filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round);
         targetMatches.forEach(m => {
-            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teams.add(m.homeTeamId);
-            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teams.add(m.awayTeamId);
+            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
+            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
         });
-        return teams;
+        return teamSet;
     };
 
-    // 3. Rounds to process with slot counts
     const rounds = [
         { key: 'R32_START', label: 'Round of 32', points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
         { key: 'R16', label: 'Round of 16', points: SCORING_RULES.R32, totalSlots: 16 },
@@ -153,8 +149,8 @@ const QualifiedTeamsGrid: React.FC<{
         { key: 'CHAMP', label: 'Champion', points: SCORING_RULES.FIN, totalSlots: 1 }
     ];
 
-    const getChamp = (matches: Match[]) => {
-        const fin = matches.find(m => m.round === 'FIN');
+    const getChamp = (matchList: Match[]) => {
+        const fin = matchList.find(m => m.round === 'FIN');
         if (fin && fin.homeScore !== null && fin.awayScore !== null) {
             return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
         }
@@ -165,100 +161,164 @@ const QualifiedTeamsGrid: React.FC<{
     const standardChamp = getChamp(standardBracket);
     const secondChanceChamp = getChamp(secondChanceBracket);
 
+    const result: QualifiedRound[] = [];
+
+    rounds.forEach(r => {
+        let correctTeams: string[] = [];
+        let pointsPerTeam = r.points;
+        let penaltyApplied = false;
+
+        let targetBracket = standardBracket;
+        let userChamp = standardChamp;
+
+        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
+            targetBracket = secondChanceBracket;
+            userChamp = secondChanceChamp;
+            penaltyApplied = true;
+            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
+        }
+
+        if (r.key === 'CHAMP') {
+            if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
+                correctTeams = [realChamp];
+            }
+        } else {
+            const realTeams = getTeamsInRound(realMatches, r.key as any);
+            const userTeams = getTeamsInRound(targetBracket, r.key as any);
+            realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
+        }
+
+        if (correctTeams.length === 0) return;
+
+        result.push({
+            key: r.key,
+            label: r.label,
+            correctTeams,
+            pointsPerTeam,
+            totalSlots: r.totalSlots,
+            penaltyApplied,
+            totalPoints: correctTeams.length * pointsPerTeam
+        });
+    });
+
+    return result;
+};
+
+const QualifiedTeamsGrid: React.FC<{
+    realMatches: Match[],
+    userPredictions: Prediction[],
+    user: UserProfile,
+    teams: Record<string, Team>,
+    onTeamClick?: (teamId: string) => void
+}> = ({ realMatches, userPredictions, user, teams, onTeamClick }) => {
+
+    const rounds = useMemo(
+        () => getQualifiedRounds(realMatches, userPredictions, user, teams),
+        [realMatches, userPredictions, user, teams]
+    );
+
+    if (rounds.length === 0) return null;
+
     return (
         <div className="space-y-6 pb-4 pt-2">
-            {rounds.map((r, idx) => {
-                let correctTeams: string[] = [];
-                let pointsPerTeam = r.points;
-                let penaltyApplied = false;
-                
-                // DETERMINE WHICH BRACKET TO CHECK AGAINST
-                let targetBracket = standardBracket;
-                let userChamp = standardChamp;
+            {rounds.map(r => (
+                <div key={r.key} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <div className="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
+                        <div className="flex flex-col gap-0.5">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-700">{r.label}</h4>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                {r.pointsPerTeam} pts / team
+                            </span>
+                        </div>
 
-                if (r.key === 'R32_START') {
-                    // Qualification from groups: ALWAYS use standard performance
-                    // No penalty
-                    targetBracket = standardBracket;
-                } else {
-                    // Progression in knockouts: Use Second Chance bracket if active
-                    if (user.hasTakenSecondChance) {
-                        targetBracket = secondChanceBracket;
-                        userChamp = secondChanceChamp;
-                        penaltyApplied = true;
-                        pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
-                    }
-                }
-
-                if (r.key === 'CHAMP') {
-                    if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
-                        correctTeams = [realChamp];
-                    }
-                } else {
-                    const realTeams = getTeamsInRound(realMatches, r.key as any);
-                    const userTeams = getTeamsInRound(targetBracket, r.key as any);
-                    
-                    realTeams.forEach(t => {
-                        if (userTeams.has(t)) correctTeams.push(t);
-                    });
-                }
-
-                if (correctTeams.length === 0) return null;
-
-                const totalPoints = correctTeams.length * pointsPerTeam;
-
-                return (
-                    <div key={r.key} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                        <div className="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
-                            <div className="flex flex-col gap-0.5">
-                                <h4 className="text-xs font-black uppercase tracking-widest text-slate-700">{r.label}</h4>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                    {pointsPerTeam} pts / team
-                                </span>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                {penaltyApplied && (
-                                    <div className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider flex items-center gap-1" title="Second Chance Penalty Active">
-                                        <Shield size={8} /> 50%
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-purple-600 text-white px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
-                                        <Trophy size={10} className="text-yellow-300" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider">
-                                            {correctTeams.length}/{r.totalSlots}
-                                        </span>
-                                    </div>
-                                    <div className="text-sm font-black text-green-600">
-                                        +{totalPoints}
-                                    </div>
+                        <div className="flex items-center gap-3">
+                            {r.penaltyApplied && (
+                                <div className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider flex items-center gap-1" title="Second Chance Penalty Active">
+                                    <Shield size={8} /> 50%
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <div className="bg-purple-600 text-white px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
+                                    <Trophy size={10} className="text-yellow-300" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider">
+                                        {r.correctTeams.length}/{r.totalSlots}
+                                    </span>
+                                </div>
+                                <div className="text-sm font-black text-green-600">
+                                    +{r.totalPoints}
                                 </div>
                             </div>
                         </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                            {correctTeams.map(tid => {
-                                const team = teams[tid];
-                                return (
-                                    <div 
-                                        key={tid} 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (onTeamClick) onTeamClick(tid);
-                                        }}
-                                        className={`flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm animate-in zoom-in ${onTeamClick ? 'cursor-pointer hover:border-blue-300' : ''}`}
-                                    >
-                                        <img src={team?.flag} className="w-5 h-3.5 rounded-sm object-cover" alt={tid} />
-                                        <span className="text-[10px] font-bold text-slate-700">{tid}</span>
-                                        <Check size={10} className="text-green-500 ml-1" strokeWidth={4} />
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
-                );
-            })}
+
+                    <div className="flex flex-wrap gap-2">
+                        {r.correctTeams.map(tid => {
+                            const team = teams[tid];
+                            return (
+                                <div
+                                    key={tid}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onTeamClick) onTeamClick(tid);
+                                    }}
+                                    className={`flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm animate-in zoom-in ${onTeamClick ? 'cursor-pointer hover:border-blue-300' : ''}`}
+                                >
+                                    <img src={team?.flag} className="w-5 h-3.5 rounded-sm object-cover" alt={tid} />
+                                    <span className="text-[10px] font-bold text-slate-700">{tid}</span>
+                                    <Check size={10} className="text-green-500 ml-1" strokeWidth={4} />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+type PredictionPillProps =
+  | { mode: 'result'; match: Match; pred: Prediction; pts: number; teams: Record<string, Team> }
+  | { mode: 'prediction'; match: Match; pred: Prediction | null; teams: Record<string, Team> };
+
+const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
+    const { match, pred, teams } = props;
+    const home = teams[match.homeTeamId];
+    const away = teams[match.awayTeamId];
+    const renderFlag = (f?: string) => f?.startsWith('http')
+        ? <img src={f} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0" />
+        : <span className="shrink-0">{f || '🏳'}</span>;
+    const dateLabel = match.date && match.date !== 'TBD'
+        ? new Date(match.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        : 'TBD';
+
+    return (
+        <div className="bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 relative">
+            {props.mode === 'result' && (
+                <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center font-black text-[10px] shadow-sm ${props.pts > 0 ? 'bg-green-100 border-green-500 text-green-700' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>
+                    {props.pts}
+                </div>
+            )}
+            <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 min-w-0 flex-1">
+                    {renderFlag(home?.flag)}
+                    <span className="truncate">{home?.name ?? match.homeTeamId}</span>
+                </div>
+                <div className="flex flex-col items-center mx-2 shrink-0">
+                    {props.mode === 'result' ? (
+                        <>
+                            <span className="text-sm font-black text-slate-800">{match.homeScore}-{match.awayScore}</span>
+                            <span className="text-[8px] text-slate-400 font-medium">Pick {pred.home}-{pred.away}</span>
+                        </>
+                    ) : (
+                        <span className="text-sm font-black text-slate-800">{pred ? `${pred.home}–${pred.away}` : '?–?'}</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
+                    <span className="truncate">{away?.name ?? match.awayTeamId}</span>
+                    {renderFlag(away?.flag)}
+                </div>
+            </div>
+            <div className="text-[9px] text-slate-400 font-medium mt-1 text-center">{dateLabel}</div>
         </div>
     );
 };
@@ -266,6 +326,7 @@ const QualifiedTeamsGrid: React.FC<{
 export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPredictions, lang, currentUserEmail, currentUserLeagues = [], teams, onTeamClick, preloadedAnalysis, onRefreshBrief, briefRefreshing, currentLang }) => {
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [detailView, setDetailView] = useState<'results' | 'predictions'>('results');
   const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues?.[0] ?? '');
   
   // Stats Modal State
@@ -368,7 +429,35 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
   const toggleExpand = (email: string) => {
       setExpandedUser(expandedUser === email ? null : email);
+      setDetailView('results');
   };
+
+  // Last 3 finished + next 3 upcoming predictions for the currently expanded user
+  const expandedUserDetail = useMemo(() => {
+      if (!expandedUser) return null;
+      const userPreds = allPredictions.filter(p => p.userId === expandedUser);
+      const u = finalDisplayData.find(d => d.email === expandedUser);
+      const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+      const now = Date.now();
+
+      const last3 = matches
+          .filter(m => finishedStatuses.includes(m.status) && userPreds.some(p => p.matchId === m.id))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 3)
+          .map(m => {
+              const pred = userPreds.find(p => p.matchId === m.id)!;
+              const pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u?.hasTakenSecondChance, m.round);
+              return { match: m, pred, pts };
+          });
+
+      const next3 = matches
+          .filter(m => !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD' && new Date(m.date).getTime() >= now)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 3)
+          .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === m.id) ?? null }));
+
+      return { last3, next3 };
+  }, [expandedUser, allPredictions, matches, finalDisplayData]);
 
   const getLeagueName = (slug: string) =>
     slug === 'global'
@@ -613,7 +702,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                             <div className="flex items-center gap-3">
                                 {!isExpanded && <AvatarDisplay avatar={user.avatar} size="md" ring={rank <= 3} className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''} />}
                                 <div className="flex flex-col min-w-0">
-                                    <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5 truncate">
+                                    <div className={`flex items-center gap-1.5 truncate transition-all ${isExpanded ? 'text-lg font-black text-slate-900' : 'text-sm font-bold text-slate-800'}`}>
                                         {user.name}
                                         {user.hasTakenSecondChance && (
                                             <Shield size={10} className="text-purple-500 shrink-0" fill="currentColor" />
@@ -657,20 +746,52 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
                                   {/* Profile header — click opens full profile modal */}
                                   <div
-                                      className="flex items-center gap-4 mb-4 pb-3 border-b border-slate-200 cursor-pointer group"
+                                      className="flex items-center gap-2 mb-3 cursor-pointer group"
                                       onClick={() => setLbProfileModal(user)}
                                   >
                                       <AvatarDisplay
                                           avatar={user.avatar}
-                                          size="4xl"
+                                          size="2xl"
                                           ring={rank <= 3}
                                           className={`group-hover:ring-blue-400 transition-all ${rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : 'ring-white'}`}
                                       />
-                                      <div className="flex-1">
-                                          <div className="text-xl font-black text-slate-800 group-hover:text-blue-700 transition-colors">{user.name}</div>
-                                          <div className="text-sm text-slate-500 mt-0.5">#{rank} · <span className="font-black text-slate-700">{user.totalPoints} pts</span></div>
-                                      </div>
-                                      <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                      <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors ml-auto" />
+                                  </div>
+
+                                  {/* Results / Predictions toggle */}
+                                  <div className="flex bg-slate-100 rounded-full p-0.5 w-fit mb-2">
+                                      <button
+                                          onClick={() => setDetailView('results')}
+                                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${detailView === 'results' ? 'bg-[#0f2545] text-white shadow-sm' : 'text-slate-400'}`}
+                                      >
+                                          Results
+                                      </button>
+                                      <button
+                                          onClick={() => setDetailView('predictions')}
+                                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${detailView === 'predictions' ? 'bg-[#0f2545] text-white shadow-sm' : 'text-slate-400'}`}
+                                      >
+                                          Predictions
+                                      </button>
+                                  </div>
+
+                                  <div className="flex flex-col gap-1.5 mb-4 pb-3 border-b border-slate-200">
+                                      {detailView === 'results' ? (
+                                          expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
+                                              expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
+                                                  <MatchPredictionPill key={m.id} mode="result" match={m} pred={pred} pts={pts} teams={teams} />
+                                              ))
+                                          ) : (
+                                              <div className="text-xs text-slate-400 italic text-center py-3">No finished predictions yet</div>
+                                          )
+                                      ) : (
+                                          expandedUserDetail && expandedUserDetail.next3.length > 0 ? (
+                                              expandedUserDetail.next3.map(({ match: m, pred }) => (
+                                                  <MatchPredictionPill key={m.id} mode="prediction" match={m} pred={pred} teams={teams} />
+                                              ))
+                                          ) : (
+                                              <div className="text-xs text-slate-400 italic text-center py-3">No upcoming predictions</div>
+                                          )
+                                      )}
                                   </div>
 
                                   {/* Horizontal stats chips */}
@@ -694,31 +815,33 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                       </div>
                                   </div>
 
-                                  {/* Knockout bracket — full width */}
-                                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm overflow-hidden">
-                                      <div className="flex justify-between items-center mb-3">
-                                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
-                                          {user.hasTakenSecondChance && (
-                                              <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                                                  <Shield size={8} /> 2nd Chance
-                                              </span>
-                                          )}
-                                      </div>
-                                      {matches.some(m => m.round) ? (
-                                          <QualifiedTeamsGrid
-                                              realMatches={matches}
-                                              userPredictions={allPredictions.filter(p => p.userId === user.email)}
-                                              user={user}
-                                              teams={teams}
-                                              onTeamClick={onTeamClick}
-                                          />
-                                      ) : (
-                                          <div className="h-32 flex flex-col items-center justify-center text-slate-400">
-                                              <Lock size={24} className="mb-2 opacity-50" />
-                                              <span className="text-xs font-medium">Knockout Stage Locked</span>
+                                  {/* Knockout bracket — full width. Hidden entirely until there's at least
+                                      one correct pick to show, instead of an empty/"locked" placeholder. */}
+                                  {(() => {
+                                      const userPreds = allPredictions.filter(p => p.userId === user.email);
+                                      const qualifiedRounds = getQualifiedRounds(matches, userPreds, user, teams);
+                                      if (qualifiedRounds.length === 0) return null;
+
+                                      return (
+                                          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm overflow-hidden">
+                                              <div className="flex justify-between items-center mb-3">
+                                                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
+                                                  {user.hasTakenSecondChance && (
+                                                      <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                                                          <Shield size={8} /> 2nd Chance
+                                                      </span>
+                                                  )}
+                                              </div>
+                                              <QualifiedTeamsGrid
+                                                  realMatches={matches}
+                                                  userPredictions={userPreds}
+                                                  user={user}
+                                                  teams={teams}
+                                                  onTeamClick={onTeamClick}
+                                              />
                                           </div>
-                                      )}
-                                  </div>
+                                      );
+                                  })()}
                               </td>
                           </tr>
                       )}
@@ -747,13 +870,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                   
                   <div className="flex-1 overflow-y-auto p-4 space-y-2">
                       {modalData.type === 'ADVANCED' ? (
-                          <QualifiedTeamsGrid 
-                              realMatches={matches} 
-                              userPredictions={allPredictions.filter(p => p.userId === modalData.user.email)} 
-                              user={modalData.user}
-                              teams={teams}
-                              onTeamClick={onTeamClick}
-                          />
+                          getQualifiedRounds(matches, allPredictions.filter(p => p.userId === modalData.user.email), modalData.user, teams).length > 0 ? (
+                              <QualifiedTeamsGrid
+                                  realMatches={matches}
+                                  userPredictions={allPredictions.filter(p => p.userId === modalData.user.email)}
+                                  user={modalData.user}
+                                  teams={teams}
+                                  onTeamClick={onTeamClick}
+                              />
+                          ) : (
+                              <div className="py-10 text-center text-slate-400 text-sm italic">No qualified teams yet.</div>
+                          )
                       ) : (
                           modalData.matches.length > 0 ? (
                               modalData.matches.map((item, idx) => (

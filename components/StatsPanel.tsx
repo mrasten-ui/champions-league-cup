@@ -1,14 +1,17 @@
 import React from 'react';
 import { MatchStats, Team } from '../types';
+import { resolveKitColor } from '../kitDesignations';
 
 interface StatsPanelProps {
   stats: MatchStats | null | undefined;
   homeTeam: Team;
   awayTeam: Team;
+  homeKitType?: 'home' | 'away' | 'third';
+  awayKitType?: 'home' | 'away' | 'third';
   dark?: boolean;
 }
 
-export const StatsPanel: React.FC<StatsPanelProps> = ({ stats, homeTeam, awayTeam, dark = false }) => {
+export const StatsPanel: React.FC<StatsPanelProps> = ({ stats, homeTeam, awayTeam, homeKitType = 'home', awayKitType = 'home', dark = false }) => {
   const textMuted = dark ? 'text-white/40' : 'text-slate-400';
   const textVal   = dark ? 'text-white/80' : 'text-slate-700';
   const border    = dark ? 'border-white/10' : 'border-slate-100';
@@ -24,8 +27,8 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ stats, homeTeam, awayTea
 
   const homePoss = stats.homePossession ?? 50;
   const awayPoss = stats.awayPossession ?? 50;
-  const homeColor = homeTeam?.jerseyBg ?? '#1e3a5f';
-  const awayColor = awayTeam?.jerseyBg ?? '#9b1c1c';
+  const homeColor = (homeTeam && resolveKitColor(homeTeam.id, homeKitType)) ?? '#1e3a5f';
+  const awayColor = (awayTeam && resolveKitColor(awayTeam.id, awayKitType)) ?? '#9b1c1c';
 
   const rows: Array<{ label: string; home: number | null | undefined; away: number | null | undefined; decimals?: number }> = [
     { label: 'xG', home: stats.homeXg, away: stats.awayXg, decimals: 2 },

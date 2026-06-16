@@ -33,7 +33,14 @@
       "WebFetch(domain:media.api-sports.io)",
       "WebFetch(domain:commons.wikimedia.org)",
       "WebFetch(domain:en.m.wikipedia.org)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(node scripts/inspect-kit.mjs ARG-home.png)",
+      "Bash(node scripts/inspect-kit.mjs BRA-home.png)",
+      "Bash(node scripts/extract-kit-colors.mjs)",
+      "Bash(certutil -hashfile ALG-home.png MD5)",
+      "Bash(certutil -hashfile ESP-home.png MD5)",
+      "Bash(certutil -hashfile ALG-away.png MD5)",
+      "Bash(certutil -hashfile ESP-away.png MD5)"
     ]
   }
 }
