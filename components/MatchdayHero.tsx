@@ -6,7 +6,7 @@ import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
 import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
-import { namesMatch } from '../utils/nameMatch';
+import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
 
 interface MatchdayHeroProps {
@@ -581,13 +581,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               const outSpan = e.player && (
                 <span key="out" className="flex items-center gap-1 min-w-0 flex-1">
                   <span className="text-red-400 font-bold shrink-0">↓</span>
-                  <span className="truncate text-white/60">{e.player}</span>
+                  <span className="truncate text-white/60">{abbreviateName(e.player)}</span>
                 </span>
               );
               const inSpan = e.assist && (
                 <span key="in" className="flex items-center gap-1 min-w-0 flex-1">
                   <span className="text-green-400 font-bold shrink-0">↑</span>
-                  <span className="truncate text-white/60">{e.assist}</span>
+                  <span className="truncate text-white/60">{abbreviateName(e.assist)}</span>
                 </span>
               );
               return [

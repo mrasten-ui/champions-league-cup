@@ -9,7 +9,7 @@ import { TbdSlot } from './TbdSlot';
 import { JerseyIcon } from './JerseyIcon';
 import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
-import { namesMatch } from '../utils/nameMatch';
+import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
 
 interface MatchCardProps {
@@ -696,19 +696,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                // Subs: deduplicate absolutely — a player can only be subbed once per game.
                // Goals/cards: drop near-dupes within ±2 minutes (API sometimes sends same
                // event at 65' and 66', or 90+4' and 90+5').
-               const seenPlayerMin = new Map<string, number>();
+               // Use namesMatch() (not exact string equality) so the same player reported
+               // under different name formats — "Callum McCormick" vs "C. McCormick" —
+               // collapses into one dedup bucket instead of slipping through as two events.
+               const seenPlayerMin: { teamId: string; type: string; name: string; min: number }[] = [];
                const sig = dedupedYellow.filter(e => {
                  const totalMin = (e.minute ?? 0) + (e.minuteExtra ?? 0);
                  const isSub = e.type?.toLowerCase() === 'subst';
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
-                   const k = `${e.teamId}::${e.type}::${name}`;
-                   const prev = seenPlayerMin.get(k);
-                   if (prev !== undefined && (isSub || Math.abs(totalMin - prev) <= 2)) return false;
+                   const prev = seenPlayerMin.find(s => s.teamId === e.teamId && s.type === e.type && namesMatch(name, s.name));
+                   if (prev && (isSub || Math.abs(totalMin - prev.min) <= 2)) return false;
                  }
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
-                   seenPlayerMin.set(`${e.teamId}::${e.type}::${name}`, totalMin);
+                   seenPlayerMin.push({ teamId: e.teamId, type: e.type, name, min: totalMin });
                  }
                  return true;
                });
@@ -734,13 +736,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    const outSpan = e.player && (
                      <span key="out" className="flex items-center gap-0.5 min-w-0 flex-1">
                        <span className="text-red-500 font-bold shrink-0">↓</span>
-                       <span className="truncate text-slate-500">{e.player}</span>
+                       <span className="truncate text-slate-500">{abbreviateName(e.player)}</span>
                      </span>
                    );
                    const inSpan = e.assist && (
                      <span key="in" className="flex items-center gap-0.5 min-w-0 flex-1">
                        <span className="text-green-600 font-bold shrink-0">↑</span>
-                       <span className="truncate text-slate-500">{e.assist}</span>
+                       <span className="truncate text-slate-500">{abbreviateName(e.assist)}</span>
                      </span>
                    );
                    return [

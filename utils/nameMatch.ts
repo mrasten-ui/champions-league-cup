@@ -35,3 +35,17 @@ export function namesMatch(
 
   return false;
 }
+
+/**
+ * Compacts a player name to "Initial. LastName" for tight display contexts
+ * (e.g. substitution rows). Already-abbreviated names pass through unchanged;
+ * single-word names (no last name) are returned as-is.
+ */
+export function abbreviateName(name: string | null | undefined): string {
+  if (!name) return '';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name.trim();
+  const first = parts[0].replace('.', '');
+  const last = parts.slice(1).join(' ');
+  return `${first.charAt(0).toUpperCase()}. ${last}`;
+}
