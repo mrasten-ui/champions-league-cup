@@ -469,29 +469,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             })()}
                                             <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex items-center gap-1 sm:gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}><span>{match.homeScore ?? 0}</span><span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span><span>{match.awayScore ?? 0}</span></div>
                                             {!showStatusBadge && pointsEarned !== null && !isAdminMode && <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-in slide-in-from-top-1 ${pointsEarned > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>+{pointsEarned} {lang.points}</div>}
-                                            {(hasLineups || hasEvents) && (
-                                              <div className="mt-2 flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5 border border-slate-200">
-                                                {hasEvents && <TabBtn panel="events" label={lang.events || 'Events'} />}
-                                                {hasLineups && <TabBtn panel="lineup" label={lang.lineups || 'Lineup'} />}
-                                                <TabBtn panel="stats" label="Stats" />
-                                              </div>
-                                            )}
                                         </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 w-full">
                                              <div className="px-2.5 sm:px-4 py-2 rounded-xl font-mono text-lg sm:text-2xl font-bold tracking-normal sm:tracking-widest shadow-sm border border-slate-200 bg-slate-50 text-slate-300 flex items-center gap-1 sm:gap-2"><span>-</span><span className="opacity-50 text-sm sm:text-lg mx-0.5 sm:mx-1">:</span><span>-</span></div>
-                                             {(() => {
-                                               const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
-                                               if (hasLineups && minsToKick <= 55) {
-                                                 return (
-                                                   <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm">
-                                                     {activePanel === 'lineup' ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-                                                     {lang.lineups || 'Line-up'}
-                                                   </button>
-                                                 );
-                                               }
-                                               return null;
-                                             })()}
                                              {/* Sub Button Lives Here */}
                                              <div className="w-full">{renderControlButtons()}</div>
                                         </div>
@@ -525,6 +506,35 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
              </div>
+
+             {/* PANEL TABS — own row so long translated labels never crowd flags/names */}
+             {(isLive || isFinished) ? (
+               (hasLineups || hasEvents) ? (
+                 <div className="flex justify-center px-3 pt-1 pb-3">
+                   <div className="flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5 border border-slate-200">
+                     {hasEvents && <TabBtn panel="events" label={lang.events || 'Events'} />}
+                     {hasLineups && <TabBtn panel="lineup" label={lang.lineups || 'Lineup'} />}
+                     <TabBtn panel="stats" label="Stats" />
+                   </div>
+                 </div>
+               ) : null
+             ) : (
+               (() => {
+                 const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
+                 if (!hasLineups || minsToKick > 55) return null;
+                 return (
+                   <div className="flex justify-center px-3 pt-1 pb-3">
+                     <button
+                       onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')}
+                       className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm"
+                     >
+                       {activePanel === 'lineup' ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+                       {lang.lineups || 'Line-up'}
+                     </button>
+                   </div>
+                 );
+               })()
+             )}
 
              {/* LINEUP PANEL */}
              {activePanel === 'lineup' && (() => {
