@@ -175,6 +175,10 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return calculateGroupStandings(heroMatch.groupId, matches, teams);
   }, [heroMatch, matches, teams]);
 
+  // Whether the hero match is one of today's chronologically-sorted matches.
+  // If so, it renders inline at its kickoff-time slot instead of pinned to the top.
+  const heroInList = !!heroMatch && !searchTerm && filteredMatches.some(m => m.id === heroMatch.id);
+
   // Date Headline Helper
   // User's timezone abbreviation (e.g. "BST", "EDT", "CEST") for the headline callout
   const userTzAbbr = useMemo(() =>
@@ -255,8 +259,10 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 </span>
             </div>
 
-            {/* MATCH OF THE DAY HERO */}
-            {heroMatch && !searchTerm && (
+            {/* MATCH OF THE DAY HERO — pinned to top only when it isn't already part of today's
+                chronological list below (e.g. rest-day fallback to the next upcoming match).
+                Otherwise it renders inline, in its correct kickoff-time slot. */}
+            {heroMatch && !searchTerm && !heroInList && (
                 <div id="tour-schedule-hero" data-match-id={heroMatch.id}>
                     <MatchdayHero
                         match={heroMatch}
@@ -279,13 +285,12 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
             <div className="space-y-4">
                 {filteredMatches.length > 0 ? (
                     filteredMatches.map(match => {
-                        if (filterDate !== 'ALL' && match.id === heroMatch?.id && utcDay(match.date) === filterDate) return null;
-
+                        const isHero = heroInList && heroMatch && match.id === heroMatch.id;
                         const isHighStakes = !match.groupId && match.round !== 'R32';
                         const readOnlyMatch = { ...match, isLocked: true };
 
                         return (
-                            <div key={match.id} className="relative">
+                            <div key={match.id} className="relative" id={isHero ? 'tour-schedule-hero' : undefined}>
                                 {searchTerm && match.date && match.date !== 'TBD' && (
                                     <div className="flex items-center gap-1.5 mb-1.5 px-1">
                                         <CalendarDays size={10} className="text-slate-400" />
@@ -294,34 +299,51 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         </span>
                                     </div>
                                 )}
-                                <MatchCard
-                                    match={readOnlyMatch}
-                                    homeTeam={teams[match.homeTeamId]}
-                                    awayTeam={teams[match.awayTeamId]}
-                                    onUpdate={() => {}}
-                                    lang={lang}
-                                    locale={activeLocale}
-                                    userTokens={0}
-                                    rivals={[]}
-                                    onSpy={() => {}}
-                                    revealedRivals={[]}
-                                    currentUser={user}
-                                    allPredictions={userPredictions}
-                                    phase={'LIVE'}
-                                    isAdminMode={false}
-                                    onTeamClick={createClickHandler(match)}
-                                    showStatusBadge={true}
-                                    homeTeamPoints={teamPointsMap[match.homeTeamId]}
-                                    awayTeamPoints={teamPointsMap[match.awayTeamId]}
-                                    allMatches={matches}
-                                    allTeams={teams}
-                                    variant="official"
-                                    cardId={`schedule-match-${match.id}`}
-                                    events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
-                                    lineups={matchLineups.filter(l => l.matchId === match.id)}
-                                    stats={matchStats.find(s => s.matchId === match.id) ?? null}
-                                />
-                                {isHighStakes && (
+                                {isHero && heroMatch ? (
+                                    <MatchdayHero
+                                        match={heroMatch}
+                                        teams={teams}
+                                        groupStandings={heroStandings}
+                                        lang={lang}
+                                        locale={activeLocale}
+                                        allMatches={matches}
+                                        onTeamClick={createClickHandler(heroMatch)}
+                                        userPrediction={userPredictions.find(p => p.matchId === heroMatch.id)}
+                                        currentUser={user}
+                                        events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
+                                        lineups={matchLineups.filter(l => l.matchId === heroMatch.id)}
+                                        stats={matchStats.find(s => s.matchId === heroMatch.id) ?? null}
+                                    />
+                                ) : (
+                                    <MatchCard
+                                        match={readOnlyMatch}
+                                        homeTeam={teams[match.homeTeamId]}
+                                        awayTeam={teams[match.awayTeamId]}
+                                        onUpdate={() => {}}
+                                        lang={lang}
+                                        locale={activeLocale}
+                                        userTokens={0}
+                                        rivals={[]}
+                                        onSpy={() => {}}
+                                        revealedRivals={[]}
+                                        currentUser={user}
+                                        allPredictions={userPredictions}
+                                        phase={'LIVE'}
+                                        isAdminMode={false}
+                                        onTeamClick={createClickHandler(match)}
+                                        showStatusBadge={true}
+                                        homeTeamPoints={teamPointsMap[match.homeTeamId]}
+                                        awayTeamPoints={teamPointsMap[match.awayTeamId]}
+                                        allMatches={matches}
+                                        allTeams={teams}
+                                        variant="official"
+                                        cardId={`schedule-match-${match.id}`}
+                                        events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
+                                        lineups={matchLineups.filter(l => l.matchId === match.id)}
+                                        stats={matchStats.find(s => s.matchId === match.id) ?? null}
+                                    />
+                                )}
+                                {isHighStakes && !isHero && (
                                     <div className="absolute -top-2 -right-1 bg-amber-100 text-amber-700 p-1.5 rounded-full border border-amber-200 shadow-sm z-10" title="Elimination Match">
                                             <AlertTriangle size={12} />
                                     </div>
