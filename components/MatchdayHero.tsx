@@ -349,40 +349,6 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         Penalties
                     </div>
                 )}
-                {(() => {
-                  const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
-                  const hasLineups = lineups.length > 0;
-                  const hasEvents = events.length > 0;
-                  if (isLive || isFinished) {
-                    if (!hasLineups && !hasEvents) return null;
-                    return (
-                      <div className="mt-2 flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
-                        {hasEvents && (
-                          <button onClick={() => setActivePanel(p => p === 'events' ? null : 'events')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'events' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
-                            {lang.events || 'Events'}
-                          </button>
-                        )}
-                        {hasLineups && (
-                          <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'lineup' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
-                            {lang.lineups || 'Lineup'}
-                          </button>
-                        )}
-                        <button onClick={() => setActivePanel(p => p === 'stats' ? null : 'stats')} className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${activePanel === 'stats' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}>
-                          Stats
-                        </button>
-                      </div>
-                    );
-                  }
-                  if (hasLineups && minsToKick <= 55) {
-                    return (
-                      <button onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')} className="mt-2 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors">
-                        {activePanel === 'lineup' ? <span className="text-[8px]">▲</span> : <span className="text-[8px]">▼</span>}
-                        {lang.lineups || 'Line-up'}
-                      </button>
-                    );
-                  }
-                  return null;
-                })()}
             </div>
 
             {/* Away Team */}
@@ -409,6 +375,58 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
         </div>
+
+        {/* PANEL TABS — own full-width row so they never crowd the team names/flags */}
+        {(() => {
+          const minsToKick = (new Date(match.date).getTime() - Date.now()) / 60_000;
+          const hasLineups = lineups.length > 0;
+          const hasEvents = events.length > 0;
+          if (isLive || isFinished) {
+            if (!hasLineups && !hasEvents) return null;
+            return (
+              <div className="relative z-10 flex justify-center px-4 pb-4">
+                <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
+                  {hasEvents && (
+                    <button
+                      onClick={() => setActivePanel(p => p === 'events' ? null : 'events')}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'events' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      {lang.events || 'Events'}
+                    </button>
+                  )}
+                  {hasLineups && (
+                    <button
+                      onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'lineup' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      {lang.lineups || 'Lineup'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setActivePanel(p => p === 'stats' ? null : 'stats')}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'stats' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                  >
+                    Stats
+                  </button>
+                </div>
+              </div>
+            );
+          }
+          if (hasLineups && minsToKick <= 55) {
+            return (
+              <div className="relative z-10 flex justify-center px-4 pb-4">
+                <button
+                  onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors"
+                >
+                  {activePanel === 'lineup' ? <span className="text-[8px]">▲</span> : <span className="text-[8px]">▼</span>}
+                  {lang.lineups || 'Line-up'}
+                </button>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* LINEUP PANEL */}
         {activePanel === 'lineup' && (() => {
