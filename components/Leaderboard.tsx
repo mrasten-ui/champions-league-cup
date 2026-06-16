@@ -312,7 +312,6 @@ const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
 export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPredictions, lang, currentUserEmail, currentUserLeagues = [], teams, onTeamClick, preloadedAnalysis, onRefreshBrief, briefRefreshing, currentLang }) => {
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
-  const [detailView, setDetailView] = useState<'results' | 'predictions'>('results');
   const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues?.[0] ?? '');
   
   // Stats Modal State
@@ -415,7 +414,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
   const toggleExpand = (email: string) => {
       setExpandedUser(expandedUser === email ? null : email);
-      setDetailView('results');
   };
 
   // Last 3 finished + next 3 upcoming predictions for the currently expanded user
@@ -730,54 +728,48 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                           <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-slate-50/50">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
 
-                                  {/* Profile header — click opens full profile modal */}
-                                  <div
-                                      className="flex items-center gap-2 mb-3 cursor-pointer group"
-                                      onClick={() => setLbProfileModal(user)}
-                                  >
-                                      <AvatarDisplay
-                                          avatar={user.avatar}
-                                          size="2xl"
-                                          ring={rank <= 3}
-                                          className={`group-hover:ring-blue-400 transition-all ${rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : 'ring-white'}`}
-                                      />
-                                      <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors ml-auto" />
-                                  </div>
-
-                                  {/* Results / Predictions toggle */}
-                                  <div className="flex bg-slate-100 rounded-full p-0.5 w-fit mb-2">
-                                      <button
-                                          onClick={() => setDetailView('results')}
-                                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${detailView === 'results' ? 'bg-[#0f2545] text-white shadow-sm' : 'text-slate-400'}`}
+                                  {/* Avatar + Last 3 / Next 3 — avatar on the left, games fill the
+                                      space beside it and wrap below on narrow screens. */}
+                                  <div className="flex flex-wrap items-start gap-3 mb-4 pb-3 border-b border-slate-200">
+                                      <div
+                                          className="shrink-0 flex items-center gap-1 cursor-pointer group"
+                                          onClick={() => setLbProfileModal(user)}
                                       >
-                                          Results
-                                      </button>
-                                      <button
-                                          onClick={() => setDetailView('predictions')}
-                                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${detailView === 'predictions' ? 'bg-[#0f2545] text-white shadow-sm' : 'text-slate-400'}`}
-                                      >
-                                          Predictions
-                                      </button>
-                                  </div>
+                                          <AvatarDisplay
+                                              avatar={user.avatar}
+                                              size="2xl"
+                                              ring={rank <= 3}
+                                              className={`group-hover:ring-blue-400 transition-all ${rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : 'ring-white'}`}
+                                          />
+                                          <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                      </div>
 
-                                  <div className="flex flex-wrap gap-1.5 mb-4 pb-3 border-b border-slate-200">
-                                      {detailView === 'results' ? (
-                                          expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
-                                              expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
-                                                  <MatchPredictionPill key={m.id} mode="result" match={m} pred={pred} pts={pts} teams={teams} />
-                                              ))
-                                          ) : (
-                                              <div className="w-full text-xs text-slate-400 italic text-center py-3">No finished predictions yet</div>
-                                          )
-                                      ) : (
-                                          expandedUserDetail && expandedUserDetail.next3.length > 0 ? (
-                                              expandedUserDetail.next3.map(({ match: m, pred }) => (
-                                                  <MatchPredictionPill key={m.id} mode="prediction" match={m} pred={pred} teams={teams} />
-                                              ))
-                                          ) : (
-                                              <div className="w-full text-xs text-slate-400 italic text-center py-3">No upcoming predictions</div>
-                                          )
-                                      )}
+                                      <div className="flex-1 min-w-[200px] flex flex-col gap-2.5">
+                                          <div>
+                                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Last 3</div>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                  {expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
+                                                      expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
+                                                          <MatchPredictionPill key={m.id} mode="result" match={m} pred={pred} pts={pts} teams={teams} />
+                                                      ))
+                                                  ) : (
+                                                      <span className="text-[10px] text-slate-400 italic">No finished predictions yet</span>
+                                                  )}
+                                              </div>
+                                          </div>
+                                          <div>
+                                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Next 3</div>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                  {expandedUserDetail && expandedUserDetail.next3.length > 0 ? (
+                                                      expandedUserDetail.next3.map(({ match: m, pred }) => (
+                                                          <MatchPredictionPill key={m.id} mode="prediction" match={m} pred={pred} teams={teams} />
+                                                      ))
+                                                  ) : (
+                                                      <span className="text-[10px] text-slate-400 italic">No upcoming predictions</span>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </div>
                                   </div>
 
                                   {/* Horizontal stats chips */}

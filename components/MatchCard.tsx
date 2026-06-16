@@ -731,24 +731,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                };
                const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
                  if (e.type?.toLowerCase() === 'subst') {
-                   const rows = [];
-                   if (e.player) rows.push(
-                     <span key={`${e.id}-out`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
-                       {side === 'away' && <span className="truncate text-slate-500">{e.player}</span>}
-                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                   const outSpan = e.player && (
+                     <span key="out" className="flex items-center gap-0.5 min-w-0 flex-1">
                        <span className="text-red-500 font-bold shrink-0">↓</span>
-                       {side === 'home' && <span className="truncate text-slate-500">{e.player}</span>}
+                       <span className="truncate text-slate-500">{e.player}</span>
                      </span>
                    );
-                   if (e.assist) rows.push(
-                     <span key={`${e.id}-in`} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
-                       {side === 'away' && <span className="truncate text-slate-500">{e.assist}</span>}
-                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                   const inSpan = e.assist && (
+                     <span key="in" className="flex items-center gap-0.5 min-w-0 flex-1">
                        <span className="text-green-600 font-bold shrink-0">↑</span>
-                       {side === 'home' && <span className="truncate text-slate-500">{e.assist}</span>}
+                       <span className="truncate text-slate-500">{e.assist}</span>
                      </span>
                    );
-                   return rows;
+                   return [
+                     <span key={e.id} className={`flex items-center gap-1 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                       {side === 'away' && outSpan}
+                       {side === 'away' && inSpan}
+                       <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
+                       {side === 'home' && outSpan}
+                       {side === 'home' && inSpan}
+                     </span>
+                   ];
                  }
                  return [
                    <span key={e.id} className={`flex items-center gap-1 text-slate-500 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
