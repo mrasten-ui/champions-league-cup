@@ -54,8 +54,9 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ stats, homeTeam, awayTea
             <span className={`text-[8px] font-black uppercase tracking-widest ${textMuted}`}>Possession</span>
             <span className={`text-[9px] font-black tabular-nums ${textVal}`}>{awayPoss}%</span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden flex">
+          <div className={`h-1.5 rounded-full overflow-hidden flex border ${dark ? 'border-white/20' : 'border-slate-300'}`}>
             <div className="h-full transition-all duration-500" style={{ width: `${homePoss}%`, background: homeColor }} />
+            <div className={`w-px h-full shrink-0 ${dark ? 'bg-white/30' : 'bg-slate-300'}`} />
             <div className="h-full flex-1" style={{ background: awayColor }} />
           </div>
         </div>

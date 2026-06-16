@@ -285,40 +285,26 @@ const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
     const home = teams[match.homeTeamId];
     const away = teams[match.awayTeamId];
     const renderFlag = (f?: string) => f?.startsWith('http')
-        ? <img src={f} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0" />
-        : <span className="shrink-0">{f || '🏳'}</span>;
-    const dateLabel = match.date && match.date !== 'TBD'
-        ? new Date(match.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-        : 'TBD';
+        ? <img src={f} alt="" className="w-3.5 h-2.5 object-cover rounded-[2px] shrink-0" />
+        : <span className="shrink-0 text-[10px]">{f || '🏳'}</span>;
 
     return (
-        <div className="bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 relative">
-            {props.mode === 'result' && (
-                <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center font-black text-[10px] shadow-sm ${props.pts > 0 ? 'bg-green-100 border-green-500 text-green-700' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>
-                    {props.pts}
-                </div>
+        <div className="inline-flex items-center gap-1 bg-slate-50 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-700 whitespace-nowrap">
+            {renderFlag(home?.flag)}
+            {props.mode === 'result' ? (
+                <>
+                    <span className="font-black text-slate-800">{match.homeScore}-{match.awayScore}</span>
+                    <span className="text-slate-400 font-medium">({pred.home}-{pred.away})</span>
+                </>
+            ) : (
+                <span className="font-black text-slate-800">{pred ? `${pred.home}-${pred.away}` : '?-?'}</span>
             )}
-            <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1 min-w-0 flex-1">
-                    {renderFlag(home?.flag)}
-                    <span className="truncate">{home?.name ?? match.homeTeamId}</span>
-                </div>
-                <div className="flex flex-col items-center mx-2 shrink-0">
-                    {props.mode === 'result' ? (
-                        <>
-                            <span className="text-sm font-black text-slate-800">{match.homeScore}-{match.awayScore}</span>
-                            <span className="text-[8px] text-slate-400 font-medium">Pick {pred.home}-{pred.away}</span>
-                        </>
-                    ) : (
-                        <span className="text-sm font-black text-slate-800">{pred ? `${pred.home}–${pred.away}` : '?–?'}</span>
-                    )}
-                </div>
-                <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
-                    <span className="truncate">{away?.name ?? match.awayTeamId}</span>
-                    {renderFlag(away?.flag)}
-                </div>
-            </div>
-            <div className="text-[9px] text-slate-400 font-medium mt-1 text-center">{dateLabel}</div>
+            {renderFlag(away?.flag)}
+            {props.mode === 'result' && (
+                <span className={`ml-0.5 w-4 h-4 rounded-full flex items-center justify-center font-black text-[8px] ${props.pts > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'}`}>
+                    {props.pts}
+                </span>
+            )}
         </div>
     );
 };
@@ -774,14 +760,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                       </button>
                                   </div>
 
-                                  <div className="flex flex-col gap-1.5 mb-4 pb-3 border-b border-slate-200">
+                                  <div className="flex flex-wrap gap-1.5 mb-4 pb-3 border-b border-slate-200">
                                       {detailView === 'results' ? (
                                           expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
                                               expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
                                                   <MatchPredictionPill key={m.id} mode="result" match={m} pred={pred} pts={pts} teams={teams} />
                                               ))
                                           ) : (
-                                              <div className="text-xs text-slate-400 italic text-center py-3">No finished predictions yet</div>
+                                              <div className="w-full text-xs text-slate-400 italic text-center py-3">No finished predictions yet</div>
                                           )
                                       ) : (
                                           expandedUserDetail && expandedUserDetail.next3.length > 0 ? (
@@ -789,7 +775,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                                   <MatchPredictionPill key={m.id} mode="prediction" match={m} pred={pred} teams={teams} />
                                               ))
                                           ) : (
-                                              <div className="text-xs text-slate-400 italic text-center py-3">No upcoming predictions</div>
+                                              <div className="w-full text-xs text-slate-400 italic text-center py-3">No upcoming predictions</div>
                                           )
                                       )}
                                   </div>
