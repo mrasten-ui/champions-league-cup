@@ -72,9 +72,9 @@ export const ActionableMatchCarousel: React.FC<ActionableMatchCarouselProps> = (
       <div className="relative group">
           <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10" {...swipeHandlers}>
               <div className="relative">
-                  <MatchCard 
+                  <MatchCard
                     key={currentMatch.id}
-                    match={currentMatch}
+                    match={phase === 'LIVE' ? { ...currentMatch, isLocked: true } : currentMatch}
                     homeTeam={home}
                     awayTeam={away}
                     onUpdate={onUpdate}
