@@ -12,10 +12,10 @@ const MATCH_KITS: Record<string, Partial<Record<string, KitType>>> = {
   // ── GROUP A — Mexico, South Africa, South Korea, Czechia ────────────────────
   'MEX-RSA': { MEX: 'home', RSA: 'home' },          // M1:  both home (green vs gold)
   'KOR-CZE': { KOR: 'home', CZE: 'away' },          // M2:  CZE pushed to away (crystal white)
-  'MEX-KOR': { MEX: 'home', KOR: 'away' },          // M13: KOR in white away
-  'RSA-CZE': { RSA: 'home', CZE: 'home' },          // M14: both home (gold vs red)
+  'MEX-KOR': { MEX: 'away', KOR: 'away' },          // M13: MEX in black/white away; KOR in magenta away
+  'RSA-CZE': { RSA: 'home', CZE: 'away' },          // M14: CZE in red/navy away
   'MEX-CZE': { MEX: 'home', CZE: 'away' },          // M33: CZE in white away
-  'RSA-KOR': { RSA: 'away', KOR: 'home' },          // M34: RSA home is home, but wears away
+  'RSA-KOR': { RSA: 'home', KOR: 'home' },          // M34: both home (yellow/green vs red)
 
   // ── GROUP B — Canada, Bosnia & Herzegovina, Qatar, Switzerland ───────────────
   'CAN-BIH': { CAN: 'home', BIH: 'away' },          // M3:  BIH in white away
@@ -50,9 +50,9 @@ const MATCH_KITS: Record<string, Partial<Record<string, KitType>>> = {
 
   // ── GROUP F — Netherlands, Japan, Sweden, Tunisia ────────────────────────────
   'NED-JPN': { NED: 'home', JPN: 'home' },          // M10: both home (orange vs blue)
-  'SWE-TUN': { SWE: 'home', TUN: 'away' },          // M21: TUN in white away
-  'JPN-TUN': { JPN: 'home', TUN: 'away' },          // M22
-  'NED-TUN': { NED: 'home', TUN: 'away' },          // M43
+  'SWE-TUN': { SWE: 'home', TUN: 'home' },          // M21: both home (yellow vs white — no clash)
+  'JPN-TUN': { JPN: 'home', TUN: 'home' },          // M22: both home (navy vs white — no clash)
+  'NED-TUN': { NED: 'home', TUN: 'home' },          // M43: both home (orange vs white — no clash)
   'JPN-SWE': { JPN: 'home', SWE: 'away' },          // M44
 
   // ── GROUP G — Belgium, Egypt, Iran, New Zealand ──────────────────────────────
@@ -77,8 +77,8 @@ const MATCH_KITS: Record<string, Partial<Record<string, KitType>>> = {
   'NOR-SEN': { NOR: 'home', SEN: 'away' },          // M58
 
   // ── GROUP J — Argentina, Algeria, Austria, Jordan ────────────────────────────
-  'ARG-ALG': { ARG: 'home', ALG: 'home' },          // M27: both home (light blue vs white — no clash)
-  'AUT-JOR': { AUT: 'home', JOR: 'away' },          // M28: JOR debut in white away
+  'ARG-ALG': { ARG: 'home', ALG: 'away' },          // M27: ALG in dark green away (confirmed Jun-16 update)
+  'AUT-JOR': { AUT: 'home', JOR: 'home' },          // M28: both home (red vs white — no clash)
   'ARG-AUT': { ARG: 'home', AUT: 'away' },          // M59
   'ALG-JOR': { ALG: 'home', JOR: 'away' },          // M60
 

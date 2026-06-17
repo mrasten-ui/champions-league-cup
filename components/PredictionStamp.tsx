@@ -97,15 +97,21 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
             )}
 
             <div className="flex items-start justify-center gap-2 relative z-10 w-full">
-                
+
                 {/* Home Team */}
                 <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(true)}`}>
                     <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
-                        <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
+                        {homeTeam?.flag ? (
+                            <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
+                        ) : (
+                            <div className={`w-14 h-10 flex items-center justify-center ${isFinal ? 'bg-white/10' : 'bg-slate-100'}`}>
+                                <span className={`text-[8px] font-black uppercase ${isFinal ? 'text-white/30' : 'text-slate-400'}`}>TBD</span>
+                            </div>
+                        )}
                     </div>
                     <div className="h-6 flex items-center justify-center w-full">
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
-                            {homeTeam.name}
+                            {homeTeam?.flag ? homeTeam.name : '?'}
                         </span>
                     </div>
                 </div>
@@ -117,11 +123,17 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                 {/* Away Team */}
                 <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(false)}`}>
                     <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
-                        <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
+                        {awayTeam?.flag ? (
+                            <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
+                        ) : (
+                            <div className={`w-14 h-10 flex items-center justify-center ${isFinal ? 'bg-white/10' : 'bg-slate-100'}`}>
+                                <span className={`text-[8px] font-black uppercase ${isFinal ? 'text-white/30' : 'text-slate-400'}`}>TBD</span>
+                            </div>
+                        )}
                     </div>
                     <div className="h-6 flex items-center justify-center w-full">
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
-                            {awayTeam.name}
+                            {awayTeam?.flag ? awayTeam.name : '?'}
                         </span>
                     </div>
                 </div>
@@ -153,10 +165,16 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
           <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 w-full">
               {/* Home */}
               <div className="flex flex-col items-center gap-1.5 text-center">
-                  <img src={homeTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={homeTeam.name} />
+                  {homeTeam?.flag ? (
+                      <img src={homeTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={homeTeam.name} />
+                  ) : (
+                      <div className="w-10 h-7 rounded bg-slate-100 border border-slate-100 flex items-center justify-center">
+                          <span className="text-[7px] font-black text-slate-400">TBD</span>
+                      </div>
+                  )}
                   <div className="h-6 flex items-center justify-center w-full">
                       <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
-                          {homeTeam.name}
+                          {homeTeam?.flag ? homeTeam.name : '?'}
                       </span>
                   </div>
               </div>
@@ -166,10 +184,16 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
 
               {/* Away */}
               <div className="flex flex-col items-center gap-1.5 text-center">
-                  <img src={awayTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
+                  {awayTeam?.flag ? (
+                      <img src={awayTeam.flag} className="w-10 h-7 object-cover rounded shadow-sm border border-slate-100" alt={awayTeam.name} />
+                  ) : (
+                      <div className="w-10 h-7 rounded bg-slate-100 border border-slate-100 flex items-center justify-center">
+                          <span className="text-[7px] font-black text-slate-400">TBD</span>
+                      </div>
+                  )}
                   <div className="h-6 flex items-center justify-center w-full">
                       <span className="text-[9px] font-bold text-slate-700 leading-none line-clamp-2 uppercase tracking-tight">
-                          {awayTeam.name}
+                          {awayTeam?.flag ? awayTeam.name : '?'}
                       </span>
                   </div>
               </div>
