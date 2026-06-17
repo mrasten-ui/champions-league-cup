@@ -338,7 +338,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const renderControlButtons = () => {
-        if (canSubstitute) {
+        if (canSubstitute && variant !== 'official') {
             return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
@@ -900,7 +900,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 }`}
                             >
                                 <RefreshCw size={8} />
-                                <span>{lang.makeSub || 'SUB'}</span>
+                                <span>{lang.makeSub || 'SUB'}{substitutionsLeft !== undefined ? ` (${substitutionsLeft})` : ''}</span>
                             </button>
                         ) : (
                             match.isLocked && !isLive && !isFinished && <LockIcon size={10} className="text-slate-400" />
