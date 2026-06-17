@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
-import { Clock, MapPin, Trophy, Star, Tv } from 'lucide-react';
+import { Clock, MapPin, Trophy, Star, Tv, RefreshCw } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
@@ -22,6 +22,9 @@ interface MatchdayHeroProps {
   events?: MatchEvent[];
   lineups?: MatchLineup[];
   stats?: MatchStats | null;
+  onSubstitute?: () => void;
+  substitutionsLeft?: number;
+  isUnlockedBySub?: boolean;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -134,7 +137,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
@@ -663,9 +666,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Right: Points earned */}
+            {/* Right: Points earned or SUB button */}
             <div className="w-1/3 flex justify-end items-center">
-                {pointsEarned !== null && (() => {
+                {(isLive || isFinished) && pointsEarned !== null && (() => {
                     const isExact = userPrediction && match.homeScore !== null && userPrediction.home === match.homeScore && userPrediction.away === match.awayScore;
                     const style = isExact
                         ? 'bg-green-500/20 border-green-500/40 text-green-400'
@@ -679,6 +682,24 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         </div>
                     );
                 })()}
+                {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && (
+                    <button
+                        onClick={() => {
+                            if (window.confirm(`${lang.subConfirm || 'Use a substitution?'} (${substitutionsLeft} ${lang.substitutions || 'subs'} left)`)) {
+                                onSubstitute();
+                            }
+                        }}
+                        disabled={substitutionsLeft <= 0}
+                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
+                            substitutionsLeft > 0
+                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
+                                : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
+                        }`}
+                    >
+                        <RefreshCw size={8} />
+                        <span>{lang.makeSub || 'SUB'} ({substitutionsLeft})</span>
+                    </button>
+                )}
             </div>
         </div>
       </div>
