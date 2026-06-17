@@ -21,6 +21,8 @@ interface TournamentScheduleProps {
   matchEvents?: MatchEvent[];
   matchLineups?: MatchLineup[];
   matchStats?: MatchStats[];
+  onSubstitute?: (matchId: string) => void;
+  onUpdate?: (id: string, h: number, a: number) => void;
 }
 
 // MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
@@ -44,7 +46,7 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = []
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], onSubstitute, onUpdate
 }) => {
 
   // Get the correct BCP 47 locale string
@@ -319,7 +321,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         match={readOnlyMatch}
                                         homeTeam={teams[match.homeTeamId]}
                                         awayTeam={teams[match.awayTeamId]}
-                                        onUpdate={() => {}}
+                                        onUpdate={onUpdate ?? (() => {})}
                                         lang={lang}
                                         locale={activeLocale}
                                         userTokens={0}
@@ -341,6 +343,9 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                                         lineups={matchLineups.filter(l => l.matchId === match.id)}
                                         stats={matchStats.find(s => s.matchId === match.id) ?? null}
+                                        onSubstitute={onSubstitute ? () => onSubstitute(match.id) : undefined}
+                                        substitutionsLeft={user?.substitutions ?? 0}
+                                        isUnlockedBySub={user?.unlockedMatches?.includes(match.id) ?? false}
                                     />
                                 )}
                                 {isHighStakes && !isHero && (
