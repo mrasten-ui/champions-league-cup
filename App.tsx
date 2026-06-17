@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap } from 'lucide-react';
-import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
+import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import { 
   calculateGroupStandings,
@@ -241,6 +241,22 @@ export const App = () => {
           : matches;
       return applyPredictionsToBracket(matchesForBracket, teamsData, userSpecificPreds);
   }, [matches, teamsData, allPredictions, user, groupStageEndTime, isInLateWindow]);
+
+  // Bracket display for the KnockoutBracket component — uses the unlocked INITIAL_MATCHES
+  // template so all prediction scores cascade freely (group → R32 → R16 → ... → FIN).
+  // userMatches (real locked matches) can't do this once the tournament is live.
+  const userBracket = useMemo(() => {
+      if (!user) return INITIAL_MATCHES;
+      let bracketPreds = allPredictions.filter(p => p.userId === user.email);
+      if (user.bracketPredictions) {
+          bracketPreds = bracketPreds.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          );
+      }
+      return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, bracketPreds);
+  }, [teamsData, allPredictions, user]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
@@ -1321,7 +1337,7 @@ export const App = () => {
                     />
                 ) : (
                     <KnockoutBracket
-                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
+                        matches={userBracket} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
                         onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase}
                         isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup}
                         onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
