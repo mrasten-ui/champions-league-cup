@@ -228,6 +228,13 @@ export const App = () => {
       if (user.hasTakenSecondChance || isDraftingWindow) {
           const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
           userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
+      } else if (user.bracketPredictions) {
+          // SUB was used — replace live group preds with the frozen pre-SUB snapshot for bracket derivation
+          userSpecificPreds = userSpecificPreds.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          );
       }
       const matchesForBracket = isInLateWindow
           ? matches.map(m => (m.status === 'NS' || m.status === 'UPCOMING') ? { ...m, isLocked: false } : m)
@@ -452,8 +459,23 @@ export const App = () => {
 
       const newUnlocked = [...(user.unlockedMatches || []), matchId];
       const newSubs = user.substitutions - 1;
-      setUser({ ...user, substitutions: newSubs, unlockedMatches: newUnlocked });
-      const { error: subError } = await supabase.from('profiles').update({ substitutions: newSubs, unlocked_matches: newUnlocked } as any).eq('email', user.email);
+
+      const profileUpdate: Record<string, any> = { substitutions: newSubs, unlocked_matches: newUnlocked };
+      const nextUser = { ...user, substitutions: newSubs, unlockedMatches: newUnlocked };
+
+      // On first SUB: snapshot current group predictions so the bracket stays frozen
+      if (!user.bracketPredictions) {
+          const snapshot = Object.fromEntries(
+              allPredictions
+                  .filter(p => p.userId === user.email && /^[A-L]\d$/.test(p.matchId))
+                  .map(p => [p.matchId, { home: p.home, away: p.away }])
+          );
+          profileUpdate.bracket_predictions = snapshot;
+          nextUser.bracketPredictions = snapshot;
+      }
+
+      setUser(nextUser);
+      const { error: subError } = await supabase.from('profiles').update(profileUpdate as any).eq('email', user.email);
       if (subError) addToast('error', t.saveFailed, t.saveFailedMsg);
       else addToast('success', t.subSuccess, `${t.substitutions}: ${newSubs} left`);
   };

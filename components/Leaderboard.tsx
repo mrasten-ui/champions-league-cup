@@ -125,7 +125,14 @@ const getQualifiedRounds = (
     user: UserProfile,
     teams: Record<string, Team>
 ): QualifiedRound[] => {
-    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, userPredictions);
+    const bracketPreds = user.bracketPredictions
+        ? userPredictions.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          )
+        : userPredictions;
+    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
     const secondChanceBracket = user.hasTakenSecondChance
         ? applyPredictionsToBracket(realMatches, teams, userPredictions)
         : standardBracket;

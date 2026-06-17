@@ -167,9 +167,10 @@ export const useAppData = () => {
               const pMap: Record<string, UserProfile> = {};
               profiles.forEach(p => {
                   pMap[p.email] = {
-                      name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0, 
+                      name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0,
                       avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
-                      leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || []
+                      leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || [],
+                      bracketPredictions: (p as any).bracket_predictions ?? undefined,
                   };
               });
               setUsersDb(pMap);
@@ -245,6 +246,7 @@ export const useAppData = () => {
                   spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || [],
                   toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
                   isAdmin: !!data.is_admin,
+                  bracketPredictions: (data as any).bracket_predictions ?? undefined,
               });
               // Carry through AI-generated avatar from signup if the profile was pre-created before this session
               const pendingAvatar = sessionStorage.getItem('pending_avatar');

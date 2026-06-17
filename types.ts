@@ -146,6 +146,7 @@ export interface UserProfile {
     liveSeason: boolean;
   };
   isAdmin?: boolean;
+  bracketPredictions?: Record<string, { home: number; away: number }>;
 }
 
 export interface GroupStanding {
