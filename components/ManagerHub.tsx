@@ -11,6 +11,7 @@ import { MAX_SUBSTITUTIONS } from '../constants';
 interface ManagerHubProps {
   matches: Match[];
   userMatches: Match[];
+  bracketMatches: Match[];
   teams: Record<string, Team>;
   allPredictions: Prediction[];
   currentUser: UserProfile;
@@ -27,6 +28,7 @@ interface ManagerHubProps {
 export const ManagerHub: React.FC<ManagerHubProps> = ({
   matches,
   userMatches,
+  bracketMatches,
   teams,
   allPredictions,
   currentUser,
@@ -85,7 +87,11 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
               if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') return;
               if (!groups[m.groupId]) groups[m.groupId] = [];
               groups[m.groupId].push(m);
-          } else if (m.round) {
+          }
+      });
+
+      bracketMatches.forEach(m => {
+          if (!m.groupId && m.round && knockouts[m.round]) {
               knockouts[m.round].push(m);
           }
       });
@@ -96,7 +102,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       }, {} as Record<string, Match[]>);
 
       return { groups: sortedGroups, knockouts };
-  }, [userMatches]);
+  }, [userMatches, bracketMatches]);
 
   const getRealMatch = (userMatchId: string) => {
       return matches.find(m => m.id === userMatchId);

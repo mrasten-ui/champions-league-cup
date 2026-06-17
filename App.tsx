@@ -224,11 +224,7 @@ export const App = () => {
 
       const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
 
-      // If they activated OR are currently drafting, ignore their group predictions
-      if (user.hasTakenSecondChance || isDraftingWindow) {
-          const groupMatchIds = new Set(matches.filter(m => m.groupId).map(m => m.id));
-          userSpecificPreds = userSpecificPreds.filter(p => !groupMatchIds.has(p.matchId));
-      } else if (user.bracketPredictions) {
+      if (user.bracketPredictions) {
           // SUB was used — replace live group preds with the frozen pre-SUB snapshot for bracket derivation
           userSpecificPreds = userSpecificPreds.map(p =>
               /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
@@ -242,9 +238,9 @@ export const App = () => {
       return applyPredictionsToBracket(matchesForBracket, teamsData, userSpecificPreds);
   }, [matches, teamsData, allPredictions, user, groupStageEndTime, isInLateWindow]);
 
-  // Bracket display for the KnockoutBracket component — uses the unlocked INITIAL_MATCHES
-  // template so all prediction scores cascade freely (group → R32 → R16 → ... → FIN).
-  // userMatches (real locked matches) can't do this once the tournament is live.
+  // Bracket display — cascades predictions freely.
+  // SC players: use real group results as base so R32 shows actual qualifiers, then apply SC knockout picks.
+  // Non-SC players: use INITIAL_MATCHES so group predictions cascade through the full bracket.
   const userBracket = useMemo(() => {
       if (!user) return INITIAL_MATCHES;
       let bracketPreds = allPredictions.filter(p => p.userId === user.email);
@@ -255,8 +251,20 @@ export const App = () => {
                   : p
           );
       }
+
+      const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
+      if (user.hasTakenSecondChance || isDraftingWindow) {
+          // Base: real matches supply actual group results; knockout matches reset so SC picks apply
+          const scBase = matches.map(m =>
+              m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
+          );
+          // Only knockout picks — group stage results come from real data above
+          const scKnockoutPreds = bracketPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
+          return applyPredictionsToBracket(scBase, teamsData, scKnockoutPreds);
+      }
+
       return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, bracketPreds);
-  }, [teamsData, allPredictions, user]);
+  }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
@@ -1373,6 +1381,7 @@ export const App = () => {
             <ManagerHub
                 matches={matches}
                 userMatches={userMatches}
+                bracketMatches={userBracket}
                 teams={teamsData}
                 allPredictions={allPredictions}
                 currentUser={user}
