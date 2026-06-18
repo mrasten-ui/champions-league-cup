@@ -212,16 +212,19 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   currentLang,
   onTeamClick,
 }) => {
-  // 1. CALCULATE "GAME TODAY" (Date of next match)
-  // This ensures the dashboard opens on a relevant date
+  // 1. CALCULATE DEFAULT DATE
+  // Prefer today if there are any matches today; otherwise fall back to the next upcoming match.
   const defaultDate = useMemo(() => {
+      const today = utcDay(new Date());
+      const hasMatchesToday = matches.some(m => m.date && m.date !== 'TBD' && utcDay(m.date) === today);
+      if (hasMatchesToday) return today;
+
       const upcoming = matches
           .filter(m => (m.status === 'UPCOMING' || m.status === 'LIVE') && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
-      // If we have upcoming matches, use the first one. Otherwise use real today.
+
       if (upcoming.length > 0) return utcDay(upcoming[0].date);
-      return utcDay(new Date());
+      return today;
   }, [matches]);
 
   const [filterDate, setFilterDate] = useState<string>(defaultDate);

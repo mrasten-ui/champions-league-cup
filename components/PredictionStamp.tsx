@@ -15,10 +15,11 @@ interface PredictionStampProps {
   lang: Translation;
   variant?: 'standard' | 'knockout';
   isFinal?: boolean;
+  is3rd?: boolean;
 }
 
 export const PredictionStamp: React.FC<PredictionStampProps> = ({
-  match, homeTeam, awayTeam, prediction, onOpenSub, canSubstitute, substitutionsLeft, userHasPenalty, lang, variant = 'standard', isFinal = false
+  match, homeTeam, awayTeam, prediction, onOpenSub, canSubstitute, substitutionsLeft, userHasPenalty, lang, variant = 'standard', isFinal = false, is3rd = false
 }) => {
   const isFinished = ['FT', 'FINISHED', 'AET', 'PEN'].includes(match.status);
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET'].includes(match.status);
@@ -109,10 +110,15 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                             </div>
                         )}
                     </div>
-                    <div className="h-6 flex items-center justify-center w-full">
+                    <div className="flex flex-col items-center gap-0.5 w-full">
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
                             {homeTeam?.flag ? homeTeam.name : '?'}
                         </span>
+                        {(isFinal || is3rd) && prediction && prediction.home > prediction.away && (
+                            <span className={`text-[8px] font-black uppercase tracking-widest ${isFinal ? 'text-yellow-400' : 'text-amber-500'}`}>
+                                {isFinal ? '★ Champion' : '3rd Place'}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -131,10 +137,15 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                             </div>
                         )}
                     </div>
-                    <div className="h-6 flex items-center justify-center w-full">
+                    <div className="flex flex-col items-center gap-0.5 w-full">
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
                             {awayTeam?.flag ? awayTeam.name : '?'}
                         </span>
+                        {(isFinal || is3rd) && prediction && prediction.away > prediction.home && (
+                            <span className={`text-[8px] font-black uppercase tracking-widest ${isFinal ? 'text-yellow-400' : 'text-amber-500'}`}>
+                                {isFinal ? '★ Champion' : '3rd Place'}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>

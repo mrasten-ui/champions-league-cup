@@ -409,6 +409,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                                               lang={lang}
                                               variant="knockout"
                                               isFinal={round === 'FIN'}
+                                              is3rd={round === '3RD'}
                                           />
                                       );
                                   })}
