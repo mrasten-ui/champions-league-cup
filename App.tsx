@@ -253,7 +253,8 @@ export const App = () => {
       }
 
       const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
-      if (user.hasTakenSecondChance || isDraftingWindow) {
+      const groupStageOver = groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
+      if (isDraftingWindow || (user.hasTakenSecondChance && groupStageOver)) {
           // Base: real matches supply actual group results; knockout matches reset so SC picks apply
           const scBase = matches.map(m =>
               m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
