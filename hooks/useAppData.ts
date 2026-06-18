@@ -125,7 +125,7 @@ export const useAppData = () => {
             setAllPredictions(allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
           }
 
-          const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true });
+          const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).limit(10000);
           if (events) {
             setMatchEvents(events.map(e => ({
               id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
@@ -135,7 +135,7 @@ export const useAppData = () => {
             })));
           }
 
-          const { data: lineups } = await supabase.from('match_lineups').select('*');
+          const { data: lineups } = await supabase.from('match_lineups').select('*').limit(10000);
           if (lineups) {
             setMatchLineups(lineups.map((l: any) => ({
               id: l.id, matchId: l.match_id, teamId: l.team_id,
@@ -146,7 +146,7 @@ export const useAppData = () => {
             })));
           }
 
-          const { data: stats } = await supabase.from('match_stats').select('*');
+          const { data: stats } = await supabase.from('match_stats').select('*').limit(10000);
           if (stats) {
             setMatchStats(stats.map((s: any) => ({
               matchId: String(s.match_id),
