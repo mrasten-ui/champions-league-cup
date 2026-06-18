@@ -135,9 +135,23 @@ export const useAppData = () => {
             })));
           }
 
-          const { data: lineups } = await supabase.from('match_lineups').select('*').limit(10000);
-          if (lineups) {
-            setMatchLineups(lineups.map((l: any) => ({
+          {
+            const PAGE = 1000;
+            let allLineupRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page, error: pageErr } = await supabase.from('match_lineups').select('*').range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Lineups fetch error (page', from, '):', pageErr); keepGoing = false; break; }
+              if (page && page.length > 0) {
+                allLineupRows.push(...page);
+                keepGoing = page.length === PAGE;
+                from += PAGE;
+              } else {
+                keepGoing = false;
+              }
+            }
+            setMatchLineups(allLineupRows.map((l: any) => ({
               id: l.id, matchId: l.match_id, teamId: l.team_id,
               playerName: l.player_name, playerNumber: l.player_number ?? null,
               position: l.position ?? null, grid: l.grid ?? null,
