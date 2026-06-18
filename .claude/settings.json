@@ -43,7 +43,8 @@
       "Bash(certutil -hashfile ESP-away.png MD5)",
       "Bash(node scripts/compare-backup.mjs \"c:/Users/mrast/Downloads/predictions_rows \\(7\\).csv\")",
       "Bash(node scripts/backfill-bracket-predictions.mjs)",
-      "Bash(node scripts/backfill-bracket-predictions.mjs --write)"
+      "Bash(node scripts/backfill-bracket-predictions.mjs --write)",
+      "Bash(node scripts/sync-live-lineups.js)"
     ]
   }
 }
