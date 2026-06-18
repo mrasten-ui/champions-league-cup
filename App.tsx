@@ -253,8 +253,12 @@ export const App = () => {
       }
 
       const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
-      const groupStageOver = groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
-      if (isDraftingWindow || (user.hasTakenSecondChance && groupStageOver)) {
+      // Only use real group results once every group match is settled — prevents
+      // partial group data (some groups finished, some not) from distorting the bracket.
+      const FINISHED_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const allGroupMatchesDone = matches.filter(m => m.groupId).length > 0 &&
+          matches.filter(m => m.groupId).every(m => FINISHED_STATUSES.includes(m.status ?? ''));
+      if (isDraftingWindow || (user.hasTakenSecondChance && allGroupMatchesDone)) {
           // Base: real matches supply actual group results; knockout matches reset so SC picks apply
           const scBase = matches.map(m =>
               m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
