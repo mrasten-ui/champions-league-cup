@@ -7,13 +7,55 @@ const supabase = createClient(
 );
 const API_KEY = process.env.API_FOOTBALL_KEY;
 
+// Fallback: resolve API team name → internal 3-letter ID when fixture fetch fails
+const TEAM_NAME_TO_ID = {
+  "Mexico": "MEX", "Canada": "CAN", "United States": "USA", "USA": "USA",
+  "Honduras": "HON", "Costa Rica": "CRC", "Jamaica": "JAM", "Panama": "PAN",
+  "Haiti": "HAI", "Trinidad and Tobago": "TRI", "Trinidad & Tobago": "TRI",
+  "El Salvador": "SLV", "Guatemala": "GUA",
+  "Argentina": "ARG", "Brazil": "BRA", "Colombia": "COL", "Uruguay": "URU",
+  "Ecuador": "ECU", "Paraguay": "PAR", "Venezuela": "VEN", "Chile": "CHI",
+  "Peru": "PER", "Bolivia": "BOL",
+  "England": "ENG", "France": "FRA", "Spain": "ESP", "Germany": "GER",
+  "Portugal": "POR", "Netherlands": "NED", "Belgium": "BEL", "Croatia": "CRO",
+  "Switzerland": "SUI", "Austria": "AUT", "Denmark": "DEN", "Sweden": "SWE",
+  "Norway": "NOR", "Scotland": "SCO", "Wales": "WAL",
+  "Ireland": "IRL", "Republic of Ireland": "IRL",
+  "Serbia": "SRB", "Ukraine": "UKR", "Hungary": "HUN", "Romania": "ROU",
+  "Slovakia": "SVK", "Slovenia": "SVN",
+  "Czech Republic": "CZE", "Czechia": "CZE",
+  "Poland": "POL", "Greece": "GRE", "Turkey": "TUR", "Türkiye": "TUR",
+  "Albania": "ALB", "Georgia": "GEO", "Iceland": "ISL",
+  "Bosnia and Herzegovina": "BIH", "Bosnia & Herzegovina": "BIH", "Bosnia": "BIH",
+  "Morocco": "MAR", "Senegal": "SEN", "Nigeria": "NGA", "Egypt": "EGY",
+  "Ghana": "GHA", "Cameroon": "CMR",
+  "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Côte d'Ivoire": "CIV",
+  "South Africa": "RSA", "Tunisia": "TUN", "Algeria": "ALG", "Mali": "MLI",
+  "Guinea": "GUI", "Cabo Verde": "CPV", "Cape Verde": "CPV", "Cape Verde Islands": "CPV",
+  "DR Congo": "COD", "Congo DR": "COD", "Democratic Republic of Congo": "COD",
+  "Japan": "JPN", "Korea Republic": "KOR", "South Korea": "KOR",
+  "Saudi Arabia": "KSA", "Iran": "IRN", "IR Iran": "IRN",
+  "Australia": "AUS", "Uzbekistan": "UZB", "Jordan": "JOR", "Iraq": "IRQ",
+  "Qatar": "QAT", "New Zealand": "NZL", "Curacao": "CUW", "Curaçao": "CUW",
+};
+
 const FINISHED = ['FT', 'AET', 'PEN', 'FINISHED'];
 
-const { data: matches, error } = await supabase
+const limitArg = process.argv.indexOf('--limit');
+const limit = limitArg !== -1 ? parseInt(process.argv[limitArg + 1], 10) : null;
+
+const query = supabase
   .from('matches')
   .select('id, api_id, home_team_id, away_team_id, status')
   .in('status', FINISHED)
-  .not('api_id', 'is', null);
+  .not('api_id', 'is', null)
+  .order('date', { ascending: false });
+
+if (limit) query.limit(limit);
+
+const { data: raw, error } = await query;
+// Reverse so we process chronologically (oldest first when limiting)
+const matches = limit ? (raw ?? []).reverse() : (raw ?? []);
 
 if (error) { console.error('DB fetch failed:', error.message); process.exit(1); }
 console.log(`Found ${matches.length} finished matches with api_id`);
@@ -46,15 +88,25 @@ for (const match of matches) {
   const rows = [];
   for (const teamData of lineupData.response) {
     const apiTeamId = String(teamData.team?.id);
-    const isHome = homeApiId ? apiTeamId === homeApiId : null;
-    // Fall back to name match if fixture fetch failed
-    const teamId = isHome === true
-      ? match.home_team_id
-      : isHome === false
-      ? match.away_team_id
-      : (teamData.team?.name === fixture?.teams?.home?.name ? match.home_team_id : match.away_team_id);
 
-    if (!teamId) { console.warn(`  Could not resolve team for ${teamData.team?.name}`); continue; }
+    // Primary: match by numeric API team ID from fixture response
+    let teamId = null;
+    if (homeApiId) {
+      if (apiTeamId === homeApiId) teamId = match.home_team_id;
+      else if (apiTeamId === String(fixture.teams.away.id)) teamId = match.away_team_id;
+    }
+
+    // Fallback: resolve via team name when fixture fetch failed or ID didn't match
+    if (!teamId) {
+      const nameId = TEAM_NAME_TO_ID[teamData.team?.name];
+      if (nameId === match.home_team_id) teamId = match.home_team_id;
+      else if (nameId === match.away_team_id) teamId = match.away_team_id;
+    }
+
+    if (!teamId) {
+      console.warn(`  Could not resolve team for "${teamData.team?.name}" — skipping`);
+      continue;
+    }
 
     const formation = teamData.formation ?? null;
     const rawColors = teamData.team?.colors?.player;
@@ -72,16 +124,38 @@ for (const match of matches) {
 
   if (!rows.length) { console.log('  No rows to insert'); continue; }
 
+  // Delete existing rows first so re-runs always produce clean data
+  // (prevents stale rows from lingering when the API corrects its data)
+  const { error: delErr } = await supabase
+    .from('match_lineups')
+    .delete()
+    .eq('match_id', match.id);
+  if (delErr) { console.error(`  ✗ Delete failed: ${delErr.message}`); continue; }
+
+  // Deduplicate by conflict key — API sometimes returns the same player in both
+  // startXI and substitutes, which would cause Postgres to reject the batch.
+  const seen = new Set();
+  const deduped = rows.filter(r => {
+    const k = `${r.match_id}_${r.team_id}_${r.player_name}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
   const { error: upsertErr } = await supabase
     .from('match_lineups')
-    .upsert(rows, { onConflict: 'match_id,team_id,player_name', ignoreDuplicates: false });
+    .insert(deduped);
 
   if (upsertErr) {
-    console.error(`  ✗ Upsert failed: ${upsertErr.message}`);
+    console.error(`  ✗ Insert failed: ${upsertErr.message}`);
   } else {
-    totalRows += rows.length;
-    console.log(`  ✓ ${rows.length} rows upserted`);
+    totalRows += deduped.length;
+    console.log(`  ✓ ${deduped.length} rows inserted`);
   }
+
+  // 3 s between matches keeps us well under the 30 req/min API rate limit
+  // (each match makes 2 API calls, so 3 s spacing → ~40 req/min including latency)
+  await new Promise(r => setTimeout(r, 3000));
 }
 
 console.log(`\nDone. Total rows inserted: ${totalRows}`);

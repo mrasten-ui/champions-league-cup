@@ -159,14 +159,23 @@ async function backfillMatch(match) {
 }
 
 async function main() {
+  const limitArg = process.argv.indexOf('--limit');
+  const limit = limitArg !== -1 ? parseInt(process.argv[limitArg + 1], 10) : null;
+
   console.log('Backfilling match events for completed matches...\n');
 
-  const { data: completedMatches, error } = await supabase
+  const query = supabase
     .from('matches')
     .select('id, api_id, date, home_team_id, away_team_id')
     .in('status', ['FT', 'AET', 'PEN'])
     .not('api_id', 'is', null)
-    .order('date', { ascending: true });
+    .order('date', { ascending: false });
+
+  if (limit) query.limit(limit);
+
+  const { data: raw, error } = await query;
+  // When limiting, we fetched newest-first; reverse so we process chronologically
+  const completedMatches = limit ? (raw ?? []).reverse() : (raw ?? []);
 
   if (error) { console.error('Failed to fetch matches:', error.message); process.exit(1); }
   if (!completedMatches?.length) { console.log('No completed matches found.'); return; }

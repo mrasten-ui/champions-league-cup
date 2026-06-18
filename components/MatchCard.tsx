@@ -706,21 +706,32 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                // Subs: deduplicate absolutely — a player can only be subbed once per game.
                // Goals/cards: drop near-dupes within ±2 minutes (API sometimes sends same
                // event at 65' and 66', or 90+4' and 90+5').
-               // Use namesMatch() (not exact string equality) so the same player reported
-               // under different name formats — "Callum McCormick" vs "C. McCormick" —
-               // collapses into one dedup bucket instead of slipping through as two events.
-               const seenPlayerMin: { teamId: string; type: string; name: string; min: number }[] = [];
+               // Uses normalized last name (strips initials like "D.") so "D. Munoz" and
+               // "Daniel Muñoz" collapse into one bucket even when namesMatch() has edge cases.
+               const normLastN = (n: string | undefined): string => {
+                 if (!n) return '';
+                 const clean = n.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+                 const parts = clean.split(/\s+/);
+                 const real = parts.filter(p => !p.endsWith('.'));
+                 return real[real.length - 1] ?? '';
+               };
+               const seenPlayerMin: { teamId: string | undefined; typeKey: string; last: string; min: number }[] = [];
                const sig = dedupedYellow.filter(e => {
                  const totalMin = (e.minute ?? 0) + (e.minuteExtra ?? 0);
                  const isSub = e.type?.toLowerCase() === 'subst';
+                 const typeKey = (e.type ?? '').toLowerCase();
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
-                   const prev = seenPlayerMin.find(s => s.teamId === e.teamId && s.type === e.type && namesMatch(name, s.name));
+                   const last = normLastN(name);
+                   if (!last) continue;
+                   const prev = seenPlayerMin.find(s => s.teamId === e.teamId && s.typeKey === typeKey && s.last === last);
                    if (prev && (isSub || Math.abs(totalMin - prev.min) <= 2)) return false;
                  }
                  for (const name of [e.player, e.assist]) {
                    if (!name) continue;
-                   seenPlayerMin.push({ teamId: e.teamId, type: e.type, name, min: totalMin });
+                   const last = normLastN(name);
+                   if (!last) continue;
+                   seenPlayerMin.push({ teamId: e.teamId, typeKey, last, min: totalMin });
                  }
                  return true;
                });

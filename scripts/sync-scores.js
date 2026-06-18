@@ -284,9 +284,12 @@ async function syncScores() {
         else if (eventApiTeamId && eventApiTeamId === awayApiTeamId) teamId = awayCode;
         else teamId = TEAM_NAME_TO_ID[event.team?.name] ?? null;
 
+        const normPlayer = (event.player?.name ?? '')
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .toLowerCase().replace(/[^a-z]/g, '_');
         return {
           match_id:     matchId,
-          api_event_id: `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}`,
+          api_event_id: `${matchId}_${teamId ?? ''}_${event.time?.elapsed ?? 0}_${event.time?.extra ?? 0}_${event.type}_${(event.detail ?? '').replace(/\s/g, '_')}_${normPlayer}`,
           minute:       event.time?.elapsed ?? null,
           minute_extra: event.time?.extra   ?? null,
           type:         event.type,
