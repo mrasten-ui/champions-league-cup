@@ -49,7 +49,8 @@
       "Bash(ls /mnt/c/Users/mrast/Downloads/predictions*.csv 2>/dev/null)",
       "Read(//mnt/c/Users/mrast/**)",
       "Read(//c/Users/mrast/Downloads/**)",
-      "Read(//c/Users/mrast/OneDrive/**)"
+      "Read(//c/Users/mrast/OneDrive/**)",
+      "Bash(grep -v \"//\\\\|const\\\\|useMemo\\\\|useState\\\\|filter\\\\|utcDay\\\\|map\\\\|sort\\\\|some\\\\|find\")"
     ]
   }
 }

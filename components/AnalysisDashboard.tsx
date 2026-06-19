@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 import { UserProfile, Match, Prediction, Team, Translation, LanguageCode } from '../types';
 import { calculateGroupStandings } from '../services/engine';
 import { DateRibbon } from './DateRibbon';
@@ -267,6 +268,18 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
       return Array.from(dates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [simulatedMatches]);
 
+  const handleNextDate = useCallback(() => {
+      const idx = uniqueDates.indexOf(filterDate);
+      if (idx < uniqueDates.length - 1) setFilterDate(uniqueDates[idx + 1]);
+  }, [uniqueDates, filterDate]);
+
+  const handlePrevDate = useCallback(() => {
+      const idx = uniqueDates.indexOf(filterDate);
+      if (idx > 0) setFilterDate(uniqueDates[idx - 1]);
+  }, [uniqueDates, filterDate]);
+
+  const dateSwipe = useSwipe({ onSwipeLeft: handleNextDate, onSwipeRight: handlePrevDate, stopPropagation: true });
+
   // 2. FILTERED LIST FOR DISPLAY (Affected by User's Date Selection)
   const displayMatches = useMemo(() => {
       let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
@@ -283,7 +296,7 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
   // 3. INDEPENDENT LIST FOR AI ANALYST (Always Next Up)
   // CRITICAL FIX: This ignores 'filterDate' so the AI always sees the future schedule
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div {...dateSwipe} className="flex flex-col min-h-screen bg-slate-50 touch-pan-y">
         
         <DateRibbon dates={uniqueDates} selectedDate={filterDate} onDateSelect={setFilterDate} lang={lang} locale={({'EN':'en-GB','SCO':'en-GB','US':'en-US','NO':'no-NO'} as Record<string,string>)[currentLang] || 'en-GB'} />
 

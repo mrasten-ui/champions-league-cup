@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
@@ -93,6 +94,18 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     });
     return Array.from(dates).sort();
   }, [matches]);
+
+  const handleNextDate = useCallback(() => {
+    const idx = uniqueDates.indexOf(filterDate);
+    if (idx < uniqueDates.length - 1) setFilterDate(uniqueDates[idx + 1]);
+  }, [uniqueDates, filterDate]);
+
+  const handlePrevDate = useCallback(() => {
+    const idx = uniqueDates.indexOf(filterDate);
+    if (idx > 0) setFilterDate(uniqueDates[idx - 1]);
+  }, [uniqueDates, filterDate]);
+
+  const dateSwipe = useSwipe({ onSwipeLeft: handleNextDate, onSwipeRight: handlePrevDate, stopPropagation: true });
 
   // 3. FILTERING LOGIC (For the list below the hero)
   const filteredMatches = useMemo(() => {
@@ -230,7 +243,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   }, [matches, teams]);
 
   return (
-    <div className="pb-24 animate-fade-in bg-slate-50 min-h-screen">
+    <div {...dateSwipe} className="pb-24 animate-fade-in bg-slate-50 min-h-screen touch-pan-y">
         <DateRibbon
             dates={uniqueDates}
             selectedDate={filterDate}
