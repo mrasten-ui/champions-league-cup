@@ -875,13 +875,45 @@ export const App = () => {
       else setActiveTab('leaderboard');
   };
 
-  const swipeHandlers = useSwipe({ onSwipeLeft: activeTab === 'groups' ? handleNextGroup : () => {}, onSwipeRight: activeTab === 'groups' ? handlePrevGroup : () => {} });
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  
+
   const navTabs = useMemo(() => {
       if (effectiveTournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
       return ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
   }, [effectiveTournamentPhase]);
+
+  const handleNextTab = useCallback(() => {
+      const idx = navTabs.indexOf(activeTab);
+      if (idx < navTabs.length - 1) { setActiveTab(navTabs[idx + 1] as typeof activeTab); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  }, [navTabs, activeTab]);
+
+  const handlePrevTab = useCallback(() => {
+      const idx = navTabs.indexOf(activeTab);
+      if (idx > 0) { setActiveTab(navTabs[idx - 1] as typeof activeTab); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  }, [navTabs, activeTab]);
+
+  const handleNextTournamentSub = useCallback(() => {
+      const subs = ['schedule', 'tables', 'bracket'] as const;
+      const idx = subs.indexOf(tournamentSubTab);
+      if (idx < subs.length - 1) setTournamentSubTab(subs[idx + 1]);
+      else handleNextTab();
+  }, [tournamentSubTab, handleNextTab]);
+
+  const handlePrevTournamentSub = useCallback(() => {
+      const subs = ['schedule', 'tables', 'bracket'] as const;
+      const idx = subs.indexOf(tournamentSubTab);
+      if (idx > 0) setTournamentSubTab(subs[idx - 1]);
+      else handlePrevTab();
+  }, [tournamentSubTab, handlePrevTab]);
+
+  const swipeHandlers = useSwipe({
+      onSwipeLeft:  activeTab === 'groups'     ? handleNextGroup
+                  : activeTab === 'tournament' ? handleNextTournamentSub
+                  : handleNextTab,
+      onSwipeRight: activeTab === 'groups'     ? handlePrevGroup
+                  : activeTab === 'tournament' ? handlePrevTournamentSub
+                  : handlePrevTab,
+  });
 
   useEffect(() => {
       const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
@@ -1206,7 +1238,7 @@ export const App = () => {
         </div>
       )}
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6">
+      <main {...swipeHandlers} className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-6 touch-pan-y">
         {user && missingGroupPredictions > 0 && (
           <PredictionNudge
             missingCount={missingGroupPredictions}
@@ -1278,7 +1310,7 @@ export const App = () => {
 
         {/* GROUPS TAB */}
         {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
-            <div {...swipeHandlers} className="animate-fade-in touch-pan-y">
+            <div className="animate-fade-in">
                 {showOverview ? (
                    <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
                 ) : (

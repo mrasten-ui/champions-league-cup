@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 import { Match, Team, Prediction, UserProfile, Translation, TournamentPhase } from '../types';
 import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
@@ -45,6 +46,11 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
   const groupsOver = groupStageEndTime ? Date.now() >= groupStageEndTime : false;
   const [viewMode, setViewMode] = useState<'groups' | 'knockout'>(groupsOver ? 'knockout' : 'groups');
+
+  const managerSwipe = useSwipe({
+      onSwipeLeft:  () => { if (hasKnockouts) setViewMode('knockout'); },
+      onSwipeRight: () => setViewMode('groups'),
+  });
 
   const [showMgrHint, setShowMgrHint] = useState(() => !localStorage.getItem(`rasten_mgr_hint_${currentUser.email}`));
 
@@ -198,7 +204,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [allUsers, allPredictions, finishedMatches, currentUser.email, currentUser.leagues]);
 
   return (
-    <div className="pb-24 animate-fade-in space-y-3">
+    <div {...managerSwipe} className="pb-24 animate-fade-in space-y-3 touch-pan-y">
 
       {/* Merged profile + view-mode card */}
       <div id="tour-manager-hub" className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in slide-in-from-top-4 duration-500">
