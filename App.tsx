@@ -295,6 +295,16 @@ export const App = () => {
       return new Set(thirds.slice(0, 8).map(t => t.teamId));
   }, [userMatches, teamsData]);
 
+  const allPredictedGroupStandings = useMemo((): Record<string, Record<string, number>> => {
+      if (!user) return {};
+      return Object.fromEntries(
+          GROUP_CONFIG.map(g => {
+              const predicted = calculateGroupStandings(g.id, userMatches, teamsData);
+              return [g.id, Object.fromEntries(predicted.map((s, i) => [s.teamId, i + 1]))];
+          })
+      );
+  }, [user, userMatches, teamsData]);
+
   // --- ACTIONS ---
   const handleLogout = async () => {
       if (supabase) await supabase.auth.signOut();
@@ -1297,7 +1307,7 @@ export const App = () => {
                                 <div key={g.id} id={`group-card-${g.id}`} className="w-full">
                                     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden h-full">
                                         <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div>
-                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} />
+                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} />
                                     </div>
                                 </div>
                             ))}

@@ -9,10 +9,11 @@ interface StandingsTableProps {
   onTeamClick?: (teamId: string) => void;
   highlightedTeamId?: string | null;
   qualifiedThirds?: Set<string>;
+  predictedRankMap?: Record<string, number>;
 }
 
-export const StandingsTable: React.FC<StandingsTableProps> = ({ 
-  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds 
+export const StandingsTable: React.FC<StandingsTableProps> = ({
+  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds, predictedRankMap
 }) => {
   return (
     <div className="overflow-x-auto">
@@ -33,7 +34,9 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             )}
             <th className="py-2 text-center w-10">{lang.gd || "GD"}</th>
             <th className="py-2 text-center w-10 font-bold text-slate-700">{lang.pts || "Pts"}</th>
-            {/* Removed Form Header */}
+            {predictedRankMap && (
+                <th className="py-2 text-center w-10 text-[9px] font-black text-slate-400 tracking-widest">PRED</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -93,8 +96,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                     {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
                 <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
-                
-                {/* Removed Form Data Cell */}
+                {predictedRankMap && (() => {
+                    const predictedRank = predictedRankMap[row.teamId];
+                    const actualRank = index + 1;
+                    const delta = predictedRank != null ? predictedRank - actualRank : 0;
+                    if (delta > 0) return <td className="text-center text-[11px] font-black text-emerald-500 tabular-nums">▲{delta}</td>;
+                    if (delta < 0) return <td className="text-center text-[11px] font-black text-red-500 tabular-nums">▼{Math.abs(delta)}</td>;
+                    return <td className="text-center text-[11px] font-bold text-slate-400">=</td>;
+                })()}
               </tr>
             );
           })}
