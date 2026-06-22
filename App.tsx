@@ -1307,7 +1307,7 @@ export const App = () => {
                                 <div key={g.id} id={`group-card-${g.id}`} className="w-full">
                                     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden h-full">
                                         <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div>
-                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} />
+                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} predictedQualifiedThirds={predictedQualifiedThirds} />
                                     </div>
                                 </div>
                             ))}

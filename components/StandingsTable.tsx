@@ -10,10 +10,11 @@ interface StandingsTableProps {
   highlightedTeamId?: string | null;
   qualifiedThirds?: Set<string>;
   predictedRankMap?: Record<string, number>;
+  predictedQualifiedThirds?: Set<string>;
 }
 
 export const StandingsTable: React.FC<StandingsTableProps> = ({
-  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds, predictedRankMap
+  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds, predictedRankMap, predictedQualifiedThirds
 }) => {
   return (
     <div className="overflow-x-auto">
@@ -98,11 +99,21 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
                 {predictedRankMap && (() => {
                     const predictedRank = predictedRankMap[row.teamId];
-                    const actualRank = index + 1;
-                    const delta = predictedRank != null ? predictedRank - actualRank : 0;
-                    if (delta > 0) return <td className="text-center text-[11px] font-black text-emerald-500 tabular-nums">▲{delta}</td>;
-                    if (delta < 0) return <td className="text-center text-[11px] font-black text-red-500 tabular-nums">▼{Math.abs(delta)}</td>;
-                    return <td className="text-center text-[11px] font-bold text-slate-400">=</td>;
+                    if (predictedRank == null) return <td className="text-center text-slate-300 text-[10px]">-</td>;
+                    const isPredTop2 = predictedRank <= 2;
+                    const isPredQ3 = predictedRank === 3 && predictedQualifiedThirds?.has(row.teamId);
+                    let badgeBg = 'bg-slate-100 text-slate-400';
+                    if (isPredTop2) badgeBg = 'bg-green-100 text-green-700';
+                    if (isPredQ3) badgeBg = 'bg-amber-100 text-amber-700';
+                    return (
+                        <td className="text-center pl-1">
+                            <div className="flex items-center justify-center">
+                                <div className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-black ${badgeBg}`}>
+                                    {predictedRank}{isPredQ3 && <span className="ml-0.5 text-[6px] font-black opacity-80">Q</span>}
+                                </div>
+                            </div>
+                        </td>
+                    );
                 })()}
               </tr>
             );
