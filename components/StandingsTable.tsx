@@ -36,7 +36,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             <th className="py-2 text-center w-10">{lang.gd || "GD"}</th>
             <th className="py-2 text-center w-10 font-bold text-slate-700">{lang.pts || "Pts"}</th>
             {predictedRankMap && (
-                <th className="py-2 text-center w-10 text-[9px] font-black text-slate-400 tracking-widest">PRED</th>
+                <th className="py-2 text-center w-10 text-[9px] font-black text-indigo-400 tracking-widest border-l-2 border-dashed border-indigo-200 bg-indigo-50/40">MY PRED</th>
             )}
           </tr>
         </thead>
@@ -99,14 +99,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
                 {predictedRankMap && (() => {
                     const predictedRank = predictedRankMap[row.teamId];
-                    if (predictedRank == null) return <td className="text-center text-slate-300 text-[10px]">-</td>;
+                    if (predictedRank == null) return <td className="text-center text-slate-300 text-[10px] border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">-</td>;
                     const isPredTop2 = predictedRank <= 2;
                     const isPredQ3 = predictedRank === 3 && predictedQualifiedThirds?.has(row.teamId);
                     let badgeBg = 'bg-slate-100 text-slate-400';
                     if (isPredTop2) badgeBg = 'bg-green-100 text-green-700';
                     if (isPredQ3) badgeBg = 'bg-amber-100 text-amber-700';
                     return (
-                        <td className="text-center pl-1">
+                        <td className="text-center border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">
                             <div className="flex items-center justify-center">
                                 <div className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-black ${badgeBg}`}>
                                     {predictedRank}{isPredQ3 && <span className="ml-0.5 text-[6px] font-black opacity-80">Q</span>}
