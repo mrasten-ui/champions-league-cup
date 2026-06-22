@@ -295,15 +295,39 @@ export const App = () => {
       return new Set(thirds.slice(0, 8).map(t => t.teamId));
   }, [userMatches, teamsData]);
 
+  // Pure prediction matches: force-unlock all group matches so the user's original
+  // predictions always override real scores. Finished matches are normally locked,
+  // which makes "predicted" standings converge to actual as games complete — not what we want here.
+  const purePredictionMatches = useMemo(() => {
+      if (!user) return matches;
+      let preds = allPredictions.filter(p => p.userId === user.email);
+      if (user.bracketPredictions) {
+          preds = preds.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          );
+      }
+      const unlocked = matches.map(m => m.groupId ? { ...m, isLocked: false } : m);
+      return applyPredictionsToBracket(unlocked, teamsData, preds);
+  }, [matches, teamsData, allPredictions, user]);
+
+  const purePredictedQualifiedThirds = useMemo(() => {
+      if (!user) return new Set<string>();
+      const all = getAllGroupStandings(purePredictionMatches, teamsData);
+      const thirds = getThirdPlaceStandings(all);
+      return new Set(thirds.slice(0, 8).map(t => t.teamId));
+  }, [user, purePredictionMatches, teamsData]);
+
   const allPredictedGroupStandings = useMemo((): Record<string, Record<string, number>> => {
       if (!user) return {};
       return Object.fromEntries(
           GROUP_CONFIG.map(g => {
-              const predicted = calculateGroupStandings(g.id, userMatches, teamsData);
+              const predicted = calculateGroupStandings(g.id, purePredictionMatches, teamsData);
               return [g.id, Object.fromEntries(predicted.map((s, i) => [s.teamId, i + 1]))];
           })
       );
-  }, [user, userMatches, teamsData]);
+  }, [user, purePredictionMatches, teamsData]);
 
   // --- ACTIONS ---
   const handleLogout = async () => {
@@ -1307,7 +1331,7 @@ export const App = () => {
                                 <div key={g.id} id={`group-card-${g.id}`} className="w-full">
                                     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden h-full">
                                         <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div>
-                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} predictedQualifiedThirds={predictedQualifiedThirds} />
+                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} predictedQualifiedThirds={purePredictedQualifiedThirds} />
                                     </div>
                                 </div>
                             ))}
