@@ -85,7 +85,7 @@ interface GoalCardProps {
   onDismiss: () => void;
   onShowLive?: () => void;
   onNavigate?: () => void;
-  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
+  onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
 }
 
 function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onNavigate, onPlayerClick }: GoalCardProps) {
@@ -455,7 +455,7 @@ interface GoalBannerProps {
   onDismiss: () => void;
   onShowLive?: () => void;
   onNavigate?: () => void;
-  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
+  onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   kitNotification?: KitNotification | null;
   onKitDismiss?: () => void;
   onKitNavigate?: () => void;

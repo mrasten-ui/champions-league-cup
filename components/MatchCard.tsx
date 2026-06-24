@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup, MatchStats } from '../types';
+import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -44,7 +44,8 @@ interface MatchCardProps {
   lineups?: MatchLineup[];
   stats?: MatchStats | null;
   hideHeader?: boolean;
-  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
+  playerMatchStats?: PlayerMatchStat[];
+  onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
 }
 
 
@@ -71,7 +72,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, onPlayerClick
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -589,11 +590,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    ? <span className="text-[8px] font-black tabular-nums text-slate-400 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
                    : null;
                  const dimmed = bench && !subbedIn;
-                 const playerEvt = events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName));
-                 const playerClickId = playerEvt?.playerId ?? null;
+                 const playerClickId = p.playerId
+                   ?? events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName))?.playerId
+                   ?? playerMatchStats.find(s => s.playerId && namesMatch(s.playerName, p.playerName))?.playerId
+                   ?? null;
                  const nameClass = (out: boolean) => `text-[9px] shrink min-w-0 truncate text-left ${out ? 'text-slate-400' : 'text-slate-700'}`;
-                 const nameTap = (out: boolean) => playerClickId && onPlayerClick
-                   ? <button onClick={() => onPlayerClick(playerClickId, p.playerName, p.teamId)} className={`${nameClass(out)} hover:text-indigo-500 transition-colors`}>{p.playerName}</button>
+                 const nameTap = (out: boolean) => onPlayerClick
+                   ? <button onClick={() => onPlayerClick(playerClickId, p.playerName, p.teamId)} className={`${nameClass(out)} hover:text-indigo-500 transition-colors underline decoration-dashed decoration-slate-200 underline-offset-2`}>{p.playerName}</button>
                    : <span className={nameClass(out)}>{p.playerName}</span>;
                  if (side === 'away') {
                    return (

@@ -246,6 +246,7 @@ export interface MatchLineup {
   matchId: string;
   teamId: string;
   playerName: string;
+  playerId?: number | null;
   playerNumber?: number | null;
   position?: string | null;
   grid?: string | null;

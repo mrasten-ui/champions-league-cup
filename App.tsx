@@ -122,7 +122,7 @@ export const App = () => {
   const goalNotification = goalQueue[0] ?? null;
   const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
   const kitNotification = kitQueue[0] ?? null;
-  const [playerModal, setPlayerModal] = useState<{ playerId: number; playerName: string; teamId: string } | null>(null);
+  const [playerModal, setPlayerModal] = useState<{ playerId: number | null; playerName: string; teamId: string } | null>(null);
   const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
   const kitInitializedRef = useRef(false);
   const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -335,6 +335,17 @@ export const App = () => {
           })
       );
   }, [user, purePredictionMatches, teamsData]);
+
+  // Count how many of the 32 KO slots the user has filled via group predictions:
+  // top 2 from each of 12 groups (24) + 8 qualifying third-place teams
+  const predictedKOTeamCount = useMemo(() => {
+      if (!user) return 0;
+      const top2 = Object.values(allPredictedGroupStandings).flatMap(rankMap =>
+          Object.entries(rankMap).filter(([, rank]) => rank <= 2).map(([id]) => id)
+      );
+      const thirds = [...purePredictedQualifiedThirds];
+      return new Set([...top2, ...thirds]).size;
+  }, [user, allPredictedGroupStandings, purePredictedQualifiedThirds]);
 
   // --- ACTIONS ---
   const handleLogout = async () => {
@@ -1024,10 +1035,14 @@ export const App = () => {
       if (goToKnockouts) setActiveTab('knockout');
   };
 
-  // Second Chance timed reminders — 24h before group stage ends, 12h before first knockout
+  // Second Chance timed reminders — 24h before group stage ends, 12h before first knockout.
+  // Never fires once any knockout match has actually started.
   useEffect(() => {
       if (!user || user.secondChanceStatus !== 'NONE' || user.hasTakenSecondChance) return;
       const now = Date.now();
+      const KO_LIVE_STATUSES = ['LIVE', 'FT', 'AET', 'PEN', 'FINISHED', '1H', '2H', 'HT', 'ET', 'P', 'BT'];
+      const knockoutStarted = matches.some(m => m.round === 'R32' && KO_LIVE_STATUSES.includes(m.status));
+      if (knockoutStarted) return;
 
       // Knockout reminder takes priority if its window has opened
       if (knockoutStartTime > 0 && now >= knockoutStartTime - 12 * 60 * 60 * 1000 && now < knockoutStartTime) {
@@ -1040,7 +1055,7 @@ export const App = () => {
           const seen = localStorage.getItem(STORAGE_KEYS.SC_REMINDER_GROUP_PREFIX + user.email);
           if (!seen) { setScReminderType('group'); setShowSCReminder(true); }
       }
-  }, [user, groupStageEndTime, knockoutStartTime]);
+  }, [user, groupStageEndTime, knockoutStartTime, matches]);
 
   const handleSCReminderDismiss = (goToManager: boolean) => {
       if (user) {
@@ -1355,7 +1370,7 @@ export const App = () => {
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} />}
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
@@ -1410,6 +1425,7 @@ export const App = () => {
                                 showStatusBadge={false}
                                 context="groups"
                                 events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
+                                playerMatchStats={playerMatchStats}
                                 onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
                               />
                           ))}
@@ -1513,7 +1529,7 @@ export const App = () => {
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
-      <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} onDismiss={handleSCReminderDismiss} langCode={language} />
+      <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} pickedTeams={predictedKOTeamCount} onDismiss={handleSCReminderDismiss} langCode={language} />
       <GoalBanner
         notification={goalNotification}
         homeTeam={goalNotification ? teamsData[goalNotification.homeTeamId] : undefined}
@@ -1541,7 +1557,7 @@ export const App = () => {
           teamId={playerModal.teamId}
           matchEvents={matchEvents}
           matchLineups={matchLineups}
-          playerMatchStats={playerMatchStats.filter(s => s.playerId === playerModal.playerId)}
+          playerMatchStats={playerModal.playerId != null ? playerMatchStats.filter(s => s.playerId === playerModal.playerId) : []}
           teams={teamsData}
           lang={t}
           onClose={() => setPlayerModal(null)}

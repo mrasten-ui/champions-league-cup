@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSwipe } from '../hooks/useSwipe';
-import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
+import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { Search, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MatchCard } from './MatchCard';
 import { DateRibbon } from './DateRibbon';
@@ -22,9 +22,10 @@ interface TournamentScheduleProps {
   matchEvents?: MatchEvent[];
   matchLineups?: MatchLineup[];
   matchStats?: MatchStats[];
+  playerMatchStats?: PlayerMatchStat[];
   onSubstitute?: (matchId: string) => void;
   onUpdate?: (id: string, h: number, a: number) => void;
-  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
+  onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
 }
 
 // MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
@@ -48,7 +49,7 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], onSubstitute, onUpdate, onPlayerClick
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], playerMatchStats = [], onSubstitute, onUpdate, onPlayerClick
 }) => {
 
   // Get the correct BCP 47 locale string
@@ -293,6 +294,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
                         lineups={matchLineups.filter(l => l.matchId === heroMatch.id)}
                         stats={matchStats.find(s => s.matchId === heroMatch.id) ?? null}
+                        playerMatchStats={playerMatchStats}
                         onPlayerClick={onPlayerClick}
                     />
                 </div>
@@ -333,6 +335,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         onSubstitute={onSubstitute ? () => onSubstitute(heroMatch.id) : undefined}
                                         substitutionsLeft={user?.substitutions ?? 0}
                                         isUnlockedBySub={user?.unlockedMatches?.includes(heroMatch.id) ?? false}
+                                        playerMatchStats={playerMatchStats}
                                         onPlayerClick={onPlayerClick}
                                     />
                                 ) : (
@@ -365,6 +368,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         onSubstitute={onSubstitute ? () => onSubstitute(match.id) : undefined}
                                         substitutionsLeft={user?.substitutions ?? 0}
                                         isUnlockedBySub={user?.unlockedMatches?.includes(match.id) ?? false}
+                                        playerMatchStats={playerMatchStats}
                                         onPlayerClick={onPlayerClick}
                                     />
                                 )}

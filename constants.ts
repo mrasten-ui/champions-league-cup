@@ -266,7 +266,22 @@ const EN_TRANSLATION: Translation = {
     thirdPlace: "3rd Place Play-off",
     final: "Final",
 
-    teamNames: BASE_TEAM_NAMES, 
+    // --- PLAYER MODAL ---
+    playerClose: "Close",
+    playerRating: "Rating",
+    playerAvgRating: "Avg Rating · World Cup 2026",
+    playerMatchRatings: "Match Ratings",
+    playerTournamentLabel: "World Cup 2026",
+    playerGoals: "Goals",
+    playerAssists: "Assists",
+    playerApps: "Apps",
+    playerYellow: "Yellow",
+    playerRed: "Red",
+    playerOwnGoal: "OG",
+    playerRatedSuffix: "rated",
+    playerNoStats: "Stats not yet available — check back after their next match.",
+
+    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -389,8 +404,15 @@ const SCO_TRANSLATION: Translation = {
     semiFinal: "Semi Final",
     thirdPlace: "3rd Place Play-off",
     final: "The Big Yin",
-    
-    teamNames: BASE_TEAM_NAMES, 
+
+    playerClose: "Shut It",
+    playerAvgRating: "Avg Rating · The Cup 2026",
+    playerMatchRatings: "Match Ratins",
+    playerTournamentLabel: "The Cup 2026",
+    playerApps: "Games",
+    playerNoStats: "Nae stats yet, pal — check back efter their next game.",
+
+    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -513,7 +535,10 @@ const US_TRANSLATION: Translation = {
     thirdPlace: "Bronze Medal Match",
     final: "Championship",
 
-    teamNames: BASE_TEAM_NAMES, 
+    playerApps: "Games",
+    playerNoStats: "Stats coming soon — check back after their next match.",
+
+    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -638,6 +663,18 @@ const NO_TRANSLATION: Translation = {
     semiFinal: "Semifinale",
     thirdPlace: "Bronsefinale",
     final: "Finale",
+
+    playerClose: "Lukk",
+    playerRating: "Karakter",
+    playerAvgRating: "Snittkarakter · VM 2026",
+    playerMatchRatings: "Kampkarakterer",
+    playerTournamentLabel: "VM 2026",
+    playerGoals: "Mål",
+    playerAssists: "Assist",
+    playerApps: "Kamper",
+    playerYellow: "Gult",
+    playerRed: "Rødt",
+    playerNoStats: "Statistikk ikke tilgjengelig ennå — sjekk igjen etter neste kamp.",
 
     teamNames: TEAM_NAMES_NO,
     teamOverviews: {}

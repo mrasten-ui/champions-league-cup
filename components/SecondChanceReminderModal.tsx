@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Clock } from 'lucide-react';
+import { Clock, RefreshCw } from 'lucide-react';
 import { LanguageCode } from '../types';
 
 export type SCReminderType = 'group' | 'knockout';
@@ -8,6 +8,7 @@ export type SCReminderType = 'group' | 'knockout';
 interface SecondChanceReminderModalProps {
     isOpen: boolean;
     type: SCReminderType;
+    pickedTeams: number;   // how many of the 32 KO slots the user has filled
     onDismiss: (goToManager: boolean) => void;
     langCode: LanguageCode;
 }
@@ -15,72 +16,91 @@ interface SecondChanceReminderModalProps {
 const assetLang: Record<LanguageCode, string> = { EN: 'en', NO: 'no', SCO: 'sc', US: 'us' };
 
 const COPY: Record<SCReminderType, Record<LanguageCode, {
-    badge: string; host: string; pundit: string; cta: string; later: string;
+    badge: string; host: string; pundit: string;
+    what: string;         // one-sentence explanation of what Second Chance does
+    cta: string; later: string;
+    teamsLabel: string;   // "knockout teams predicted"
 }>> = {
     group: {
         EN: {
             badge: 'SECOND CHANCE CLOSING ⏰',
             host: 'The group stage is nearly over!',
-            pundit: "You've still got time to activate your Second Chance and redo your knockout bracket. Once the last group game ends, the window closes — don't sleep on it!",
-            cta: 'Activate Second Chance →',
+            pundit: "Don't miss your window — once the last group game ends, it's too late.",
+            what: "Second Chance lets you redo your entire knockout bracket once the real 32 qualifiers are known. Your group stage picks stay the same.",
+            cta: 'Go to Manager & Activate →',
             later: 'Remind me later',
+            teamsLabel: 'knockout teams predicted so far',
         },
         NO: {
             badge: 'ANDRE SJANSE STENGER ⏰',
             host: 'Gruppefasen er nesten ferdig!',
-            pundit: 'Du har fortsatt tid til å aktivere din andre sjanse og gjøre om knockout-bracketditt. Vinduet stenger når siste gruppekamp er ferdig!',
-            cta: 'Aktiver andre sjanse →',
+            pundit: 'Ikke gå glipp av vinduet — når siste gruppekamp er over, er det for sent.',
+            what: 'Andre sjanse lar deg gjøre om hele knockout-bracketen din når de 32 kvalifiserte lagene er kjent.',
+            cta: 'Gå til Manager og aktiver →',
             later: 'Påminn meg senere',
+            teamsLabel: 'knockout-lag forutsett så langt',
         },
         SCO: {
             badge: 'SECOND CHANCE CLOSIN ⏰',
             host: "Group stage is nearly done, pal!",
-            pundit: "Ye've still got time tae activate yer Second Chance and redo yer knockouts. Dinnae let that window slam shut on ye!",
-            cta: 'Activate Second Chance →',
+            pundit: "Dinnae miss yer window — once the last group game's done, it's ower.",
+            what: "Second Chance lets ye redo yer entire knockout bracket once the real 32 qualifiers are known. Yer group picks stay the same.",
+            cta: 'Go tae Manager & Activate →',
             later: 'Remind me later',
+            teamsLabel: 'knockout teams predicted so far',
         },
         US: {
             badge: 'SECOND CHANCE CLOSING ⏰',
             host: 'Group stage is almost done!',
-            pundit: "You still have time to activate your Second Chance and redo your bracket. Once that last group game is over, the window closes for good!",
-            cta: 'Activate Second Chance →',
+            pundit: "Don't miss your window — once the last group game is over, it's too late.",
+            what: "Second Chance lets you redo your entire knockout bracket once the real 32 qualifiers are known. Your group picks stay the same.",
+            cta: 'Go to Manager & Activate →',
             later: 'Remind me later',
+            teamsLabel: 'knockout teams predicted so far',
         },
     },
     knockout: {
         EN: {
             badge: 'LAST CHANCE ⚠️',
             host: 'Knockouts are almost here!',
-            pundit: "Your Second Chance is still sitting there unused. Once the Round of 32 kicks off, it's gone for good — activate it now while you still can!",
-            cta: 'Activate Now →',
+            pundit: "Once Round of 32 kicks off, your Second Chance is gone for good.",
+            what: "Second Chance lets you redo your entire knockout bracket with the real 32 qualifiers. Activate it now and make your picks before the first game.",
+            cta: 'Go to Manager & Activate →',
             later: "I'll skip it",
+            teamsLabel: 'knockout teams predicted so far',
         },
         NO: {
             badge: 'SISTE SJANSE ⚠️',
             host: 'Knockout-fasen starter snart!',
-            pundit: 'Din andre sjanse er fortsatt ubrukt. Når åttendelsfinalen starter, er den borte for alltid — aktiver den nå mens du kan!',
-            cta: 'Aktiver nå →',
+            pundit: 'Når åttendelsfinalen starter, er din andre sjanse borte for alltid.',
+            what: 'Andre sjanse lar deg gjøre om hele knockout-bracketen din med de 32 ekte kvalifiserte lagene. Aktiver nå.',
+            cta: 'Gå til Manager og aktiver →',
             later: 'Jeg hopper over',
+            teamsLabel: 'knockout-lag forutsett så langt',
         },
         SCO: {
             badge: 'LAST CHANCE ⚠️',
             host: 'Knockouts are almost on us!',
-            pundit: "Yer Second Chance is still gathering dust! Once the first knockout game kicks aff, it's deid and buried — get on it noo!",
-            cta: 'Activate Now →',
+            pundit: "Once the first knockout game kicks aff, yer Second Chance is deid and buried.",
+            what: "Second Chance lets ye redo yer entire knockout bracket wi' the real 32 qualifiers. Get on it before the first game.",
+            cta: 'Go tae Manager & Activate →',
             later: "I'll skip it",
+            teamsLabel: 'knockout teams predicted so far',
         },
         US: {
             badge: 'LAST CHANCE ⚠️',
             host: "Knockouts are right around the corner!",
-            pundit: "Your Second Chance is still sitting there unused! Once Round of 32 kicks off, it's gone forever — activate it while you still can!",
-            cta: 'Activate Now →',
+            pundit: "Once Round of 32 kicks off, your Second Chance is gone forever.",
+            what: "Second Chance lets you redo your entire knockout bracket with the real 32 qualifiers. Activate it now and lock in your picks.",
+            cta: 'Go to Manager & Activate →',
             later: "I'll skip it",
+            teamsLabel: 'knockout teams predicted so far',
         },
     },
 };
 
 export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps> = ({
-    isOpen, type, onDismiss, langCode,
+    isOpen, type, pickedTeams, onDismiss, langCode,
 }) => {
     if (!isOpen) return null;
 
@@ -88,6 +108,8 @@ export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps>
     const copy = COPY[type][langCode] ?? COPY[type].EN;
     const teamUrl = `/pundit/team-${lang}.png`;
     const isUrgent = type === 'knockout';
+    const accentColor = isUrgent ? 'red' : 'amber';
+    const pct = Math.round((pickedTeams / 32) * 100);
 
     return createPortal(
         <div className="fixed inset-0 z-[9000] flex items-end sm:items-center justify-center" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -96,7 +118,7 @@ export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps>
             <div className="relative w-full max-w-lg mx-0 sm:mx-4 sm:mb-0 animate-in slide-in-from-bottom-4 duration-400">
                 <div className={`w-full bg-[#0f172a] border-t-4 shadow-[0_-20px_60px_rgba(0,0,0,0.9)] sm:rounded-2xl sm:border-4 overflow-hidden ${isUrgent ? 'border-red-500' : 'border-amber-400'}`}>
 
-                    {/* Character + text */}
+                    {/* Pundit + headline */}
                     <div className="relative flex items-end min-h-[120px] sm:min-h-[140px]">
                         <img
                             src={teamUrl}
@@ -120,7 +142,36 @@ export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps>
 
                     <div className="h-px bg-white/10 mx-4" />
 
-                    <div className="px-4 py-4 flex flex-col gap-2">
+                    {/* What is Second Chance */}
+                    <div className="mx-4 mt-4 rounded-xl bg-white/5 border border-white/10 px-4 py-3 flex items-start gap-3">
+                        <div className={`p-2 rounded-lg shrink-0 ${isUrgent ? 'bg-red-500/15' : 'bg-amber-400/15'}`}>
+                            <RefreshCw size={16} className={isUrgent ? 'text-red-400' : 'text-amber-400'} />
+                        </div>
+                        <p className="text-slate-300 text-[11px] leading-relaxed">
+                            {copy.what}
+                        </p>
+                    </div>
+
+                    {/* Teams picked progress */}
+                    <div className="mx-4 mt-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+                        <div className="flex justify-between items-baseline mb-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                                {copy.teamsLabel}
+                            </span>
+                            <span className={`text-lg font-black tabular-nums ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
+                                {pickedTeams}<span className="text-white/30 text-sm font-bold"> / 32</span>
+                            </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${isUrgent ? 'bg-red-500' : 'bg-amber-400'}`}
+                                style={{ width: `${pct}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* CTAs */}
+                    <div className="px-4 pt-4 pb-4 flex flex-col gap-2">
                         <button
                             onClick={() => onDismiss(true)}
                             className={`w-full py-3.5 text-white rounded-xl font-black uppercase tracking-widest shadow-lg transition-all text-sm active:scale-95 ${isUrgent ? 'bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700' : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500'}`}

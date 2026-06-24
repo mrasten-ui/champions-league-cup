@@ -210,7 +210,8 @@ export const useAppData = () => {
               }
               const mappedLineups: MatchLineup[] = allLineupRows.map((l: any) => ({
                 id: l.id, matchId: l.match_id, teamId: l.team_id,
-                playerName: l.player_name, playerNumber: l.player_number ?? null,
+                playerName: l.player_name, playerId: l.player_id ?? null,
+                playerNumber: l.player_number ?? null,
                 position: l.position ?? null, grid: l.grid ?? null,
                 isStarting: l.is_starting, formation: l.formation ?? null,
                 kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
@@ -475,8 +476,8 @@ export const useAppData = () => {
                           id: e.id, matchId: e.match_id || '', minute: e.minute ?? 0,
                           minuteExtra: e.minute_extra ?? undefined, type: e.type || '',
                           detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
-                          player: e.player ?? undefined, assist: e.assist ?? undefined,
-                          createdAt: e.created_at ?? undefined,
+                          player: e.player ?? undefined, playerId: e.player_id ?? null,
+                          assist: e.assist ?? undefined, createdAt: e.created_at ?? undefined,
                       };
                       setMatchEvents(prev => prev.some(ev => ev.id === event.id) ? prev : [...prev, event]);
                   }
@@ -488,7 +489,8 @@ export const useAppData = () => {
                       const l = payload.new as any;
                       const lineup: MatchLineup = {
                           id: l.id, matchId: l.match_id, teamId: l.team_id,
-                          playerName: l.player_name, playerNumber: l.player_number ?? null,
+                          playerName: l.player_name, playerId: l.player_id ?? null,
+                          playerNumber: l.player_number ?? null,
                           position: l.position ?? null, grid: l.grid ?? null,
                           isStarting: l.is_starting, formation: l.formation ?? null,
                           kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,

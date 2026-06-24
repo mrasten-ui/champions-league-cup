@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
+import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { Clock, MapPin, Trophy, Star, Tv, RefreshCw } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
@@ -25,7 +25,8 @@ interface MatchdayHeroProps {
   onSubstitute?: () => void;
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
-  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
+  playerMatchStats?: PlayerMatchStat[];
+  onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -138,7 +139,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onPlayerClick }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, playerMatchStats = [], onPlayerClick }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
@@ -482,10 +483,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               {subbedIn && <span className="text-[8px] text-green-400 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
             </>;
             const dimmed = bench && !subbedIn;
-            const playerEvt = events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName));
-            const playerClickId = playerEvt?.playerId ?? null;
+            const playerClickId = p.playerId
+              ?? events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName))?.playerId
+              ?? playerMatchStats.find(s => s.playerId && namesMatch(s.playerName, p.playerName))?.playerId
+              ?? null;
             const nameClass = (out: boolean) => `text-[9px] shrink min-w-0 truncate text-left ${out ? 'text-white/30' : 'text-white/75'}`;
-            const nameTap = (out: boolean) => playerClickId && onPlayerClick
+            const nameTap = (out: boolean) => onPlayerClick
               ? <button onClick={() => onPlayerClick(playerClickId, p.playerName, p.teamId)} className={`${nameClass(out)} hover:text-white transition-colors underline decoration-dashed decoration-white/20 underline-offset-2`}>{p.playerName}</button>
               : <span className={nameClass(out)}>{p.playerName}</span>;
             if (side === 'away') {

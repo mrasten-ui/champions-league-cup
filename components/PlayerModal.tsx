@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Star } from 'lucide-react';
+import { X, Star, Info } from 'lucide-react';
 import { MatchEvent, MatchLineup, PlayerMatchStat, Team, Translation } from '../types';
 import { TEAMS } from '../constants';
 import { KitImage } from './KitImage';
 import { KIT_COLORS } from '../kitColors';
 
 interface PlayerModalProps {
-  playerId: number;
+  playerId: number | null;
   playerName: string;
   teamId: string;
   matchEvents: MatchEvent[];
@@ -42,10 +42,19 @@ function ratingBar(r: number): string {
   return 'bg-red-500';
 }
 
+// Soft light version of ratingColor for the header badge (dark background)
+function ratingColorLight(r: number): string {
+  if (r >= 8)  return '#4ade80';
+  if (r >= 7)  return '#a3e635';
+  if (r >= 6)  return '#fbbf24';
+  if (r >= 5)  return '#fb923c';
+  return '#f87171';
+}
+
 export const PlayerModal: React.FC<PlayerModalProps> = ({
   playerId, playerName, teamId,
   matchEvents, matchLineups, playerMatchStats,
-  teams, onClose,
+  teams, lang, onClose,
 }) => {
   const [photoFailed, setPhotoFailed] = useState(false);
 
@@ -85,15 +94,18 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   const posLabel: Record<string, string> = { G: 'GK', D: 'DEF', M: 'MID', F: 'FWD' };
 
   const hasDbStats = dbStats.length > 0;
+  const hasNoData  = !playerId && !hasDbStats && fbGoals + fbAssists + fbApps + fbYellow + fbRed === 0;
 
   const keyStats = [
-    { label: 'Goals',   value: fbGoals,   icon: '⚽' },
-    { label: 'Assists', value: fbAssists, icon: '🎯' },
-    { label: 'Apps',    value: fbApps,    icon: '📋' },
-    { label: 'Yellow',  value: fbYellow,  icon: '🟨' },
-    { label: 'Red',     value: fbRed,     icon: '🟥' },
-    ...(fbOwnGoals > 0 ? [{ label: 'OG', value: fbOwnGoals, icon: '😬' }] : []),
+    { label: lang.playerGoals   ?? 'Goals',   value: fbGoals,   icon: '⚽' },
+    { label: lang.playerAssists ?? 'Assists',  value: fbAssists, icon: '🎯' },
+    { label: lang.playerApps    ?? 'Apps',     value: fbApps,    icon: '📋' },
+    { label: lang.playerYellow  ?? 'Yellow',   value: fbYellow,  icon: '🟨' },
+    { label: lang.playerRed     ?? 'Red',      value: fbRed,     icon: '🟥' },
+    ...(fbOwnGoals > 0 ? [{ label: lang.playerOwnGoal ?? 'OG', value: fbOwnGoals, icon: '😬' }] : []),
   ];
+
+  const showPhoto = !!playerId && !photoFailed;
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={onClose}>
@@ -103,13 +115,13 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
         className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300"
         onClick={e => e.stopPropagation()}
       >
-        {/* ── HEADER (navy, matches TeamDetailsModal) ── */}
+        {/* ── HEADER (navy) ── */}
         <div className="relative h-32 bg-[#0f2545] shrink-0">
           <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-5" />
 
-          {/* Photo — tilted card at bottom-left like team flag */}
+          {/* Photo / avatar */}
           <div className="absolute -bottom-8 left-6 w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 z-10">
-            {!photoFailed ? (
+            {showPhoto ? (
               <img
                 src={`https://media.api-sports.io/football/players/${playerId}.png`}
                 alt={playerName}
@@ -117,7 +129,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 onError={() => setPhotoFailed(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl bg-slate-100">🧑</div>
+              <div className="w-full h-full flex items-center justify-center text-3xl bg-slate-200">🧑</div>
             )}
           </div>
 
@@ -133,9 +145,9 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           {/* Avg rating badge — top right */}
           {avgRating != null && (
             <div className="absolute top-4 right-4 flex flex-col items-end gap-0.5">
-              <span className="text-white/50 text-[9px] font-black uppercase tracking-widest">Rating</span>
+              <span className="text-white/50 text-[9px] font-black uppercase tracking-widest">{lang.playerRating ?? 'Rating'}</span>
               <div className="text-3xl font-black italic tracking-tighter drop-shadow-md"
-                   style={{ color: ratingColor(avgRating) === '#16a34a' ? '#4ade80' : ratingColor(avgRating) === '#65a30d' ? '#a3e635' : ratingColor(avgRating) === '#ca8a04' ? '#fbbf24' : ratingColor(avgRating) === '#ea580c' ? '#fb923c' : '#f87171' }}>
+                   style={{ color: ratingColorLight(avgRating) }}>
                 {avgRating.toFixed(1)}
               </div>
             </div>
@@ -173,6 +185,16 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             </div>
           </div>
 
+          {/* ── No stats yet banner ── */}
+          {hasNoData && (
+            <div className="flex items-start gap-3 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 mb-5">
+              <Info size={16} className="text-slate-400 shrink-0 mt-0.5" />
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                {lang.playerNoStats ?? 'Stats not yet available — check back after their next match.'}
+              </p>
+            </div>
+          )}
+
           {/* ── Rating card (if we have one) ── */}
           {avgRating != null && (
             <div className={`bg-white rounded-xl p-4 shadow-sm border mb-5 flex items-center gap-4 relative overflow-hidden ${ratingBg(avgRating)}`}>
@@ -183,12 +205,14 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 <Star size={24} fill={ratingColor(avgRating)} style={{ color: ratingColor(avgRating) }} />
               </div>
               <div className="relative z-10 flex-1 min-w-0">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Avg Rating · World Cup 2026</div>
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.playerAvgRating ?? 'Avg Rating · World Cup 2026'}</div>
                 <div className="text-3xl font-black leading-none tabular-nums" style={{ color: ratingColor(avgRating) }}>
                   {avgRating.toFixed(1)}
                   <span className="text-sm font-bold text-slate-400 ml-1.5">/10</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{ratedMatches.length} match{ratedMatches.length !== 1 ? 'es' : ''} rated</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  {ratedMatches.length} {ratedMatches.length !== 1 ? 'matches' : 'match'} {lang.playerRatedSuffix ?? 'rated'}
+                </div>
               </div>
             </div>
           )}
@@ -196,7 +220,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           {/* ── Per-match rating bars ── */}
           {ratedMatches.length > 0 && (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-5">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Match Ratings</h4>
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">{lang.playerMatchRatings ?? 'Match Ratings'}</h4>
               <div className="flex flex-col gap-2">
                 {dbStats.map((s, i) => {
                   const r = s.rating;
@@ -222,18 +246,20 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           )}
 
           {/* ── Key stats row ── */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-4">
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">World Cup 2026</h4>
-            <div className="flex justify-around gap-1">
-              {keyStats.map(s => (
-                <div key={s.label} className="flex flex-col items-center gap-1">
-                  <span className="text-xl leading-none">{s.icon}</span>
-                  <span className="text-slate-900 font-black text-lg leading-none tabular-nums">{s.value}</span>
-                  <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wide">{s.label}</span>
-                </div>
-              ))}
+          {!hasNoData && (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-4">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">{lang.playerTournamentLabel ?? 'World Cup 2026'}</h4>
+              <div className="flex justify-around gap-1">
+                {keyStats.map(s => (
+                  <div key={s.label} className="flex flex-col items-center gap-1">
+                    <span className="text-xl leading-none">{s.icon}</span>
+                    <span className="text-slate-900 font-black text-lg leading-none tabular-nums">{s.value}</span>
+                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wide">{s.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ── Detailed stats (shots / passes / tackles) ── */}
           {hasDbStats && (totalShots > 0 || totalPasses > 0 || totalTackles > 0) && (
@@ -254,10 +280,6 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
               ))}
             </div>
           )}
-
-          {!hasDbStats && fbGoals + fbAssists + fbApps + fbYellow + fbRed === 0 && (
-            <p className="text-slate-400 text-xs text-center mt-2">No recorded stats yet this tournament</p>
-          )}
         </div>
 
         {/* ── FOOTER BUTTON ── */}
@@ -266,7 +288,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
             onClick={onClose}
             className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs transition-colors shadow-lg"
           >
-            Close
+            {lang.playerClose ?? 'Close'}
           </button>
         </div>
       </div>
