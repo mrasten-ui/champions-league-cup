@@ -266,6 +266,21 @@ const EN_TRANSLATION: Translation = {
     thirdPlace: "3rd Place Play-off",
     final: "Final",
 
+    // --- STADIUM MODAL ---
+    openingMatch: "Opening Match",
+    stadiumFifaName: "FIFA Name",
+    stadiumLocalName: "Local Name",
+    stadiumCity: "City",
+    stadiumCapacity: "Capacity",
+    stadiumOpened: "Year Opened",
+    stadiumSurface: "Surface",
+    stadiumRoof: "Roof",
+    stadiumWCMatches: "WC Matches",
+    stadiumKeyMatches: "Key Matches",
+    roofOpen: "Open Air",
+    roofRetractable: "Retractable",
+    roofFixed: "Fixed Roof",
+
     // --- PLAYER MODAL ---
     playerClose: "Close",
     playerRating: "Rating",
@@ -405,6 +420,10 @@ const SCO_TRANSLATION: Translation = {
     thirdPlace: "3rd Place Play-off",
     final: "The Big Yin",
 
+    openingMatch: "Openin' Match",
+    stadiumWCMatches: "Cup Games",
+    stadiumKeyMatches: "Big Games",
+
     playerClose: "Shut It",
     playerAvgRating: "Avg Rating · The Cup 2026",
     playerMatchRatings: "Match Ratins",
@@ -535,6 +554,7 @@ const US_TRANSLATION: Translation = {
     thirdPlace: "Bronze Medal Match",
     final: "Championship",
 
+    stadiumWCMatches: "World Cup Games",
     playerApps: "Games",
     playerNoStats: "Stats coming soon — check back after their next match.",
 
@@ -663,6 +683,20 @@ const NO_TRANSLATION: Translation = {
     semiFinal: "Semifinale",
     thirdPlace: "Bronsefinale",
     final: "Finale",
+
+    openingMatch: "Åpningskamp",
+    stadiumFifaName: "FIFA-navn",
+    stadiumLocalName: "Lokalt navn",
+    stadiumCity: "By",
+    stadiumCapacity: "Kapasitet",
+    stadiumOpened: "Åpnet",
+    stadiumSurface: "Underlag",
+    stadiumRoof: "Tak",
+    stadiumWCMatches: "VM-kamper",
+    stadiumKeyMatches: "Nøkkelkamper",
+    roofOpen: "Åpent",
+    roofRetractable: "Innfellbart tak",
+    roofFixed: "Fast tak",
 
     playerClose: "Lukk",
     playerRating: "Karakter",

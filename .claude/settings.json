@@ -50,7 +50,8 @@
       "Read(//mnt/c/Users/mrast/**)",
       "Read(//c/Users/mrast/Downloads/**)",
       "Read(//c/Users/mrast/OneDrive/**)",
-      "Bash(grep -v \"//\\\\|const\\\\|useMemo\\\\|useState\\\\|filter\\\\|utcDay\\\\|map\\\\|sort\\\\|some\\\\|find\")"
+      "Bash(grep -v \"//\\\\|const\\\\|useMemo\\\\|useState\\\\|filter\\\\|utcDay\\\\|map\\\\|sort\\\\|some\\\\|find\")",
+      "WebFetch(domain:sketchfab.com)"
     ]
   }
 }

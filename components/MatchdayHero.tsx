@@ -27,6 +27,7 @@ interface MatchdayHeroProps {
   isUnlockedBySub?: boolean;
   playerMatchStats?: PlayerMatchStat[];
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
+  onStadiumClick?: (venue: string) => void;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -139,7 +140,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, playerMatchStats = [], onPlayerClick }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
@@ -681,8 +682,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         <div className="relative z-10 bg-black/20 border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
             {/* Left: Stadium */}
             <div className="flex items-center gap-2 w-1/3">
-                <MapPin size={12} className="text-slate-500" />
-                <span className="truncate max-w-[120px]">{match.venue ? match.venue.split(',')[0] : 'Stadium TBD'}</span>
+                <MapPin size={12} className="text-slate-500 shrink-0" />
+                {onStadiumClick && match.venue ? (
+                    <button
+                        onClick={() => onStadiumClick(match.venue!)}
+                        className="truncate max-w-[120px] underline decoration-dashed underline-offset-2 decoration-slate-600 hover:text-amber-400 hover:decoration-amber-400 transition-colors"
+                    >
+                        {match.venue.split(',')[0]}
+                    </button>
+                ) : (
+                    <span className="truncate max-w-[120px]">{match.venue ? match.venue.split(',')[0] : 'Stadium TBD'}</span>
+                )}
             </div>
 
             {/* Center: Prediction (Moved back here, no pill) */}

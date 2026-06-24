@@ -46,6 +46,7 @@ interface MatchCardProps {
   hideHeader?: boolean;
   playerMatchStats?: PlayerMatchStat[];
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
+  onStadiumClick?: (venue: string) => void;
 }
 
 
@@ -72,7 +73,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -260,6 +261,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         const venueInFooter = showStatusBadge && (isLive || isFinished);
         if (!venueInFooter) {
             const cityString = getShortVenue(match.venue);
+            if (onStadiumClick && match.venue) {
+                return (
+                    <button
+                        onClick={() => onStadiumClick(match.venue!)}
+                        className="flex items-center gap-1 text-slate-300 opacity-90 hover:text-amber-400 hover:opacity-100 transition-colors"
+                        title={match.venue}
+                    >
+                        <MapPin size={10} />
+                        <span className="text-xs font-bold uppercase tracking-wider truncate max-w-[90px] sm:max-w-[120px] underline decoration-dashed underline-offset-2 decoration-slate-500 hover:decoration-amber-400">
+                            {cityString}
+                        </span>
+                    </button>
+                );
+            }
             return (
                 <div className="flex items-center gap-1 text-slate-300 opacity-90" title={match.venue || 'Stadium TBD'}>
                     <MapPin size={10} />
@@ -900,7 +915,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     <div className="flex items-center gap-1.5 opacity-80 min-w-0 w-1/3">
                         <MapPin size={10} className="shrink-0" />
-                        <span className="text-[10px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
+                        {onStadiumClick && match.venue ? (
+                            <button
+                                onClick={() => onStadiumClick(match.venue!)}
+                                className="text-[10px] font-medium uppercase tracking-wider truncate underline decoration-dashed underline-offset-2 decoration-white/40 hover:text-amber-400 hover:decoration-amber-400 transition-colors"
+                            >
+                                {match.venue}
+                            </button>
+                        ) : (
+                            <span className="text-[10px] font-medium uppercase tracking-wider truncate">{match.venue || 'Stadium TBD'}</span>
+                        )}
                     </div>
 
                     {/* CENTER: User Prediction */}

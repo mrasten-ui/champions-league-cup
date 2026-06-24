@@ -46,6 +46,7 @@ import { KnockoutReminderModal } from './components/KnockoutReminderModal';
 import { SecondChanceReminderModal, SCReminderType } from './components/SecondChanceReminderModal';
 import { GoalBanner, GoalNotification, KitNotification } from './components/GoalBanner';
 import { PlayerModal } from './components/PlayerModal';
+import { StadiumModal } from './components/StadiumModal';
 import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
@@ -123,6 +124,7 @@ export const App = () => {
   const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
   const kitNotification = kitQueue[0] ?? null;
   const [playerModal, setPlayerModal] = useState<{ playerId: number | null; playerName: string; teamId: string } | null>(null);
+  const [stadiumVenue, setStadiumVenue] = useState<string | null>(null);
   const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
   const kitInitializedRef = useRef(false);
   const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -1370,7 +1372,7 @@ export const App = () => {
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} />}
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
@@ -1427,6 +1429,7 @@ export const App = () => {
                                 events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                                 playerMatchStats={playerMatchStats}
                                 onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
+                                onStadiumClick={v => setStadiumVenue(v)}
                               />
                           ))}
                       </div>
@@ -1561,6 +1564,13 @@ export const App = () => {
           teams={teamsData}
           lang={t}
           onClose={() => setPlayerModal(null)}
+        />
+      )}
+      {stadiumVenue && (
+        <StadiumModal
+          venue={stadiumVenue}
+          lang={t}
+          onClose={() => setStadiumVenue(null)}
         />
       )}
 
