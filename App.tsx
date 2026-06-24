@@ -43,6 +43,7 @@ import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
+import { SecondChanceReminderModal, SCReminderType } from './components/SecondChanceReminderModal';
 import { GoalBanner, GoalNotification, KitNotification } from './components/GoalBanner';
 import { PlayerModal } from './components/PlayerModal';
 import { LiveTicker } from './components/LiveTicker';
@@ -54,6 +55,8 @@ const STORAGE_KEYS = {
   KNOCKOUT_COMPLETION_TIME_PREFIX: 'rasten_knockout_done_v1_',
   KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX: 'rasten_knockout_reminder_v1_',
   NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
+  SC_REMINDER_GROUP_PREFIX:    'rasten_sc_reminder_group_v1_',
+  SC_REMINDER_KNOCKOUT_PREFIX: 'rasten_sc_reminder_ko_v1_',
 };
 
 export const App = () => {
@@ -112,6 +115,8 @@ export const App = () => {
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
+  const [showSCReminder, setShowSCReminder] = useState(false);
+  const [scReminderType, setScReminderType] = useState<SCReminderType>('group');
   const [goalQueue, setGoalQueue] = useState<GoalNotification[]>([]);
   const seenEventIdsRef = useRef<Set<number>>(new Set());
   const goalNotification = goalQueue[0] ?? null;
@@ -1019,6 +1024,35 @@ export const App = () => {
       if (goToKnockouts) setActiveTab('knockout');
   };
 
+  // Second Chance timed reminders — 24h before group stage ends, 12h before first knockout
+  useEffect(() => {
+      if (!user || user.secondChanceStatus !== 'NONE' || user.hasTakenSecondChance) return;
+      const now = Date.now();
+
+      // Knockout reminder takes priority if its window has opened
+      if (knockoutStartTime > 0 && now >= knockoutStartTime - 12 * 60 * 60 * 1000 && now < knockoutStartTime) {
+          const seen = localStorage.getItem(STORAGE_KEYS.SC_REMINDER_KNOCKOUT_PREFIX + user.email);
+          if (!seen) { setScReminderType('knockout'); setShowSCReminder(true); return; }
+      }
+
+      // Group stage reminder — 24h before group stage ends
+      if (groupStageEndTime > 0 && now >= groupStageEndTime - 24 * 60 * 60 * 1000 && now < groupStageEndTime) {
+          const seen = localStorage.getItem(STORAGE_KEYS.SC_REMINDER_GROUP_PREFIX + user.email);
+          if (!seen) { setScReminderType('group'); setShowSCReminder(true); }
+      }
+  }, [user, groupStageEndTime, knockoutStartTime]);
+
+  const handleSCReminderDismiss = (goToManager: boolean) => {
+      if (user) {
+          const key = scReminderType === 'knockout'
+              ? STORAGE_KEYS.SC_REMINDER_KNOCKOUT_PREFIX
+              : STORAGE_KEYS.SC_REMINDER_GROUP_PREFIX;
+          localStorage.setItem(key + user.email, '1');
+      }
+      setShowSCReminder(false);
+      if (goToManager) setActiveTab('manager');
+  };
+
   // --- GOAL BANNER ---
   // Uses createdAt freshness (3 min) to prevent stale events from notifying on reload.
   // Queue-based so rapid goals all show rather than dropping all but the first.
@@ -1234,14 +1268,7 @@ export const App = () => {
         onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => { setActiveTab('leaderboard'); setShowLiveTour(true); }}
-        showSecondChanceBadge={
-            tournamentPhase === 'LIVE' &&
-            !user?.hasTakenSecondChance &&
-            user?.secondChanceStatus === 'NONE' &&
-            groupStageEndTime > 0 &&
-            Date.now() >= groupStageEndTime - 7 * 24 * 60 * 60 * 1000 &&
-            Date.now() < groupStageEndTime
-        }
+        showSecondChanceBadge={false}
         isAdminMode={isAdminMode}
         unassignedCount={unassignedCount}
         onInstallApp={installAction ?? undefined}
@@ -1486,6 +1513,7 @@ export const App = () => {
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
+      <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} onDismiss={handleSCReminderDismiss} langCode={language} />
       <GoalBanner
         notification={goalNotification}
         homeTeam={goalNotification ? teamsData[goalNotification.homeTeamId] : undefined}
