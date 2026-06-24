@@ -24,6 +24,7 @@ interface TournamentScheduleProps {
   matchStats?: MatchStats[];
   onSubstitute?: (matchId: string) => void;
   onUpdate?: (id: string, h: number, a: number) => void;
+  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
 }
 
 // MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
@@ -47,7 +48,7 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], onSubstitute, onUpdate
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], onSubstitute, onUpdate, onPlayerClick
 }) => {
 
   // Get the correct BCP 47 locale string
@@ -362,6 +363,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         onSubstitute={onSubstitute ? () => onSubstitute(match.id) : undefined}
                                         substitutionsLeft={user?.substitutions ?? 0}
                                         isUnlockedBySub={user?.unlockedMatches?.includes(match.id) ?? false}
+                                        onPlayerClick={onPlayerClick}
                                     />
                                 )}
                                 {isHighStakes && !isHero && (

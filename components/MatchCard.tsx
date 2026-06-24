@@ -44,6 +44,7 @@ interface MatchCardProps {
   lineups?: MatchLineup[];
   stats?: MatchStats | null;
   hideHeader?: boolean;
+  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
 }
 
 
@@ -70,7 +71,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, onPlayerClick
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -588,12 +589,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    ? <span className="text-[8px] font-black tabular-nums text-slate-400 w-5 text-center shrink-0 leading-none">{p.playerNumber}</span>
                    : null;
                  const dimmed = bench && !subbedIn;
+                 const playerEvt = events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName));
+                 const playerClickId = playerEvt?.playerId ?? null;
+                 const nameClass = (out: boolean) => `text-[9px] shrink min-w-0 truncate text-left ${out ? 'text-slate-400' : 'text-slate-700'}`;
+                 const nameTap = (out: boolean) => playerClickId && onPlayerClick
+                   ? <button onClick={() => onPlayerClick(playerClickId, p.playerName, p.teamId)} className={`${nameClass(out)} hover:text-indigo-500 transition-colors`}>{p.playerName}</button>
+                   : <span className={nameClass(out)}>{p.playerName}</span>;
                  if (side === 'away') {
                    return (
                      <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
                        <span className="flex-1" />
                        {subBadges}{goalBadges}
-                       <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                       {nameTap(!!subbedOut)}
                        {numBadge}{kitIcon}
                      </div>
                    );
@@ -601,7 +608,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  return (
                    <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
                      {kitIcon}{numBadge}
-                     <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-slate-400' : 'text-slate-700'}`}>{p.playerName}</span>
+                     {nameTap(!!subbedOut)}
                      {goalBadges}{subBadges}
                      <span className="flex-1" />
                    </div>
@@ -777,11 +784,18 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                      </span>
                    ];
                  }
+                 const evtNameEl = (name: string | undefined) => {
+                   if (!name) return <span className="italic text-slate-400">—</span>;
+                   const cls = `truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`;
+                   return e.playerId && onPlayerClick
+                     ? <button onClick={() => onPlayerClick(e.playerId!, name, e.teamId!)} className={`${cls} hover:text-indigo-500 transition-colors text-left`}>{name}</button>
+                     : <span className={cls}>{name}</span>;
+                 };
                  return [
                    <span key={e.id} className={`flex items-center gap-1 text-slate-500 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
-                     {side === 'away' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>}
+                     {side === 'away' && evtNameEl(e.player)}
                      <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
-                     {side === 'home' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`}>{e.player || <span className="italic text-slate-400">—</span>}</span>}
+                     {side === 'home' && evtNameEl(e.player)}
                      <Icon e={e} />
                    </span>
                  ];

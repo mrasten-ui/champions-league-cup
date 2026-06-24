@@ -1328,7 +1328,7 @@ export const App = () => {
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} />}
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
@@ -1383,6 +1383,7 @@ export const App = () => {
                                 showStatusBadge={false}
                                 context="groups"
                                 events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
+                                onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
                               />
                           ))}
                       </div>
