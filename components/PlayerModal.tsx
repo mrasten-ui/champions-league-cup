@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, Star } from 'lucide-react';
 import { MatchEvent, MatchLineup, PlayerMatchStat, Team, Translation } from '../types';
 import { TEAMS } from '../constants';
+import { KitImage } from './KitImage';
+import { KIT_COLORS } from '../kitColors';
 
 interface PlayerModalProps {
   playerId: number;
@@ -116,6 +118,15 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-3xl bg-slate-100">🧑</div>
+            )}
+          </div>
+
+          {/* Kit images — home, away, optional third */}
+          <div className="absolute bottom-3 left-28 flex items-end gap-4">
+            <KitImage teamId={teamId} kitType="home" size="sm" />
+            <KitImage teamId={teamId} kitType="away" size="sm" />
+            {KIT_COLORS[teamId]?.third && (
+              <KitImage teamId={teamId} kitType="third" size="sm" />
             )}
           </div>
 

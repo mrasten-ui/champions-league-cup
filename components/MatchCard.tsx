@@ -784,18 +784,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                      </span>
                    ];
                  }
+                 const isGoal = e.type === 'Goal';
                  const evtNameEl = (name: string | undefined) => {
                    if (!name) return <span className="italic text-slate-400">—</span>;
-                   const cls = `truncate ${e.type === 'Goal' ? 'font-bold text-slate-700' : ''}`;
+                   const cls = `truncate ${isGoal ? 'font-bold text-slate-700 text-[10px]' : 'text-[9px]'}`;
                    return e.playerId && onPlayerClick
-                     ? <button onClick={() => onPlayerClick(e.playerId!, name, e.teamId!)} className={`${cls} hover:text-indigo-500 transition-colors text-left`}>{name}</button>
+                     ? <button onClick={() => onPlayerClick(e.playerId!, name, e.teamId!)} className={`${cls} underline decoration-dashed decoration-slate-300 underline-offset-2 hover:text-indigo-500 hover:decoration-indigo-300 transition-colors text-left`}>{name}</button>
                      : <span className={cls}>{name}</span>;
                  };
+                 const goalPhoto = isGoal && e.playerId ? (
+                   <img
+                     src={`https://media.api-sports.io/football/players/${e.playerId}.png`}
+                     className="w-4 h-4 rounded-full shrink-0 object-cover border border-slate-200"
+                     onError={ev => { (ev.target as HTMLImageElement).style.display = 'none'; }}
+                     alt=""
+                   />
+                 ) : null;
                  return [
-                   <span key={e.id} className={`flex items-center gap-1 text-slate-500 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
+                   <span key={e.id} className={`flex items-center gap-1 text-slate-500 min-w-0 ${isGoal ? 'min-h-[18px]' : ''} ${side === 'away' ? 'justify-end' : ''}`}>
+                     {side === 'away' && goalPhoto}
                      {side === 'away' && evtNameEl(e.player)}
                      <span className="font-bold text-slate-600 shrink-0">{fmtMin(e)}</span>
                      {side === 'home' && evtNameEl(e.player)}
+                     {side === 'home' && goalPhoto}
                      <Icon e={e} />
                    </span>
                  ];
