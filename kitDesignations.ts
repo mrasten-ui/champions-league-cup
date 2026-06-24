@@ -30,7 +30,7 @@ const MATCH_KITS: Record<string, Partial<Record<string, KitType>>> = {
   'HAI-SCO': { HAI: 'home', SCO: 'away' },          // M6:  SCO pushed off navy by HAI white → red away
   'BRA-HAI': { BRA: 'home', HAI: 'away' },          // M11
   'MAR-SCO': { MAR: 'home', SCO: 'away' },          // M12
-  'BRA-SCO': { BRA: 'home', SCO: 'home' },          // M37: SCO in home navy; BRA drops blue shorts
+  'SCO-BRA': { SCO: 'home', BRA: 'home' },          // M37: SCO in home navy; BRA in yellow (drops blue shorts)
   'MAR-HAI': { MAR: 'home', HAI: 'away' },          // M38
 
   // ── GROUP D — USA, Paraguay, Australia, Türkiye ──────────────────────────────

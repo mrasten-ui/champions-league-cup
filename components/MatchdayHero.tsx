@@ -609,20 +609,26 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             );
           };
           const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
+            // Resolve player IDs via lookup chain: DB field → lineups name-match → playerMatchStats name-match
+            const resolveId = (name: string | null | undefined) =>
+              lineups.find(l => String(l.matchId) === String(e.matchId) && namesMatch(l.playerName, name))?.playerId
+              ?? playerMatchStats.find(s => s.playerId && namesMatch(s.playerName, name))?.playerId
+              ?? null;
+
             if (e.type?.toLowerCase() === 'subst') {
               const nameSpanClass = 'flex items-center gap-1 min-w-0 flex-1';
-              const outSpan = e.player && (
-                <span key="out" className={nameSpanClass}>
-                  <span className="text-red-400 font-bold shrink-0">↓</span>
-                  <span className="truncate text-white/60">{abbreviateName(e.player)}</span>
+              const outId = e.playerId ?? resolveId(e.player);
+              const inId = resolveId(e.assist);
+              const subName = (name: string | undefined, id: number | null | undefined, arrow: React.ReactNode, key: string) => !name ? null : (
+                <span key={key} className={nameSpanClass}>
+                  {arrow}
+                  {onPlayerClick
+                    ? <button onClick={() => onPlayerClick(id ?? null, name, e.teamId!)} className="truncate text-white/60 hover:text-white transition-colors text-left underline decoration-dashed decoration-white/20 underline-offset-2">{abbreviateName(name)}</button>
+                    : <span className="truncate text-white/60">{abbreviateName(name)}</span>}
                 </span>
               );
-              const inSpan = e.assist && (
-                <span key="in" className={nameSpanClass}>
-                  <span className="text-green-400 font-bold shrink-0">↑</span>
-                  <span className="truncate text-white/60">{abbreviateName(e.assist)}</span>
-                </span>
-              );
+              const outSpan = subName(e.player, outId, <span className="text-red-400 font-bold shrink-0">↓</span>, 'out');
+              const inSpan  = subName(e.assist, inId, <span className="text-green-400 font-bold shrink-0">↑</span>, 'in');
               return [
                 <span key={e.id} className={`flex items-center gap-1.5 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
                   {side === 'away' && outSpan}
@@ -634,16 +640,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               ];
             }
             const isGoal = e.type === 'Goal';
+            const evtPlayerId = e.playerId ?? resolveId(e.player);
             const evtNameEl = (name: string | undefined) => {
               if (!name) return <span className="italic text-white/30">—</span>;
               const cls = `truncate ${isGoal ? 'font-bold text-white text-[10px]' : 'text-[9px]'}`;
-              return e.playerId && onPlayerClick
-                ? <button onClick={() => onPlayerClick(e.playerId!, name, e.teamId!)} className={`${cls} underline decoration-dashed decoration-white/20 underline-offset-2 hover:text-white transition-colors text-left`}>{name}</button>
+              return onPlayerClick
+                ? <button onClick={() => onPlayerClick(evtPlayerId ?? null, name, e.teamId!)} className={`${cls} underline decoration-dashed decoration-white/20 underline-offset-2 hover:text-white transition-colors text-left`}>{name}</button>
                 : <span className={cls}>{name}</span>;
             };
-            const goalPhoto = isGoal && e.playerId ? (
+            const goalPhoto = isGoal && evtPlayerId ? (
               <img
-                src={`https://media.api-sports.io/football/players/${e.playerId}.png`}
+                src={`https://media.api-sports.io/football/players/${evtPlayerId}.png`}
                 className="w-4 h-4 rounded-full shrink-0 object-cover border border-white/20"
                 onError={ev => { (ev.target as HTMLImageElement).style.display = 'none'; }}
                 alt=""
