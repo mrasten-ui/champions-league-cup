@@ -177,7 +177,7 @@ export const useAppData = () => {
                 const mappedEvents: MatchEvent[] = events.map(e => ({
                   id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
                   type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
-                  player: e.player ?? undefined, assist: e.assist ?? undefined,
+                  player: e.player ?? undefined, playerId: e.player_id ?? null, assist: e.assist ?? undefined,
                   createdAt: e.created_at ?? undefined,
                 }));
                 rcSet('events', mappedEvents);

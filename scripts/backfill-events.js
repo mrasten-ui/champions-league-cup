@@ -125,6 +125,7 @@ async function backfillMatch(match) {
       detail:       event.detail    ?? null,
       team_id:      teamId,
       player:       event.player?.name ?? null,
+      player_id:    event.player?.id   ?? null,
       assist:       event.assist?.name ?? null,
       // Set to kickoff time so freshness check never fires old notifications
       created_at:   kickoffDate,

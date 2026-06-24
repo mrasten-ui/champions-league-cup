@@ -14,6 +14,7 @@ export interface GoalNotification {
   eventType: 'Goal' | 'Var';
   teamId: string;
   player?: string;
+  playerId?: number | null;
   detail?: string;
   minute: number;
   minuteExtra?: number | null;
@@ -177,20 +178,35 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           className={`relative z-10 flex items-center ${onNavigate ? 'cursor-pointer' : ''}`}
           onClick={onNavigate}
         >
-          {/* LEFT: ball / disallowed in team-color circle */}
+          {/* LEFT: player photo (when available), ball, or disallowed */}
           <div className="flex items-center justify-center px-3 py-4 shrink-0">
             <div
-              className="relative w-[58px] h-[58px] rounded-full flex items-center justify-center"
-              style={{ background: `${teamColor}20`, boxShadow: `0 0 0 2px ${teamColor}50` }}
+              className="relative w-[58px] h-[58px] rounded-full flex items-center justify-center overflow-hidden"
+              style={{ background: `${teamColor}20`, boxShadow: `0 0 0 2px ${teamColor}60` }}
             >
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{ background: `radial-gradient(circle, ${teamColor}35 0%, transparent 70%)` }}
-              />
               {isVAR ? (
                 <span className="relative text-[30px] leading-none drop-shadow-lg">🚫</span>
+              ) : notification.playerId ? (
+                <>
+                  <img
+                    src={`https://media.api-sports.io/football/players/${notification.playerId}.png`}
+                    alt={notification.player ?? ''}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const t = e.currentTarget;
+                      t.style.display = 'none';
+                      t.nextElementSibling && ((t.nextElementSibling as HTMLElement).style.display = 'flex');
+                    }}
+                  />
+                  <div className="absolute inset-0 items-center justify-center hidden">
+                    <img src="/wc26-ball.png" className="w-9 h-9 object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]" alt="" />
+                  </div>
+                </>
               ) : (
-                <img src="/wc26-ball.png" className="relative w-9 h-9 object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]" alt="" />
+                <>
+                  <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${teamColor}35 0%, transparent 70%)` }} />
+                  <img src="/wc26-ball.png" className="relative w-9 h-9 object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]" alt="" />
+                </>
               )}
             </div>
           </div>

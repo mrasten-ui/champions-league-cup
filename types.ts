@@ -219,6 +219,7 @@ export interface MatchEvent {
   detail?: string;   // 'Normal Goal', 'Own Goal', 'Penalty', 'Yellow Card', etc.
   teamId?: string;
   player?: string;
+  playerId?: number | null;
   assist?: string;
   createdAt?: string; // ISO timestamp from DB — used for notification staleness check
 }

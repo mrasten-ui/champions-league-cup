@@ -1047,6 +1047,7 @@ export const App = () => {
         eventType: e.type as 'Goal' | 'Var',
         teamId: e.teamId || '',
         player: e.player,
+        playerId: e.playerId,
         detail: e.detail,
         minute: e.minute,
         minuteExtra: e.minuteExtra,
