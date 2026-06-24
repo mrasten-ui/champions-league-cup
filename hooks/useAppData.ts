@@ -5,6 +5,35 @@ import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchSta
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
+// ── localStorage cache — cuts repeated Supabase egress on page refresh/re-mount ──
+const RC_TTL = {
+  predictions: 3 * 60 * 1000,
+  profiles:    5 * 60 * 1000,
+  lineups:    10 * 60 * 1000,
+  events:      2 * 60 * 1000,
+  stats:       2 * 60 * 1000,
+  teams:      60 * 60 * 1000,
+  avatars:    24 * 60 * 60 * 1000,
+} as const;
+
+const rcGet = <T>(key: keyof typeof RC_TTL): T | null => {
+  try {
+    const raw = localStorage.getItem(`RC_${key}`);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw) as { data: T; ts: number };
+    return Date.now() - ts < RC_TTL[key] ? data : null;
+  } catch { return null; }
+};
+
+const rcSet = (key: keyof typeof RC_TTL, data: unknown): void => {
+  try { localStorage.setItem(`RC_${key}`, JSON.stringify({ data, ts: Date.now() })); }
+  catch { /* ignore localStorage quota */ }
+};
+
+export const bustPredictionsCache = (): void => {
+  try { localStorage.removeItem('RC_predictions'); } catch { /* ignore */ }
+};
+
 export const useAppData = () => {
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -33,12 +62,18 @@ export const useAppData = () => {
   const fetchPresetAvatars = async () => {
     if (!supabase) return;
     const getSafeUrl = (path: string) => supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    const cached = rcGet<{ men: string[]; women: string[] }>('avatars');
+    if (cached) { setMenPresets(cached.men); setWomenPresets(cached.women); return; }
     try {
         const { data: menData } = await supabase.storage.from('avatars').list('men');
-        if (menData) setMenPresets(menData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`men/${f.name}`)));
-        
+        const men = menData ? menData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`men/${f.name}`)) : [];
+        if (men.length) setMenPresets(men);
+
         const { data: womenData } = await supabase.storage.from('avatars').list('women');
-        if (womenData) setWomenPresets(womenData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`women/${f.name}`)));
+        const women = womenData ? womenData.filter(f => !f.name.startsWith('.')).map(f => getSafeUrl(`women/${f.name}`)) : [];
+        if (women.length) setWomenPresets(women);
+
+        if (men.length || women.length) rcSet('avatars', { men, women });
     } catch (e) { console.error("Avatar fetch error", e); }
   };
 
@@ -107,131 +142,174 @@ export const useAppData = () => {
           }
 
           {
-            const PAGE = 1000;
-            let allPredRows: any[] = [];
-            let from = 0;
-            let keepGoing = true;
-            while (keepGoing) {
-              const { data: page, error: pageErr } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
-              if (pageErr) { console.error('Predictions fetch error (page', from, '):', pageErr); keepGoing = false; break; }
-              if (page && page.length > 0) {
-                allPredRows.push(...page);
-                keepGoing = page.length === PAGE;
-                from += PAGE;
-              } else {
-                keepGoing = false;
+            const cachedPreds = rcGet<Prediction[]>('predictions');
+            if (cachedPreds) {
+              setAllPredictions(cachedPreds);
+            } else {
+              const PAGE = 1000;
+              let allPredRows: any[] = [];
+              let from = 0;
+              let keepGoing = true;
+              while (keepGoing) {
+                const { data: page, error: pageErr } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
+                if (pageErr) { console.error('Predictions fetch error (page', from, '):', pageErr); keepGoing = false; break; }
+                if (page && page.length > 0) {
+                  allPredRows.push(...page);
+                  keepGoing = page.length === PAGE;
+                  from += PAGE;
+                } else {
+                  keepGoing = false;
+                }
               }
+              const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 }));
+              rcSet('predictions', mappedPreds);
+              setAllPredictions(mappedPreds);
             }
-            setAllPredictions(allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 })));
-          }
-
-          const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).limit(10000);
-          if (events) {
-            setMatchEvents(events.map(e => ({
-              id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
-              type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
-              player: e.player ?? undefined, assist: e.assist ?? undefined,
-              createdAt: e.created_at ?? undefined,
-            })));
           }
 
           {
-            const PAGE = 1000;
-            let allLineupRows: any[] = [];
-            let from = 0;
-            let keepGoing = true;
-            while (keepGoing) {
-              const { data: page, error: pageErr } = await supabase.from('match_lineups').select('*').range(from, from + PAGE - 1);
-              if (pageErr) { console.error('Lineups fetch error (page', from, '):', pageErr); keepGoing = false; break; }
-              if (page && page.length > 0) {
-                allLineupRows.push(...page);
-                keepGoing = page.length === PAGE;
-                from += PAGE;
-              } else {
-                keepGoing = false;
+            const cachedEvents = rcGet<MatchEvent[]>('events');
+            if (cachedEvents) {
+              setMatchEvents(cachedEvents);
+            } else {
+              const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).limit(10000);
+              if (events) {
+                const mappedEvents: MatchEvent[] = events.map(e => ({
+                  id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
+                  type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
+                  player: e.player ?? undefined, assist: e.assist ?? undefined,
+                  createdAt: e.created_at ?? undefined,
+                }));
+                rcSet('events', mappedEvents);
+                setMatchEvents(mappedEvents);
               }
             }
-            setMatchLineups(allLineupRows.map((l: any) => ({
-              id: l.id, matchId: l.match_id, teamId: l.team_id,
-              playerName: l.player_name, playerNumber: l.player_number ?? null,
-              position: l.position ?? null, grid: l.grid ?? null,
-              isStarting: l.is_starting, formation: l.formation ?? null,
-              kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
-            })));
           }
 
-          const { data: stats } = await supabase.from('match_stats').select('*').limit(10000);
-          if (stats) {
-            setMatchStats(stats.map((s: any) => ({
-              matchId: String(s.match_id),
-              homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
-              homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
-              homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
-              homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
-              homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
-              homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
-              homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
-              homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
-              homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
-            })));
+          {
+            const cachedLineups = rcGet<MatchLineup[]>('lineups');
+            if (cachedLineups) {
+              setMatchLineups(cachedLineups);
+            } else {
+              const PAGE = 1000;
+              let allLineupRows: any[] = [];
+              let from = 0;
+              let keepGoing = true;
+              while (keepGoing) {
+                const { data: page, error: pageErr } = await supabase.from('match_lineups').select('*').range(from, from + PAGE - 1);
+                if (pageErr) { console.error('Lineups fetch error (page', from, '):', pageErr); keepGoing = false; break; }
+                if (page && page.length > 0) {
+                  allLineupRows.push(...page);
+                  keepGoing = page.length === PAGE;
+                  from += PAGE;
+                } else {
+                  keepGoing = false;
+                }
+              }
+              const mappedLineups: MatchLineup[] = allLineupRows.map((l: any) => ({
+                id: l.id, matchId: l.match_id, teamId: l.team_id,
+                playerName: l.player_name, playerNumber: l.player_number ?? null,
+                position: l.position ?? null, grid: l.grid ?? null,
+                isStarting: l.is_starting, formation: l.formation ?? null,
+                kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
+              }));
+              rcSet('lineups', mappedLineups);
+              setMatchLineups(mappedLineups);
+            }
           }
 
-          const { data: profiles } = await supabase.from('profiles').select('*');
-          if (profiles) {
-              const pMap: Record<string, UserProfile> = {};
-              profiles.forEach(p => {
-                  pMap[p.email] = {
-                      name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0,
-                      avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
-                      leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || [],
-                      bracketPredictions: (p as any).bracket_predictions ?? undefined,
-                  };
-              });
-              setUsersDb(pMap);
+          {
+            const cachedStats = rcGet<MatchStats[]>('stats');
+            if (cachedStats) {
+              setMatchStats(cachedStats);
+            } else {
+              const { data: stats } = await supabase.from('match_stats').select('*').limit(10000);
+              if (stats) {
+                const mappedStats: MatchStats[] = stats.map((s: any) => ({
+                  matchId: String(s.match_id),
+                  homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
+                  homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
+                  homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
+                  homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
+                  homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
+                  homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
+                  homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
+                  homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
+                  homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
+                }));
+                rcSet('stats', mappedStats);
+                setMatchStats(mappedStats);
+              }
+            }
           }
 
-          const [teamsResponse, rankMap, tacticsMap, scoutingData] = await Promise.all([
-              supabase.from('teams').select('*'),
-              fetchAllTeamRanks(), fetchAllTeamTactics(),
-              supabase.from('scouting_overview').select('team_id, recent_form')
-          ]);
-
-          const baseTeamsMap: Record<string, Team> = { 'TBD': { id: 'TBD', name: 'TBD', flag: '', rank: 99, rating: 50, att: 50, mid: 50, def: 50, overview: '', starPlayer: '', form: [] } };
-
-          if (teamsResponse.data) {
-              teamsResponse.data.forEach(t => {
-                  const safeId = t.id.toUpperCase();
-                  const existingTeam = baseTeamsMap[safeId];
-
-                  // BULLETPROOF FLAG FIX: Prevents empty ghost rows from overwriting valid flags
-                  if (!existingTeam || !existingTeam.flag || t.flag) {
-                      baseTeamsMap[safeId] = {
-                          id: safeId,
-                          name: t.name || safeId,
-                          flag: TEAMS[safeId]?.flag || t.flag || '',
-                          rank: (t.rank && t.rank !== 50) ? t.rank : (TEAMS[safeId]?.rank ?? 50),
-                          rating: t.rating || TEAMS[safeId]?.rating || 50,
-                          att: t.att || TEAMS[safeId]?.att || 50,
-                          mid: t.mid || TEAMS[safeId]?.mid || 50,
-                          def: t.def || TEAMS[safeId]?.def || 50,
-                          overview: t.overview || '',
-                          starPlayer: 'TBD',
-                          strengths: '',
-                          weaknesses: '',
-                          form: [],
-                          eloRating: t.elo_rating || undefined,
+          {
+            const cachedProfiles = rcGet<Record<string, UserProfile>>('profiles');
+            if (cachedProfiles) {
+              setUsersDb(cachedProfiles);
+            } else {
+              const { data: profiles } = await supabase.from('profiles').select('*');
+              if (profiles) {
+                  const pMap: Record<string, UserProfile> = {};
+                  profiles.forEach(p => {
+                      pMap[p.email] = {
+                          name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0,
+                          avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
+                          leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || [],
+                          bracketPredictions: (p as any).bracket_predictions ?? undefined,
                       };
-                  }
-              });
+                  });
+                  rcSet('profiles', pMap);
+                  setUsersDb(pMap);
+              }
+            }
           }
 
-          setTeamsData(() => {
+          {
+            const cachedTeams = rcGet<Record<string, Team>>('teams');
+            if (cachedTeams) {
+              setTeamsData(cachedTeams);
+            } else {
+              const [teamsResponse, rankMap, tacticsMap, scoutingData] = await Promise.all([
+                  supabase.from('teams').select('*'),
+                  fetchAllTeamRanks(), fetchAllTeamTactics(),
+                  supabase.from('scouting_overview').select('team_id, recent_form')
+              ]);
+
+              const baseTeamsMap: Record<string, Team> = { 'TBD': { id: 'TBD', name: 'TBD', flag: '', rank: 99, rating: 50, att: 50, mid: 50, def: 50, overview: '', starPlayer: '', form: [] } };
+
+              if (teamsResponse.data) {
+                  teamsResponse.data.forEach(t => {
+                      const safeId = t.id.toUpperCase();
+                      const existingTeam = baseTeamsMap[safeId];
+
+                      // BULLETPROOF FLAG FIX: Prevents empty ghost rows from overwriting valid flags
+                      if (!existingTeam || !existingTeam.flag || t.flag) {
+                          baseTeamsMap[safeId] = {
+                              id: safeId,
+                              name: t.name || safeId,
+                              flag: TEAMS[safeId]?.flag || t.flag || '',
+                              rank: (t.rank && t.rank !== 50) ? t.rank : (TEAMS[safeId]?.rank ?? 50),
+                              rating: t.rating || TEAMS[safeId]?.rating || 50,
+                              att: t.att || TEAMS[safeId]?.att || 50,
+                              mid: t.mid || TEAMS[safeId]?.mid || 50,
+                              def: t.def || TEAMS[safeId]?.def || 50,
+                              overview: t.overview || '',
+                              starPlayer: 'TBD',
+                              strengths: '',
+                              weaknesses: '',
+                              form: [],
+                              eloRating: t.elo_rating || undefined,
+                          };
+                      }
+                  });
+              }
+
               const next = { ...baseTeamsMap };
               const formMap: Record<string, string[]> = {};
               if (scoutingData.data) {
                   scoutingData.data.forEach(row => { if (row.recent_form && row.team_id) formMap[row.team_id.toUpperCase()] = row.recent_form.replace(/[^WDL-]/g, '').split('-').filter((c: string) => c); });
               }
-
               Object.keys(next).forEach(tid => {
                   if (next[tid] && tid !== 'TBD') {
                       const updates: Partial<typeof next[string]> = {};
@@ -241,8 +319,10 @@ export const useAppData = () => {
                       if (Object.keys(updates).length > 0) next[tid] = { ...next[tid], ...updates };
                   }
               });
-              return next;
-          });
+              rcSet('teams', next);
+              setTeamsData(next);
+            }
+          }
 
       } catch (e) { console.error("Data Load Error", e); }
   };

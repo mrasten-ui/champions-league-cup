@@ -33,7 +33,7 @@ import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
-import { useAppData } from './hooks/useAppData';
+import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
 import { PlayerProgress } from './components/PlayerProgress'; 
@@ -448,6 +448,7 @@ export const App = () => {
       { onConflict: 'user_id,match_id' }
     );
     if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
+    else { bustPredictionsCache(); }
 
     // Cascade delete from DB + toast with full undo (group score + knockouts)
     if (idsToDelete.length > 0) {
@@ -761,6 +762,7 @@ export const App = () => {
 
       supabase.from('predictions').upsert(toSave, { onConflict: 'user_id,match_id' }).then(({ error }) => {
           if (!error) {
+              bustPredictionsCache();
               localStorage.setItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email, '1');
               setAllPredictions(prev => {
                   const others = prev.filter(p => p.userId !== user.email);
@@ -1556,6 +1558,7 @@ export const App = () => {
           if (allUpserts.length === 0) return { filled: 0, users: 0 };
           const { error } = await supabase.from('predictions').upsert(allUpserts as any, { onConflict: 'user_id,match_id', ignoreDuplicates: true });
           if (error) throw error;
+          bustPredictionsCache();
           setAllPredictions(prev => {
             const newPreds = allUpserts.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
             const kept = prev.filter(p => !allUpserts.some(u => u.user_id === p.userId && u.match_id === p.matchId));
