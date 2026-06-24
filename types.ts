@@ -277,6 +277,29 @@ export interface MatchStats {
   awayOffsides?: number | null;
 }
 
+export interface PlayerMatchStat {
+  matchId: string;
+  playerId: number;
+  playerName?: string | null;
+  teamId?: string | null;
+  minutes?: number | null;
+  rating?: number | null;
+  goals?: number;
+  assists?: number;
+  shotsTotal?: number | null;
+  shotsOn?: number | null;
+  passesTotal?: number | null;
+  passesKey?: number | null;
+  passAccuracy?: number | null;
+  tackles?: number | null;
+  dribblesSuccess?: number | null;
+  dribblesAttempts?: number | null;
+  foulsCommitted?: number | null;
+  foulsDrawn?: number | null;
+  yellowCards?: number;
+  redCards?: number;
+}
+
 // --- UPDATED: Tour Configuration Interface (TV Mode) ---
 export interface TourStep {
   id: string;

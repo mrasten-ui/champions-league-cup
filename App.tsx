@@ -60,7 +60,7 @@ export const App = () => {
   const {
     session, user, setUser, loading, matches, setMatches, teamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime, lockTimePassed, matchEvents, matchLineups, matchStats,
+    groupStageEndTime, knockoutStartTime, lockTimePassed, matchEvents, matchLineups, matchStats, playerMatchStats,
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
@@ -1512,6 +1512,7 @@ export const App = () => {
           teamId={playerModal.teamId}
           matchEvents={matchEvents}
           matchLineups={matchLineups}
+          playerMatchStats={playerMatchStats.filter(s => s.playerId === playerModal.playerId)}
           teams={teamsData}
           lang={t}
           onClose={() => setPlayerModal(null)}

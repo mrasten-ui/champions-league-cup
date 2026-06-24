@@ -34,3 +34,10 @@ jobs:
           SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           API_FOOTBALL_KEY:    ${{ secrets.API_FOOTBALL_KEY }}
+
+      - name: Sync player match stats
+        run: node scripts/sync-player-stats.js
+        env:
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          API_FOOTBALL_KEY:    ${{ secrets.API_FOOTBALL_KEY }}

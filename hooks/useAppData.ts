@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
-import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats } from '../types';
+import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
@@ -14,6 +14,7 @@ const RC_TTL = {
   stats:       2 * 60 * 1000,
   teams:      60 * 60 * 1000,
   avatars:    24 * 60 * 60 * 1000,
+  playerStats: 60 * 60 * 1000,
 } as const;
 
 const rcGet = <T>(key: keyof typeof RC_TTL): T | null => {
@@ -49,6 +50,7 @@ export const useAppData = () => {
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
   const [matchLineups, setMatchLineups] = useState<MatchLineup[]>([]);
   const [matchStats, setMatchStats] = useState<MatchStats[]>([]);
+  const [playerMatchStats, setPlayerMatchStats] = useState<PlayerMatchStat[]>([]);
 
   const fetchingProfileRef = useRef(false);
 
@@ -239,6 +241,53 @@ export const useAppData = () => {
                 }));
                 rcSet('stats', mappedStats);
                 setMatchStats(mappedStats);
+              }
+            }
+          }
+
+          {
+            const cachedPlayerStats = rcGet<PlayerMatchStat[]>('playerStats');
+            if (cachedPlayerStats) {
+              setPlayerMatchStats(cachedPlayerStats);
+            } else {
+              const PAGE = 1000;
+              let allPsRows: any[] = [];
+              let from = 0;
+              let keepGoing = true;
+              while (keepGoing) {
+                const { data: page, error: pageErr } = await supabase.from('player_match_stats').select('*').range(from, from + PAGE - 1);
+                if (pageErr) { console.error('Player stats fetch error:', pageErr); keepGoing = false; break; }
+                if (page && page.length > 0) {
+                  allPsRows.push(...page);
+                  keepGoing = page.length === PAGE;
+                  from += PAGE;
+                } else { keepGoing = false; }
+              }
+              if (allPsRows.length) {
+                const mapped: PlayerMatchStat[] = allPsRows.map(r => ({
+                  matchId: String(r.match_id),
+                  playerId: r.player_id,
+                  playerName: r.player_name ?? null,
+                  teamId: r.team_id ?? null,
+                  minutes: r.minutes ?? null,
+                  rating: r.rating != null ? parseFloat(r.rating) : null,
+                  goals: r.goals ?? 0,
+                  assists: r.assists ?? 0,
+                  shotsTotal: r.shots_total ?? null,
+                  shotsOn: r.shots_on ?? null,
+                  passesTotal: r.passes_total ?? null,
+                  passesKey: r.passes_key ?? null,
+                  passAccuracy: r.pass_accuracy ?? null,
+                  tackles: r.tackles ?? null,
+                  dribblesSuccess: r.dribbles_success ?? null,
+                  dribblesAttempts: r.dribbles_attempts ?? null,
+                  foulsCommitted: r.fouls_committed ?? null,
+                  foulsDrawn: r.fouls_drawn ?? null,
+                  yellowCards: r.yellow_cards ?? 0,
+                  redCards: r.red_cards ?? 0,
+                }));
+                rcSet('playerStats', mapped);
+                setPlayerMatchStats(mapped);
               }
             }
           }
@@ -484,6 +533,6 @@ export const useAppData = () => {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
     groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed,
-    matchEvents, matchLineups, matchStats,
+    matchEvents, matchLineups, matchStats, playerMatchStats,
   };
 };
