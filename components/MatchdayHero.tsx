@@ -25,6 +25,7 @@ interface MatchdayHeroProps {
   onSubstitute?: () => void;
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
+  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -137,7 +138,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onPlayerClick }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
@@ -481,12 +482,18 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
               {subbedIn && <span className="text-[8px] text-green-400 font-bold shrink-0 leading-none">↑{subbedIn.minute}'</span>}
             </>;
             const dimmed = bench && !subbedIn;
+            const playerEvt = events.find(ev => ev.playerId && namesMatch(ev.player, p.playerName));
+            const playerClickId = playerEvt?.playerId ?? null;
+            const nameClass = (out: boolean) => `text-[9px] shrink min-w-0 truncate text-left ${out ? 'text-white/30' : 'text-white/75'}`;
+            const nameTap = (out: boolean) => playerClickId && onPlayerClick
+              ? <button onClick={() => onPlayerClick(playerClickId, p.playerName, p.teamId)} className={`${nameClass(out)} hover:text-white transition-colors underline decoration-dashed decoration-white/20 underline-offset-2`}>{p.playerName}</button>
+              : <span className={nameClass(out)}>{p.playerName}</span>;
             if (side === 'away') {
               return (
                 <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
                   <span className="flex-1" />
                   {subBadges}{goalBadges}
-                  <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-white/30' : 'text-white/75'}`}>{p.playerName}</span>
+                  {nameTap(!!subbedOut)}
                   {numBadge}{kitIcon}
                 </div>
               );
@@ -494,7 +501,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             return (
               <div className={`flex items-center gap-1 min-w-0 transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
                 {kitIcon}{numBadge}
-                <span className={`text-[9px] shrink min-w-0 truncate ${subbedOut ? 'text-white/30' : 'text-white/75'}`}>{p.playerName}</span>
+                {nameTap(!!subbedOut)}
                 {goalBadges}{subBadges}
                 <span className="flex-1" />
               </div>
@@ -622,11 +629,29 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 </span>
               ];
             }
+            const isGoal = e.type === 'Goal';
+            const evtNameEl = (name: string | undefined) => {
+              if (!name) return <span className="italic text-white/30">—</span>;
+              const cls = `truncate ${isGoal ? 'font-bold text-white text-[10px]' : 'text-[9px]'}`;
+              return e.playerId && onPlayerClick
+                ? <button onClick={() => onPlayerClick(e.playerId!, name, e.teamId!)} className={`${cls} underline decoration-dashed decoration-white/20 underline-offset-2 hover:text-white transition-colors text-left`}>{name}</button>
+                : <span className={cls}>{name}</span>;
+            };
+            const goalPhoto = isGoal && e.playerId ? (
+              <img
+                src={`https://media.api-sports.io/football/players/${e.playerId}.png`}
+                className="w-4 h-4 rounded-full shrink-0 object-cover border border-white/20"
+                onError={ev => { (ev.target as HTMLImageElement).style.display = 'none'; }}
+                alt=""
+              />
+            ) : null;
             return [
-              <span key={e.id} className={`flex items-center gap-1.5 text-white/70 min-w-0 ${side === 'away' ? 'justify-end' : ''}`}>
-                {side === 'away' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-white' : ''}`}>{e.player}</span>}
+              <span key={e.id} className={`flex items-center gap-1.5 text-white/70 min-w-0 ${isGoal ? 'min-h-[18px]' : ''} ${side === 'away' ? 'justify-end' : ''}`}>
+                {side === 'away' && goalPhoto}
+                {side === 'away' && evtNameEl(e.player)}
                 <span className="font-bold text-white/90 shrink-0">{fmtMin(e)}</span>
-                {side === 'home' && <span className={`truncate ${e.type === 'Goal' ? 'font-bold text-white' : ''}`}>{e.player}</span>}
+                {side === 'home' && evtNameEl(e.player)}
+                {side === 'home' && goalPhoto}
                 <Icon e={e} />
               </span>
             ];
