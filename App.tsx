@@ -44,6 +44,7 @@ import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
 import { GoalBanner, GoalNotification, KitNotification } from './components/GoalBanner';
+import { PlayerModal } from './components/PlayerModal';
 import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
@@ -116,6 +117,7 @@ export const App = () => {
   const goalNotification = goalQueue[0] ?? null;
   const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
   const kitNotification = kitQueue[0] ?? null;
+  const [playerModal, setPlayerModal] = useState<{ playerId: number; playerName: string; teamId: string } | null>(null);
   const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
   const kitInitializedRef = useRef(false);
   const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -1494,6 +1496,7 @@ export const App = () => {
           if (m) handleTickerMatchClick(m);
           setGoalQueue(prev => prev.slice(1));
         } : undefined}
+        onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
         kitNotification={kitNotification}
         onKitDismiss={() => setKitQueue(prev => prev.slice(1))}
         onKitNavigate={kitNotification ? () => {
@@ -1502,6 +1505,18 @@ export const App = () => {
           setKitQueue(prev => prev.slice(1));
         } : undefined}
       />
+      {playerModal && (
+        <PlayerModal
+          playerId={playerModal.playerId}
+          playerName={playerModal.playerName}
+          teamId={playerModal.teamId}
+          matchEvents={matchEvents}
+          matchLineups={matchLineups}
+          teams={teamsData}
+          lang={t}
+          onClose={() => setPlayerModal(null)}
+        />
+      )}
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -1684,6 +1699,7 @@ export const App = () => {
               eventType: type === 'var' ? 'Var' : 'Goal',
               teamId: type === 'og' ? 'SCO' : 'BRA',
               player: type === 'var' ? 'G. Jesus' : type === 'og' ? 'A. Robertson' : type === 'pen' ? 'Vinícius Jr.' : 'R. Firmino',
+              playerId: type === 'var' ? 47281 : type === 'og' ? 19220 : type === 'pen' ? 47232 : 47189,
               detail: type === 'var' ? 'Goal Disallowed' : type === 'og' ? 'Own Goal' : type === 'pen' ? 'Penalty' : 'Normal Goal',
               minute: 67,
               minuteExtra: null,

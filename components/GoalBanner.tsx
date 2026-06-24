@@ -85,9 +85,10 @@ interface GoalCardProps {
   onDismiss: () => void;
   onShowLive?: () => void;
   onNavigate?: () => void;
+  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
 }
 
-function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onNavigate }: GoalCardProps) {
+function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onNavigate, onPlayerClick }: GoalCardProps) {
   const [visible, setVisible] = useState(false);
   const [barW, setBarW] = useState(100);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,8 +182,12 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
           {/* LEFT: player photo (when available), ball, or disallowed */}
           <div className="flex items-center justify-center px-3 py-4 shrink-0">
             <div
-              className="relative w-[58px] h-[58px] rounded-full flex items-center justify-center overflow-hidden"
+              className={`relative w-[58px] h-[58px] rounded-full flex items-center justify-center overflow-hidden ${!isVAR && notification.playerId && onPlayerClick ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
               style={{ background: `${teamColor}20`, boxShadow: `0 0 0 2px ${teamColor}60` }}
+              onClick={!isVAR && notification.playerId && onPlayerClick ? (e) => {
+                e.stopPropagation();
+                onPlayerClick(notification.playerId!, notification.player ?? '', notification.teamId);
+              } : undefined}
             >
               {isVAR ? (
                 <span className="relative text-[30px] leading-none drop-shadow-lg">🚫</span>
@@ -450,6 +455,7 @@ interface GoalBannerProps {
   onDismiss: () => void;
   onShowLive?: () => void;
   onNavigate?: () => void;
+  onPlayerClick?: (playerId: number, playerName: string, teamId: string) => void;
   kitNotification?: KitNotification | null;
   onKitDismiss?: () => void;
   onKitNavigate?: () => void;
@@ -462,6 +468,7 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
   onDismiss,
   onShowLive,
   onNavigate,
+  onPlayerClick,
   kitNotification,
   onKitDismiss,
   onKitNavigate,
@@ -490,6 +497,7 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
             onDismiss={onDismiss}
             onShowLive={onShowLive}
             onNavigate={onNavigate}
+            onPlayerClick={onPlayerClick}
           />
         )}
         {kitNotification && (
