@@ -295,6 +295,9 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         events={matchEvents.filter(e => String(e.matchId) === String(heroMatch.id) || e.matchId === `${heroMatch.homeTeamId}_${heroMatch.awayTeamId}`)}
                         lineups={matchLineups.filter(l => l.matchId === heroMatch.id)}
                         stats={matchStats.find(s => s.matchId === heroMatch.id) ?? null}
+                        onSubstitute={onSubstitute ? () => onSubstitute(heroMatch.id) : undefined}
+                        substitutionsLeft={user?.substitutions ?? 0}
+                        isUnlockedBySub={user?.unlockedMatches?.includes(heroMatch.id) ?? false}
                         playerMatchStats={playerMatchStats}
                         onPlayerClick={onPlayerClick}
                         onStadiumClick={onStadiumClick}
