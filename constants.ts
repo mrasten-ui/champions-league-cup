@@ -708,6 +708,8 @@ const NO_TRANSLATION: Translation = {
     playerApps: "Kamper",
     playerYellow: "Gult",
     playerRed: "Rødt",
+    playerOwnGoal: "EM",
+    playerRatedSuffix: "vurdert",
     playerNoStats: "Statistikk ikke tilgjengelig ennå — sjekk igjen etter neste kamp.",
 
     teamNames: TEAM_NAMES_NO,

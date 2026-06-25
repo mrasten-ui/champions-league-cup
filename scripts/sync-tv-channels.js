@@ -142,6 +142,86 @@ async function applyHardcodedChannels(dbMatches) {
   console.log(`   Result: ${updated} updated, ${skipped} unchanged, ${notFound} not found`);
 }
 
+// ─── EN / SCO / US knockout channel assignments ───────────────────────────────
+// Fill in as BBC/ITV/STV and FOX/FS1 announce fixtures (typically ~1 week before).
+// Key by match ID (R32_1 … R32_16, R16_1 … R16_8, QF_1 … QF_4, SF_1 SF_2, FIN, 3RD).
+// Run `node scripts/sync-tv-channels.js` after adding entries to push to the DB.
+
+const KNOCKOUT_EN_SCO_US = [
+  // R32 — June 29 – July 2
+  // { id: 'R32_1',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_2',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_3',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_4',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_5',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_6',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_7',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_8',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_9',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_10', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_11', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_12', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_13', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_14', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R32_15', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R32_16', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // R16 — July 5–6
+  // { id: 'R16_1',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R16_2',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R16_3',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R16_4',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R16_5',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R16_6',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'R16_7',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'R16_8',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // QF — July 9–10
+  // { id: 'QF_1',   EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'QF_2',   EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'QF_3',   EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'QF_4',   EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // SF — July 14–15
+  // { id: 'SF_1',   EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: 'SF_2',   EN: 'ITV', SCO: 'STV', US: 'FOX'  },
+  // 3rd Place + Final — July 18–19
+  // { id: '3RD',    EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'FIN',    EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+];
+
+async function applyKnockoutENSCOUS(dbMatches) {
+  const entries = KNOCKOUT_EN_SCO_US.filter(e => e.EN || e.SCO || e.US);
+  if (entries.length === 0) {
+    console.log('\n── Knockout EN/SCO/US: no entries yet — uncomment as broadcasters announce');
+    return;
+  }
+  console.log(`\n── Knockout EN/SCO/US: applying ${entries.length} entries`);
+  let updated = 0, skipped = 0;
+
+  for (const entry of entries) {
+    const dbMatch = dbMatches.find(m => m.id === entry.id);
+    if (!dbMatch) { console.warn(`   Match ID not found in DB: ${entry.id}`); continue; }
+
+    const patch = {};
+    if (entry.EN)  patch.EN  = entry.EN;
+    if (entry.SCO) patch.SCO = entry.SCO;
+    if (entry.US)  patch.US  = entry.US;
+
+    const existing = dbMatch.channels || {};
+    const changed = Object.entries(patch).some(([k, v]) => existing[k] !== v);
+    if (!changed) { skipped++; continue; }
+
+    const channels = { ...existing, ...patch };
+    const { error } = await supabase.from('matches').update({ channels }).eq('id', dbMatch.id);
+    if (error) {
+      console.error(`   Update failed (${entry.id}):`, error.message);
+    } else {
+      console.log(`   ✓ ${entry.id}: EN=${entry.EN ?? '—'} SCO=${entry.SCO ?? '—'} US=${entry.US ?? '—'}`);
+      dbMatch.channels = channels;
+      updated++;
+    }
+  }
+  console.log(`   Knockout EN/SCO/US: ${updated} updated, ${skipped} unchanged`);
+}
+
 // ─── NO scraper (nrk.no) — used for knockout stage once announced ─────────────
 // nrk.no updates their article as TV2/NRK assignments are confirmed per round.
 // EN/SCO/US knockout splits: TODO — find reliable SSR source closer to June 28.
@@ -254,8 +334,9 @@ async function run() {
   // 2. Scrape NRK for any NO knockout assignments (returns empty until June 29)
   await applyNOKnockout(dbMatches).catch(err => console.error('NO knockout scrape failed:', err.message));
 
-  // TODO (before June 28): Add EN/SCO and US knockout channel scraping.
-  // BBC/ITV and FOX/FS1 announce Round of 32 splits with ~1 week notice.
+  // 3. Apply EN/SCO/US knockout channels from KNOCKOUT_EN_SCO_US array above
+  //    Uncomment entries as BBC/ITV/FOX announce fixtures (~1 week before each round)
+  await applyKnockoutENSCOUS(dbMatches);
 
   console.log('\nAll done.');
 }
