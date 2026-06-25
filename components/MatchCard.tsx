@@ -980,18 +980,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             );
                         })()}
                         {canSubstitute ? (
-                            <button
-                                onClick={handleSubClick}
-                                disabled={!substitutionsLeft || substitutionsLeft <= 0}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
-                                    substitutionsLeft && substitutionsLeft > 0
-                                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
-                                        : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
-                                }`}
-                            >
-                                <RefreshCw size={8} />
-                                <span>{lang.makeSub || 'SUB'}{substitutionsLeft !== undefined ? ` (${substitutionsLeft})` : ''}</span>
-                            </button>
+                            pendingSub ? (
+                                <div className="flex items-center gap-1 animate-in fade-in duration-150">
+                                    <span className="text-[9px] text-white/60">{lang.subConfirm || 'Use a sub?'}</span>
+                                    <button onClick={() => { onSubstitute!(); setPendingSub(false); }} className="px-1.5 py-0.5 rounded border bg-amber-500/30 border-amber-400/60 text-amber-300 text-[9px] font-black active:scale-95 transition-all">✓</button>
+                                    <button onClick={() => setPendingSub(false)} className="px-1.5 py-0.5 rounded border bg-white/5 border-white/20 text-white/50 text-[9px] font-black active:scale-95 transition-all">✗</button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleSubClick}
+                                    disabled={!substitutionsLeft || substitutionsLeft <= 0}
+                                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
+                                        substitutionsLeft && substitutionsLeft > 0
+                                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
+                                            : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
+                                    }`}
+                                >
+                                    <RefreshCw size={8} />
+                                    <span>{lang.makeSub || 'SUB'}{substitutionsLeft !== undefined ? ` (${substitutionsLeft})` : ''}</span>
+                                </button>
+                            )
                         ) : (
                             match.isLocked && !isLive && !isFinished && <LockIcon size={10} className="text-slate-400" />
                         )}
