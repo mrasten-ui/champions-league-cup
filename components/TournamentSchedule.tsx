@@ -298,6 +298,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         onSubstitute={onSubstitute ? () => onSubstitute(heroMatch.id) : undefined}
                         substitutionsLeft={user?.substitutions ?? 0}
                         isUnlockedBySub={user?.unlockedMatches?.includes(heroMatch.id) ?? false}
+                        onUpdate={onUpdate ? (id, h, a) => onUpdate(id, h, a) : undefined}
                         playerMatchStats={playerMatchStats}
                         onPlayerClick={onPlayerClick}
                         onStadiumClick={onStadiumClick}
@@ -340,6 +341,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         onSubstitute={onSubstitute ? () => onSubstitute(heroMatch.id) : undefined}
                                         substitutionsLeft={user?.substitutions ?? 0}
                                         isUnlockedBySub={user?.unlockedMatches?.includes(heroMatch.id) ?? false}
+                                        onUpdate={onUpdate ? (id, h, a) => onUpdate(id, h, a) : undefined}
                                         playerMatchStats={playerMatchStats}
                                         onPlayerClick={onPlayerClick}
                                         onStadiumClick={onStadiumClick}

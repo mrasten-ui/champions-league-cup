@@ -25,6 +25,7 @@ interface MatchdayHeroProps {
   onSubstitute?: () => void;
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
+  onUpdate?: (id: string, h: number, a: number) => void;
   playerMatchStats?: PlayerMatchStat[];
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   onStadiumClick?: (venue: string) => void;
@@ -140,9 +141,13 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onUpdate, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
   const [pendingSub, setPendingSub] = React.useState(false);
+  const [localHome, setLocalHome] = React.useState<number>(userPrediction?.home ?? 0);
+  const [localAway, setLocalAway] = React.useState<number>(userPrediction?.away ?? 0);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isSaved, setIsSaved] = React.useState(false);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
@@ -346,6 +351,20 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         <span>{match.homeScore}</span>
                         <span className="text-white/20 text-4xl mx-1">:</span>
                         <span>{match.awayScore}</span>
+                    </div>
+                ) : isUnlockedBySub && onUpdate ? (
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-center gap-1">
+                            <button onClick={() => { setLocalHome(h => Math.min(h + 1, 20)); setIsSaved(false); }} className="w-7 h-7 rounded-full bg-white/10 hover:bg-amber-500/30 text-white font-black text-sm flex items-center justify-center active:scale-90 transition-all">+</button>
+                            <span className="text-4xl font-black text-white tabular-nums font-mono">{localHome}</span>
+                            <button onClick={() => { setLocalHome(h => Math.max(h - 1, 0)); setIsSaved(false); }} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-black text-sm flex items-center justify-center active:scale-90 transition-all">−</button>
+                        </div>
+                        <span className="text-white/20 text-3xl font-black">:</span>
+                        <div className="flex flex-col items-center gap-1">
+                            <button onClick={() => { setLocalAway(a => Math.min(a + 1, 20)); setIsSaved(false); }} className="w-7 h-7 rounded-full bg-white/10 hover:bg-amber-500/30 text-white font-black text-sm flex items-center justify-center active:scale-90 transition-all">+</button>
+                            <span className="text-4xl font-black text-white tabular-nums font-mono">{localAway}</span>
+                            <button onClick={() => { setLocalAway(a => Math.max(a - 1, 0)); setIsSaved(false); }} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-black text-sm flex items-center justify-center active:scale-90 transition-all">−</button>
+                        </div>
                     </div>
                 ) : (
                     <div className="text-4xl font-black text-white/10 tracking-widest">VS</div>
@@ -730,12 +749,34 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         </div>
                     );
                 })()}
-                {!isLive && !isFinished && isUnlockedBySub && (
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-amber-500/20 border-amber-500/40 text-amber-400 text-[9px] font-black uppercase tracking-wide">
-                        <Unlock size={8} />
-                        <span>{lang.unlocked || 'UNLOCKED'}</span>
-                    </div>
-                )}
+                {!isLive && !isFinished && isUnlockedBySub && onUpdate && (() => {
+                    const isDirty = localHome !== (userPrediction?.home ?? 0) || localAway !== (userPrediction?.away ?? 0);
+                    if (isSaved) return (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-green-500/20 border-green-500/40 text-green-400 text-[9px] font-black uppercase tracking-wide">
+                            ✓ {lang.saveBtn || 'SAVED'}
+                        </div>
+                    );
+                    if (isDirty) return (
+                        <button
+                            disabled={isSaving}
+                            onClick={async () => {
+                                setIsSaving(true);
+                                await onUpdate(match.id, localHome, localAway);
+                                setIsSaving(false);
+                                setIsSaved(true);
+                            }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded border bg-amber-500 border-amber-600 text-white text-[9px] font-black uppercase tracking-wide active:scale-95 transition-all shadow-sm"
+                        >
+                            {lang.saveBtn || 'SAVE'}
+                        </button>
+                    );
+                    return (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-amber-500/20 border-amber-500/40 text-amber-400 text-[9px] font-black uppercase tracking-wide">
+                            <Unlock size={8} />
+                            <span>{lang.unlocked || 'UNLOCKED'}</span>
+                        </div>
+                    );
+                })()}
                 {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && (
                     pendingSub ? (
                         <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
