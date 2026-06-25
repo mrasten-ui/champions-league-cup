@@ -11,9 +11,9 @@ function norm(s: string): string {
  */
 export function namesMatch(
   eventName: string | null | undefined,
-  lineupName: string,
+  lineupName: string | null | undefined,
 ): boolean {
-  if (!eventName) return false;
+  if (!eventName || !lineupName) return false;
   const a = norm(eventName);
   const b = norm(lineupName);
 

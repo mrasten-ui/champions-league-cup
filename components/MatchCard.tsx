@@ -779,10 +779,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                };
                const renderEvt = (e: MatchEvent, side: 'home' | 'away') => {
                  // Resolve player IDs via lookup chain: DB field → lineups name-match → playerMatchStats name-match
-                 const resolveId = (name: string | null | undefined) =>
-                   lineups.find(l => String(l.matchId) === String(e.matchId) && namesMatch(l.playerName, name))?.playerId
-                   ?? playerMatchStats.find(s => s.playerId && namesMatch(s.playerName, name))?.playerId
-                   ?? null;
+                 const resolveId = (name: string | null | undefined): number | null => {
+                   if (!name) return null;
+                   return lineups.find(l => String(l.matchId) === String(e.matchId) && namesMatch(l.playerName, name))?.playerId
+                     ?? playerMatchStats.find(s => s.playerId && namesMatch(s.playerName, name))?.playerId
+                     ?? null;
+                 };
 
                  if (e.type?.toLowerCase() === 'subst') {
                    const nameSpanClass = 'flex items-center gap-0.5 min-w-0 flex-1';
