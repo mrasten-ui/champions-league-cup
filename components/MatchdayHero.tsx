@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Match, Team, Translation, GroupStanding, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
-import { Clock, MapPin, Trophy, Star, Tv, RefreshCw } from 'lucide-react';
+import { Clock, MapPin, Trophy, Star, Tv, RefreshCw, Unlock } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
 import { calculatePoints } from '../services/engine';
 import { getSlotSource, getPotentialTeams, getGroupTeams } from '../utils/bracketHelpers';
@@ -730,6 +730,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         </div>
                     );
                 })()}
+                {!isLive && !isFinished && isUnlockedBySub && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-amber-500/20 border-amber-500/40 text-amber-400 text-[9px] font-black uppercase tracking-wide">
+                        <Unlock size={8} />
+                        <span>{lang.unlocked || 'UNLOCKED'}</span>
+                    </div>
+                )}
                 {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && (
                     pendingSub ? (
                         <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
@@ -750,7 +756,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                             className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
                                 substitutionsLeft > 0
                                     ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
-                                    : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
+                                    : 'bg-amber-900/40 border-amber-800/40 text-amber-700/70 cursor-not-allowed'
                             }`}
                         >
                             <RefreshCw size={8} />
