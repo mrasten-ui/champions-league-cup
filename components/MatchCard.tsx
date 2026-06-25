@@ -81,6 +81,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [localAway, setLocalAway] = useState<number | null>(prediction ? prediction.away : null);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingSub, setPendingSub] = useState(false);
+    const [pendingSpy, setPendingSpy] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [rivalsOpen, setRivalsOpen] = useState(true);
     const [activePanel, setActivePanel] = useState<'events' | 'lineup' | 'stats' | null>(null);
@@ -150,14 +152,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const handleSubClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (substitutionsLeft !== undefined && substitutionsLeft > 0 && onSubstitute) {
-            if (window.confirm(`${lang.subConfirm} (${substitutionsLeft} ${lang.substitutions} left)`)) { onSubstitute(); }
+            setPendingSub(true);
         }
     };
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (userTokens > 0 && window.confirm(`${lang.spyConfirm} (${userTokens}/5 ${lang.tokensLeft})`)) {
-            onSpy(match.id);
-        }
+        if (userTokens > 0) setPendingSpy(true);
     };
 
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
@@ -356,6 +356,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const renderControlButtons = () => {
         if (canSubstitute && variant !== 'official') {
+            if (pendingSub) {
+                return (
+                    <div className="flex items-center gap-2 w-full animate-in fade-in duration-150">
+                        <span className="flex-1 text-[10px] text-slate-500 font-medium">{lang.subConfirm}</span>
+                        <button onClick={() => { onSubstitute!(); setPendingSub(false); }} className="px-3 py-2 rounded-lg border bg-amber-500 text-white border-amber-600 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">✓</button>
+                        <button onClick={() => setPendingSub(false)} className="px-3 py-2 rounded-lg border bg-slate-100 text-slate-500 border-slate-200 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">✗</button>
+                    </div>
+                );
+            }
             return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
         }
         if (isUnlockedBySub && isDirty) {
@@ -867,6 +876,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
 
              {canSpy && (
+                pendingSpy ? (
+                    <div className="bg-[#0f2545] py-2 px-3 flex items-center gap-2 border-t border-white/10 rounded-b-2xl animate-in fade-in duration-150">
+                        <LockIcon size={12} className="text-yellow-400 shrink-0" />
+                        <span className="flex-1 text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.spyConfirm || 'Use a token?'}</span>
+                        <button onClick={() => { onSpy(match.id); setPendingSpy(false); }} className="px-3 py-1 rounded border bg-yellow-500/30 border-yellow-400/60 text-yellow-300 text-[10px] font-black uppercase tracking-wide active:scale-95 transition-all">✓</button>
+                        <button onClick={() => setPendingSpy(false)} className="px-3 py-1 rounded border bg-white/5 border-white/20 text-white/50 text-[10px] font-black uppercase tracking-wide active:scale-95 transition-all">✗</button>
+                    </div>
+                ) : (
                 <div
                     id="tour-spy-btn"
                     onClick={userTokens > 0 ? handleSpyClick : undefined}
@@ -880,6 +897,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {userTokens}/5 {lang.tokensLeft}
                     </span>
                 </div>
+                )
              )}
 
              {showRivals && rivals.length > 0 && (

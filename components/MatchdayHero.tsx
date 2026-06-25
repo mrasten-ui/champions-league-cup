@@ -142,6 +142,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
+  const [pendingSub, setPendingSub] = React.useState(false);
   const autoOpenedRef = useRef(false);
   const home = teams[match.homeTeamId];
   const away = teams[match.awayTeamId];
@@ -730,22 +731,32 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     );
                 })()}
                 {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && (
-                    <button
-                        onClick={() => {
-                            if (window.confirm(`${lang.subConfirm || 'Use a substitution?'} (${substitutionsLeft} ${lang.substitutions || 'subs'} left)`)) {
-                                onSubstitute();
-                            }
-                        }}
-                        disabled={substitutionsLeft <= 0}
-                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
-                            substitutionsLeft > 0
-                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
-                                : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
-                        }`}
-                    >
-                        <RefreshCw size={8} />
-                        <span>{lang.makeSub || 'SUB'} ({substitutionsLeft})</span>
-                    </button>
+                    pendingSub ? (
+                        <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
+                            <span className="text-[9px] text-white/60">{lang.subConfirm || 'Use a sub?'}</span>
+                            <button
+                                onClick={() => { onSubstitute(); setPendingSub(false); }}
+                                className="px-2 py-0.5 rounded border bg-amber-500/30 border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-wide active:scale-95 transition-all"
+                            >✓</button>
+                            <button
+                                onClick={() => setPendingSub(false)}
+                                className="px-2 py-0.5 rounded border bg-white/5 border-white/20 text-white/50 text-[9px] font-black uppercase tracking-wide active:scale-95 transition-all"
+                            >✗</button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => { if (substitutionsLeft > 0) setPendingSub(true); }}
+                            disabled={substitutionsLeft <= 0}
+                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
+                                substitutionsLeft > 0
+                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
+                                    : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
+                            }`}
+                        >
+                            <RefreshCw size={8} />
+                            <span>{lang.makeSub || 'SUB'} ({substitutionsLeft})</span>
+                        </button>
+                    )
                 )}
             </div>
         </div>
