@@ -24,6 +24,7 @@ interface ManagerHubProps {
   phase: TournamentPhase;
   groupStageEndTime?: number;
   knockoutStartTime?: number;
+  predictedR32Teams?: string[];
 }
 
 export const ManagerHub: React.FC<ManagerHubProps> = ({
@@ -41,6 +42,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   phase,
   groupStageEndTime,
   knockoutStartTime,
+  predictedR32Teams = [],
 }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
@@ -81,6 +83,38 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const top8 = thirds.slice(0, 8).map(t => t.teamId);
       return new Set(top8);
   }, [userMatches, teams]);
+
+  const r32Tracker = useMemo(() => {
+      if (predictedR32Teams.length === 0) return null;
+      const DONE_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const allRealStandings = getAllGroupStandings(matches, teams);
+      const realTop2 = Object.values(allRealStandings).flatMap(g => g.slice(0, 2).map(s => s.teamId));
+      const realThirds = getThirdPlaceStandings(allRealStandings).slice(0, 8).map(s => s.teamId);
+      const actualR32 = new Set([...realTop2, ...realThirds]);
+
+      // Which group IDs are fully played (all 6 matches done)
+      const groupIds = [...new Set(matches.filter(m => m.groupId).map(m => m.groupId!))];
+      const completedGroups = new Set(
+          groupIds.filter(gid => matches.filter(m => m.groupId === gid).every(m => DONE_STATUSES.includes(m.status)))
+      );
+      const allGroupsDone = completedGroups.size === groupIds.length;
+
+      let matched = 0, wrong = 0, pending = 0;
+      for (const teamId of predictedR32Teams) {
+          if (actualR32.has(teamId)) { matched++; continue; }
+          // Find which group this team is in
+          const teamGroup = groupIds.find(gid =>
+              matches.some(m => m.groupId === gid && (m.homeTeamId === teamId || m.awayTeamId === teamId))
+          );
+          if (teamGroup && completedGroups.has(teamGroup) && allGroupsDone) {
+              wrong++;
+          } else {
+              pending++;
+          }
+      }
+
+      return { matched, wrong, pending, total: predictedR32Teams.length, groupsLeft: groupIds.length - completedGroups.size };
+  }, [predictedR32Teams, matches, teams]);
 
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
@@ -381,6 +415,30 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+
+              {/* R32 Prediction Tracker */}
+              {r32Tracker && (
+                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50">R32 Prediction Tracker</span>
+                          <span className="text-lg font-black text-white tabular-nums">
+                              {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
+                          </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+                          <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
+                          <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
+                          <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                      </div>
+                      <div className="flex items-center gap-4 mt-2.5">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                          {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
+                          {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                          {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
+                      </div>
+                  </div>
+              )}
+
               <SecondChancePromo
                 hasTaken={currentUser.hasTakenSecondChance}
                 secondChanceStatus={currentUser.secondChanceStatus}
@@ -428,10 +486,33 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       )}
 
       {viewMode === 'knockout' && !hasKnockouts && (
-          <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
-              <CalendarClock size={64} className="text-slate-300 mb-4" />
-              <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">{lang.knockoutNotYet}</h3>
-              <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">{lang.knockoutUnlockHint}</p>
+          <div className="space-y-4">
+              {r32Tracker && (
+                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50">R32 Prediction Tracker</span>
+                          <span className="text-lg font-black text-white tabular-nums">
+                              {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
+                          </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+                          <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
+                          <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
+                          <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                      </div>
+                      <div className="flex items-center gap-4 mt-2.5">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                          {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
+                          {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                          {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
+                      </div>
+                  </div>
+              )}
+              <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
+                  <CalendarClock size={64} className="text-slate-300 mb-4" />
+                  <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">{lang.knockoutNotYet}</h3>
+                  <p className="text-xs font-bold text-slate-300 mt-2 max-w-xs text-center">{lang.knockoutUnlockHint}</p>
+              </div>
           </div>
       )}
 

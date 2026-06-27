@@ -349,6 +349,14 @@ export const App = () => {
       return new Set([...top2, ...thirds]).size;
   }, [user, allPredictedGroupStandings, purePredictedQualifiedThirds]);
 
+  const predictedR32Teams = useMemo((): string[] => {
+      if (!user) return [];
+      const top2 = Object.values(allPredictedGroupStandings).flatMap(rankMap =>
+          Object.entries(rankMap).filter(([, rank]) => rank <= 2).map(([id]) => id)
+      );
+      return [...new Set([...top2, ...purePredictedQualifiedThirds])];
+  }, [user, allPredictedGroupStandings, purePredictedQualifiedThirds]);
+
   // --- ACTIONS ---
   const handleLogout = async () => {
       if (supabase) await supabase.auth.signOut();
@@ -1516,6 +1524,7 @@ export const App = () => {
                 phase={tournamentPhase}
                 groupStageEndTime={groupStageEndTime}
                 knockoutStartTime={knockoutStartTime}
+                predictedR32Teams={predictedR32Teams}
             />
         )}
       </main>
