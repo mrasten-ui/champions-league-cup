@@ -152,24 +152,6 @@ export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps>
                         </p>
                     </div>
 
-                    {/* Teams picked progress */}
-                    <div className="mx-4 mt-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-                        <div className="flex justify-between items-baseline mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                                {copy.teamsLabel}
-                            </span>
-                            <span className={`text-lg font-black tabular-nums ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
-                                {pickedTeams}<span className="text-white/30 text-sm font-bold"> / 32</span>
-                            </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all ${isUrgent ? 'bg-red-500' : 'bg-amber-400'}`}
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-                    </div>
-
                     {/* CTAs */}
                     <div className="px-4 pt-4 pb-4 flex flex-col gap-2">
                         <button
