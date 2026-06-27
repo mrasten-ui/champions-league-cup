@@ -64,15 +64,14 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           allPredictions.filter(p => p.userId === user.email).map(p => [p.matchId, p])
       );
       return KO_ROUNDS.map(round => {
-          const roundMatches = matches.filter(
-              m => m.round === round && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD'
-          );
+          const roundMatches = matches.filter(m => m.round === round);
           if (roundMatches.length === 0) return null;
           let matched = 0, wrong = 0, pending = 0;
           for (const m of roundMatches) {
               const pred = myPreds.get(m.id);
-              if (!pred) { pending++; continue; }
-              if (DONE_KO.includes(m.status) && m.homeScore !== null && m.awayScore !== null) {
+              if (!pred) continue; // skip matches the user hasn't predicted
+              if (DONE_KO.includes(m.status) && m.homeScore !== null && m.awayScore !== null
+                  && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD') {
                   const predHome = pred.home > pred.away;
                   const actualHome = m.homeScore > m.awayScore;
                   if (predHome === actualHome) matched++; else wrong++;
@@ -80,7 +79,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                   pending++;
               }
           }
-          return { round, matched, wrong, pending, total: roundMatches.length };
+          const total = matched + wrong + pending;
+          if (total === 0) return null; // hide rounds with no user predictions
+          return { round, matched, wrong, pending, total };
       }).filter(Boolean) as { round: Round; matched: number; wrong: number; pending: number; total: number }[];
   }, [matches, allPredictions, user.email]);
 
