@@ -5,9 +5,9 @@ import { SecondChancePromo } from './SecondChancePromo';
 import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
 import { AvatarDisplay } from './AvatarDisplay';
-import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw } from 'lucide-react';
+import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw, ChevronDown } from 'lucide-react';
 import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings, calculatePoints } from '../services/engine';
-import { MAX_SUBSTITUTIONS } from '../constants';
+import { MAX_SUBSTITUTIONS, GROUP_CONFIG } from '../constants';
 
 interface ManagerHubProps {
   matches: Match[];
@@ -62,6 +62,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   });
 
   const [showMgrHint, setShowMgrHint] = useState(() => !localStorage.getItem(`rasten_mgr_hint_${currentUser.email}`));
+  const [r32Expanded, setR32Expanded] = useState(false);
+  const [bracketExpanded, setBracketExpanded] = useState(false);
 
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
   const inAlertWindow = groupStageEndTime
@@ -155,6 +157,79 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [matches, allPredictions, currentUser.email]);
 
   const totalBracketMatched = bracketTracking.reduce((s, r) => s + r.matched, 0);
+
+  const r32ExpandedData = useMemo(() => {
+      if (!predictedR32Teams || predictedR32Teams.length === 0) return null;
+      const DONE = ['FT', 'AET', 'PEN', 'FINISHED'];
+
+      const teamToGroup: Record<string, string> = {};
+      GROUP_CONFIG.forEach(g => g.teams.forEach(t => { teamToGroup[t] = g.id; }));
+
+      const realStandings = getAllGroupStandings(matches, teams);
+      const realThirds = getThirdPlaceStandings(realStandings);
+      const realTop2 = Object.values(realStandings).flatMap(g => g.slice(0, 2).map(s => s.teamId));
+      const actualR32 = new Set([...realTop2, ...realThirds.slice(0, 8).map(s => s.teamId)]);
+
+      const groupIds = [...new Set(matches.filter(m => m.groupId).map(m => m.groupId!))].sort();
+      const completedGroups = new Set(
+          groupIds.filter(gid =>
+              matches.filter(m => m.groupId === gid).every(m => DONE.includes(m.status))
+          )
+      );
+      const allGroupsDone = completedGroups.size === groupIds.length;
+
+      const statusOf = (teamId: string): 'matched' | 'wrong' | 'pending' => {
+          if (actualR32.has(teamId)) return 'matched';
+          const gid = teamToGroup[teamId];
+          if (gid && completedGroups.has(gid) && allGroupsDone) return 'wrong';
+          return 'pending';
+      };
+
+      const groups = groupIds.map(gid => {
+          const realGroup = realStandings[gid] || [];
+          const picks = predictedR32Teams
+              .filter(t => teamToGroup[t] === gid)
+              .map(teamId => ({ teamId, status: statusOf(teamId) }));
+          const actualTop2 = realGroup.slice(0, 2);
+          const isDone = completedGroups.has(gid);
+          return { groupId: gid, picks, actualTop2, isDone };
+      });
+
+      return { groups, allGroupsDone };
+  }, [matches, teams, predictedR32Teams]);
+
+  const bracketExpandedData = useMemo(() => {
+      const myPreds = new Map(
+          allPredictions.filter(p => p.userId === currentUser.email).map(p => [p.matchId, p])
+      );
+      const DONE = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const ROUND_LABELS: Record<string, string> = { R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', FIN: 'Final', '3RD': '3rd Place' };
+
+      return ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'].map(round => {
+          const roundMatches = matches.filter(
+              m => m.round === round && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD'
+          );
+          if (roundMatches.length === 0) return null;
+
+          const matchDetails = roundMatches.map(m => {
+              const pred = myPreds.get(m.id);
+              const isDone = DONE.includes(m.status);
+              const predictedWinnerId = pred
+                  ? (pred.home > pred.away ? m.homeTeamId : pred.away > pred.home ? m.awayTeamId : null)
+                  : null;
+              const actualWinnerId = isDone && m.homeScore !== null && m.awayScore !== null
+                  ? (m.homeScore > m.awayScore ? m.homeTeamId : m.awayScore > m.homeScore ? m.awayTeamId : null)
+                  : null;
+              let status: 'correct' | 'wrong' | 'pending' = 'pending';
+              if (isDone && predictedWinnerId) {
+                  status = predictedWinnerId === actualWinnerId ? 'correct' : 'wrong';
+              }
+              return { matchId: m.id, predictedWinnerId, actualWinnerId, status };
+          });
+
+          return { round, label: ROUND_LABELS[round] ?? round, matchDetails };
+      }).filter(Boolean) as { round: string; label: string; matchDetails: { matchId: string; predictedWinnerId: string | null; actualWinnerId: string | null; status: 'correct' | 'wrong' | 'pending' }[] }[];
+  }, [matches, allPredictions, currentUser.email]);
 
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
@@ -458,14 +533,20 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
               {/* Bracket Tracker */}
               {bracketTracking.length > 0 && (
-                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+                      <div
+                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => setBracketExpanded(e => !e)}
+                      >
                           <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Bracket Tracker</span>
-                          <span className="text-lg font-black text-white tabular-nums">
-                              {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-white tabular-nums">
+                                  {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
+                              </span>
+                              <ChevronDown size={14} className={`text-white/30 transition-transform ${bracketExpanded ? 'rotate-180' : ''}`} />
+                          </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="px-4 pb-4 space-y-3">
                           {bracketTracking.map(({ round, label, matched, wrong, pending, total }) => (
                               <div key={round}>
                                   <div className="flex items-center gap-2 mb-1">
@@ -485,29 +566,139 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               </div>
                           ))}
                       </div>
+                      {bracketExpanded && bracketExpandedData.length > 0 && (
+                          <div className="border-t border-white/10 px-4 py-4 space-y-4">
+                              {bracketExpandedData.map(({ round, label, matchDetails }) => (
+                                  <div key={round}>
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">{label}</div>
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                          {matchDetails.map(({ matchId, predictedWinnerId, actualWinnerId, status }) => {
+                                              if (!predictedWinnerId) return null;
+                                              const team = teams[predictedWinnerId];
+                                              const actualTeam = actualWinnerId && actualWinnerId !== predictedWinnerId ? teams[actualWinnerId] : null;
+                                              const dotColor = status === 'correct' ? 'bg-emerald-500' : status === 'wrong' ? 'bg-red-500' : 'bg-white/25';
+                                              const nameColor = status === 'correct' ? 'text-emerald-300' : status === 'wrong' ? 'text-red-400 line-through opacity-60' : 'text-white/60';
+                                              return (
+                                                  <div key={matchId} className="flex flex-col gap-1">
+                                                      <div className="flex items-center gap-1.5">
+                                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+                                                          {team?.flag && <img src={team.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                          <span className={`text-[9px] font-bold uppercase truncate ${nameColor}`}>
+                                                              {team?.name ?? predictedWinnerId}
+                                                          </span>
+                                                      </div>
+                                                      {status === 'wrong' && actualTeam && (
+                                                          <div className="flex items-center gap-1.5 pl-3">
+                                                              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" />
+                                                              {actualTeam.flag && <img src={actualTeam.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                              <span className="text-[9px] font-bold uppercase truncate text-amber-300">
+                                                                  {actualTeam.name}
+                                                              </span>
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  </div>
+                              ))}
+                              <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-white/5">
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Through</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Out</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Actual winner</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-white/25" /> Pending</span>
+                              </div>
+                          </div>
+                      )}
                   </div>
               )}
 
               {/* R32 Prediction Tracker */}
               {r32Tracker && (
-                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+                      <div
+                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => setR32Expanded(e => !e)}
+                      >
                           <span className="text-[10px] font-black uppercase tracking-widest text-white/50">R32 Prediction Tracker</span>
-                          <span className="text-lg font-black text-white tabular-nums">
-                              {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-white tabular-nums">
+                                  {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
+                              </span>
+                              <ChevronDown size={14} className={`text-white/30 transition-transform ${r32Expanded ? 'rotate-180' : ''}`} />
+                          </div>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
-                          <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
-                          <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
-                          <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                      <div className="px-4 pb-4">
+                          <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+                              <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
+                              <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
+                              <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                          </div>
+                          <div className="flex items-center gap-4 mt-2.5">
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                              {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
+                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                              {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
+                          </div>
                       </div>
-                      <div className="flex items-center gap-4 mt-2.5">
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
-                          {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
-                          {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
-                          {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
-                      </div>
+                      {r32Expanded && r32ExpandedData && (
+                          <div className="border-t border-white/10 px-4 py-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {r32ExpandedData.groups.map(({ groupId, picks, actualTop2, isDone }) => (
+                                      <div key={groupId} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                          <div className="flex items-center justify-between mb-2">
+                                              <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Group {groupId}</span>
+                                              {isDone
+                                                  ? <span className="text-[8px] font-bold text-emerald-400/70 uppercase">Done</span>
+                                                  : <span className="text-[8px] font-bold text-white/20 uppercase">Live</span>
+                                              }
+                                          </div>
+                                          <div className="space-y-1.5">
+                                              {picks.map(({ teamId, status }) => {
+                                                  const team = teams[teamId];
+                                                  const dotColor = status === 'matched' ? 'bg-emerald-500' : status === 'wrong' ? 'bg-red-500' : 'bg-white/25';
+                                                  const nameColor = status === 'matched' ? 'text-emerald-300' : status === 'wrong' ? 'text-red-400 line-through opacity-60' : 'text-white/60';
+                                                  return (
+                                                      <div key={teamId} className="flex items-center gap-1.5">
+                                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+                                                          {team?.flag && <img src={team.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                          <span className={`text-[9px] font-bold uppercase truncate ${nameColor}`}>
+                                                              {team?.name ?? teamId}
+                                                          </span>
+                                                      </div>
+                                                  );
+                                              })}
+                                              {isDone && (() => {
+                                                  const pickedIds = new Set(picks.map(p => p.teamId));
+                                                  const surprise = actualTop2.filter(s => !pickedIds.has(s.teamId));
+                                                  if (surprise.length === 0) return null;
+                                                  return (
+                                                      <div className="mt-1.5 pt-1.5 border-t border-white/10">
+                                                          {surprise.map(s => {
+                                                              const t = teams[s.teamId];
+                                                              return (
+                                                                  <div key={s.teamId} className="flex items-center gap-1.5 mt-1">
+                                                                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" />
+                                                                      {t?.flag && <img src={t.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                                      <span className="text-[9px] font-bold uppercase truncate text-amber-300">{t?.name ?? s.teamId}</span>
+                                                                      <span className="text-[8px] text-amber-400/60 ml-auto shrink-0">through</span>
+                                                                  </div>
+                                                              );
+                                                          })}
+                                                      </div>
+                                                  );
+                                              })()}
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Your pick — through</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Your pick — out</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Surprise qualifier</span>
+                              </div>
+                          </div>
+                      )}
                   </div>
               )}
 
@@ -560,14 +751,20 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       {viewMode === 'knockout' && !hasKnockouts && (
           <div className="space-y-4">
               {bracketTracking.length > 0 && (
-                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+                      <div
+                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => setBracketExpanded(e => !e)}
+                      >
                           <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Bracket Tracker</span>
-                          <span className="text-lg font-black text-white tabular-nums">
-                              {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-white tabular-nums">
+                                  {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
+                              </span>
+                              <ChevronDown size={14} className={`text-white/30 transition-transform ${bracketExpanded ? 'rotate-180' : ''}`} />
+                          </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="px-4 pb-4 space-y-3">
                           {bracketTracking.map(({ round, label, matched, wrong, pending, total }) => (
                               <div key={round}>
                                   <div className="flex items-center gap-2 mb-1">
@@ -587,27 +784,137 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               </div>
                           ))}
                       </div>
+                      {bracketExpanded && bracketExpandedData.length > 0 && (
+                          <div className="border-t border-white/10 px-4 py-4 space-y-4">
+                              {bracketExpandedData.map(({ round, label, matchDetails }) => (
+                                  <div key={round}>
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-2">{label}</div>
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                          {matchDetails.map(({ matchId, predictedWinnerId, actualWinnerId, status }) => {
+                                              if (!predictedWinnerId) return null;
+                                              const team = teams[predictedWinnerId];
+                                              const actualTeam = actualWinnerId && actualWinnerId !== predictedWinnerId ? teams[actualWinnerId] : null;
+                                              const dotColor = status === 'correct' ? 'bg-emerald-500' : status === 'wrong' ? 'bg-red-500' : 'bg-white/25';
+                                              const nameColor = status === 'correct' ? 'text-emerald-300' : status === 'wrong' ? 'text-red-400 line-through opacity-60' : 'text-white/60';
+                                              return (
+                                                  <div key={matchId} className="flex flex-col gap-1">
+                                                      <div className="flex items-center gap-1.5">
+                                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+                                                          {team?.flag && <img src={team.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                          <span className={`text-[9px] font-bold uppercase truncate ${nameColor}`}>
+                                                              {team?.name ?? predictedWinnerId}
+                                                          </span>
+                                                      </div>
+                                                      {status === 'wrong' && actualTeam && (
+                                                          <div className="flex items-center gap-1.5 pl-3">
+                                                              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" />
+                                                              {actualTeam.flag && <img src={actualTeam.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                              <span className="text-[9px] font-bold uppercase truncate text-amber-300">
+                                                                  {actualTeam.name}
+                                                              </span>
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  </div>
+                              ))}
+                              <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-white/5">
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Through</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Out</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Actual winner</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-white/25" /> Pending</span>
+                              </div>
+                          </div>
+                      )}
                   </div>
               )}
               {r32Tracker && (
-                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="bg-[#0f2545] rounded-2xl border border-white/10 shadow-sm overflow-hidden">
+                      <div
+                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                          onClick={() => setR32Expanded(e => !e)}
+                      >
                           <span className="text-[10px] font-black uppercase tracking-widest text-white/50">R32 Prediction Tracker</span>
-                          <span className="text-lg font-black text-white tabular-nums">
-                              {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
-                          </span>
+                          <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-white tabular-nums">
+                                  {r32Tracker.matched}<span className="text-white/30 text-sm font-bold"> / {r32Tracker.total}</span>
+                              </span>
+                              <ChevronDown size={14} className={`text-white/30 transition-transform ${r32Expanded ? 'rotate-180' : ''}`} />
+                          </div>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
-                          <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
-                          <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
-                          <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                      <div className="px-4 pb-4">
+                          <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+                              <div className="h-full bg-green-500 rounded-l-full transition-all" style={{ width: `${(r32Tracker.matched / r32Tracker.total) * 100}%` }} />
+                              <div className="h-full bg-red-500 transition-all" style={{ width: `${(r32Tracker.wrong / r32Tracker.total) * 100}%` }} />
+                              <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
+                          </div>
+                          <div className="flex items-center gap-4 mt-2.5">
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                              {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
+                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                              {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
+                          </div>
                       </div>
-                      <div className="flex items-center gap-4 mt-2.5">
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
-                          {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
-                          {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
-                          {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
-                      </div>
+                      {r32Expanded && r32ExpandedData && (
+                          <div className="border-t border-white/10 px-4 py-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {r32ExpandedData.groups.map(({ groupId, picks, actualTop2, isDone }) => (
+                                      <div key={groupId} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                          <div className="flex items-center justify-between mb-2">
+                                              <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Group {groupId}</span>
+                                              {isDone
+                                                  ? <span className="text-[8px] font-bold text-emerald-400/70 uppercase">Done</span>
+                                                  : <span className="text-[8px] font-bold text-white/20 uppercase">Live</span>
+                                              }
+                                          </div>
+                                          <div className="space-y-1.5">
+                                              {picks.map(({ teamId, status }) => {
+                                                  const team = teams[teamId];
+                                                  const dotColor = status === 'matched' ? 'bg-emerald-500' : status === 'wrong' ? 'bg-red-500' : 'bg-white/25';
+                                                  const nameColor = status === 'matched' ? 'text-emerald-300' : status === 'wrong' ? 'text-red-400 line-through opacity-60' : 'text-white/60';
+                                                  return (
+                                                      <div key={teamId} className="flex items-center gap-1.5">
+                                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+                                                          {team?.flag && <img src={team.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                          <span className={`text-[9px] font-bold uppercase truncate ${nameColor}`}>
+                                                              {team?.name ?? teamId}
+                                                          </span>
+                                                      </div>
+                                                  );
+                                              })}
+                                              {isDone && (() => {
+                                                  const pickedIds = new Set(picks.map(p => p.teamId));
+                                                  const surprise = actualTop2.filter(s => !pickedIds.has(s.teamId));
+                                                  if (surprise.length === 0) return null;
+                                                  return (
+                                                      <div className="mt-1.5 pt-1.5 border-t border-white/10">
+                                                          {surprise.map(s => {
+                                                              const t = teams[s.teamId];
+                                                              return (
+                                                                  <div key={s.teamId} className="flex items-center gap-1.5 mt-1">
+                                                                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" />
+                                                                      {t?.flag && <img src={t.flag} className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-white/10 shrink-0" alt="" />}
+                                                                      <span className="text-[9px] font-bold uppercase truncate text-amber-300">{t?.name ?? s.teamId}</span>
+                                                                      <span className="text-[8px] text-amber-400/60 ml-auto shrink-0">through</span>
+                                                                  </div>
+                                                              );
+                                                          })}
+                                                      </div>
+                                                  );
+                                              })()}
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Your pick — through</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Your pick — out</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-white/30"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Surprise qualifier</span>
+                              </div>
+                          </div>
+                      )}
                   </div>
               )}
               <div className="flex flex-col items-center justify-center py-20 opacity-50 bg-white rounded-3xl border border-slate-200 border-dashed">
