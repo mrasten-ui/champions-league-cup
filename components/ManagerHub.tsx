@@ -96,10 +96,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   const r32Tracker = useMemo(() => {
       if (predictedR32Teams.length === 0) return null;
       const DONE_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const bracketR32 = new Set(
+          matches.filter(m => m.round === 'R32')
+              .flatMap(m => [m.homeTeamId, m.awayTeamId])
+              .filter(id => id !== 'TBD')
+      );
       const allRealStandings = getAllGroupStandings(matches, teams);
       const realTop2 = Object.values(allRealStandings).flatMap(g => g.slice(0, 2).map(s => s.teamId));
       const realThirds = getThirdPlaceStandings(allRealStandings).slice(0, 8).map(s => s.teamId);
-      const actualR32 = new Set([...realTop2, ...realThirds]);
+      const actualR32 = new Set([...bracketR32, ...realTop2, ...realThirds]);
 
       // Which group IDs are fully played (all 6 matches done)
       const groupIds = [...new Set(matches.filter(m => m.groupId).map(m => m.groupId!))];
@@ -171,10 +176,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const teamToGroup: Record<string, string> = {};
       GROUP_CONFIG.forEach(g => g.teams.forEach(t => { teamToGroup[t] = g.id; }));
 
+      const bracketR32 = new Set(
+          matches.filter(m => m.round === 'R32')
+              .flatMap(m => [m.homeTeamId, m.awayTeamId])
+              .filter(id => id !== 'TBD')
+      );
       const realStandings = getAllGroupStandings(matches, teams);
       const realThirds = getThirdPlaceStandings(realStandings);
       const realTop2 = Object.values(realStandings).flatMap(g => g.slice(0, 2).map(s => s.teamId));
-      const actualR32 = new Set([...realTop2, ...realThirds.slice(0, 8).map(s => s.teamId)]);
+      const actualR32 = new Set([...bracketR32, ...realTop2, ...realThirds.slice(0, 8).map(s => s.teamId)]);
 
       const groupIds = [...new Set(matches.filter(m => m.groupId).map(m => m.groupId!))].sort();
       const completedGroups = new Set(
