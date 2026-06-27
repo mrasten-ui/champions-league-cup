@@ -153,6 +153,12 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   const away = teams[match.awayTeamId];
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
+  const isKnockout = !!match.round;
+  const predictedWinnerId = userPrediction
+      ? (userPrediction.home > userPrediction.away ? match.homeTeamId
+         : userPrediction.away > userPrediction.home ? match.awayTeamId
+         : null)
+      : null;
 
   React.useEffect(() => {
     if ((isLive || isFinished) && !autoOpenedRef.current && events.length > 0) {
@@ -321,7 +327,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         <div className="relative z-10 p-6 sm:p-8 flex items-center justify-between">
             
             {/* Home Team */}
-            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isHomeTBD && onTeamClick(home.id)}>
+            <div
+                className={`flex-1 flex flex-col items-center gap-3 group/team cursor-pointer ${isKnockout && isFinished && predictedWinnerId === match.homeTeamId ? 'ring-2 ring-green-400/60 rounded-2xl bg-green-400/10 p-2 -m-2' : ''}`}
+                onClick={() => !isHomeTBD && onTeamClick(home.id)}
+            >
                 {isHomeTBD ? (
                     <TbdHeroSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
@@ -338,8 +347,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     </div>
                 )}
                 {!isHomeTBD && (
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-1">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>
+                        {isKnockout && isFinished && predictedWinnerId === match.homeTeamId && (
+                            <span className="px-2 py-0.5 rounded-full bg-green-400/20 text-green-300 border border-green-400/30 text-[9px] font-black uppercase tracking-wider">
+                                {(lang as any).goingThrough || 'Going Through'}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -378,7 +392,10 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             </div>
 
             {/* Away Team */}
-            <div className="flex-1 flex flex-col items-center gap-3 group/team cursor-pointer" onClick={() => !isAwayTBD && onTeamClick(away.id)}>
+            <div
+                className={`flex-1 flex flex-col items-center gap-3 group/team cursor-pointer ${isKnockout && isFinished && predictedWinnerId === match.awayTeamId ? 'ring-2 ring-green-400/60 rounded-2xl bg-green-400/10 p-2 -m-2' : ''}`}
+                onClick={() => !isAwayTBD && onTeamClick(away.id)}
+            >
                 {isAwayTBD ? (
                     <TbdHeroSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={teams} lang={lang} />
                 ) : (
@@ -395,8 +412,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     </div>
                 )}
                 {!isAwayTBD && (
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-1">
                         <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>
+                        {isKnockout && isFinished && predictedWinnerId === match.awayTeamId && (
+                            <span className="px-2 py-0.5 rounded-full bg-green-400/20 text-green-300 border border-green-400/30 text-[9px] font-black uppercase tracking-wider">
+                                {(lang as any).goingThrough || 'Going Through'}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -726,7 +748,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
             {/* Center: Prediction (Moved back here, no pill) */}
             <div className="w-1/3 flex justify-center">
-                {userPrediction && (
+                {userPrediction && !isKnockout && (
                     <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
                         {lang.myPick || "Pick"}: {userPrediction.home} - {userPrediction.away}
                     </span>
@@ -777,7 +799,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                         </div>
                     );
                 })()}
-                {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && (
+                {!isLive && !isFinished && !isUnlockedBySub && onSubstitute && !isKnockout && (
                     pendingSub ? (
                         <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
                             <span className="text-[9px] text-white/60">{lang.subConfirm || 'Use a sub?'}</span>

@@ -129,7 +129,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       : (match.isLocked || isLive || isFinished);
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
     
-    const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute;
+    const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute && !isKnockout;
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
     const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute && !isKnockout;
 
@@ -420,7 +420,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
                 {/* Home Team */}
-                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && predictedWinnerId !== '__home__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && isKnockout && isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && predictedWinnerId !== '__home__' && isKnockout && isFinished ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : (
                       <div className="flex items-center gap-1.5 pointer-events-none group-hover/team:scale-105 transition-transform duration-200">
                         {homeKitBg && <KitImage teamId={match.homeTeamId} kitBg={homeKitBg} kitText={cardLineups.find(l => l.teamId === match.homeTeamId)?.kitText} kitType={homeKitType} size="sm" />}
@@ -431,7 +431,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       </div>
                     )}
                     <div className="flex flex-col items-center">
-                        {!isHomeTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId ? 'text-blue-700' : ''}`}>{homeName}</span>}
+                        {!isHomeTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{homeName}</span>}
+                        {isKnockout && isFinished && (predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && (
+                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[8px] font-black uppercase tracking-wider">
+                                {(lang as any).goingThrough || 'Going Through'}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -517,7 +522,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Away Team */}
-                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && isKnockout ? 'bg-blue-50 ring-2 ring-blue-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && predictedWinnerId !== '__away__' && isKnockout && isLocked ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && isKnockout && isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && predictedWinnerId !== '__away__' && isKnockout && isFinished ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : (
                       <div className="flex items-center gap-1.5 pointer-events-none group-hover/team:scale-105 transition-transform duration-200">
                         <div className={`relative shadow-sm rounded-lg overflow-visible ${awayKitBg ? 'w-12 h-9 sm:w-14 sm:h-10' : 'w-14 h-10 sm:w-16 sm:h-12'}`}>
@@ -528,7 +533,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       </div>
                     )}
                     <div className="flex flex-col items-center">
-                        {!isAwayTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId ? 'text-blue-700' : ''}`}>{awayName}</span>}
+                        {!isAwayTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{awayName}</span>}
+                        {isKnockout && isFinished && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
+                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[8px] font-black uppercase tracking-wider">
+                                {(lang as any).goingThrough || 'Going Through'}
+                            </span>
+                        )}
                     </div>
                 </div>
              </div>
@@ -912,7 +922,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">{lang.revealRival}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {prediction && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white/70">{prediction.home} - {prediction.away}</span></span>}
+                      {prediction && !isKnockout && <span className="text-[10px] font-bold text-white/40">{lang.myPick}: <span className="text-white/70">{prediction.home} - {prediction.away}</span></span>}
                       <span className="text-[9px] font-black text-yellow-500/70 bg-yellow-500/10 px-1.5 py-0.5 rounded-full">{rivals.length}</span>
                       {rivalsOpen ? <ChevronUp size={12} className="text-yellow-400/70" /> : <ChevronDown size={12} className="text-yellow-400/70" />}
                     </div>
@@ -956,7 +966,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                     {/* CENTER: User Prediction */}
                     <div className="w-1/3 flex justify-center">
-                        {prediction && (
+                        {prediction && !isKnockout && (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
                                 <span className="text-[10px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">{prediction.home} - {prediction.away}</span>
