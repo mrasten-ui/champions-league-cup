@@ -111,12 +111,18 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       let matched = 0, wrong = 0, pending = 0;
       for (const teamId of predictedR32Teams) {
           if (actualR32.has(teamId)) { matched++; continue; }
-          // Find which group this team is in
           const teamGroup = groupIds.find(gid =>
               matches.some(m => m.groupId === gid && (m.homeTeamId === teamId || m.awayTeamId === teamId))
           );
-          if (teamGroup && completedGroups.has(teamGroup) && allGroupsDone) {
-              wrong++;
+          if (teamGroup && completedGroups.has(teamGroup)) {
+              const rank = allRealStandings[teamGroup]?.findIndex(s => s.teamId === teamId) ?? -1;
+              if (rank >= 3) {
+                  wrong++; // 4th place — definitely eliminated
+              } else if (rank === 2 && allGroupsDone) {
+                  wrong++; // 3rd place — only eliminated once all groups done (3rd-place selection finalised)
+              } else {
+                  pending++;
+              }
           } else {
               pending++;
           }
@@ -181,7 +187,11 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const statusOf = (teamId: string): 'matched' | 'wrong' | 'pending' => {
           if (actualR32.has(teamId)) return 'matched';
           const gid = teamToGroup[teamId];
-          if (gid && completedGroups.has(gid) && allGroupsDone) return 'wrong';
+          if (gid && completedGroups.has(gid)) {
+              const rank = realStandings[gid]?.findIndex(s => s.teamId === teamId) ?? -1;
+              if (rank >= 3) return 'wrong';
+              if (rank === 2 && allGroupsDone) return 'wrong';
+          }
           return 'pending';
       };
 
@@ -635,11 +645,39 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
                           </div>
                           <div className="flex items-center gap-4 mt-2.5">
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} confirmed</span>
                               {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
-                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} pending</span>}
                               {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
                           </div>
+                          {r32ExpandedData && (
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                  {r32ExpandedData.groups.flatMap(g => g.picks)
+                                      .sort((a, b) => {
+                                          const o: Record<string, number> = { matched: 0, wrong: 1, pending: 2 };
+                                          return o[a.status] - o[b.status];
+                                      })
+                                      .map(({ teamId, status }) => {
+                                          const team = teams[teamId];
+                                          return (
+                                              <div
+                                                  key={teamId}
+                                                  title={team?.name ?? teamId}
+                                                  className={`rounded overflow-hidden border shrink-0 ${
+                                                      status === 'matched' ? 'border-emerald-500/70' :
+                                                      status === 'wrong' ? 'border-red-500/40 opacity-40' :
+                                                      'border-white/10'
+                                                  }`}
+                                              >
+                                                  {team?.flag
+                                                      ? <img src={team.flag} className="w-6 h-4 object-cover block" alt={team.name ?? teamId} />
+                                                      : <div className="w-6 h-4 bg-white/10 flex items-center justify-center"><span className="text-[6px] text-white/50 font-bold">{teamId.slice(0, 3)}</span></div>
+                                                  }
+                                              </div>
+                                          );
+                                      })}
+                              </div>
+                          )}
                       </div>
                       {r32Expanded && r32ExpandedData && (
                           <div className="border-t border-white/10 px-4 py-4">
@@ -851,11 +889,39 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className="h-full bg-white/20 rounded-r-full transition-all" style={{ width: `${(r32Tracker.pending / r32Tracker.total) * 100}%` }} />
                           </div>
                           <div className="flex items-center gap-4 mt-2.5">
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} tracking</span>
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />{r32Tracker.matched} confirmed</span>
                               {r32Tracker.wrong > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />{r32Tracker.wrong} out</span>}
-                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} TBD</span>}
+                              {r32Tracker.pending > 0 && <span className="flex items-center gap-1 text-[10px] font-bold text-white/40"><span className="w-2 h-2 rounded-full bg-white/20 shrink-0" />{r32Tracker.pending} pending</span>}
                               {r32Tracker.groupsLeft > 0 && <span className="ml-auto text-[9px] text-white/30 font-medium">{r32Tracker.groupsLeft} group{r32Tracker.groupsLeft > 1 ? 's' : ''} to go</span>}
                           </div>
+                          {r32ExpandedData && (
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                  {r32ExpandedData.groups.flatMap(g => g.picks)
+                                      .sort((a, b) => {
+                                          const o: Record<string, number> = { matched: 0, wrong: 1, pending: 2 };
+                                          return o[a.status] - o[b.status];
+                                      })
+                                      .map(({ teamId, status }) => {
+                                          const team = teams[teamId];
+                                          return (
+                                              <div
+                                                  key={teamId}
+                                                  title={team?.name ?? teamId}
+                                                  className={`rounded overflow-hidden border shrink-0 ${
+                                                      status === 'matched' ? 'border-emerald-500/70' :
+                                                      status === 'wrong' ? 'border-red-500/40 opacity-40' :
+                                                      'border-white/10'
+                                                  }`}
+                                              >
+                                                  {team?.flag
+                                                      ? <img src={team.flag} className="w-6 h-4 object-cover block" alt={team.name ?? teamId} />
+                                                      : <div className="w-6 h-4 bg-white/10 flex items-center justify-center"><span className="text-[6px] text-white/50 font-bold">{teamId.slice(0, 3)}</span></div>
+                                                  }
+                                              </div>
+                                          );
+                                      })}
+                              </div>
+                          )}
                       </div>
                       {r32Expanded && r32ExpandedData && (
                           <div className="border-t border-white/10 px-4 py-4">
