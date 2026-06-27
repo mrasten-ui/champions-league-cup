@@ -123,6 +123,39 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       return { matched, wrong, pending, total: predictedR32Teams.length, groupsLeft: groupIds.length - completedGroups.size };
   }, [predictedR32Teams, matches, teams]);
 
+  const DONE_KO = ['FT', 'AET', 'PEN', 'FINISHED'];
+  const KO_ROUNDS_ORDERED: Array<{ round: string; label: string }> = [
+      { round: 'R32', label: 'R32' }, { round: 'R16', label: 'R16' },
+      { round: 'QF', label: 'QF' }, { round: 'SF', label: 'SF' }, { round: 'FIN', label: 'Final' },
+  ];
+
+  const bracketTracking = useMemo(() => {
+      const myPreds = new Map(
+          allPredictions.filter(p => p.userId === currentUser.email).map(p => [p.matchId, p])
+      );
+      return KO_ROUNDS_ORDERED.map(({ round, label }) => {
+          const roundMatches = matches.filter(
+              m => m.round === round && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD'
+          );
+          if (roundMatches.length === 0) return null;
+          let matched = 0, wrong = 0, pending = 0;
+          for (const m of roundMatches) {
+              const pred = myPreds.get(m.id);
+              if (!pred) { pending++; continue; }
+              if (DONE_KO.includes(m.status) && m.homeScore !== null && m.awayScore !== null) {
+                  const predHome = pred.home > pred.away;
+                  const actualHome = m.homeScore > m.awayScore;
+                  if (predHome === actualHome) matched++; else wrong++;
+              } else {
+                  pending++;
+              }
+          }
+          return { round, label, matched, wrong, pending, total: roundMatches.length };
+      }).filter(Boolean) as { round: string; label: string; matched: number; wrong: number; pending: number; total: number }[];
+  }, [matches, allPredictions, currentUser.email]);
+
+  const totalBracketMatched = bracketTracking.reduce((s, r) => s + r.matched, 0);
+
   const groupedMatches = useMemo(() => {
       const groups: Record<string, Match[]> = {};
       const knockouts: Record<string, Match[]> = {
@@ -423,6 +456,38 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       {viewMode === 'knockout' && hasKnockouts && (
           <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
 
+              {/* Bracket Tracker */}
+              {bracketTracking.length > 0 && (
+                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Bracket Tracker</span>
+                          <span className="text-lg font-black text-white tabular-nums">
+                              {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
+                          </span>
+                      </div>
+                      <div className="space-y-3">
+                          {bracketTracking.map(({ round, label, matched, wrong, pending, total }) => (
+                              <div key={round}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-white/40 w-10 shrink-0">{label}</span>
+                                      <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden flex">
+                                          {matched > 0 && <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(matched / total) * 100}%` }} />}
+                                          {wrong > 0 && <div className="h-full bg-red-500 transition-all" style={{ width: `${(wrong / total) * 100}%` }} />}
+                                          {pending > 0 && <div className="h-full bg-white/20 transition-all" style={{ width: `${(pending / total) * 100}%` }} />}
+                                      </div>
+                                      <span className="text-[9px] font-bold text-white/30 tabular-nums w-10 text-right shrink-0">{matched}/{total}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 pl-12">
+                                      {matched > 0 && <span className="text-[9px] font-bold text-emerald-400">✓{matched} through</span>}
+                                      {wrong > 0 && <span className="text-[9px] font-bold text-red-400">✗{wrong} out</span>}
+                                      {pending > 0 && <span className="text-[9px] font-bold text-white/30">●{pending} pending</span>}
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              )}
+
               {/* R32 Prediction Tracker */}
               {r32Tracker && (
                   <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
@@ -494,6 +559,36 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {viewMode === 'knockout' && !hasKnockouts && (
           <div className="space-y-4">
+              {bracketTracking.length > 0 && (
+                  <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Bracket Tracker</span>
+                          <span className="text-lg font-black text-white tabular-nums">
+                              {totalBracketMatched}<span className="text-white/30 text-sm font-bold"> correct</span>
+                          </span>
+                      </div>
+                      <div className="space-y-3">
+                          {bracketTracking.map(({ round, label, matched, wrong, pending, total }) => (
+                              <div key={round}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-white/40 w-10 shrink-0">{label}</span>
+                                      <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden flex">
+                                          {matched > 0 && <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(matched / total) * 100}%` }} />}
+                                          {wrong > 0 && <div className="h-full bg-red-500 transition-all" style={{ width: `${(wrong / total) * 100}%` }} />}
+                                          {pending > 0 && <div className="h-full bg-white/20 transition-all" style={{ width: `${(pending / total) * 100}%` }} />}
+                                      </div>
+                                      <span className="text-[9px] font-bold text-white/30 tabular-nums w-10 text-right shrink-0">{matched}/{total}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 pl-12">
+                                      {matched > 0 && <span className="text-[9px] font-bold text-emerald-400">✓{matched} through</span>}
+                                      {wrong > 0 && <span className="text-[9px] font-bold text-red-400">✗{wrong} out</span>}
+                                      {pending > 0 && <span className="text-[9px] font-bold text-white/30">●{pending} pending</span>}
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              )}
               {r32Tracker && (
                   <div className="bg-[#0f2545] rounded-2xl p-4 border border-white/10 shadow-sm">
                       <div className="flex items-center justify-between mb-3">

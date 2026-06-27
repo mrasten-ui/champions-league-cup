@@ -56,6 +56,34 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
 
+  const DONE_KO = ['FT', 'AET', 'PEN', 'FINISHED'];
+  const KO_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+
+  const knockoutTracking = useMemo(() => {
+      const myPreds = new Map(
+          allPredictions.filter(p => p.userId === user.email).map(p => [p.matchId, p])
+      );
+      return KO_ROUNDS.map(round => {
+          const roundMatches = matches.filter(
+              m => m.round === round && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD'
+          );
+          if (roundMatches.length === 0) return null;
+          let matched = 0, wrong = 0, pending = 0;
+          for (const m of roundMatches) {
+              const pred = myPreds.get(m.id);
+              if (!pred) { pending++; continue; }
+              if (DONE_KO.includes(m.status) && m.homeScore !== null && m.awayScore !== null) {
+                  const predHome = pred.home > pred.away;
+                  const actualHome = m.homeScore > m.awayScore;
+                  if (predHome === actualHome) matched++; else wrong++;
+              } else {
+                  pending++;
+              }
+          }
+          return { round, matched, wrong, pending, total: roundMatches.length };
+      }).filter(Boolean) as { round: Round; matched: number; wrong: number; pending: number; total: number }[];
+  }, [matches, allPredictions, user.email]);
+
   // --- MODIFIED: Count ALL Matches (104 Total) ---
   const completionStats = useMemo(() => {
     // Filter for any match that has a Group ID OR a Round (Knockout)
@@ -205,25 +233,21 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
       <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
           
-          {/* Completion Bar (Stacked on top) */}
+          {/* PRE_LIVE: fill-out progress bar */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
                 <div className="max-w-7xl mx-auto flex items-center gap-3 relative z-10">
                     <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                        {/* CHANGED: Switched 't.progressGroups' to 't.progressTotal'.
-                           If your 't' object doesn't have 'progressTotal', it defaults to "Tournament Progress".
-                           This preserves localization support if you add the key later.
-                        */}
-                        <span className="opacity-50">{(t as any).progressTotal || "Tournament Progress"}:</span> 
+                        <span className="opacity-50">{(t as any).progressTotal || "Tournament Progress"}:</span>
                         <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
                             {completionStats.completed}/{completionStats.total}
                         </span>
                     </span>
                     <div className="flex-1 h-1.5 bg-blue-900/30 rounded-full overflow-hidden relative">
-                        <div 
-                            className={`h-full transition-all duration-1000 ease-out rounded-full ${completionStats.percentage === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`} 
+                        <div
+                            className={`h-full transition-all duration-1000 ease-out rounded-full ${completionStats.percentage === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`}
                             style={{ width: `${completionStats.percentage}%` }}
-                        ></div>
+                        />
                     </div>
                     {completionStats.percentage === 100 && (
                         <div className="flex items-center gap-1 text-[9px] font-black text-green-400 uppercase tracking-widest animate-in fade-in zoom-in">
@@ -232,7 +256,30 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                         </div>
                     )}
                 </div>
-                {completionStats.percentage === 100 && <div className="absolute inset-0 bg-green-500/5 animate-pulse"></div>}
+                {completionStats.percentage === 100 && <div className="absolute inset-0 bg-green-500/5 animate-pulse" />}
+            </div>
+          )}
+
+          {/* LIVE: knockout bracket tracker strip */}
+          {props.tournamentPhase !== 'PRE_LIVE' && knockoutTracking.length > 0 && (
+            <div
+                className="bg-[#0a1a2f] border-b border-white/5 py-1.5 px-4 overflow-x-auto cursor-pointer hover:bg-[#0d1f38] active:bg-[#0a1a2f] transition-colors"
+                onClick={() => props.setActiveTab('manager' as any)}
+            >
+                <div className="max-w-7xl mx-auto flex items-center gap-1 min-w-max">
+                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider shrink-0 mr-2">Bracket</span>
+                    {knockoutTracking.map(({ round, matched, wrong, pending }, i) => (
+                        <React.Fragment key={round}>
+                            {i > 0 && <span className="text-white/15 text-[9px] mx-1">·</span>}
+                            <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-white/35">{round}</span>
+                                {matched > 0 && <span className="text-[9px] font-black text-emerald-400">●{matched}</span>}
+                                {wrong > 0 && <span className="text-[9px] font-black text-red-400">●{wrong}</span>}
+                                {pending > 0 && <span className="text-[9px] font-bold text-slate-600">●{pending}</span>}
+                            </div>
+                        </React.Fragment>
+                    ))}
+                </div>
             </div>
           )}
 
