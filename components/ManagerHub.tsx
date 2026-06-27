@@ -47,7 +47,14 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const groupsOver = groupStageEndTime ? Date.now() >= groupStageEndTime : false;
-  const [viewMode, setViewMode] = useState<'groups' | 'knockout'>(groupsOver ? 'knockout' : 'groups');
+  const allGroupsDone = useMemo(() => {
+      const DONE = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const grpMatches = matches.filter(m => m.groupId);
+      return grpMatches.length > 0 && grpMatches.every(m => DONE.includes(m.status));
+  }, [matches]);
+  const [viewModeOverride, setViewModeOverride] = useState<'groups' | 'knockout' | null>(null);
+  const viewMode = viewModeOverride ?? ((allGroupsDone || groupsOver) ? 'knockout' : 'groups');
+  const setViewMode = setViewModeOverride;
 
   const managerSwipe = useSwipe({
       onSwipeLeft:  () => { if (hasKnockouts) setViewMode('knockout'); },

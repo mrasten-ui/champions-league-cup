@@ -5,10 +5,19 @@ import { LanguageCode } from '../types';
 
 export type SCReminderType = 'group' | 'knockout';
 
+interface R32Tracker {
+    matched: number;
+    wrong: number;
+    pending: number;
+    total: number;
+    groupsLeft: number;
+}
+
 interface SecondChanceReminderModalProps {
     isOpen: boolean;
     type: SCReminderType;
-    pickedTeams: number;   // how many of the 32 KO slots the user has filled
+    pickedTeams: number;
+    r32Tracker?: R32Tracker | null;
     onDismiss: (goToManager: boolean) => void;
     langCode: LanguageCode;
 }
@@ -100,7 +109,7 @@ const COPY: Record<SCReminderType, Record<LanguageCode, {
 };
 
 export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps> = ({
-    isOpen, type, pickedTeams, onDismiss, langCode,
+    isOpen, type, pickedTeams, r32Tracker, onDismiss, langCode,
 }) => {
     if (!isOpen) return null;
 
@@ -151,6 +160,33 @@ export const SecondChanceReminderModal: React.FC<SecondChanceReminderModalProps>
                             {copy.what}
                         </p>
                     </div>
+
+                    {/* R32 Tracker */}
+                    {r32Tracker && r32Tracker.total > 0 && (() => {
+                        const { matched, wrong, pending, total, groupsLeft } = r32Tracker;
+                        const matchedPct = Math.round((matched / 32) * 100);
+                        const wrongPct = Math.round((wrong / 32) * 100);
+                        const pendingPct = Math.round((pending / 32) * 100);
+                        return (
+                            <div className="mx-4 mt-3 rounded-xl bg-[#0f2545] border border-white/10 px-4 py-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">R32 Prediction Tracker</span>
+                                    <span className="text-white font-black text-sm tabular-nums">{matched} <span className="text-slate-500 font-normal text-xs">/ 32</span></span>
+                                </div>
+                                <div className="flex h-2 rounded-full overflow-hidden bg-white/10 gap-px">
+                                    {matchedPct > 0 && <div className="bg-emerald-500 rounded-l-full transition-all" style={{ width: `${matchedPct}%` }} />}
+                                    {wrongPct > 0 && <div className="bg-red-500 transition-all" style={{ width: `${wrongPct}%` }} />}
+                                    {pendingPct > 0 && <div className="bg-white/20 rounded-r-full transition-all" style={{ width: `${pendingPct}%` }} />}
+                                </div>
+                                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                    <span className="text-[9px] text-emerald-400 font-bold">✓ {matched} tracking</span>
+                                    <span className="text-[9px] text-red-400 font-bold">✗ {wrong} out</span>
+                                    <span className="text-[9px] text-slate-400 font-bold">⏳ {pending} TBD</span>
+                                    {groupsLeft > 0 && <span className="text-[9px] text-slate-500">{groupsLeft} group{groupsLeft !== 1 ? 's' : ''} left</span>}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* CTAs */}
                     <div className="px-4 pt-4 pb-4 flex flex-col gap-2">

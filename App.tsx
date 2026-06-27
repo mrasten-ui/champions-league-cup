@@ -357,6 +357,29 @@ export const App = () => {
       return [...new Set([...top2, ...purePredictedQualifiedThirds])];
   }, [user, allPredictedGroupStandings, purePredictedQualifiedThirds]);
 
+  const r32Tracker = useMemo(() => {
+      if (predictedR32Teams.length === 0) return null;
+      const DONE_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+      const allRealStandings = getAllGroupStandings(matches, teamsData);
+      const realTop2 = Object.values(allRealStandings).flatMap(g => g.slice(0, 2).map(s => s.teamId));
+      const realThirds = getThirdPlaceStandings(allRealStandings).slice(0, 8).map(s => s.teamId);
+      const actualR32 = new Set([...realTop2, ...realThirds]);
+      const groupIds = [...new Set(matches.filter(m => m.groupId).map(m => m.groupId!))];
+      const completedGroups = new Set(
+          groupIds.filter(gid => matches.filter(m => m.groupId === gid).every(m => DONE_STATUSES.includes(m.status)))
+      );
+      const allGroupsDone = completedGroups.size === groupIds.length;
+      let matched = 0, wrong = 0, pending = 0;
+      for (const teamId of predictedR32Teams) {
+          if (actualR32.has(teamId)) { matched++; continue; }
+          const teamGroup = groupIds.find(gid =>
+              matches.some(m => m.groupId === gid && (m.homeTeamId === teamId || m.awayTeamId === teamId))
+          );
+          if (teamGroup && completedGroups.has(teamGroup) && allGroupsDone) { wrong++; } else { pending++; }
+      }
+      return { matched, wrong, pending, total: predictedR32Teams.length, groupsLeft: groupIds.length - completedGroups.size };
+  }, [predictedR32Teams, matches, teamsData]);
+
   // --- ACTIONS ---
   const handleLogout = async () => {
       if (supabase) await supabase.auth.signOut();
@@ -1541,7 +1564,7 @@ export const App = () => {
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
-      <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} pickedTeams={predictedKOTeamCount} onDismiss={handleSCReminderDismiss} langCode={language} />
+      <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} pickedTeams={predictedKOTeamCount} r32Tracker={r32Tracker} onDismiss={handleSCReminderDismiss} langCode={language} />
       <GoalBanner
         notification={goalNotification}
         homeTeam={goalNotification ? teamsData[goalNotification.homeTeamId] : undefined}
