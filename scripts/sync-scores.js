@@ -35,7 +35,7 @@ const TEAM_NAME_TO_ID = {
   "Ghana": "GHA", "Cameroon": "CMR",
   "Ivory Coast": "CIV", "Cote d'Ivoire": "CIV", "Côte d'Ivoire": "CIV",
   "South Africa": "RSA", "Tunisia": "TUN", "Algeria": "ALG", "Mali": "MLI",
-  "Guinea": "GUI", "Cabo Verde": "CPV", "Cape Verde": "CPV",
+  "Guinea": "GUI", "Cabo Verde": "CPV", "Cape Verde": "CPV", "Cape Verde Islands": "CPV",
   "DR Congo": "COD", "Congo DR": "COD", "Democratic Republic of Congo": "COD",
   "Japan": "JPN", "Korea Republic": "KOR", "South Korea": "KOR",
   "Saudi Arabia": "KSA", "Iran": "IRN", "IR Iran": "IRN",
@@ -47,6 +47,16 @@ const TEAM_NAME_TO_ID = {
 
 const LOCKED_STATUSES    = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'FT', 'AET', 'PEN', 'LIVE', 'INT', 'ABD', 'AWD', 'WO'];
 const LIVE_LOOP_STATUSES = ['1H', '2H', 'ET', 'P', 'LIVE', 'INT'];
+
+// Knockout round name in API-Football → our internal round code
+const KO_ROUND_MAP = [
+  { apiName: 'Round of 32',     dbRound: 'R32' },
+  { apiName: 'Round of 16',     dbRound: 'R16' },
+  { apiName: 'Quarter-finals',  dbRound: 'QF'  },
+  { apiName: 'Semi-finals',     dbRound: 'SF'  },
+  { apiName: 'Final',           dbRound: 'FIN' },
+  { apiName: '3rd Place Final', dbRound: '3RD' },
+];
 
 // Determine which polling tier applies right now.
 // Returns 'live' | 'window' | 'skip' — no API calls, only DB queries.
@@ -76,6 +86,85 @@ async function checkTier() {
   if (window?.length) return 'window';
 
   return 'skip';
+}
+
+// Fill confirmed knockout matchups into TBD DB slots as soon as the API publishes them.
+// Uses positional matching: both the API fixtures and the DB slots are sorted by kickoff time,
+// then paired by index. Exits immediately if no TBD slots remain.
+async function prefetchKnockoutBracket() {
+  const { data: tbdRows, error } = await supabase
+    .from('matches')
+    .select('id, round, date, home_team_id, away_team_id, api_id')
+    .in('round', ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'])
+    .or('home_team_id.eq.TBD,away_team_id.eq.TBD');
+
+  if (error) { console.error('[Bracket] DB fetch error:', error.message); return; }
+  if (!tbdRows || tbdRows.length === 0) {
+    console.log('[Bracket] All knockout slots filled — skipping prefetch.');
+    return;
+  }
+
+  console.log(`[Bracket] ${tbdRows.length} TBD knockout slot(s) — fetching from API...`);
+
+  // Group TBD rows by round, each sorted by kickoff time
+  const tbdByRound = {};
+  for (const row of tbdRows) {
+    (tbdByRound[row.round] ??= []).push(row);
+  }
+  for (const rows of Object.values(tbdByRound)) {
+    rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+
+  let totalUpdated = 0;
+
+  for (const { apiName, dbRound } of KO_ROUND_MAP) {
+    const slots = tbdByRound[dbRound];
+    if (!slots?.length) continue;
+
+    const res = await fetch(
+      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&round=${encodeURIComponent(apiName)}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    );
+    const data = await res.json();
+    if (!data.response?.length) { console.log(`[Bracket] ${dbRound}: no fixtures from API yet.`); continue; }
+
+    // Only fixtures where both teams are resolved, sorted by kickoff time
+    const known = data.response
+      .filter(f => TEAM_NAME_TO_ID[f.teams.home.name] && TEAM_NAME_TO_ID[f.teams.away.name])
+      .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    console.log(`[Bracket] ${dbRound}: ${data.results} total from API, ${known.length} with resolved teams.`);
+
+    // Pair by position: nth API fixture (by time) → nth TBD DB slot (by time)
+    for (let i = 0; i < Math.min(known.length, slots.length); i++) {
+      const f    = known[i];
+      const slot = slots[i];
+      const homeId = TEAM_NAME_TO_ID[f.teams.home.name];
+      const awayId = TEAM_NAME_TO_ID[f.teams.away.name];
+      const status = f.fixture.status.short;
+
+      const patch = {
+        home_team_id: homeId,
+        away_team_id: awayId,
+        api_id:       f.fixture.id.toString(),
+        date:         f.fixture.date,          // use actual kickoff time from API
+        is_locked:    LOCKED_STATUSES.includes(status),
+      };
+      if (f.goals.home !== null) patch.home_score = f.goals.home;
+      if (f.goals.away !== null) patch.away_score = f.goals.away;
+      if (status !== 'TBD' && status !== 'NS') patch.status = status;
+
+      const { error: upErr } = await supabase.from('matches').update(patch).eq('id', slot.id);
+      if (upErr) {
+        console.error(`[Bracket] ${slot.id} update failed: ${upErr.message}`);
+      } else {
+        console.log(`[Bracket] ${slot.id} → ${homeId} vs ${awayId} (api_id=${f.fixture.id}, date=${f.fixture.date.slice(0, 16)})`);
+        totalUpdated++;
+      }
+    }
+  }
+
+  console.log(`[Bracket] Prefetch done — ${totalUpdated} slot(s) updated.`);
 }
 
 async function syncScores() {
@@ -169,7 +258,6 @@ async function syncScores() {
         away_score:   goals.away ?? null,
         is_locked:    isLocked,
         minute:     fixture.status.elapsed ?? null,
-        updated_at: new Date().toISOString(),
       };
 
       // Populate team IDs whenever we can resolve them (fills TBD knockout slots)
@@ -313,6 +401,9 @@ async function syncScores() {
 }
 
 // --- Adaptive orchestration ---
+// Always run bracket prefetch first — fills confirmed knockout matchups as soon as the API has them.
+await prefetchKnockoutBracket();
+
 const tier = await checkTier();
 
 if (tier === 'live') {
