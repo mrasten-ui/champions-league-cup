@@ -67,11 +67,11 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
       const predHome = prediction.home;
       const predAway = prediction.away;
       
-      if (isHome && predHome > predAway) return 'opacity-100 scale-110 grayscale-0 shadow-xl z-10';
-      if (!isHome && predAway > predHome) return 'opacity-100 scale-110 grayscale-0 shadow-xl z-10';
-      if (predHome === predAway) return 'opacity-100'; 
+      if (isHome && predHome > predAway) return 'opacity-100 scale-105';
+      if (!isHome && predAway > predHome) return 'opacity-100 scale-105';
+      if (predHome === predAway) return 'opacity-100';
 
-      return 'opacity-30 grayscale blur-[0.5px] scale-95'; 
+      return 'opacity-20 grayscale scale-90';
   };
 
   // --- KNOCKOUT VARIANT ---
@@ -101,7 +101,13 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
 
                 {/* Home Team */}
                 <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(true)}`}>
-                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
+                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm transition-all ${
+                        isFinal
+                            ? (prediction && prediction.home > prediction.away ? 'border-yellow-400 ring-2 ring-yellow-400/40' : 'border-white/20')
+                            : is3rd
+                            ? (prediction && prediction.home > prediction.away ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-slate-100')
+                            : (prediction && prediction.home > prediction.away ? 'border-emerald-400 ring-2 ring-emerald-400/40' : 'border-slate-100')
+                    }`}>
                         {homeTeam?.flag ? (
                             <img src={homeTeam.flag} className="w-14 h-10 object-cover" alt={homeTeam.name} />
                         ) : (
@@ -114,9 +120,13 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
                             {homeTeam?.flag ? homeTeam.name : '?'}
                         </span>
-                        {(isFinal || is3rd) && prediction && prediction.home > prediction.away && (
-                            <span className={`text-[8px] font-black uppercase tracking-widest ${isFinal ? 'text-yellow-400' : 'text-amber-500'}`}>
-                                {isFinal ? '★ Champion' : '3rd Place'}
+                        {prediction && prediction.home > prediction.away && (
+                            <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                isFinal ? 'bg-yellow-400/25 text-yellow-300 border border-yellow-400/40' :
+                                is3rd   ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' :
+                                          'bg-emerald-500/20 text-emerald-400 border border-emerald-400/30'
+                            }`}>
+                                {isFinal ? '★ Pick' : is3rd ? '3rd Pick' : '✓ Pick'}
                             </span>
                         )}
                     </div>
@@ -128,7 +138,13 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
 
                 {/* Away Team */}
                 <div className={`flex flex-col items-center gap-2 w-2/5 transition-all duration-300 ${getTeamOpacity(false)}`}>
-                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm ${isFinal ? 'border-white/20' : 'border-slate-100'}`}>
+                    <div className={`rounded-lg overflow-hidden border-2 shadow-sm transition-all ${
+                        isFinal
+                            ? (prediction && prediction.away > prediction.home ? 'border-yellow-400 ring-2 ring-yellow-400/40' : 'border-white/20')
+                            : is3rd
+                            ? (prediction && prediction.away > prediction.home ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-slate-100')
+                            : (prediction && prediction.away > prediction.home ? 'border-emerald-400 ring-2 ring-emerald-400/40' : 'border-slate-100')
+                    }`}>
                         {awayTeam?.flag ? (
                             <img src={awayTeam.flag} className="w-14 h-10 object-cover" alt={awayTeam.name} />
                         ) : (
@@ -141,9 +157,13 @@ export const PredictionStamp: React.FC<PredictionStampProps> = ({
                         <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${teamTextClass}`}>
                             {awayTeam?.flag ? awayTeam.name : '?'}
                         </span>
-                        {(isFinal || is3rd) && prediction && prediction.away > prediction.home && (
-                            <span className={`text-[8px] font-black uppercase tracking-widest ${isFinal ? 'text-yellow-400' : 'text-amber-500'}`}>
-                                {isFinal ? '★ Champion' : '3rd Place'}
+                        {prediction && prediction.away > prediction.home && (
+                            <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                isFinal ? 'bg-yellow-400/25 text-yellow-300 border border-yellow-400/40' :
+                                is3rd   ? 'bg-amber-400/25 text-amber-300 border border-amber-400/40' :
+                                          'bg-emerald-500/20 text-emerald-400 border border-emerald-400/30'
+                            }`}>
+                                {isFinal ? '★ Pick' : is3rd ? '3rd Pick' : '✓ Pick'}
                             </span>
                         )}
                     </div>
