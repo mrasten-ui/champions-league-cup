@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
@@ -211,6 +211,115 @@ const getQualifiedRounds = (
     return result;
 };
 
+type TeamStatus = 'confirmed' | 'pending' | 'eliminated';
+interface RoundWithAllTeams {
+    key: string; label: string; pointsPerTeam: number; totalSlots: number;
+    penaltyApplied: boolean; confirmedPoints: number;
+    teams: { teamId: string; status: TeamStatus }[];
+    isActive: boolean;
+}
+
+const getRoundsWithAllTeams = (
+    realMatches: Match[],
+    userPredictions: Prediction[],
+    user: UserProfile,
+    teams: Record<string, Team>
+): RoundWithAllTeams[] => {
+    const bracketPreds = user.bracketPredictions
+        ? userPredictions.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          )
+        : userPredictions;
+    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
+    const secondChanceBracket = user.hasTakenSecondChance
+        ? applyPredictionsToBracket(realMatches, teams, userPredictions)
+        : standardBracket;
+
+    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
+        const teamSet = new Set<string>();
+        matchList
+            .filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round)
+            .forEach(m => {
+                if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
+                if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
+            });
+        return teamSet;
+    };
+
+    const roundDefs = [
+        { key: 'R32_START', label: 'Round of 32',    points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
+        { key: 'R16',       label: 'Round of 16',    points: SCORING_RULES.R32,          totalSlots: 16 },
+        { key: 'QF',        label: 'Quarter Finals', points: SCORING_RULES.R16,          totalSlots: 8  },
+        { key: 'SF',        label: 'Semi Finals',    points: SCORING_RULES.QF,           totalSlots: 4  },
+        { key: 'FIN',       label: 'Final',          points: SCORING_RULES.SF,           totalSlots: 2  },
+        { key: 'CHAMP',     label: 'Champion',       points: SCORING_RULES.FIN,          totalSlots: 1  },
+    ];
+
+    const getChamp = (matchList: Match[]) => {
+        const fin = matchList.find(m => m.round === 'FIN');
+        if (fin && fin.homeScore !== null && fin.awayScore !== null)
+            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
+        return null;
+    };
+
+    const realChamp = getChamp(realMatches);
+    const standardChamp = getChamp(standardBracket);
+    const secondChanceChamp = getChamp(secondChanceBracket);
+    const statusOrder: Record<TeamStatus, number> = { confirmed: 0, pending: 1, eliminated: 2 };
+
+    const result: RoundWithAllTeams[] = [];
+
+    roundDefs.forEach(r => {
+        let pointsPerTeam = r.points;
+        let penaltyApplied = false;
+        let targetBracket = standardBracket;
+        let userChamp = standardChamp;
+
+        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
+            targetBracket = secondChanceBracket;
+            userChamp = secondChanceChamp;
+            penaltyApplied = true;
+            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
+        }
+
+        if (r.key === 'CHAMP') {
+            if (!userChamp || userChamp.startsWith('TBD')) return;
+            const status: TeamStatus = realChamp === userChamp ? 'confirmed' : realChamp !== null ? 'eliminated' : 'pending';
+            result.push({
+                key: r.key, label: r.label, pointsPerTeam, totalSlots: r.totalSlots,
+                penaltyApplied, confirmedPoints: status === 'confirmed' ? pointsPerTeam : 0,
+                teams: [{ teamId: userChamp, status }],
+                isActive: realChamp !== null,
+            });
+        } else {
+            const realTeams = getTeamsInRound(realMatches, r.key as any);
+            const userTeams = getTeamsInRound(targetBracket, r.key as any);
+            if (userTeams.size === 0) return;
+
+            const teamList: { teamId: string; status: TeamStatus }[] = [];
+            userTeams.forEach(teamId => {
+                const status: TeamStatus =
+                    realTeams.has(teamId)            ? 'confirmed'
+                  : realTeams.size >= r.totalSlots   ? 'eliminated'
+                  :                                    'pending';
+                teamList.push({ teamId, status });
+            });
+            teamList.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+            const confirmedCount = teamList.filter(t => t.status === 'confirmed').length;
+            result.push({
+                key: r.key, label: r.label, pointsPerTeam, totalSlots: r.totalSlots,
+                penaltyApplied, confirmedPoints: confirmedCount * pointsPerTeam,
+                teams: teamList,
+                isActive: realTeams.size > 0,
+            });
+        }
+    });
+
+    return result;
+};
+
 const QualifiedTeamsGrid: React.FC<{
     realMatches: Match[],
     userPredictions: Prediction[],
@@ -320,7 +429,55 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues?.[0] ?? '');
-  
+  const [openRoundKeys, setOpenRoundKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+      if (!expandedUser) { setOpenRoundKeys(new Set()); return; }
+      const active = new Set<string>();
+      const nonTBD = (id: string) => !!id && !id.startsWith('TBD');
+      const done = ['FT', 'FINISHED', 'AET', 'PEN'];
+      const now = Date.now();
+      const MS_24H = 24 * 60 * 60 * 1000;
+
+      // Returns ms timestamp of the last finished match in a set, or null if none finished.
+      const lastFinishedMs = (src: Match[]) => {
+          const times = src
+              .filter(m => done.includes(m.status) && m.date && m.date !== 'TBD')
+              .map(m => new Date(m.date).getTime());
+          return times.length ? Math.max(...times) : null;
+      };
+
+      // Auto-open a round only if it has confirmed real teams AND the last source game
+      // finished less than 24 h ago (or hasn't finished yet — still in progress).
+      const maybeOpen = (key: string, targetRound: string, srcMatches: Match[]) => {
+          if (!matches.some(m => m.round === targetRound && (nonTBD(m.homeTeamId) || nonTBD(m.awayTeamId)))) return;
+          const last = lastFinishedMs(srcMatches);
+          if (last === null || now - last < MS_24H) active.add(key);
+      };
+
+      maybeOpen('R32_START', 'R32', matches.filter(m => !!m.groupId));
+      maybeOpen('R16',       'R16', matches.filter(m => m.round === 'R32'));
+      maybeOpen('QF',        'QF',  matches.filter(m => m.round === 'R16'));
+      maybeOpen('SF',        'SF',  matches.filter(m => m.round === 'QF'));
+      maybeOpen('FIN',       'FIN', matches.filter(m => m.round === 'SF'));
+
+      // CHAMP: open once FIN has a result and that result is within 24 h
+      const finMatch = matches.find(m => m.round === 'FIN');
+      if (finMatch?.homeScore !== null && finMatch?.date && finMatch.date !== 'TBD') {
+          const finMs = new Date(finMatch.date).getTime();
+          if (now - finMs < MS_24H) active.add('CHAMP');
+      }
+
+      setOpenRoundKeys(active);
+  }, [expandedUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleRound = (key: string) =>
+      setOpenRoundKeys(prev => {
+          const next = new Set(prev);
+          next.has(key) ? next.delete(key) : next.add(key);
+          return next;
+      });
+
   // Stats Modal State
   const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
   // Profile spotlight modal (avatar click in expanded row)
@@ -462,6 +619,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       return { last3, next3 };
   }, [expandedUser, allPredictions, matches, finalDisplayData]);
 
+  const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+  const allGroupsDone = matches
+      .filter(m => !!m.groupId)
+      .every(m => finishedStatuses.includes(m.status));
+
   const getLeagueName = (slug: string) =>
     slug === 'global'
       ? (lang.lbGlobal || 'Global League')
@@ -580,6 +742,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                               </div>
                           )}
 
+                          {!allGroupsDone && <>
                           <div className="w-px h-8 bg-white/10" />
 
                           <div className="text-center min-w-0">
@@ -603,6 +766,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                   </div>
                               )}
                           </div>
+                          </>}
                       </div>
                   )}
               </div>
@@ -650,8 +814,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">#</th>
-                <th className="w-[50%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{lang.manager}</th>
-                <th className="w-[20%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden sm:table-cell text-center">Form</th>
+                <th className={`${allGroupsDone ? 'w-[70%]' : 'w-[50%]'} px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400`}>{lang.manager}</th>
+                {!allGroupsDone && <th className="w-[20%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden sm:table-cell text-center">Form</th>}
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Pts</th>
               </tr>
             </thead>
@@ -729,6 +893,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                             </div>
                         </td>
 
+                        {!allGroupsDone && (
                         <td className="w-[20%] px-4 py-4 text-center align-middle hidden sm:table-cell">
                             <div className="flex items-center justify-center gap-1">
                                 {user.form.map((p, i) => (
@@ -736,6 +901,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                 ))}
                             </div>
                         </td>
+                        )}
 
                         <td className="w-[15%] px-4 py-4 text-right align-middle">
                             <div className="text-xl font-black text-slate-900 tracking-tight">{points}</div>
@@ -747,8 +913,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                           <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-slate-50/50">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
 
-                                  {/* Avatar + Last 3 / Next 3 — avatar on the left, games fill the
-                                      space beside it and wrap below on narrow screens. */}
+                                  {/* Avatar + Last 3 / Next 3 — hidden once all group games are done */}
+                                  {!allGroupsDone && (
                                   <div className="flex flex-wrap items-start gap-3 mb-4 pb-3 border-b border-slate-200">
                                       <div
                                           className="shrink-0 flex items-center gap-1 cursor-pointer group"
@@ -790,6 +956,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                           </div>
                                       </div>
                                   </div>
+                                  )}
 
                                   {/* Horizontal stats chips */}
                                   <div className="grid grid-cols-4 gap-2 mb-4">
@@ -812,16 +979,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                       </div>
                                   </div>
 
-                                  {/* Knockout bracket — full width. Hidden entirely until there's at least
-                                      one correct pick to show, instead of an empty/"locked" placeholder. */}
+                                  {/* Collapsible bracket rounds */}
                                   {(() => {
                                       const userPreds = allPredictions.filter(p => p.userId === user.email);
-                                      const qualifiedRounds = getQualifiedRounds(matches, userPreds, user, teams);
-                                      if (qualifiedRounds.length === 0) return null;
+                                      const roundDetails = getRoundsWithAllTeams(matches, userPreds, user, teams);
+                                      if (roundDetails.length === 0) return null;
 
                                       return (
-                                          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm overflow-hidden">
-                                              <div className="flex justify-between items-center mb-3">
+                                          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                                                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
                                                   {user.hasTakenSecondChance && (
                                                       <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
@@ -829,13 +995,58 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                                       </span>
                                                   )}
                                               </div>
-                                              <QualifiedTeamsGrid
-                                                  realMatches={matches}
-                                                  userPredictions={userPreds}
-                                                  user={user}
-                                                  teams={teams}
-                                                  onTeamClick={onTeamClick}
-                                              />
+                                              <div className="divide-y divide-slate-50">
+                                                  {roundDetails.map(r => {
+                                                      const isOpen = openRoundKeys.has(r.key);
+                                                      return (
+                                                          <div key={r.key}>
+                                                              <div
+                                                                  className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                                                                  onClick={() => toggleRound(r.key)}
+                                                              >
+                                                                  <div className="flex flex-col gap-0.5">
+                                                                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{r.label}</span>
+                                                                      <span className="text-[9px] text-slate-400 font-medium">{r.pointsPerTeam} pts / team</span>
+                                                                  </div>
+                                                                  <div className="flex items-center gap-2">
+                                                                      {r.penaltyApplied && (
+                                                                          <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">50%</span>
+                                                                      )}
+                                                                      <span className="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1">
+                                                                          <Trophy size={8} className="text-yellow-300" />
+                                                                          {r.teams.filter(t => t.status === 'confirmed').length}/{r.totalSlots}
+                                                                      </span>
+                                                                      <span className="text-sm font-black text-green-600">+{r.confirmedPoints}</span>
+                                                                      <ChevronDown size={12} className={`text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                                                  </div>
+                                                              </div>
+                                                              {isOpen && (
+                                                                  <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+                                                                      {r.teams.map(({ teamId, status }) => {
+                                                                          const team = teams[teamId];
+                                                                          return (
+                                                                              <div
+                                                                                  key={teamId}
+                                                                                  onClick={e => { e.stopPropagation(); if (onTeamClick && status !== 'pending') onTeamClick(teamId); }}
+                                                                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold ${
+                                                                                      status === 'confirmed' ? 'bg-white border-slate-200 text-slate-700 cursor-pointer hover:border-blue-300'
+                                                                                    : status === 'pending'  ? 'bg-slate-50 border-slate-100 text-slate-400'
+                                                                                    :                         'bg-red-50 border-red-100 text-red-400'
+                                                                                  }`}
+                                                                              >
+                                                                                  <img src={team?.flag} className={`w-5 h-3.5 object-cover rounded-sm shadow-sm ${status === 'pending' ? 'opacity-40' : ''}`} alt={teamId} />
+                                                                                  <span className={status === 'eliminated' ? 'line-through' : ''}>{teamId}</span>
+                                                                                  {status === 'confirmed'  && <Check size={9} className="text-green-500" strokeWidth={3} />}
+                                                                                  {status === 'eliminated' && <X    size={9} className="text-red-400"   strokeWidth={3} />}
+                                                                              </div>
+                                                                          );
+                                                                      })}
+                                                                  </div>
+                                                              )}
+                                                          </div>
+                                                      );
+                                                  })}
+                                              </div>
                                           </div>
                                       );
                                   })()}
