@@ -56,6 +56,16 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   const scMatches = status === 'ACTIVE'
     ? matches.map(m => m.round ? { ...m, isLocked: true } : m)
     : matches;
+
+  // MatchCard syncs its local score state from allPredictions (the user's own entry).
+  // For PENDING: use sc_draft so picks show correctly and don't deselect after auto-save.
+  // For ACTIVE: use the locked SC predictions from the DB (user's own picks only).
+  // Other users are excluded entirely (rivals=[]).
+  const scPredictions: Prediction[] = status === 'PENDING' && user?.scDraft
+    ? Object.entries(user.scDraft).map(([matchId, { home, away }]) => ({
+        userId: user.email, matchId, home, away,
+      }))
+    : allPredictions.filter(p => p.userId === user?.email);
   
   // Is it between the end of Groups and the start of R32?
   const isDraftingWindow = now >= groupStageEndTime && now < knockoutStartTime;
@@ -260,7 +270,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
             user={user}
             onSecondChance={()=>{}}
             rivals={[]}
-            allPredictions={allPredictions.filter(p => p.userId !== user?.email)}
+            allPredictions={scPredictions}
             phase={phase}
             isGroupStageComplete={true}
             firstIncompleteGroup={null}
