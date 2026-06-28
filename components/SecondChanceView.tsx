@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, Round } from '../types';
-import { ShieldCheck, Lock, Unlock, AlertTriangle, Users, Shield, LayoutGrid, Columns, Crown, Clock, Save } from 'lucide-react';
+import { ShieldCheck, Lock, Unlock, AlertTriangle, Users, Shield, LayoutGrid, Columns, Crown, Clock, Save, RefreshCw } from 'lucide-react';
 import { KnockoutBracket } from './KnockoutBracket';
 
 interface SecondChanceViewProps {
@@ -21,13 +21,14 @@ interface SecondChanceViewProps {
   knockoutStartTime: number;
   activeRound?: Round;
   onRoundChange?: (r: Round) => void;
+  onEdit?: () => void;
 }
 
 export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   matches, teams, onUpdate, lang, user, onPledge, onLockIn,
   rivals, allPredictions, phase, onTeamClick,
   onSpy, revealedRivals, groupStageEndTime, knockoutStartTime,
-  activeRound: activeRoundProp, onRoundChange,
+  activeRound: activeRoundProp, onRoundChange, onEdit,
 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
@@ -174,6 +175,13 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
                   </div>
               </div>
           </div>
+
+          {/* ACTIVE: change picks button */}
+          {status === 'ACTIVE' && onEdit && (
+              <button onClick={onEdit} className="shrink-0 flex items-center gap-2 bg-white/20 hover:bg-white/30 active:scale-95 px-5 py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all">
+                  <RefreshCw size={16} /> {lang.changePicks || 'Change Picks'}
+              </button>
+          )}
 
           {/* SPRINT DRAFTING UI */}
           {status === 'PENDING' && isDraftingWindow && (

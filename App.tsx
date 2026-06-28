@@ -655,6 +655,23 @@ export const App = () => {
       }
   };
 
+  // --- RE-EDIT: ACTIVE → PENDING, copy current picks to sc_draft ---
+  const handleEditSecondChance = async () => {
+      if (!user || !supabase) return;
+      if (window.confirm(t.lockInConfirm ? (t.changePicks || 'Are you sure you want to change your locked-in picks? You will need to lock in again.') : 'Change your locked-in Second Chance picks? You will need to lock in again.')) {
+          const knockoutPreds = allPredictions.filter(p =>
+              p.userId === user.email && matches.some(m => m.id === p.matchId && !m.groupId && m.round)
+          );
+          const newScDraft = Object.fromEntries(knockoutPreds.map(p => [p.matchId, { home: p.home, away: p.away }]));
+          setUser({ ...user, secondChanceStatus: 'PENDING', scDraft: Object.keys(newScDraft).length ? newScDraft : undefined });
+          await supabase.from('profiles').update({
+              second_chance_status: 'PENDING',
+              sc_draft: Object.keys(newScDraft).length ? newScDraft : null,
+          } as any).eq('email', user.email);
+          addToast('info', t.pledgeLocked || 'Editing picks', t.pledgeToastMsg || 'Make your changes and lock in again.');
+      }
+  };
+
   // Auto-cancel second chance if drafting window expired without locking in
   useEffect(() => {
       if (!user || !supabase || user.secondChanceStatus !== 'PENDING' || knockoutStartTime === 0) return;
@@ -1539,6 +1556,7 @@ export const App = () => {
                         } phase={tournamentPhase} onTeamClick={setViewingTeamId}
                         onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime}
                         activeRound={activeKnockoutRound} onRoundChange={setActiveKnockoutRound}
+                        onEdit={handleEditSecondChance}
                     />
                 ) : (
                     <KnockoutBracket

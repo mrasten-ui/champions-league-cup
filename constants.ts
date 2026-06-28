@@ -928,14 +928,14 @@ rounds.forEach((round, idx) => {
     
     // Official FIFA Mapping for Next Matches
     if (round === 'R32') {
-        if (i === 2 || i === 5) nextMatchId = 'R16_1';
-        else if (i === 1 || i === 3) nextMatchId = 'R16_2';
-        else if (i === 4 || i === 6) nextMatchId = 'R16_3';
-        else if (i === 7 || i === 8) nextMatchId = 'R16_4';
-        else if (i === 11 || i === 12) nextMatchId = 'R16_5';
-        else if (i === 9 || i === 10) nextMatchId = 'R16_6';
-        else if (i === 14 || i === 16) nextMatchId = 'R16_7';
-        else if (i === 13 || i === 15) nextMatchId = 'R16_8';
+        if (i === 1 || i === 4) nextMatchId = 'R16_1';        // RSA/CAN + NED/MAR
+        else if (i === 3 || i === 6) nextMatchId = 'R16_2';   // GER/PAR + FRA/SWE
+        else if (i === 11 || i === 12) nextMatchId = 'R16_3'; // ESP/AUT + POR/CRO
+        else if (i === 9 || i === 10) nextMatchId = 'R16_4';  // BEL/SEN + USA/BIH
+        else if (i === 2 || i === 5) nextMatchId = 'R16_5';   // BRA/JPN + CIV/NOR
+        else if (i === 7 || i === 8) nextMatchId = 'R16_6';   // MEX/ECU + ENG/COD
+        else if (i === 14 || i === 15) nextMatchId = 'R16_7'; // AUS/EGY + ARG/CPV
+        else if (i === 13 || i === 16) nextMatchId = 'R16_8'; // SUI/ALG + COL/GHA
     }
     else if (round === 'R16') {
         if (i === 1 || i === 2) nextMatchId = 'QF_1';
