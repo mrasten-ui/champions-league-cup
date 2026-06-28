@@ -106,6 +106,16 @@ async function prefetchKnockoutBracket() {
 
   console.log(`[Bracket] ${tbdRows.length} TBD knockout slot(s) — fetching from API...`);
 
+  // Fetch already-linked knockout rows so we can skip api_ids already in use.
+  // This prevents duplicate assignments if the script runs more than once.
+  const { data: linkedKORows } = await supabase
+    .from('matches')
+    .select('api_id')
+    .in('round', ['R32', 'R16', 'QF', 'SF', 'FIN', '3RD'])
+    .not('api_id', 'is', null);
+
+  const usedApiIds = new Set((linkedKORows ?? []).map(r => r.api_id));
+
   // Group TBD rows by round, each sorted by kickoff time
   const tbdByRound = {};
   for (const row of tbdRows) {
@@ -136,9 +146,17 @@ async function prefetchKnockoutBracket() {
     console.log(`[Bracket] ${dbRound}: ${data.results} total from API, ${known.length} with resolved teams.`);
 
     // Pair by position: nth API fixture (by time) → nth TBD DB slot (by time)
-    for (let i = 0; i < Math.min(known.length, slots.length); i++) {
+    let slotIndex = 0;
+    for (let i = 0; i < known.length && slotIndex < slots.length; i++) {
       const f    = known[i];
-      const slot = slots[i];
+      const slot = slots[slotIndex];
+      const apiIdStr = f.fixture.id.toString();
+
+      if (usedApiIds.has(apiIdStr)) {
+        console.log(`[Bracket] api_id ${apiIdStr} already linked — skipping duplicate.`);
+        continue; // don't advance slotIndex — this API fixture is already covered
+      }
+
       const homeId = TEAM_NAME_TO_ID[f.teams.home.name];
       const awayId = TEAM_NAME_TO_ID[f.teams.away.name];
       const status = f.fixture.status.short;
@@ -146,7 +164,7 @@ async function prefetchKnockoutBracket() {
       const patch = {
         home_team_id: homeId,
         away_team_id: awayId,
-        api_id:       f.fixture.id.toString(),
+        api_id:       apiIdStr,
         date:         f.fixture.date,          // use actual kickoff time from API
         is_locked:    LOCKED_STATUSES.includes(status),
       };
@@ -158,9 +176,11 @@ async function prefetchKnockoutBracket() {
       if (upErr) {
         console.error(`[Bracket] ${slot.id} update failed: ${upErr.message}`);
       } else {
-        console.log(`[Bracket] ${slot.id} → ${homeId} vs ${awayId} (api_id=${f.fixture.id}, date=${f.fixture.date.slice(0, 16)})`);
+        console.log(`[Bracket] ${slot.id} → ${homeId} vs ${awayId} (api_id=${apiIdStr}, date=${f.fixture.date.slice(0, 16)})`);
+        usedApiIds.add(apiIdStr); // prevent same api_id from matching another slot in this run
         totalUpdated++;
       }
+      slotIndex++;
     }
   }
 
