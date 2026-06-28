@@ -211,12 +211,15 @@ export const App = () => {
 
   const handleJumpToBracket = (matchId: string) => {
       setTournamentSubTab('bracket');
-      setHighlightedMatchId(matchId);
       setTimeout(() => {
           const element = document.getElementById(`bracket-match-${matchId}`);
           if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       }, 100);
-      setTimeout(() => setHighlightedMatchId(null), 2000);
+      // Double-blink: on → off → on → off
+      setHighlightedMatchId(matchId);
+      setTimeout(() => setHighlightedMatchId(null), 500);
+      setTimeout(() => setHighlightedMatchId(matchId), 900);
+      setTimeout(() => setHighlightedMatchId(null), 1500);
   };
 
   const isInLateWindow = useMemo(() => {
@@ -267,17 +270,28 @@ export const App = () => {
       // The setMatchup TBD guard in updateBracket ensures real R32 teams from DB are never
       // overwritten, so partial group data cannot distort slot assignments.
       if (isDraftingWindow || user.hasTakenSecondChance) {
+          // Canonical set of match IDs valid for the SC bracket (R32→FIN, no 3rd-place playoff).
+          // Derived from INITIAL_MATCHES so we're immune to DB round mismatches on 3RD_1.
+          const SC_KO_ROUNDS = new Set(['R32', 'R16', 'QF', 'SF', 'FIN']);
+          const SC_MATCH_IDS = new Set(
+              INITIAL_MATCHES.filter(m => !m.groupId && SC_KO_ROUNDS.has(m.round ?? '')).map(m => m.id)
+          );
           // Base: group matches use real results; KO matches preserve scores/lock if already started,
           // null out future KO matches so SC picks apply there.
-          const scBase = matches.map(m => {
-              if (m.groupId) return m;
-              const started = m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now();
-              return { ...m, isLocked: started, homeScore: started ? m.homeScore : null, awayScore: started ? m.awayScore : null };
-          });
-          // Inject real results for started KO matches so the winner cascades to the next round.
-          // These are display-only — not in sc_draft so not written to DB, meaning no points awarded.
+          const scBase = matches
+              .filter(m => m.groupId || SC_MATCH_IDS.has(m.id))
+              .map(m => {
+                  if (m.groupId) return m;
+                  const started = m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now();
+                  return { ...m, isLocked: started, homeScore: started ? m.homeScore : null, awayScore: started ? m.awayScore : null };
+              });
+          // Inject real results for definitively finished KO matches so the winner cascades.
+          // Only inject when fully settled (FT/AET/PEN) — live 0-0 scores can't determine a
+          // winner and would cascade TBD placeholder chips into later rounds.
+          // Display-only: not in sc_draft, not written to DB, no points awarded.
+          const FINISHED_STATUSES = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
           const startedResults = matches
-              .filter(m => m.round && m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now() && m.homeScore !== null && m.awayScore !== null)
+              .filter(m => SC_MATCH_IDS.has(m.id) && FINISHED_STATUSES.has(m.status ?? '') && m.homeScore !== null && m.awayScore !== null)
               .map(m => ({ userId: user.email, matchId: m.id, home: m.homeScore!, away: m.awayScore! }));
           const startedIds = new Set(startedResults.map(r => r.matchId));
           let scKnockoutPreds = [

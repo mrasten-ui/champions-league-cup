@@ -363,6 +363,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         phase={'LIVE'}
                                         isAdminMode={false}
                                         onTeamClick={createClickHandler(match)}
+                                        onCardClick={match.round && onJumpToBracket ? () => onJumpToBracket(match.id) : undefined}
                                         showStatusBadge={true}
                                         homeTeamPoints={teamPointsMap[match.homeTeamId]}
                                         awayTeamPoints={teamPointsMap[match.awayTeamId]}
