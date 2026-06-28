@@ -237,23 +237,23 @@ export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupSt
 // EXPLICIT FIFA KNOCKOUT PROGRESSION MAP (Article 12)
 // This ensures that regardless of DB next_match_id flaws, teams route perfectly.
 const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'away' }> = {
-    // Round of 32 to Round of 16
-    'R32_1':  { nextId: 'R16_1', slot: 'home' }, // RSA/CAN
-    'R32_2':  { nextId: 'R16_5', slot: 'home' }, // BRA/JPN
-    'R32_3':  { nextId: 'R16_2', slot: 'home' }, // GER/PAR
-    'R32_4':  { nextId: 'R16_1', slot: 'away' }, // NED/MAR
-    'R32_5':  { nextId: 'R16_5', slot: 'away' }, // CIV/NOR
-    'R32_6':  { nextId: 'R16_2', slot: 'away' }, // FRA/SWE
-    'R32_7':  { nextId: 'R16_6', slot: 'home' }, // MEX/ECU
-    'R32_8':  { nextId: 'R16_6', slot: 'away' }, // ENG/COD
-    'R32_9':  { nextId: 'R16_4', slot: 'home' }, // BEL/SEN
-    'R32_10': { nextId: 'R16_4', slot: 'away' }, // USA/BIH
-    'R32_11': { nextId: 'R16_3', slot: 'home' }, // ESP/AUT
-    'R32_12': { nextId: 'R16_3', slot: 'away' }, // POR/CRO
-    'R32_13': { nextId: 'R16_8', slot: 'home' }, // SUI/ALG
-    'R32_14': { nextId: 'R16_7', slot: 'home' }, // AUS/EGY
-    'R32_15': { nextId: 'R16_7', slot: 'away' }, // ARG/CPV
-    'R32_16': { nextId: 'R16_8', slot: 'away' }, // COL/GHA
+    // Round of 32 to Round of 16 (FIFA M73-M88 → M89-M96, Wikipedia confirmed)
+    'R32_1':  { nextId: 'R16_2', slot: 'home' }, // RSA/CAN (M73 → M90)
+    'R32_2':  { nextId: 'R16_1', slot: 'home' }, // GER/PAR (M74 → M89)
+    'R32_3':  { nextId: 'R16_2', slot: 'away' }, // NED/MAR (M75 → M90)
+    'R32_4':  { nextId: 'R16_3', slot: 'home' }, // BRA/JPN (M76 → M91)
+    'R32_5':  { nextId: 'R16_1', slot: 'away' }, // FRA/SWE (M77 → M89)
+    'R32_6':  { nextId: 'R16_3', slot: 'away' }, // CIV/NOR (M78 → M91)
+    'R32_7':  { nextId: 'R16_4', slot: 'home' }, // MEX/ECU (M79 → M92)
+    'R32_8':  { nextId: 'R16_4', slot: 'away' }, // ENG/COD (M80 → M92)
+    'R32_9':  { nextId: 'R16_6', slot: 'home' }, // USA/BIH (M81 → M94)
+    'R32_10': { nextId: 'R16_6', slot: 'away' }, // BEL/SEN (M82 → M94)
+    'R32_11': { nextId: 'R16_5', slot: 'home' }, // POR/CRO (M83 → M93)
+    'R32_12': { nextId: 'R16_5', slot: 'away' }, // ESP/AUT (M84 → M93)
+    'R32_13': { nextId: 'R16_8', slot: 'home' }, // SUI/ALG (M85 → M96)
+    'R32_14': { nextId: 'R16_7', slot: 'home' }, // ARG/CPV (M86 → M95)
+    'R32_15': { nextId: 'R16_8', slot: 'away' }, // COL/GHA (M87 → M96)
+    'R32_16': { nextId: 'R16_7', slot: 'away' }, // AUS/EGY (M88 → M95)
     // Round of 16 to Quarter Finals
     'R16_1': { nextId: 'QF_1', slot: 'home' }, 
     'R16_2': { nextId: 'QF_1', slot: 'away' }, 
