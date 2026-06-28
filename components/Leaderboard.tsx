@@ -1077,19 +1077,44 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                      {modalData.type === 'ADVANCED' ? (
-                          getQualifiedRounds(matches, allPredictions.filter(p => p.userId === modalData.user.email), modalData.user, teams).length > 0 ? (
-                              <QualifiedTeamsGrid
-                                  realMatches={matches}
-                                  userPredictions={allPredictions.filter(p => p.userId === modalData.user.email)}
-                                  user={modalData.user}
-                                  teams={teams}
-                                  onTeamClick={onTeamClick}
-                              />
-                          ) : (
-                              <div className="py-10 text-center text-slate-400 text-sm italic">No qualified teams yet.</div>
-                          )
-                      ) : (
+                      {modalData.type === 'ADVANCED' ? (() => {
+                          const userPreds = allPredictions.filter(p => p.userId === modalData.user.email);
+                          const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+                          const koMatchResults = matches
+                              .filter(m => !m.groupId && finishedStatuses.includes(m.status) && m.homeScore !== null && m.awayScore !== null && m.round !== '3RD')
+                              .filter(m => userPreds.some(p => p.matchId === m.id))
+                              .map(m => {
+                                  const pred = userPreds.find(p => p.matchId === m.id)!;
+                                  const pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, modalData.user.hasTakenSecondChance || false, m.round);
+                                  return { m, pred, pts };
+                              })
+                              .sort((a, b) => new Date(b.m.date).getTime() - new Date(a.m.date).getTime());
+                          const qualRounds = getQualifiedRounds(matches, userPreds, modalData.user, teams);
+                          if (koMatchResults.length === 0 && qualRounds.length === 0) {
+                              return <div className="py-10 text-center text-slate-400 text-sm italic">No knockout points yet.</div>;
+                          }
+                          return (
+                              <>
+                                  {koMatchResults.length > 0 && (
+                                      <div className="mb-2">
+                                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Match Results</h4>
+                                          {koMatchResults.map(({ m, pred, pts }) => (
+                                              <DetailMatchRow key={m.id} match={m} prediction={pred} points={pts} type="RESULT" teams={teams} onTeamClick={onTeamClick} />
+                                          ))}
+                                      </div>
+                                  )}
+                                  {qualRounds.length > 0 && (
+                                      <QualifiedTeamsGrid
+                                          realMatches={matches}
+                                          userPredictions={userPreds}
+                                          user={modalData.user}
+                                          teams={teams}
+                                          onTeamClick={onTeamClick}
+                                      />
+                                  )}
+                              </>
+                          );
+                      })() : (
                           modalData.matches.length > 0 ? (
                               modalData.matches.map((item, idx) => (
                                   <DetailMatchRow 
