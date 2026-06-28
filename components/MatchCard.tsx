@@ -437,7 +437,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
                         )}
-                        {isKnockout && !isFinished && !isLive && (predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && (
+                        {isKnockout && !isFinished && (predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>
@@ -450,11 +450,32 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {isKnockout ? (
                         <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-300 w-full">
                             {(isLive || isFinished) ? (
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-2xl font-black tabular-nums text-slate-100">{match.homeScore ?? 0}</span>
-                                    <span className="text-lg font-black text-slate-400">:</span>
-                                    <span className="text-2xl font-black tabular-nums text-slate-100">{match.awayScore ?? 0}</span>
-                                </div>
+                                <>
+                                    {isLive && (() => {
+                                        const isHT = match.status === 'HT';
+                                        const isET = match.status === 'ET' || match.status === 'BT' || (match.minute != null && match.minute > 90);
+                                        const minLabel = formatMinute(match.minute, match.minuteExtra, match.status, events);
+                                        if (!isHT && !minLabel) return null;
+                                        const colour = isHT ? 'text-amber-400' : isET ? 'text-red-400' : 'text-amber-400';
+                                        const shimmer = isET ? 'via-red-400' : 'via-amber-400';
+                                        return (
+                                            <div className="flex flex-col items-center mb-1">
+                                                <div className="flex items-start leading-none">
+                                                    <span className={`text-xl font-black tabular-nums ${colour}`}>{isHT ? 'HT' : minLabel}</span>
+                                                    {!isHT && <span className={`text-xs font-black mt-0.5 ${colour}`}>′</span>}
+                                                </div>
+                                                <div className="relative mt-1.5 w-16 h-1 bg-white/20 rounded-full overflow-hidden">
+                                                    <div className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent ${shimmer} to-transparent opacity-80`} style={isHT ? { left: '25%' } : { animation: 'liveSlide 1.8s ease-in-out infinite' }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex items-center gap-1 sm:gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}>
+                                        <span>{match.homeScore ?? 0}</span>
+                                        <span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span>
+                                        <span>{match.awayScore ?? 0}</span>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="text-2xl font-black text-slate-200">VS</div>
                             )}
@@ -984,7 +1005,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                     {/* CENTER: User Prediction */}
                     <div className="w-1/3 flex justify-center">
-                        {isKnockout && predictedWinnerId && !isFinished && !isLive ? (
+                        {isKnockout && predictedWinnerId && !isFinished ? (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
                                 <span className="text-[10px] font-medium text-white/70">{lang.myPick || 'Pick'}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">
