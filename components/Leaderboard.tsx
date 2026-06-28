@@ -380,12 +380,24 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       }
     });
 
+    // Bracket qualification points (teams correctly predicted to reach each KO round).
+    // getQualifiedRounds handles the second-chance 50% penalty internally.
+    const bracketQualPoints = getQualifiedRounds(
+        matches,
+        allPredictions.filter(p => p.userId === user.email),
+        user,
+        teams
+    ).reduce((sum, qr) => sum + qr.totalPoints, 0);
+    totalPoints    += bracketQualPoints;
+    bankedPoints   += bracketQualPoints;
+    knockoutPoints += bracketQualPoints;
+
     const { form, streak } = getManagerStats(user, matches, allPredictions);
 
     return {
       ...user,
       bankedPoints,
-      totalPoints, 
+      totalPoints,
       livePoints: totalPoints - bankedPoints,
       exactCount,
       resultCount,
