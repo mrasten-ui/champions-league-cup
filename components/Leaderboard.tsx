@@ -136,6 +136,9 @@ const getQualifiedRounds = (
     const secondChanceBracket = user.hasTakenSecondChance
         ? applyPredictionsToBracket(realMatches, teams, userPredictions)
         : standardBracket;
+    // Cascade actual match results through the bracket so R16/QF/etc. team slots are
+    // filled even when the DB hasn't been manually updated after each R32 result.
+    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
 
     const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
         const teamSet = new Set<string>();
@@ -164,7 +167,7 @@ const getQualifiedRounds = (
         return null;
     };
 
-    const realChamp = getChamp(realMatches);
+    const realChamp = getChamp(computedRealBracket);
     const standardChamp = getChamp(standardBracket);
     const secondChanceChamp = getChamp(secondChanceBracket);
 
@@ -190,7 +193,7 @@ const getQualifiedRounds = (
                 correctTeams = [realChamp];
             }
         } else {
-            const realTeams = getTeamsInRound(realMatches, r.key as any);
+            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
             const userTeams = getTeamsInRound(targetBracket, r.key as any);
             realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
         }
@@ -236,6 +239,7 @@ const getRoundsWithAllTeams = (
     const secondChanceBracket = user.hasTakenSecondChance
         ? applyPredictionsToBracket(realMatches, teams, userPredictions)
         : standardBracket;
+    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
 
     const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
         const teamSet = new Set<string>();
@@ -264,7 +268,7 @@ const getRoundsWithAllTeams = (
         return null;
     };
 
-    const realChamp = getChamp(realMatches);
+    const realChamp = getChamp(computedRealBracket);
     const standardChamp = getChamp(standardBracket);
     const secondChanceChamp = getChamp(secondChanceBracket);
     const statusOrder: Record<TeamStatus, number> = { confirmed: 0, pending: 1, eliminated: 2 };
@@ -294,7 +298,7 @@ const getRoundsWithAllTeams = (
                 isActive: realChamp !== null,
             });
         } else {
-            const realTeams = getTeamsInRound(realMatches, r.key as any);
+            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
             const userTeams = getTeamsInRound(targetBracket, r.key as any);
             if (userTeams.size === 0) return;
 
@@ -447,10 +451,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           return times.length ? Math.max(...times) : null;
       };
 
+      // Cascade actual R32 results so R16/QF/etc. team slots are known even when
+      // the DB hasn't been manually updated after each match.
+      const computedBracket = applyPredictionsToBracket(matches, teams, []);
+
       // Auto-open a round only if it has confirmed real teams AND the last source game
       // finished less than 24 h ago (or hasn't finished yet — still in progress).
       const maybeOpen = (key: string, targetRound: string, srcMatches: Match[]) => {
-          if (!matches.some(m => m.round === targetRound && (nonTBD(m.homeTeamId) || nonTBD(m.awayTeamId)))) return;
+          if (!computedBracket.some(m => m.round === targetRound && (nonTBD(m.homeTeamId) || nonTBD(m.awayTeamId)))) return;
           const last = lastFinishedMs(srcMatches);
           if (last === null || now - last < MS_24H) active.add(key);
       };
