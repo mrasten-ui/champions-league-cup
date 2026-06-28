@@ -19,16 +19,21 @@ interface SecondChanceViewProps {
   revealedRivals: string[];
   groupStageEndTime: number;
   knockoutStartTime: number;
+  activeRound?: Round;
+  onRoundChange?: (r: Round) => void;
 }
 
-export const SecondChanceView: React.FC<SecondChanceViewProps> = ({ 
+export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   matches, teams, onUpdate, lang, user, onPledge, onLockIn,
   rivals, allPredictions, phase, onTeamClick,
-  onSpy, revealedRivals, groupStageEndTime, knockoutStartTime
+  onSpy, revealedRivals, groupStageEndTime, knockoutStartTime,
+  activeRound: activeRoundProp, onRoundChange,
 }) => {
   const [isHovering, setIsHovering] = useState(false);
-  const [activeRound, setActiveRound] = useState<Round>('R32');
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const [internalRound, setInternalRound] = useState<Round>('R32');
+  const activeRound: Round = (activeRoundProp && rounds.includes(activeRoundProp)) ? activeRoundProp : internalRound;
+  const setActiveRound = (r: Round) => { setInternalRound(r); onRoundChange?.(r); };
 
   const status = user?.secondChanceStatus || 'NONE';
   const now = Date.now();

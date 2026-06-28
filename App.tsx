@@ -450,6 +450,15 @@ export const App = () => {
         : (isInLateWindow && matchNotStarted ? false : match.isLocked);
     if (!match || (effectiveLock && !isWhitelisted)) return;
 
+    // SC DRAFTING: save to staging (sc_draft on profiles), not predictions table
+    if (isSecondChanceDrafting) {
+      const newScDraft = { ...(user.scDraft || {}), [matchId]: { home: Number(h), away: Number(a) } };
+      setUser(prev => prev ? { ...prev, scDraft: newScDraft } : null);
+      const { error } = await supabase.from('profiles').update({ sc_draft: newScDraft } as any).eq('email', user.email);
+      if (error) { console.error('SC draft save failed:', error.message); addToast('error', t.saveFailed, t.saveFailedMsg); }
+      return;
+    }
+
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
 
     // --- Cascade: detect knockout slots that shift due to this group prediction ---
@@ -601,14 +610,9 @@ export const App = () => {
   const handlePledgeSecondChance = async () => {
       if (!user || !supabase) return;
       if (window.confirm(t.secondChanceConfirm)) {
-          // Wipe old knockout predictions so the bracket opens blank for re-picking
-          const knockoutMatchIds = matches.filter(m => !m.groupId && m.round).map(m => m.id);
-          if (knockoutMatchIds.length > 0) {
-              await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', knockoutMatchIds);
-              setAllPredictions(prev => prev.filter(p => !(p.userId === user.email && knockoutMatchIds.includes(p.matchId))));
-          }
-          setUser({ ...user, secondChanceStatus: 'PENDING' });
-          await supabase.from('profiles').update({ second_chance_status: 'PENDING' } as any).eq('email', user.email);
+          // Original knockout predictions stay intact until lock-in. Clear any leftover sc_draft.
+          setUser({ ...user, secondChanceStatus: 'PENDING', scDraft: undefined });
+          await supabase.from('profiles').update({ second_chance_status: 'PENDING', sc_draft: null } as any).eq('email', user.email);
           addToast('info', t.pledgeLocked, t.pledgeToastMsg);
           setActiveTab('knockout');
       }
@@ -618,8 +622,28 @@ export const App = () => {
   const handleLockInSecondChance = async () => {
       if (!user || !supabase) return;
       if (window.confirm(t.lockInConfirm)) {
-          setUser({ ...user, secondChanceStatus: 'ACTIVE', hasTakenSecondChance: true });
-          await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true } as any).eq('email', user.email);
+          // Push staged sc_draft picks into the real predictions table
+          const draftEntries = Object.entries(user.scDraft || {});
+          if (draftEntries.length > 0) {
+              const rows = draftEntries.map(([matchId, { home, away }]) => ({
+                  user_id: user.email, match_id: matchId, home, away,
+              }));
+              const { error: pushError } = await supabase.from('predictions').upsert(rows as any, { onConflict: 'user_id,match_id' });
+              if (pushError) { console.error('SC lock-in push failed:', pushError.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
+              // Sync local predictions state
+              setAllPredictions(prev => {
+                  let updated = [...prev];
+                  for (const [matchId, { home, away }] of draftEntries) {
+                      const idx = updated.findIndex(p => p.userId === user.email && p.matchId === matchId);
+                      const entry = { userId: user.email, matchId, home, away };
+                      if (idx > -1) updated[idx] = entry; else updated = [...updated, entry];
+                  }
+                  return updated;
+              });
+              bustPredictionsCache();
+          }
+          setUser({ ...user, secondChanceStatus: 'ACTIVE', hasTakenSecondChance: true, scDraft: undefined });
+          await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true, sc_draft: null } as any).eq('email', user.email);
           addToast('success', t.bracketLockedIn, t.bracketLockedInMsg);
       }
   };
@@ -629,13 +653,9 @@ export const App = () => {
       if (!user || !supabase || user.secondChanceStatus !== 'PENDING' || knockoutStartTime === 0) return;
 
       const cancelExpired = async () => {
-          const knockoutMatchIds = matches.filter(m => !m.groupId && m.round).map(m => m.id);
-          setUser(prev => prev ? { ...prev, secondChanceStatus: 'NONE' } : null);
-          await supabase.from('profiles').update({ second_chance_status: 'NONE' } as any).eq('email', user.email);
-          if (knockoutMatchIds.length > 0) {
-              await supabase.from('predictions').delete().eq('user_id', user.email).in('match_id', knockoutMatchIds);
-              setAllPredictions(prev => prev.filter(p => !(p.userId === user.email && knockoutMatchIds.includes(p.matchId))));
-          }
+          // Discard staged draft only — original predictions in predictions table are untouched
+          setUser(prev => prev ? { ...prev, secondChanceStatus: 'NONE', scDraft: undefined } : null);
+          await supabase.from('profiles').update({ second_chance_status: 'NONE', sc_draft: null } as any).eq('email', user.email);
           addToast('error', t.secondChanceExpired || 'Second Chance Expired', t.secondChanceExpiredMsg || 'You did not lock in before the knockouts started. Your second chance has been cancelled.');
       };
 
@@ -1498,9 +1518,16 @@ export const App = () => {
                 {(user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE') ? (
                     <SecondChanceView
                         matches={user?.secondChanceStatus === 'PENDING' ? matches.map(m => m.groupId ? m : { ...m, isLocked: false }) : userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
-                        onPledge={handlePledgeSecondChance} onLockIn={handleLockInSecondChance} rivals={rivalsList} 
-                        allPredictions={allPredictions} phase={tournamentPhase} onTeamClick={setViewingTeamId} 
-                        onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime} 
+                        onPledge={handlePledgeSecondChance} onLockIn={handleLockInSecondChance} rivals={rivalsList}
+                        allPredictions={user?.secondChanceStatus === 'PENDING'
+                            ? [
+                                ...allPredictions.filter(p => p.userId !== user.email || !!matches.find(m => m.id === p.matchId && !!m.groupId)),
+                                ...Object.entries(user.scDraft || {}).map(([matchId, { home, away }]) => ({ userId: user.email, matchId, home, away })),
+                              ]
+                            : allPredictions
+                        } phase={tournamentPhase} onTeamClick={setViewingTeamId}
+                        onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime}
+                        activeRound={activeKnockoutRound} onRoundChange={setActiveKnockoutRound}
                     />
                 ) : (
                     <KnockoutBracket

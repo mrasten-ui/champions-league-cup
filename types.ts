@@ -147,6 +147,7 @@ export interface UserProfile {
   };
   isAdmin?: boolean;
   bracketPredictions?: Record<string, { home: number; away: number }>;
+  scDraft?: Record<string, { home: number; away: number }>;
 }
 
 export interface GroupStanding {

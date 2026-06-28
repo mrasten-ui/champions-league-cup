@@ -307,6 +307,7 @@ export const useAppData = () => {
                           avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
                           leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || [],
                           bracketPredictions: (p as any).bracket_predictions ?? undefined,
+                          scDraft: (p as any).sc_draft ?? undefined,
                       };
                   });
                   rcSet('profiles', pMap);
@@ -391,6 +392,7 @@ export const useAppData = () => {
                   toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
                   isAdmin: !!data.is_admin,
                   bracketPredictions: (data as any).bracket_predictions ?? undefined,
+                  scDraft: (data as any).sc_draft ?? undefined,
               });
               // Carry through AI-generated avatar from signup if the profile was pre-created before this session
               const pendingAvatar = sessionStorage.getItem('pending_avatar');
