@@ -272,8 +272,15 @@ export const App = () => {
           const scBase = matches.map(m =>
               m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
           );
-          // Only knockout picks — group stage results come from real data above
-          const scKnockoutPreds = bracketPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
+          // Knockout picks: for PENDING users use sc_draft (staged); for ACTIVE users use allPredictions
+          let scKnockoutPreds = bracketPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
+          if (isDraftingWindow && user.scDraft) {
+              const draftPreds = Object.entries(user.scDraft).map(([matchId, { home, away }]) => ({
+                  userId: user.email, matchId, home, away,
+              }));
+              const draftIds = new Set(draftPreds.map(p => p.matchId));
+              scKnockoutPreds = [...scKnockoutPreds.filter(p => !draftIds.has(p.matchId)), ...draftPreds];
+          }
           return applyPredictionsToBracket(scBase, teamsData, scKnockoutPreds);
       }
 
@@ -1517,7 +1524,7 @@ export const App = () => {
             <div className="flex flex-col h-full animate-fade-in">
                 {(user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE') ? (
                     <SecondChanceView
-                        matches={user?.secondChanceStatus === 'PENDING' ? matches.map(m => m.groupId ? m : { ...m, isLocked: false }) : userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
+                        matches={userBracket} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
                         onPledge={handlePledgeSecondChance} onLockIn={handleLockInSecondChance} rivals={rivalsList}
                         allPredictions={user?.secondChanceStatus === 'PENDING'
                             ? [
