@@ -21,6 +21,7 @@ interface ManagerHubProps {
   onSubstitute: (matchId: string) => void;
   onUnlockSecondChance: () => void;
   onGoToKnockout?: () => void;
+  onEditSecondChance?: () => void;
   onUpdate: (matchId: string, h: number, a: number) => void;
   phase: TournamentPhase;
   groupStageEndTime?: number;
@@ -40,6 +41,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   onSubstitute,
   onUnlockSecondChance,
   onGoToKnockout,
+  onEditSecondChance,
   onUpdate,
   phase,
   groupStageEndTime,
@@ -771,6 +773,26 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                       Pick Teams
                     </button>
                   )}
+                </div>
+              )}
+
+              {currentUser.secondChanceStatus === 'ACTIVE' && onEditSecondChance && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3">
+                  <ShieldCheck size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">
+                      2nd Chance — Locked In
+                    </div>
+                    <div className="text-xs text-slate-300 font-medium leading-snug">
+                      {lang.changePicks ? `${lang.changePicks} — re-submit before the next round starts.` : "You can still change your picks before the next round starts."}
+                    </div>
+                  </div>
+                  <button
+                    onClick={onEditSecondChance}
+                    className="shrink-0 flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all"
+                  >
+                    <RefreshCw size={12} /> {lang.changePicks || 'Change Picks'}
+                  </button>
                 </div>
               )}
               <SecondChancePromo

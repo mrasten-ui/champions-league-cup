@@ -1607,6 +1607,7 @@ export const App = () => {
                 onSubstitute={handleSubstitute}
                 onUnlockSecondChance={handlePledgeSecondChance}
                 onGoToKnockout={() => setActiveTab('knockout')}
+                onEditSecondChance={handleEditSecondChance}
                 onUpdate={handleScoreUpdate}
                 phase={tournamentPhase}
                 groupStageEndTime={groupStageEndTime}
