@@ -35,6 +35,19 @@ const ScoringSection: React.FC<{ lang: Translation }> = ({ lang }) => (
       </div>
     </div>
 
+    {/* R32 qualification bridge */}
+    <div className="bg-violet-50 border border-violet-100 rounded-2xl p-4 flex items-center gap-4">
+      <div className="flex flex-col items-center shrink-0 min-w-[40px]">
+        <span className="text-4xl font-black text-violet-600 leading-none">3</span>
+        <span className="text-[9px] font-black text-violet-600/60 uppercase tracking-widest">pts</span>
+        <span className="text-[8px] font-bold text-violet-500/60 uppercase tracking-wider mt-0.5">/ team</span>
+      </div>
+      <div>
+        <div className="text-[10px] font-black text-violet-900 uppercase tracking-tight leading-tight mb-0.5">{lang.scoreQualTitle}</div>
+        <p className="text-[9px] text-violet-700/70 font-medium leading-relaxed">{lang.scoreQualDesc}</p>
+      </div>
+    </div>
+
     {/* Knockout rounds — grid of chips */}
     <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
       <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
