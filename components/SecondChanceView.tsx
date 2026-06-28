@@ -32,7 +32,8 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   const [isHovering, setIsHovering] = useState(false);
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const [internalRound, setInternalRound] = useState<Round>('R32');
-  const activeRound: Round = (activeRoundProp && rounds.includes(activeRoundProp)) ? activeRoundProp : internalRound;
+  const mapToScRound = (r: Round): Round => rounds.includes(r) ? r : 'FIN';
+  const activeRound: Round = activeRoundProp ? mapToScRound(activeRoundProp) : internalRound;
   const setActiveRound = (r: Round) => { setInternalRound(r); onRoundChange?.(r); };
 
   const status = user?.secondChanceStatus || 'NONE';

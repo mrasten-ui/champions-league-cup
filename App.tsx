@@ -980,15 +980,19 @@ export const App = () => {
   }, [activeGroup]);
 
   const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
+  const SC_ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const isScUser = user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE';
   const handlePrevRound = () => {
-    const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
-    if (idx > 0) { setActiveKnockoutRound(ROUND_ORDER[idx - 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    const order = isScUser ? SC_ROUND_ORDER : ROUND_ORDER;
+    const idx = order.indexOf(activeKnockoutRound);
+    if (idx > 0) { setActiveKnockoutRound(order[idx - 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     else setActiveTab('groups');
   };
   const handleNextRound = () => {
-      const idx = ROUND_ORDER.indexOf(activeKnockoutRound);
-      if (idx < ROUND_ORDER.length - 1) { setActiveKnockoutRound(ROUND_ORDER[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      else setActiveTab('leaderboard');
+    const order = isScUser ? SC_ROUND_ORDER : ROUND_ORDER;
+    const idx = order.indexOf(activeKnockoutRound);
+    if (idx < order.length - 1) { setActiveKnockoutRound(order[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    else setActiveTab('leaderboard');
   };
 
   const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
