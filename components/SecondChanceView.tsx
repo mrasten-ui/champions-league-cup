@@ -26,7 +26,7 @@ interface SecondChanceViewProps {
 
 export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   matches, teams, onUpdate, lang, user, onPledge, onLockIn,
-  rivals, allPredictions, phase, onTeamClick,
+  allPredictions, phase,
   onSpy, revealedRivals, groupStageEndTime, knockoutStartTime,
   activeRound: activeRoundProp, onRoundChange, onEdit,
 }) => {
@@ -39,6 +39,23 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
 
   const status = user?.secondChanceStatus || 'NONE';
   const now = Date.now();
+
+  const handleTeamClick = (teamId: string) => {
+    const roundOrder: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+    let targetRound: Round = 'R32';
+    for (const round of roundOrder) {
+      if (matches.some(m => m.round === round && (m.homeTeamId === teamId || m.awayTeamId === teamId))) {
+        targetRound = round;
+      }
+    }
+    setActiveRound(targetRound);
+  };
+
+  // In ACTIVE mode the bracket is read-only — lock all knockout slots so
+  // team clicks navigate (via handleTeamClick) instead of making picks.
+  const scMatches = status === 'ACTIVE'
+    ? matches.map(m => m.round ? { ...m, isLocked: true } : m)
+    : matches;
   
   // Is it between the end of Groups and the start of R32?
   const isDraftingWindow = now >= groupStageEndTime && now < knockoutStartTime;
@@ -220,21 +237,21 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
             </div>
          </div>
 
-         <KnockoutBracket 
-            matches={matches} 
-            teams={teams} 
-            onUpdate={onUpdate} 
-            lang={lang} 
-            user={user} 
+         <KnockoutBracket
+            matches={scMatches}
+            teams={teams}
+            onUpdate={onUpdate}
+            lang={lang}
+            user={user}
             onSecondChance={()=>{}}
-            rivals={rivals}
-            allPredictions={allPredictions}
+            rivals={[]}
+            allPredictions={allPredictions.filter(p => p.userId !== user?.email)}
             phase={phase}
             isGroupStageComplete={true}
             firstIncompleteGroup={null}
             onGoToGroup={() => {}}
-            onTeamClick={onTeamClick}
-            onSpy={onSpy} 
+            onTeamClick={handleTeamClick}
+            onSpy={onSpy}
             revealedRivals={revealedRivals}
             activeRound={activeRound}
          />

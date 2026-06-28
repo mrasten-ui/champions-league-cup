@@ -262,12 +262,10 @@ export const App = () => {
       }
 
       const isDraftingWindow = user.secondChanceStatus === 'PENDING' && groupStageEndTime > 0 && Date.now() >= groupStageEndTime;
-      // Only use real group results once every group match is settled — prevents
-      // partial group data (some groups finished, some not) from distorting the bracket.
-      const FINISHED_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
-      const allGroupMatchesDone = matches.filter(m => m.groupId).length > 0 &&
-          matches.filter(m => m.groupId).every(m => FINISHED_STATUSES.includes(m.status ?? ''));
-      if (isDraftingWindow || (user.hasTakenSecondChance && allGroupMatchesDone)) {
+      // SC bracket: use real group results as base for any SC user (pledged+drafting OR locked-in).
+      // The setMatchup TBD guard in updateBracket ensures real R32 teams from DB are never
+      // overwritten, so partial group data cannot distort slot assignments.
+      if (isDraftingWindow || user.hasTakenSecondChance) {
           // Base: real matches supply actual group results; knockout matches reset so SC picks apply
           const scBase = matches.map(m =>
               m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
