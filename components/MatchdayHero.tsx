@@ -746,13 +746,17 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
             </div>
 
-            {/* Center: Prediction (Moved back here, no pill) */}
+            {/* Center: Prediction */}
             <div className="w-1/3 flex justify-center">
-                {userPrediction && !isKnockout && (
+                {isKnockout && userPrediction && predictedWinnerId && !isFinished ? (
+                    <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
+                        {lang.myPick || "Pick"}: {lang.teamNames?.[predictedWinnerId] || teams[predictedWinnerId]?.name || predictedWinnerId}
+                    </span>
+                ) : !isKnockout && userPrediction ? (
                     <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
                         {lang.myPick || "Pick"}: {userPrediction.home} - {userPrediction.away}
                     </span>
-                )}
+                ) : null}
             </div>
 
             {/* Right: Points earned or SUB button */}
