@@ -445,7 +445,9 @@ export const App = () => {
 
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
     const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
-    const effectiveLock = isInLateWindow && matchNotStarted ? false : match.isLocked;
+    const isSecondChanceDrafting = user.secondChanceStatus === 'PENDING' && !match.groupId;
+    const effectiveLock = isSecondChanceDrafting ? false
+        : (isInLateWindow && matchNotStarted ? false : match.isLocked);
     if (!match || (effectiveLock && !isWhitelisted)) return;
 
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
@@ -1491,8 +1493,8 @@ export const App = () => {
         {activeTab === 'knockout' && (
             <div className="flex flex-col h-full animate-fade-in">
                 {(user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE') ? (
-                    <SecondChanceView 
-                        matches={userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user} 
+                    <SecondChanceView
+                        matches={user?.secondChanceStatus === 'PENDING' ? matches.map(m => m.groupId ? m : { ...m, isLocked: false }) : userMatches} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
                         onPledge={handlePledgeSecondChance} onLockIn={handleLockInSecondChance} rivals={rivalsList} 
                         allPredictions={allPredictions} phase={tournamentPhase} onTeamClick={setViewingTeamId} 
                         onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} groupStageEndTime={groupStageEndTime} knockoutStartTime={knockoutStartTime} 
