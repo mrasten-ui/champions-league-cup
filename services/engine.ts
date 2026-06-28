@@ -316,6 +316,8 @@ export const updateBracket = (matches: Match[], teams: Record<string, Team>): Ma
     const setMatchup = (matchId: string, home: string, away: string) => {
         const match = nextMatches.find(m => m.id === matchId);
         if (!match) return;
+        // Real teams already known from DB (SC base or live synced) — don't overwrite
+        if (match.homeTeamId !== 'TBD' && match.awayTeamId !== 'TBD') return;
 
         let changed = false;
         if (match.homeTeamId !== home) { match.homeTeamId = home; changed = true; }
