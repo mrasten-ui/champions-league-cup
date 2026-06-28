@@ -60,7 +60,8 @@
       "Bash(node scripts/sync-scores.js)",
       "PowerShell($url = \\(Get-Content \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\\\\.env\" | Where-Object { $_ -match \"^VITE_SUPABASE_URL=\" }\\) -replace \"^VITE_SUPABASE_URL=\", \"\"; $key = \\(Get-Content \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\\\\.env\" | Where-Object { $_ -match \"^SUPABASE_SERVICE_ROLE_KEY=\" }\\) -replace \"^SUPABASE_SERVICE_ROLE_KEY=\", \"\"; $response = Invoke-RestMethod -Uri \"$url/rest/v1/matches?round=eq.R32&select=id,home_team_id,away_team_id,date,api_id&order=date\" -Headers @{ \"apikey\" = $key; \"Authorization\" = \"Bearer $key\" }; $response | ForEach-Object { \"$\\($_.id\\)  $\\($_.home_team_id\\) vs $\\($_.away_team_id\\)  $\\($_.date\\)  api=$\\($_.api_id\\)\" })",
       "WebFetch(domain:www.skysports.com)",
-      "WebFetch(domain:www.cbssports.com)"
+      "WebFetch(domain:www.cbssports.com)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\\\\supabase\\\\functions\\\\send-sc-announcement\" -Force)"
     ]
   }
 }

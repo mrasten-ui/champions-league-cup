@@ -101,6 +101,21 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
   // STAGE 1: THE PLEDGE (Not yet clicked)
   // ==========================================
   if (status === 'NONE') {
+      if (knockoutStartTime > 0 && now >= knockoutStartTime) {
+          return (
+              <div className="animate-fade-in flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <div className="bg-slate-100 p-6 rounded-full mb-6 text-slate-300">
+                      <Lock size={48} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">
+                      {lang.secondChanceTitle}
+                  </h2>
+                  <p className="text-slate-500 font-medium max-w-xs">
+                      The Second Chance window has closed. See you next round!
+                  </p>
+              </div>
+          );
+      }
       return (
         <div className="animate-fade-in space-y-6">
           <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden text-center">

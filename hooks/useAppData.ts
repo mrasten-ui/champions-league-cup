@@ -105,7 +105,8 @@ export const useAppData = () => {
 
             const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             if (koMatches.length > 0) {
-                setKnockoutStartTime(new Date(koMatches[0].date).getTime());
+                const deadlineMatch = koMatches.length > 1 ? koMatches[1] : koMatches[0];
+                setKnockoutStartTime(new Date(deadlineMatch.date).getTime());
             }
 
             // First group match kickoff — drives automatic PRE_LIVE→LIVE transition.

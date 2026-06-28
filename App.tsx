@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap, Shield } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import { 
@@ -79,6 +79,7 @@ export const App = () => {
   const [lateJoinerCutoff, setLateJoinerCutoff] = useState<string | null>(null);
   const [adminPhaseOverride, setAdminPhaseOverride] = useState<TournamentPhase | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [scAnnouncementDismissed, setScAnnouncementDismissed] = useState(() => !!localStorage.getItem('rc_sc_announcement_v1'));
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
@@ -266,12 +267,23 @@ export const App = () => {
       // The setMatchup TBD guard in updateBracket ensures real R32 teams from DB are never
       // overwritten, so partial group data cannot distort slot assignments.
       if (isDraftingWindow || user.hasTakenSecondChance) {
-          // Base: real matches supply actual group results; knockout matches reset so SC picks apply
-          const scBase = matches.map(m =>
-              m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null }
-          );
-          // Knockout picks: for PENDING users use sc_draft (staged); for ACTIVE users use allPredictions
-          let scKnockoutPreds = bracketPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
+          // Base: group matches use real results; KO matches preserve scores/lock if already started,
+          // null out future KO matches so SC picks apply there.
+          const scBase = matches.map(m => {
+              if (m.groupId) return m;
+              const started = m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now();
+              return { ...m, isLocked: started, homeScore: started ? m.homeScore : null, awayScore: started ? m.awayScore : null };
+          });
+          // Inject real results for started KO matches so the winner cascades to the next round.
+          // These are display-only — not in sc_draft so not written to DB, meaning no points awarded.
+          const startedResults = matches
+              .filter(m => m.round && m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now() && m.homeScore !== null && m.awayScore !== null)
+              .map(m => ({ userId: user.email, matchId: m.id, home: m.homeScore!, away: m.awayScore! }));
+          const startedIds = new Set(startedResults.map(r => r.matchId));
+          let scKnockoutPreds = [
+              ...bracketPreds.filter(p => !/^[A-L]\d$/.test(p.matchId) && !startedIds.has(p.matchId)),
+              ...startedResults,
+          ];
           if (isDraftingWindow && user.scDraft) {
               const draftPreds = Object.entries(user.scDraft).map(([matchId, { home, away }]) => ({
                   userId: user.email, matchId, home, away,
@@ -450,7 +462,8 @@ export const App = () => {
 
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
     const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
-    const isSecondChanceDrafting = user.secondChanceStatus === 'PENDING' && !match.groupId;
+    const matchKickoffPassed = match.date !== 'TBD' && new Date(match.date).getTime() <= Date.now();
+    const isSecondChanceDrafting = user.secondChanceStatus === 'PENDING' && !match.groupId && !matchKickoffPassed;
     const effectiveLock = isSecondChanceDrafting ? false
         : (isInLateWindow && matchNotStarted ? false : match.isLocked);
     if (!match || (effectiveLock && !isWhitelisted)) return;
@@ -1411,6 +1424,26 @@ export const App = () => {
             onGoToPredictions={() => setActiveTab('groups')}
             lang={t}
           />
+        )}
+
+        {/* SC extended window banner — show once to non-SC users once groups end */}
+        {user && user.secondChanceStatus === 'NONE' && !scAnnouncementDismissed && groupStageEndTime > 0 && Date.now() >= groupStageEndTime && Date.now() < knockoutStartTime && (
+          <div className="mb-4 flex items-center gap-3 bg-indigo-900/90 border border-indigo-500/40 rounded-2xl px-4 py-3 shadow-sm">
+            <Shield size={18} className="text-indigo-300 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-xs font-black uppercase tracking-tight leading-tight">Second Chance window open!</p>
+              <p className="text-indigo-300 text-[11px] leading-snug">The bracket has been updated — you can still join and pick your knockout bracket.</p>
+            </div>
+            <button
+              onClick={() => { setActiveTab('knockout'); setScAnnouncementDismissed(true); localStorage.setItem('rc_sc_announcement_v1', '1'); }}
+              className="bg-indigo-500 hover:bg-indigo-400 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shrink-0 transition-colors active:scale-95"
+            >
+              View →
+            </button>
+            <button onClick={() => { setScAnnouncementDismissed(true); localStorage.setItem('rc_sc_announcement_v1', '1'); }} className="text-indigo-500 hover:text-white transition-colors shrink-0 p-1">
+              <X size={14} />
+            </button>
+          </div>
         )}
 
         {isInLateWindow && (() => {
