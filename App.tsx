@@ -1006,10 +1006,13 @@ export const App = () => {
 
   useEffect(() => {
       const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
-      if (effectiveTournamentPhase === 'LIVE' && !liveTabs.includes(activeTab)) {
+      // SC users need the knockout tab to access SecondChanceView — don't bounce them
+      const scOnKnockout = activeTab === 'knockout' &&
+          (user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE');
+      if (effectiveTournamentPhase === 'LIVE' && !liveTabs.includes(activeTab) && !scOnKnockout) {
           setActiveTab('tournament');
       }
-  }, [effectiveTournamentPhase]);
+  }, [effectiveTournamentPhase, activeTab, user?.secondChanceStatus]);
 
   // Record the moment group stage is fully predicted (once, never overwrites)
   useEffect(() => {
@@ -1545,6 +1548,7 @@ export const App = () => {
                 lang={t}
                 onSubstitute={handleSubstitute}
                 onUnlockSecondChance={handlePledgeSecondChance}
+                onGoToKnockout={() => setActiveTab('knockout')}
                 onUpdate={handleScoreUpdate}
                 phase={tournamentPhase}
                 groupStageEndTime={groupStageEndTime}

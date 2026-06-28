@@ -20,6 +20,7 @@ interface ManagerHubProps {
   lang: Translation;
   onSubstitute: (matchId: string) => void;
   onUnlockSecondChance: () => void;
+  onGoToKnockout?: () => void;
   onUpdate: (matchId: string, h: number, a: number) => void;
   phase: TournamentPhase;
   groupStageEndTime?: number;
@@ -38,6 +39,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
   lang,
   onSubstitute,
   onUnlockSecondChance,
+  onGoToKnockout,
   onUpdate,
   phase,
   groupStageEndTime,
@@ -750,6 +752,27 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
               )}
 
+              {currentUser.secondChanceStatus === 'PENDING' && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3">
+                  <ShieldCheck size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-0.5">
+                      2nd Chance — Active
+                    </div>
+                    <div className="text-xs text-slate-300 font-medium leading-snug">
+                      {lang.secondChanceDesc || "Your lifeline is ready. Pick your knockout teams before the round starts."}
+                    </div>
+                  </div>
+                  {onGoToKnockout && (
+                    <button
+                      onClick={onGoToKnockout}
+                      className="shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 active:scale-95 text-black text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all"
+                    >
+                      Pick Teams
+                    </button>
+                  )}
+                </div>
+              )}
               <SecondChancePromo
                 hasTaken={currentUser.hasTakenSecondChance}
                 secondChanceStatus={currentUser.secondChanceStatus}
