@@ -54,14 +54,29 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       }
   };
 
+  const isScUser = user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE';
   const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
+  const displayRounds: Round[] = isScUser ? ['R32', 'R16', 'QF', 'SF', 'FIN'] : rounds;
 
   const DONE_KO = ['FT', 'AET', 'PEN', 'FINISHED'];
   const KO_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
 
+  // For PENDING SC users, knockout picks live in scDraft not allPredictions
+  const effectivePredictions = useMemo(() => {
+      if (user?.secondChanceStatus !== 'PENDING' || !user.scDraft) return allPredictions;
+      const draftPreds = Object.entries(user.scDraft).map(([matchId, { home, away }]) => ({
+          userId: user.email, matchId, home, away,
+      }));
+      const draftIds = new Set(draftPreds.map(p => p.matchId));
+      return [
+          ...allPredictions.filter(p => p.userId !== user.email || !draftIds.has(p.matchId)),
+          ...draftPreds,
+      ];
+  }, [allPredictions, user?.secondChanceStatus, user?.scDraft, user?.email]);
+
   const knockoutTracking = useMemo(() => {
       const myPreds = new Map(
-          allPredictions.filter(p => p.userId === user.email).map(p => [p.matchId, p])
+          effectivePredictions.filter(p => p.userId === user.email).map(p => [p.matchId, p])
       );
       return KO_ROUNDS.map(round => {
           const roundMatches = matches.filter(m => m.round === round);
@@ -83,7 +98,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           if (total === 0) return null; // hide rounds with no user predictions
           return { round, matched, wrong, pending, total };
       }).filter(Boolean) as { round: Round; matched: number; wrong: number; pending: number; total: number }[];
-  }, [matches, allPredictions, user.email]);
+  }, [matches, effectivePredictions, user.email]);
 
   // --- MODIFIED: Count ALL Matches (104 Total) ---
   const completionStats = useMemo(() => {
@@ -437,10 +452,10 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
           <div id="subnav-knockout" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
-                  {rounds.map(r => {
-                      const isActive = props.activeKnockoutRound === r;
+                  {displayRounds.map(r => {
+                      const isActive = props.activeKnockoutRound === r || (isScUser && r === 'FIN' && props.activeKnockoutRound === '3RD');
                       const roundMatches = matches.filter(m => m.round === r);
-                      const userPredictions = allPredictions.filter(p => p.userId === user?.email);
+                      const userPredictions = effectivePredictions.filter(p => p.userId === user?.email);
                       const predsCount = userPredictions.filter(p => roundMatches.some(m => m.id === p.matchId)).length;
                       const isComplete = roundMatches.length > 0 && predsCount === roundMatches.length;
                       const inProgress = predsCount > 0 && !isComplete;
