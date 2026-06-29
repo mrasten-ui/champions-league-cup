@@ -1,5 +1,5 @@
 import { Match, Team, GroupStanding, Round, Prediction, UserProfile, Translation, HeadToHeadStats, HistoricalMatch, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
-import { GROUP_CONFIG } from '../constants';
+import { GROUP_CONFIG, INITIAL_MATCHES } from '../constants';
 import { supabase } from '../supabase';
 
 export const SCORING_RULES = {
@@ -445,6 +445,109 @@ export const applyPredictionsToBracket = (
         if (!hasChanges) break;
     }
     return currentMatches;
+};
+
+export interface QualifiedRound {
+    key: string;
+    label: string;
+    correctTeams: string[];
+    pointsPerTeam: number;
+    totalSlots: number;
+    penaltyApplied: boolean;
+    totalPoints: number;
+}
+
+export const getQualifiedRounds = (
+    realMatches: Match[],
+    userPredictions: Prediction[],
+    user: UserProfile,
+    teams: Record<string, Team>
+): QualifiedRound[] => {
+    const bracketPreds = user.bracketPredictions
+        ? userPredictions.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          )
+        : userPredictions;
+    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
+    const secondChanceBracket = user.hasTakenSecondChance
+        ? applyPredictionsToBracket(realMatches, teams, userPredictions)
+        : standardBracket;
+    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
+
+    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
+        const teamSet = new Set<string>();
+        const targetMatches = matchList.filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round);
+        targetMatches.forEach(m => {
+            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
+            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
+        });
+        return teamSet;
+    };
+
+    const rounds = [
+        { key: 'R32_START', label: 'Round of 32', points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
+        { key: 'R16', label: 'Round of 16', points: SCORING_RULES.R32, totalSlots: 16 },
+        { key: 'QF', label: 'Quarter Finals', points: SCORING_RULES.R16, totalSlots: 8 },
+        { key: 'SF', label: 'Semi Finals', points: SCORING_RULES.QF, totalSlots: 4 },
+        { key: 'FIN', label: 'Final', points: SCORING_RULES.SF, totalSlots: 2 },
+        { key: 'CHAMP', label: 'Champion', points: SCORING_RULES.FIN, totalSlots: 1 }
+    ];
+
+    const getChamp = (matchList: Match[]) => {
+        const fin = matchList.find(m => m.round === 'FIN');
+        if (fin && fin.homeScore !== null && fin.awayScore !== null) {
+            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
+        }
+        return null;
+    };
+
+    const realChamp = getChamp(computedRealBracket);
+    const standardChamp = getChamp(standardBracket);
+    const secondChanceChamp = getChamp(secondChanceBracket);
+
+    const result: QualifiedRound[] = [];
+
+    rounds.forEach(r => {
+        let correctTeams: string[] = [];
+        let pointsPerTeam = r.points;
+        let penaltyApplied = false;
+
+        let targetBracket = standardBracket;
+        let userChamp = standardChamp;
+
+        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
+            targetBracket = secondChanceBracket;
+            userChamp = secondChanceChamp;
+            penaltyApplied = true;
+            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
+        }
+
+        if (r.key === 'CHAMP') {
+            if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
+                correctTeams = [realChamp];
+            }
+        } else {
+            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
+            const userTeams = getTeamsInRound(targetBracket, r.key as any);
+            realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
+        }
+
+        if (correctTeams.length === 0) return;
+
+        result.push({
+            key: r.key,
+            label: r.label,
+            correctTeams,
+            pointsPerTeam,
+            totalSlots: r.totalSlots,
+            penaltyApplied,
+            totalPoints: correctTeams.length * pointsPerTeam
+        });
+    });
+
+    return result;
 };
 
 export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[], riskLevel = 0.5): Match[] => {

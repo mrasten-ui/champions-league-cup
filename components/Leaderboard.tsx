@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
-import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES } from '../services/engine';
+import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES, getQualifiedRounds, QualifiedRound } from '../services/engine';
 import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { INITIAL_MATCHES, LEAGUES } from '../constants';
@@ -106,113 +106,6 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
     );
 };
 
-interface QualifiedRound {
-    key: string;
-    label: string;
-    correctTeams: string[];
-    pointsPerTeam: number;
-    totalSlots: number;
-    penaltyApplied: boolean;
-    totalPoints: number;
-}
-
-// Pure computation shared by QualifiedTeamsGrid and any caller that needs to know
-// up front whether there's anything to show (e.g. to hide an otherwise-empty panel
-// for weeks before the knockout stage produces any correct picks).
-const getQualifiedRounds = (
-    realMatches: Match[],
-    userPredictions: Prediction[],
-    user: UserProfile,
-    teams: Record<string, Team>
-): QualifiedRound[] => {
-    const bracketPreds = user.bracketPredictions
-        ? userPredictions.map(p =>
-              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
-                  ? { ...p, ...user.bracketPredictions![p.matchId] }
-                  : p
-          )
-        : userPredictions;
-    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
-    const secondChanceBracket = user.hasTakenSecondChance
-        ? applyPredictionsToBracket(realMatches, teams, userPredictions)
-        : standardBracket;
-    // Cascade actual match results through the bracket so R16/QF/etc. team slots are
-    // filled even when the DB hasn't been manually updated after each R32 result.
-    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
-
-    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
-        const teamSet = new Set<string>();
-        const targetMatches = matchList.filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round);
-        targetMatches.forEach(m => {
-            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
-            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
-        });
-        return teamSet;
-    };
-
-    const rounds = [
-        { key: 'R32_START', label: 'Round of 32', points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
-        { key: 'R16', label: 'Round of 16', points: SCORING_RULES.R32, totalSlots: 16 },
-        { key: 'QF', label: 'Quarter Finals', points: SCORING_RULES.R16, totalSlots: 8 },
-        { key: 'SF', label: 'Semi Finals', points: SCORING_RULES.QF, totalSlots: 4 },
-        { key: 'FIN', label: 'Final', points: SCORING_RULES.SF, totalSlots: 2 },
-        { key: 'CHAMP', label: 'Champion', points: SCORING_RULES.FIN, totalSlots: 1 }
-    ];
-
-    const getChamp = (matchList: Match[]) => {
-        const fin = matchList.find(m => m.round === 'FIN');
-        if (fin && fin.homeScore !== null && fin.awayScore !== null) {
-            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
-        }
-        return null;
-    };
-
-    const realChamp = getChamp(computedRealBracket);
-    const standardChamp = getChamp(standardBracket);
-    const secondChanceChamp = getChamp(secondChanceBracket);
-
-    const result: QualifiedRound[] = [];
-
-    rounds.forEach(r => {
-        let correctTeams: string[] = [];
-        let pointsPerTeam = r.points;
-        let penaltyApplied = false;
-
-        let targetBracket = standardBracket;
-        let userChamp = standardChamp;
-
-        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
-            targetBracket = secondChanceBracket;
-            userChamp = secondChanceChamp;
-            penaltyApplied = true;
-            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
-        }
-
-        if (r.key === 'CHAMP') {
-            if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
-                correctTeams = [realChamp];
-            }
-        } else {
-            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
-            const userTeams = getTeamsInRound(targetBracket, r.key as any);
-            realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
-        }
-
-        if (correctTeams.length === 0) return;
-
-        result.push({
-            key: r.key,
-            label: r.label,
-            correctTeams,
-            pointsPerTeam,
-            totalSlots: r.totalSlots,
-            penaltyApplied,
-            totalPoints: correctTeams.length * pointsPerTeam
-        });
-    });
-
-    return result;
-};
 
 type TeamStatus = 'confirmed' | 'pending' | 'eliminated';
 interface RoundWithAllTeams {

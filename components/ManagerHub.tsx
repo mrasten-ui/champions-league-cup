@@ -6,7 +6,7 @@ import { PredictionStamp } from './PredictionStamp';
 import { SubstitutionModal } from './SubstitutionModal';
 import { AvatarDisplay } from './AvatarDisplay';
 import { Trophy, LayoutGrid, CalendarClock, Info, X, ShieldCheck, User, Hash, RefreshCw, ChevronDown } from 'lucide-react';
-import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings, calculatePoints } from '../services/engine';
+import { calculateGroupStandings, getAllGroupStandings, getThirdPlaceStandings, calculatePoints, getQualifiedRounds } from '../services/engine';
 import { MAX_SUBSTITUTIONS, GROUP_CONFIG } from '../constants';
 
 interface ManagerHubProps {
@@ -363,12 +363,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       }
 
       const scores = leagueUsers.map(u => {
-          const score = finishedMatches.reduce((sum, m) => {
-              const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+          const userPreds = allPredictions.filter(p => p.userId === u.email);
+          const matchPoints = finishedMatches.reduce((sum, m) => {
+              const pred = userPreds.find(p => p.matchId === m.id);
               if (!pred) return sum;
               return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
           }, 0);
-          return { email: u.email, score };
+          const bracketPoints = getQualifiedRounds(matches, userPreds, u, teams)
+              .reduce((sum, r) => sum + r.totalPoints, 0);
+          return { email: u.email, score: matchPoints + bracketPoints };
       }).sort((a, b) => b.score - a.score);
 
       const myScore = scores.find(s => s.email === currentUser.email)?.score ?? 0;
