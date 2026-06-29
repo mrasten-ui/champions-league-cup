@@ -283,7 +283,10 @@ export const App = () => {
               .map(m => {
                   if (m.groupId) return m;
                   const started = m.date !== 'TBD' && new Date(m.date).getTime() <= Date.now();
-                  return { ...m, isLocked: started, homeScore: started ? m.homeScore : null, awayScore: started ? m.awayScore : null };
+                  // Only lock if real scores exist — a started-but-null-score match (live with no
+                  // goals synced yet, or kickoff imminent) should still show the user's pick in R16.
+                  const hasRealScore = started && m.homeScore !== null && m.awayScore !== null;
+                  return { ...m, isLocked: hasRealScore, homeScore: started ? m.homeScore : null, awayScore: started ? m.awayScore : null };
               });
           // Inject real results for definitively finished KO matches so the winner cascades.
           // Only inject when fully settled (FT/AET/PEN) — live 0-0 scores can't determine a
@@ -310,6 +313,15 @@ export const App = () => {
 
       return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, bracketPreds);
   }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
+
+  // Manager tab uses a plain "what did I predict?" bracket — always INITIAL_MATCHES base
+  // with the user's original picks cascaded, regardless of SC status. The Cup tab uses
+  // userBracket (SC-aware, shows real teams + SC picks for SC users).
+  const standardBracket = useMemo(() => {
+      if (!user) return INITIAL_MATCHES;
+      const preds = allPredictions.filter(p => p.userId === user.email);
+      return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, preds);
+  }, [allPredictions, user, teamsData]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
@@ -1643,7 +1655,7 @@ export const App = () => {
             <ManagerHub
                 matches={matches}
                 userMatches={userMatches}
-                bracketMatches={userBracket}
+                bracketMatches={standardBracket}
                 teams={teamsData}
                 allPredictions={allPredictions}
                 currentUser={user}
