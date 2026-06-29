@@ -315,14 +315,21 @@ export const App = () => {
       return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, bracketPreds);
   }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
 
-  // Manager tab uses a plain "what did I predict?" bracket — always INITIAL_MATCHES base
-  // with the user's original picks cascaded, regardless of SC status. The Cup tab uses
-  // userBracket (SC-aware, shows real teams + SC picks for SC users).
+  // Manager tab: always starts from INITIAL_MATCHES so R32 shows the user's predicted
+  // group qualifiers, not real teams. For knockout slots where the user has no explicit
+  // prediction, we inject real finished results so R16+ isn't empty — this shows
+  // "which of my predicted R32 teams actually won their slot?" not real-bracket data.
   const standardBracket = useMemo(() => {
       if (!user) return INITIAL_MATCHES;
-      const preds = allPredictions.filter(p => p.userId === user.email);
-      return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, preds);
-  }, [allPredictions, user, teamsData]);
+      const userPreds = allPredictions.filter(p => p.userId === user.email);
+      const FINISHED_STATUSES = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
+      const KO_IDS = new Set(INITIAL_MATCHES.filter(m => !m.groupId).map(m => m.id));
+      const userKOIds = new Set(userPreds.filter(p => KO_IDS.has(p.matchId)).map(p => p.matchId));
+      const fallbackResults = matches
+          .filter(m => KO_IDS.has(m.id) && FINISHED_STATUSES.has(m.status ?? '') && m.homeScore !== null && m.awayScore !== null && !userKOIds.has(m.id))
+          .map(m => ({ userId: user.email, matchId: m.id, home: m.homeScore!, away: m.awayScore! }));
+      return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, [...userPreds, ...fallbackResults]);
+  }, [allPredictions, user, teamsData, matches]);
 
   const liveResultsAsPredictions = useMemo(() => {
       return matches
