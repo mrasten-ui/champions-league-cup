@@ -524,7 +524,9 @@ export const useAppData = () => {
                       });
                   }
               )
-              .subscribe();
+              .subscribe((status, err) => {
+                  if (err) console.error('[Realtime] live-scores channel error:', err);
+              });
 
           return () => {
               subscription.unsubscribe();
