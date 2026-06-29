@@ -30,22 +30,10 @@ export const calculatePoints = (
   let basePoints = 0;
 
   if (round) {
-    const predWinner = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'DRAW';
-    const actualWinner = actualHome > actualAway ? 'HOME' : actualHome < actualAway ? 'AWAY' : 'DRAW';
-    
-    if (predWinner === actualWinner && predWinner !== 'DRAW') {
-       switch(round) {
-           case 'R32': basePoints = SCORING_RULES.R32; break;
-           case 'R16': basePoints = SCORING_RULES.R16; break;
-           case 'QF': basePoints = SCORING_RULES.QF; break;
-           case 'SF': basePoints = SCORING_RULES.SF; break;
-           case 'FIN': basePoints = SCORING_RULES.FIN; break;
-           case '3RD': basePoints = SCORING_RULES['3RD']; break;
-           default: basePoints = 5;
-       }
-    }
-  } 
-  else {
+    // Knockout match results score 0 — points come only from bracket qualification
+    // (which team advances through each round), handled by getQualifiedRounds.
+    return 0;
+  } else {
     if (predHome === actualHome && predAway === actualAway) {
         basePoints = SCORING_RULES.GROUP_EXACT;
     } else {
