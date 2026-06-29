@@ -260,8 +260,8 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
                 </div>
             )}
 
-            {/* Goal panels — stacked on mobile, side by side on md+ */}
-            {psoKicks.length > 0 && (
+            {/* Goal panels — always visible once match is in PSO, fills as kicks arrive */}
+            {(match.status === 'P' || match.status === 'PEN') && (
                 <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/10">
                     <GoalPanel team={homeTeam} kicks={homeKicks} />
                     <GoalPanel team={awayTeam} kicks={awayKicks} />

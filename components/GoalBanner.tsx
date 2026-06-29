@@ -495,14 +495,14 @@ function PsoCard({ notification, homeTeam, awayTeam, onDismiss, onNavigate }: Ps
       <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
            style={{ background: '#0a1628' }}>
 
-        {/* Amber tint */}
-        <div className="absolute inset-0"
+        {/* Amber tint — pointer-events-none so overlays don't eat button clicks */}
+        <div className="absolute inset-0 pointer-events-none"
              style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, transparent 55%)' }} />
         <div className="absolute inset-0 rounded-2xl border pointer-events-none"
              style={{ borderColor: 'rgba(251,191,36,0.28)' }} />
 
         {/* Progress bar */}
-        <div className="absolute top-0 left-0 h-[2px] transition-all ease-linear"
+        <div className="absolute top-0 left-0 h-[2px] transition-all ease-linear pointer-events-none"
              style={{ width: `${barW}%`, transitionDuration: `${PSO_DISPLAY_MS}ms`,
                       background: 'linear-gradient(to right, rgba(251,191,36,0.5), #FBBf24)' }} />
 
