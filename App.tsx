@@ -695,7 +695,12 @@ export const App = () => {
               bustPredictionsCache();
           }
           setUser({ ...user, secondChanceStatus: 'ACTIVE', hasTakenSecondChance: true, scDraft: undefined });
-          await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true, sc_draft: null } as any).eq('email', user.email);
+          const { error: profileErr } = await supabase.from('profiles').update({ second_chance_status: 'ACTIVE', has_taken_second_chance: true, sc_draft: null } as any).eq('email', user.email);
+          if (profileErr) {
+              console.error('SC lock-in profile update failed:', profileErr.message);
+              addToast('error', t.saveFailed, t.saveFailedMsg);
+              return;
+          }
           addToast('success', t.bracketLockedIn, t.bracketLockedInMsg);
       }
   };
