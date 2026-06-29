@@ -394,6 +394,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         else if (localAway > localHome) predictedWinnerId = isAwayTBD ? '__away__' : match.awayTeamId;
     }
 
+    const actualWinnerId = (isFinished && match.homeScore !== null && match.awayScore !== null)
+        ? (match.homeScore > match.awayScore ? match.homeTeamId
+        : match.awayScore > match.homeScore ? match.awayTeamId
+        : null)
+        : null;
+
     return (
         <div id={cardId} onClick={onCardClick} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${onCardClick ? 'cursor-pointer' : ''} ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>
              
@@ -427,7 +433,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
              <div className="p-4 flex items-center justify-between relative z-10 gap-2 flex-1">
                 {/* Home Team */}
-                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && isKnockout ? (isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : '') : ''} ${predictedWinnerId && predictedWinnerId !== match.homeTeamId && predictedWinnerId !== '__home__' && isKnockout ? (isFinished ? 'opacity-40 grayscale' : '') : 'opacity-100'}`}>
+                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(1); setLocalAway(0); setIsDirty(true); } else if(!isHomeTBD && isHomeClickable && onTeamClick) onTeamClick(match.homeTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isHomeClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && actualWinnerId === match.homeTeamId && isKnockout && isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : ''} ${actualWinnerId !== null && actualWinnerId !== match.homeTeamId && predictedWinnerId !== null && isKnockout && isFinished ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isHomeTBD ? <TbdSlot matchId={match.id} side="home" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : (
                       <div className="flex items-center gap-1.5 pointer-events-none group-hover/team:scale-105 transition-transform duration-200">
                         {homeKitBg && <KitImage teamId={match.homeTeamId} kitBg={homeKitBg} kitText={cardLineups.find(l => l.teamId === match.homeTeamId)?.kitText} kitType={homeKitType} size="sm" />}
@@ -438,8 +444,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       </div>
                     )}
                     <div className="flex flex-col items-center">
-                        {!isHomeTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{homeName}</span>}
-                        {isKnockout && isFinished && (predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && (
+                        {!isHomeTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.homeTeamId && actualWinnerId === match.homeTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{homeName}</span>}
+                        {isKnockout && isFinished && actualWinnerId === match.homeTeamId && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[8px] font-black uppercase tracking-wider">
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
@@ -563,7 +569,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Away Team */}
-                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && isKnockout ? (isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : '') : ''} ${predictedWinnerId && predictedWinnerId !== match.awayTeamId && predictedWinnerId !== '__away__' && isKnockout ? (isFinished ? 'opacity-40 grayscale' : '') : 'opacity-100'}`}>
+                <div onClick={() => { if(isKnockout && !isLocked) { setLocalHome(0); setLocalAway(1); setIsDirty(true); } else if(!isAwayTBD && isAwayClickable && onTeamClick) onTeamClick(match.awayTeamId); }} className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-2 z-10 p-2 rounded-xl transition-all relative group/team ${isAwayClickable ? 'cursor-pointer hover:bg-slate-50 active:scale-95' : ''} ${(predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && actualWinnerId === match.awayTeamId && isKnockout && isFinished ? 'bg-green-50 ring-2 ring-green-500 shadow-md' : ''} ${actualWinnerId !== null && actualWinnerId !== match.awayTeamId && predictedWinnerId !== null && isKnockout && isFinished ? 'opacity-40 grayscale' : 'opacity-100'}`}>
                     {isAwayTBD ? <TbdSlot matchId={match.id} side="away" allMatches={allMatches} allTeams={allTeams} lang={lang} /> : (
                       <div className="flex items-center gap-1.5 pointer-events-none group-hover/team:scale-105 transition-transform duration-200">
                         <div className={`relative shadow-sm rounded-lg overflow-visible ${awayKitBg ? 'w-12 h-9 sm:w-14 sm:h-10' : 'w-14 h-10 sm:w-16 sm:h-12'}`}>
@@ -574,8 +580,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       </div>
                     )}
                     <div className="flex flex-col items-center">
-                        {!isAwayTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{awayName}</span>}
-                        {isKnockout && isFinished && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
+                        {!isAwayTBD && <span className={`font-black text-slate-800 text-xs leading-none uppercase tracking-tight text-center line-clamp-2 ${predictedWinnerId === match.awayTeamId && actualWinnerId === match.awayTeamId && isKnockout && isFinished ? 'text-green-700' : ''}`}>{awayName}</span>}
+                        {isKnockout && isFinished && actualWinnerId === match.awayTeamId && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 text-[8px] font-black uppercase tracking-wider">
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
