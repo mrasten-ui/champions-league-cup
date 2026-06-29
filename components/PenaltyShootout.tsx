@@ -93,19 +93,6 @@ const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
 
     return (
         <div className="flex-1 min-w-0">
-            {/* Team header */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-black/20">
-                {team?.flag && (
-                    <img src={team.flag} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0" />
-                )}
-                <span className="text-[11px] font-black text-white/80 uppercase tracking-wider truncate">
-                    {team?.name}
-                </span>
-                <span className="ml-auto text-xl font-black text-emerald-300 shrink-0 tabular-nums">
-                    {scored.length}
-                </span>
-            </div>
-
             {/* Goal graphic with overlaid player circles */}
             <div className="relative w-full" style={{ paddingBottom: '40%' }}>
                 <img
@@ -155,20 +142,28 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
     const homeTeam = teams[match.homeTeamId];
     const awayTeam = teams[match.awayTeamId];
 
-    // All PSO-relevant events sorted chronologically
+    // All PSO-relevant events sorted chronologically.
+    // API-Football sometimes returns PSO scored kicks as detail:'Normal Goal' instead of 'Penalty',
+    // so for PSO matches we also accept any Goal at minute >= 121 (PSO always starts after ET).
+    const isPsoMatch = match.status === 'P' || match.status === 'PEN';
     const kicks = events
-        .filter(e => e.type === 'Miss' || (e.type === 'Goal' && e.detail === 'Penalty'))
+        .filter(e =>
+            e.type === 'Miss' ||
+            (e.type === 'Goal' && e.detail === 'Penalty') ||
+            (isPsoMatch && e.type === 'Goal' && (e.minute ?? 0) >= 121)
+        )
         .sort((a, b) => {
             const aMin = (a.minute ?? 0) * 1000 + (a.minuteExtra ?? 0);
             const bMin = (b.minute ?? 0) * 1000 + (b.minuteExtra ?? 0);
             return aMin - bMin;
         });
 
-    // Miss events only occur in PSO — use first Miss minute as the shootout boundary
+    // Miss events only occur in PSO — use first Miss minute as the shootout boundary.
+    // If no misses yet (all kicked goals so far), fall back to all kicks at 121+.
     const firstMissMin = kicks.find(e => e.type === 'Miss')?.minute ?? null;
     const psoKicks = firstMissMin !== null
         ? kicks.filter(e => (e.minute ?? 0) >= firstMissMin || e.type === 'Miss')
-        : kicks.filter(e => e.type === 'Miss' || (e.type === 'Goal' && e.detail === 'Penalty'));
+        : kicks.filter(e => e.type === 'Miss' || (e.type === 'Goal' && (e.detail === 'Penalty' || (e.minute ?? 0) >= 121)));
 
     const preMatchPens = firstMissMin !== null
         ? kicks.filter(e => e.type === 'Goal' && e.detail === 'Penalty' && (e.minute ?? 0) < firstMissMin)
