@@ -149,23 +149,25 @@ async function applyHardcodedChannels(dbMatches) {
 
 const KNOCKOUT_EN_SCO_US = [
   // R32 — June 29 – July 2
-  // { id: 'R32_1',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_2',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_3',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_4',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_5',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_6',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_7',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_8',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_9',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_10', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_11', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_12', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_13', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_14', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'R32_15', EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
-  // { id: 'R32_16', EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // R16 — July 5–6
+  // Source: live-footballontv.com / broadcastnow.co.uk — BBC/ITV confirmed
+  // Rule: SCO=BBC when EN=BBC (STV only carries ITV, not BBC)
+  { id: 'R32_1',  EN: 'ITV', SCO: 'STV', US: 'FOX'  }, // RSA vs CAN
+  { id: 'R32_2',  EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // BRA vs JPN
+  { id: 'R32_3',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // GER vs PAR
+  { id: 'R32_4',  EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // NED vs MAR
+  { id: 'R32_5',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // CIV vs NOR
+  { id: 'R32_6',  EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // FRA vs SWE
+  { id: 'R32_7',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // USA vs BIH
+  { id: 'R32_8',  EN: 'BBC', SCO: 'BBC', US: 'FS1'  }, // AUS vs EGY
+  { id: 'R32_9',  EN: 'ITV', SCO: 'STV', US: 'FOX'  }, // ARG vs CPV
+  { id: 'R32_10', EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // MEX vs ECU
+  { id: 'R32_11', EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // ENG vs COD
+  { id: 'R32_12', EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // BEL vs SEN
+  { id: 'R32_13', EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // POR vs CRO
+  { id: 'R32_14', EN: 'ITV', SCO: 'STV', US: 'FS1'  }, // COL vs GHA
+  { id: 'R32_15', EN: 'BBC', SCO: 'BBC', US: 'FOX'  }, // ESP vs AUT
+  { id: 'R32_16', EN: 'BBC', SCO: 'BBC', US: 'FS1'  }, // SUI vs ALG
+  // R16 — July 5–6 — add when BBC/ITV announce (~1 week before)
   // { id: 'R16_1',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
   // { id: 'R16_2',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
   // { id: 'R16_3',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
@@ -183,8 +185,8 @@ const KNOCKOUT_EN_SCO_US = [
   // { id: 'SF_1',   EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
   // { id: 'SF_2',   EN: 'ITV', SCO: 'STV', US: 'FOX'  },
   // 3rd Place + Final — July 18–19
-  // { id: '3RD',    EN: 'ITV', SCO: 'STV', US: 'FS1'  },
-  // { id: 'FIN',    EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
+  // { id: '3RD_1',  EN: 'ITV', SCO: 'STV', US: 'FS1'  },
+  // { id: 'FIN_1',  EN: 'BBC', SCO: 'BBC', US: 'FOX'  },
 ];
 
 async function applyKnockoutENSCOUS(dbMatches) {
