@@ -315,13 +315,33 @@ export const App = () => {
       return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, bracketPreds);
   }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
 
-  // Manager tab: always starts from INITIAL_MATCHES so R32 shows the user's predicted
-  // group qualifiers, not real teams. For knockout slots where the user has no explicit
-  // prediction, we inject real finished results so R16+ isn't empty — this shows
-  // "which of my predicted R32 teams actually won their slot?" not real-bracket data.
+  // Manager tab "what did I predict?" bracket.
+  //
+  // SC ACTIVE users: their SC picks reference real R32 teams, so we use the real
+  // SC teams as the base (null out all scores so no results are revealed) and apply
+  // the user's own picks to cascade winners through R16/QF/SF/FIN.
+  //
+  // Non-SC users: start from INITIAL_MATCHES so group predictions cascade to R32.
+  // Fall back to real finished results for knockout slots the user didn't pick so
+  // R16+ isn't empty.
   const standardBracket = useMemo(() => {
       if (!user) return INITIAL_MATCHES;
       const userPreds = allPredictions.filter(p => p.userId === user.email);
+
+      if (user.hasTakenSecondChance) {
+          // Build a base with real R32 teams but no scores — user's picks drive the cascade.
+          const SC_KO_ROUNDS = new Set(['R32', 'R16', 'QF', 'SF', 'FIN']);
+          const SC_MATCH_IDS = new Set(
+              INITIAL_MATCHES.filter(m => !m.groupId && SC_KO_ROUNDS.has(m.round ?? '')).map(m => m.id)
+          );
+          const scBaseTeamsOnly = matches
+              .filter(m => m.groupId || SC_MATCH_IDS.has(m.id))
+              .map(m => m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null });
+          const userKoPicks = userPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
+          return applyPredictionsToBracket(scBaseTeamsOnly, teamsData, userKoPicks);
+      }
+
+      // Non-SC: group predictions cascade to R32; fall back to real results for unpicked KO slots
       const FINISHED_STATUSES = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
       const KO_IDS = new Set(INITIAL_MATCHES.filter(m => !m.groupId).map(m => m.id));
       const userKOIds = new Set(userPreds.filter(p => KO_IDS.has(p.matchId)).map(p => p.matchId));
