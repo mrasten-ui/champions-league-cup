@@ -186,7 +186,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const TabBtn = ({ panel, label }: { panel: 'events' | 'lineup' | 'stats' | 'pens'; label: string }) => (
       <button
-        onClick={() => setActivePanel(p => p === panel ? null : panel)}
+        onClick={(e) => { e.stopPropagation(); setActivePanel(p => p === panel ? null : panel); }}
         className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${
           activePanel === panel ? 'bg-[#0f2545] text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'
         }`}
@@ -610,7 +610,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                  return (
                    <div className="flex justify-center px-3 pt-1 pb-3">
                      <button
-                       onClick={() => setActivePanel(p => p === 'lineup' ? null : 'lineup')}
+                       onClick={(e) => { e.stopPropagation(); setActivePanel(p => p === 'lineup' ? null : 'lineup'); }}
                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#0f2545] hover:bg-[#1a3a6e] text-white/80 border border-blue-900/40 transition-colors shadow-sm"
                      >
                        {activePanel === 'lineup' ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
