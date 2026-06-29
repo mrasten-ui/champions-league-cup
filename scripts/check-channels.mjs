@@ -10,20 +10,25 @@ const sb = createClient(
   process.env.VITE_SUPABASE_ANON_KEY
 );
 
-const { data, error } = await sb
+// Check finished KO matches and their round value
+const { data: matches } = await sb
   .from('matches')
-  .select('id,home_team_id,away_team_id,date,channels,round')
-  .not('round', 'is', null)
-  .order('date');
+  .select('id,home_team_id,away_team_id,home_score,away_score,status,round,group_id')
+  .in('status', ['FT','FINISHED','AET','PEN'])
+  .is('group_id', null);
 
-if (error) { console.error(error); process.exit(1); }
+console.log('Finished knockout matches:\n');
+matches?.forEach(m => {
+  console.log(`${m.id} | round=${JSON.stringify(m.round)} | ${m.home_team_id} ${m.home_score}-${m.away_score} ${m.away_team_id} | status=${m.status}`);
+});
 
-console.log('Knockout matches and their channels:\n');
-data.forEach(m => {
-  const ch = m.channels || {};
-  const en = ch.EN || '—';
-  const sco = ch.SCO || '—';
-  const us = ch.US || '—';
-  const no = ch.NO || '—';
-  console.log(`${m.id.padEnd(8)} ${(m.home_team_id||'TBD').padEnd(4)} vs ${(m.away_team_id||'TBD').padEnd(4)}  EN=${en.padEnd(4)} SCO=${sco.padEnd(4)} US=${us.padEnd(4)} NO=${no}`);
+// Also check Mark's predictions for these matches
+const { data: preds } = await sb
+  .from('predictions')
+  .select('match_id,home,away,user_id')
+  .in('match_id', matches?.map(m => m.id) ?? []);
+
+console.log('\nPredictions for those matches:');
+preds?.forEach(p => {
+  console.log(`  user=${p.user_id} | ${p.match_id}: ${p.home}-${p.away}`);
 });

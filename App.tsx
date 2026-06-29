@@ -330,7 +330,8 @@ export const App = () => {
 
       if (user.hasTakenSecondChance) {
           // Build a base with real R32 teams but no scores — user's picks drive the cascade.
-          const SC_KO_ROUNDS = new Set(['R32', 'R16', 'QF', 'SF', 'FIN']);
+          // Include 3RD so the 3rd-place match section appears in the Manager bracket view.
+          const SC_KO_ROUNDS = new Set(['R32', 'R16', 'QF', 'SF', 'FIN', '3RD']);
           const SC_MATCH_IDS = new Set(
               INITIAL_MATCHES.filter(m => !m.groupId && SC_KO_ROUNDS.has(m.round ?? '')).map(m => m.id)
           );
@@ -338,7 +339,24 @@ export const App = () => {
               .filter(m => m.groupId || SC_MATCH_IDS.has(m.id))
               .map(m => m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null });
           const userKoPicks = userPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
-          return applyPredictionsToBracket(scBaseTeamsOnly, teamsData, userKoPicks);
+          const bracket = applyPredictionsToBracket(scBaseTeamsOnly, teamsData, userKoPicks);
+
+          // Auto-fill 3rd place pick for SC users who didn't select one:
+          // use the higher-ranked (lower rank number) SF loser as the winner.
+          const has3rdPick = userKoPicks.some(p => p.matchId === '3RD_1');
+          if (!has3rdPick) {
+              const third = bracket.find(m => m.id === '3RD_1');
+              if (third && third.homeTeamId && !third.homeTeamId.startsWith('TBD')
+                        && third.awayTeamId && !third.awayTeamId.startsWith('TBD')) {
+                  const homeRank = teamsData[third.homeTeamId]?.rank ?? 999;
+                  const awayRank = teamsData[third.awayTeamId]?.rank ?? 999;
+                  const homeWins = homeRank <= awayRank;
+                  third.homeScore = homeWins ? 1 : 0;
+                  third.awayScore = homeWins ? 0 : 1;
+              }
+          }
+
+          return bracket;
       }
 
       // Non-SC: group predictions cascade to R32; fall back to real results for unpicked KO slots
