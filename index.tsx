@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { PenaltyShootoutPreview } from './components/PenaltyShootoutPreview';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -7,6 +8,8 @@ if (!rootElement) {
 }
 
 const root = createRoot(rootElement);
+const devPreview = new URLSearchParams(window.location.search).get('dev');
+
 root.render(
-    <App />
+    devPreview === 'pens' ? <PenaltyShootoutPreview /> : <App />
 );

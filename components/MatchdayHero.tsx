@@ -8,6 +8,7 @@ import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
+import { PenaltyShootout } from './PenaltyShootout';
 
 interface MatchdayHeroProps {
   match: Match;
@@ -142,7 +143,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 };
 
 export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onUpdate, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
-  const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | null>(null);
+  const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | 'pens' | null>(null);
   const [pendingSub, setPendingSub] = React.useState(false);
   const [localHome, setLocalHome] = React.useState<number>(userPrediction?.home ?? 0);
   const [localAway, setLocalAway] = React.useState<number>(userPrediction?.away ?? 0);
@@ -163,9 +164,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   React.useEffect(() => {
     if ((isLive || isFinished) && !autoOpenedRef.current && events.length > 0) {
       autoOpenedRef.current = true;
-      setActivePanel('events');
+      setActivePanel((match.status === 'P' || match.status === 'PEN') ? 'pens' : 'events');
     }
-  }, [isLive, isFinished, events.length]);
+  }, [isLive, isFinished, events.length, match.status]);
+
+  React.useEffect(() => {
+    if (match.status === 'P') setActivePanel('pens');
+  }, [match.status]);
 
   const pointsEarned = (isFinished || isLive) && match.homeScore !== null && match.awayScore !== null && userPrediction
       ? calculatePoints(userPrediction.home, userPrediction.away, match.homeScore, match.awayScore, !!currentUser?.hasTakenSecondChance, match.round)
@@ -456,6 +461,14 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                   >
                     Stats
                   </button>
+                  {(match.status === 'P' || match.status === 'PEN') && (
+                    <button
+                      onClick={() => setActivePanel(p => p === 'pens' ? null : 'pens')}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'pens' ? 'bg-amber-500/40 text-amber-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                    >
+                      Pens 🥅
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -727,6 +740,11 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
         {/* STATS PANEL */}
         {activePanel === 'stats' && (isLive || isFinished) && (
           <StatsPanel stats={stats} homeTeam={home} awayTeam={away} homeKitType={heroHomeKitType} awayKitType={heroAwayKitType} dark />
+        )}
+
+        {/* PENALTY SHOOTOUT PANEL */}
+        {activePanel === 'pens' && (match.status === 'P' || match.status === 'PEN') && (
+          <PenaltyShootout match={match} events={events} teams={teams} lang={lang} />
         )}
 
         {/* Footer: Stadium & User Prediction */}

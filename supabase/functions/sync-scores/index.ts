@@ -308,6 +308,7 @@ serve(async (req) => {
         detail:       event.detail        ?? null,
         team_id:      teamId,
         player:       event.player?.name  ?? null,
+        player_id:    event.player?.id    ?? null,
         assist:       event.assist?.name  ?? null,
       }, { onConflict: 'match_id,api_event_id', ignoreDuplicates: true })
 

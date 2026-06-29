@@ -11,6 +11,7 @@ import { KitImage, resolveKitType } from './KitImage';
 import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
+import { PenaltyShootout } from './PenaltyShootout';
 
 interface MatchCardProps {
   match: Match;
@@ -86,7 +87,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [pendingSpy, setPendingSpy] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [rivalsOpen, setRivalsOpen] = useState(true);
-    const [activePanel, setActivePanel] = useState<'events' | 'lineup' | 'stats' | null>(null);
+    const [activePanel, setActivePanel] = useState<'events' | 'lineup' | 'stats' | 'pens' | null>(null);
     const autoOpenedRef = useRef(false);
 
     const isKnockout = !!match.round; 
@@ -138,9 +139,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     useEffect(() => {
         if ((isLive || isFinished) && !autoOpenedRef.current && events.length > 0) {
             autoOpenedRef.current = true;
-            setActivePanel('events');
+            setActivePanel((match.status === 'P' || match.status === 'PEN') ? 'pens' : 'events');
         }
-    }, [isLive, isFinished, events.length]);
+    }, [isLive, isFinished, events.length, match.status]);
+
+    // Switch to PENS tab automatically when penalty shootout starts mid-match
+    useEffect(() => {
+        if (match.status === 'P') setActivePanel('pens');
+    }, [match.status]);
 
     const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
@@ -178,7 +184,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const hasLineups = cardLineups.length > 0;
     const hasEvents = events.length > 0;
 
-    const TabBtn = ({ panel, label }: { panel: 'events' | 'lineup' | 'stats'; label: string }) => (
+    const TabBtn = ({ panel, label }: { panel: 'events' | 'lineup' | 'stats' | 'pens'; label: string }) => (
       <button
         onClick={() => setActivePanel(p => p === panel ? null : panel)}
         className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${
@@ -591,6 +597,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                      {hasEvents && <TabBtn panel="events" label={lang.events || 'Events'} />}
                      {hasLineups && <TabBtn panel="lineup" label={lang.lineups || 'Lineup'} />}
                      <TabBtn panel="stats" label="Stats" />
+                     {(match.status === 'P' || match.status === 'PEN') && (
+                       <TabBtn panel="pens" label="Pens 🥅" />
+                     )}
                    </div>
                  </div>
                ) : null
@@ -913,6 +922,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
              {/* STATS PANEL */}
              {activePanel === 'stats' && (isLive || isFinished) && (
                <StatsPanel stats={stats} homeTeam={homeTeam} awayTeam={awayTeam} homeKitType={homeKitType} awayKitType={awayKitType} />
+             )}
+
+             {/* PENALTY SHOOTOUT PANEL */}
+             {activePanel === 'pens' && (match.status === 'P' || match.status === 'PEN') && (
+               <PenaltyShootout
+                 match={match}
+                 events={events}
+                 teams={{ ...(allTeams ?? {}), ...(homeTeam ? { [match.homeTeamId]: homeTeam } : {}), ...(awayTeam ? { [match.awayTeamId]: awayTeam } : {}) }}
+                 lang={lang}
+               />
              )}
 
              {/* SAVE STATUS BAR */}
