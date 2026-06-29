@@ -45,7 +45,7 @@ import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
 import { SecondChanceReminderModal, SCReminderType } from './components/SecondChanceReminderModal';
-import { GoalBanner, GoalNotification, KitNotification } from './components/GoalBanner';
+import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
 import { PlayerModal } from './components/PlayerModal';
 import { StadiumModal } from './components/StadiumModal';
 import { LiveTicker } from './components/LiveTicker';
@@ -125,6 +125,10 @@ export const App = () => {
   const goalNotification = goalQueue[0] ?? null;
   const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
   const kitNotification = kitQueue[0] ?? null;
+  const [psoQueue, setPsoQueue] = useState<PsoNotification[]>([]);
+  const psoNotification = psoQueue[0] ?? null;
+  const psoInitializedRef = useRef(false);
+  const prevMatchStatusRef = useRef<Map<string, string>>(new Map());
   const [playerModal, setPlayerModal] = useState<{ playerId: number | null; playerName: string; teamId: string } | null>(null);
   const [stadiumVenue, setStadiumVenue] = useState<string | null>(null);
   const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
@@ -1290,6 +1294,33 @@ export const App = () => {
     if (banners.length) setGoalQueue(prev => [...prev, ...banners]);
   }, [matchEvents, matchLineups]);
 
+  // --- PSO NOTIFICATION ---
+  // Fires once when a match transitions from any non-P status to 'P'.
+  // On initial load, silently seeds the status map without firing.
+  useEffect(() => {
+    if (!psoInitializedRef.current) {
+      matches.forEach(m => prevMatchStatusRef.current.set(m.id, m.status));
+      psoInitializedRef.current = true;
+      return;
+    }
+    const newPso: PsoNotification[] = [];
+    matches.forEach(m => {
+      const prev = prevMatchStatusRef.current.get(m.id);
+      if (prev !== undefined && prev !== 'P' && m.status === 'P') {
+        newPso.push({
+          id: `pso_${m.id}_${Date.now()}`,
+          matchId: m.id,
+          homeTeamId: m.homeTeamId,
+          awayTeamId: m.awayTeamId,
+          homeScore: m.homeScore ?? 0,
+          awayScore: m.awayScore ?? 0,
+        });
+      }
+      prevMatchStatusRef.current.set(m.id, m.status);
+    });
+    if (newPso.length) setPsoQueue(prev => [...prev, ...newPso]);
+  }, [matches]);
+
   // --- KIT NOTIFICATION ---
   // Fires when lineups arrive with kit colors for a live/upcoming match.
   // On first run: silently marks all already-loaded matches as seen.
@@ -1759,6 +1790,15 @@ export const App = () => {
           const m = matches.find(m => m.id === kitNotification.matchId);
           if (m) handleTickerMatchClick(m);
           setKitQueue(prev => prev.slice(1));
+        } : undefined}
+        psoNotification={psoNotification}
+        psohomeTeam={psoNotification ? teamsData[psoNotification.homeTeamId] : undefined}
+        psoAwayTeam={psoNotification ? teamsData[psoNotification.awayTeamId] : undefined}
+        onPsoDismiss={() => setPsoQueue(prev => prev.slice(1))}
+        onPsoNavigate={psoNotification ? () => {
+          const m = matches.find(m => m.id === psoNotification.matchId);
+          if (m) handleTickerMatchClick(m);
+          setPsoQueue(prev => prev.slice(1));
         } : undefined}
       />
       {playerModal && (

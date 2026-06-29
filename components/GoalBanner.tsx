@@ -39,6 +39,15 @@ export interface KitNotification {
   awayKitText: string;
 }
 
+export interface PsoNotification {
+  id: string;
+  matchId: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number;
+  awayScore: number;
+}
+
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
 function LiveBadge() {
@@ -445,6 +454,100 @@ function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProp
   );
 }
 
+// ── PSO Card ─────────────────────────────────────────────────────────────────
+
+const PSO_DISPLAY_MS = 12000;
+
+interface PsoCardProps {
+  notification: PsoNotification;
+  homeTeam?: Team;
+  awayTeam?: Team;
+  onDismiss: () => void;
+  onNavigate?: () => void;
+}
+
+function PsoCard({ notification, homeTeam, awayTeam, onDismiss, onNavigate }: PsoCardProps) {
+  const [visible, setVisible] = useState(false);
+  const [barW, setBarW]       = useState(100);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setVisible(true), 20);
+    const t2 = setTimeout(() => setBarW(0), 80);
+    timerRef.current = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onDismiss, 320);
+    }, PSO_DISPLAY_MS);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const dismiss = () => { setVisible(false); setTimeout(onDismiss, 320); };
+
+  const homeName = homeTeam?.name ?? notification.homeTeamId;
+  const awayName = awayTeam?.name ?? notification.awayTeamId;
+
+  return (
+    <div className={`transition-all duration-300 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
+      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
+           style={{ background: '#0a1628' }}>
+
+        {/* Amber tint */}
+        <div className="absolute inset-0"
+             style={{ background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, transparent 55%)' }} />
+        <div className="absolute inset-0 rounded-2xl border pointer-events-none"
+             style={{ borderColor: 'rgba(251,191,36,0.28)' }} />
+
+        {/* Progress bar */}
+        <div className="absolute top-0 left-0 h-[2px] transition-all ease-linear"
+             style={{ width: `${barW}%`, transitionDuration: `${PSO_DISPLAY_MS}ms`,
+                      background: 'linear-gradient(to right, rgba(251,191,36,0.5), #FBBf24)' }} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/[0.07]">
+          <span className="text-[11px] font-black uppercase tracking-widest text-amber-400">
+            🥅 Penalty Shoot-Out
+          </span>
+          <button onClick={e => { e.stopPropagation(); dismiss(); }}
+                  className="p-1 text-white/25 hover:text-white/55 transition-colors">
+            <X size={11} />
+          </button>
+        </div>
+
+        {/* Teams + score */}
+        <div className={`flex items-center gap-3 px-4 py-3 ${onNavigate ? 'cursor-pointer' : ''}`}
+             onClick={onNavigate}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {homeTeam?.flag && <img src={homeTeam.flag} alt="" className="w-6 h-5 object-cover rounded-sm shrink-0 border border-white/15" />}
+            <span className="text-[12px] font-black text-white truncate">{homeName}</span>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-1.5 px-2">
+            <span className="text-lg font-black text-white tabular-nums">{notification.homeScore}</span>
+            <span className="text-white/25 font-black text-sm">–</span>
+            <span className="text-lg font-black text-white tabular-nums">{notification.awayScore}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0 justify-end flex-1">
+            <span className="text-[12px] font-black text-white truncate">{awayName}</span>
+            {awayTeam?.flag && <img src={awayTeam.flag} alt="" className="w-6 h-5 object-cover rounded-sm shrink-0 border border-white/15" />}
+          </div>
+        </div>
+
+        {/* CTA */}
+        {onNavigate && (
+          <div className="px-4 pb-3" onClick={e => e.stopPropagation()}>
+            <PillButton onClick={onNavigate} gold>Watch live →</PillButton>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── GoalBanner (main export) ──────────────────────────────────────────────────
 
 interface GoalBannerProps {
@@ -459,6 +562,11 @@ interface GoalBannerProps {
   kitNotification?: KitNotification | null;
   onKitDismiss?: () => void;
   onKitNavigate?: () => void;
+  psoNotification?: PsoNotification | null;
+  onPsoDismiss?: () => void;
+  onPsoNavigate?: () => void;
+  psohomeTeam?: Team;
+  psoAwayTeam?: Team;
 }
 
 export const GoalBanner: React.FC<GoalBannerProps> = ({
@@ -472,8 +580,13 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
   kitNotification,
   onKitDismiss,
   onKitNavigate,
+  psoNotification,
+  onPsoDismiss,
+  onPsoNavigate,
+  psohomeTeam,
+  psoAwayTeam,
 }) => {
-  if (!notification && !kitNotification) return null;
+  if (!notification && !kitNotification && !psoNotification) return null;
 
   return createPortal(
     <div
@@ -506,6 +619,16 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
             notification={kitNotification}
             onDismiss={onKitDismiss ?? (() => {})}
             onNavigate={onKitNavigate}
+          />
+        )}
+        {psoNotification && (
+          <PsoCard
+            key={psoNotification.id}
+            notification={psoNotification}
+            homeTeam={psohomeTeam}
+            awayTeam={psoAwayTeam}
+            onDismiss={onPsoDismiss ?? (() => {})}
+            onNavigate={onPsoNavigate}
           />
         )}
       </div>
