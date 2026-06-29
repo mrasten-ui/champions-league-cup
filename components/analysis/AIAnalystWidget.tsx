@@ -139,15 +139,20 @@ export const generateDailyBrief = async (
             else if (pct < 35) rivalry = `rivals back ${aTeam} (${100 - pct}%)`;
             else rivalry = 'rivals are split';
         }
-        return `- ${hTeam} vs ${aTeam}: ${cleanName}'s pick is ${pick}${rivalry ? `, ${rivalry}` : ''}`;
+        const roundLabel = m.round && !m.groupId ? ` [${m.round}]` : '';
+        return `- ${hTeam} vs ${aTeam}${roundLabel}: ${cleanName}'s pick is ${pick}${rivalry ? `, ${rivalry}` : ''}`;
     }).join('\n');
+
+    const stageContext = upcoming.some(m => m.round && !m.groupId)
+        ? `\nSTAGE: Knockout rounds — single elimination. One wrong result and the user scores zero for that match.\n`
+        : '';
 
     const prompt = `${t.systemPrompt}
 
 Write a personal daily briefing for ${cleanName}.
 
 CURRENT STANDING: ${leaderboardContext}
-
+${stageContext}
 UPCOMING MATCHES:
 ${matchLines}
 

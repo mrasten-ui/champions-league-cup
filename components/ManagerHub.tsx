@@ -816,8 +816,7 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className={gridClass}>
                                   {roundMatches.map(userMatch => {
                                       const realMatch = getRealMatch(userMatch.id);
-                                      const isMatchupCorrect = realMatch && realMatch.homeTeamId === userMatch.homeTeamId && realMatch.awayTeamId === userMatch.awayTeamId;
-                                      const displayMatch = isMatchupCorrect ? realMatch : { ...userMatch, homeScore: null, awayScore: null, status: realMatch?.status || 'UPCOMING' };
+                                      const displayMatch = { ...userMatch, homeScore: null, awayScore: null, status: realMatch?.status || 'UPCOMING' };
                                       return (
                                           <PredictionStamp 
                                               key={userMatch.id}

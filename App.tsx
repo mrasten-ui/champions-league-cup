@@ -11,6 +11,7 @@ import {
   getThirdPlaceStandings,
   updateBracket,
   calculatePoints,
+  getQualifiedRounds,
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -1295,7 +1296,7 @@ export const App = () => {
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
   const runBriefGeneration = async () => {
       if (!user || !matches.length || !Object.keys(teamsData).length || !allPredictions) return;
-      const cacheKey = `rasten_brief_${user.email}_${new Date().toISOString().slice(0, 10)}`;
+      const cacheKey = `rasten_brief_${user.email}_${tournamentPhase}_${new Date().toISOString().slice(0, 10)}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) { setDailyBrief(cached); return; }
       setBriefRefreshing(true);
@@ -1306,15 +1307,18 @@ export const App = () => {
               m.homeScore !== null && m.awayScore !== null
           );
           const stats = allUsers.map(u => {
-              const score = finishedMatches.reduce((sum, m) => {
-                  const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
+              const userPreds = allPredictions.filter(p => p.userId === u.email);
+              const matchPts = finishedMatches.reduce((sum, m) => {
+                  const pred = userPreds.find(p => p.matchId === m.id);
                   if (!pred) return sum;
                   return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
               }, 0);
-              return { user: u, score, rank: 0, diff: 0 };
+              const bracketPts = getQualifiedRounds(matches, userPreds, u, teamsData)
+                  .reduce((sum, r) => sum + r.totalPoints, 0);
+              return { user: u, score: matchPts + bracketPts, rank: 0, diff: 0 };
           }).sort((a, b) => b.score - a.score).map((s, i) => ({ ...s, rank: i + 1 }));
           const upcoming = matches
-              .filter(m => m.status === 'UPCOMING' || m.status === 'NS')
+              .filter(m => (m.status === 'UPCOMING' || m.status === 'NS') && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD')
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .slice(0, 3);
           const brief = await generateDailyBrief(user, stats, upcoming, allPredictions, teamsData, language, supabase);
