@@ -297,6 +297,14 @@ const EN_TRANSLATION: Translation = {
     playerRatedSuffix: "rated",
     playerNoStats: "Stats not yet available — check back after their next match.",
 
+    // --- PSO & MATCH DISPLAY ---
+    goingThrough: "Going Through",
+    psoLabel: "PSO", pensTab: "Pens 🥅", statsTab: "Stats", aetLabel: "AET",
+    psoLive: "Live — Penalties", psoNoData: "No shootout data yet",
+    psoPreMatchPen: "match penalty scored before shootout",
+    psoPreMatchPens: "match penalties scored before shootout",
+    psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Off Target", psoPost: "Post",
+
     teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
@@ -434,6 +442,14 @@ const SCO_TRANSLATION: Translation = {
     playerApps: "Games",
     playerNoStats: "Nae stats yet, pal — check back efter their next game.",
 
+    // --- PSO & MATCH DISPLAY ---
+    goingThrough: "Gaun Through",
+    psoLabel: "PENS", pensTab: "Pens 🥅", statsTab: "Stats", aetLabel: "AET",
+    psoLive: "Live — Pens!", psoNoData: "Nae shootout info yet",
+    psoPreMatchPen: "penalty afore the shootout",
+    psoPreMatchPens: "penalties afore the shootout",
+    psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Wide", psoPost: "Post",
+
     teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
@@ -562,6 +578,14 @@ const US_TRANSLATION: Translation = {
     stadiumWCMatches: "World Cup Games",
     playerApps: "Games",
     playerNoStats: "Stats coming soon — check back after their next match.",
+
+    // --- PSO & MATCH DISPLAY ---
+    goingThrough: "Advancing",
+    psoLabel: "PKs", pensTab: "PKs 🥅", statsTab: "Stats", aetLabel: "AET",
+    psoLive: "Live — PK Shootout", psoNoData: "No PK data yet",
+    psoPreMatchPen: "PK scored in regulation time",
+    psoPreMatchPens: "PKs scored in regulation time",
+    psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Wide", psoPost: "Post",
 
     teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
@@ -718,6 +742,14 @@ const NO_TRANSLATION: Translation = {
     playerOwnGoal: "EM",
     playerRatedSuffix: "vurdert",
     playerNoStats: "Statistikk ikke tilgjengelig ennå — sjekk igjen etter neste kamp.",
+
+    // --- PSO & MATCH DISPLAY ---
+    goingThrough: "Går videre",
+    psoLabel: "STRAFF", pensTab: "Straffer 🥅", statsTab: "Statistikk", aetLabel: "ET",
+    psoLive: "Direkte — Straffespark", psoNoData: "Ingen straffesparkdata ennå",
+    psoPreMatchPen: "straffespark fra ordinær tid",
+    psoPreMatchPens: "straffespark fra ordinær tid",
+    psoMissed: "Bom", psoSaved: "Reddet", psoOffTarget: "Utenfor", psoPost: "Stang",
 
     teamNames: TEAM_NAMES_NO,
     teamOverviews: {}

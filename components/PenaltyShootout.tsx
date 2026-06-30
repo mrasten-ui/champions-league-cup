@@ -10,12 +10,7 @@ interface PenaltyShootoutProps {
 
 const PLAYER_PHOTO = (id: number) => `https://media.api-sports.io/football/players/${id}.png`;
 
-const MissLabel: Record<string, string> = {
-    'Missed Penalty': 'Off Target',
-    'Saved Penalty': 'Saved',
-    'Post': 'Post',
-    'Woodwork': 'Post',
-};
+// MissLabel is now dynamic via lang — see getMissLabel() inside the component
 
 // API-Football returns ALL PSO kicks as type:'Goal' — detail tells us if it was scored or missed.
 const MISSED_DETAILS = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Woodwork']);
@@ -143,20 +138,32 @@ const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────────
 
-export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events, teams }) => {
+export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events, teams, lang }) => {
     const homeTeam = teams[match.homeTeamId];
     const awayTeam = teams[match.awayTeamId];
+    const L = lang as any;
+
+    const getMissLabel = (detail: string | undefined): string => {
+        switch (detail) {
+            case 'Missed Penalty': return L.psoOffTarget ?? 'Off Target';
+            case 'Saved Penalty':  return L.psoSaved ?? 'Saved';
+            case 'Post':
+            case 'Woodwork':       return L.psoPost ?? 'Post';
+            default:               return L.psoMissed ?? 'Missed';
+        }
+    };
 
     // API-Football represents PSO kicks as type:'Goal' at minute 120 with minuteExtra 1,2,3…
-    // (not at minute 121+ as previously assumed). Missed PSO kicks use detail:'Missed Penalty'
-    // rather than type:'Miss'. This filter catches all three observed formats.
+    // Missed PSO kicks use detail:'Missed Penalty' rather than type:'Miss'.
+    // Some API responses store minute=120 without minuteExtra — treat any penalty at 120+ in
+    // a PSO match as a shootout kick to avoid missing those events.
     const isPsoMatch = match.status === 'P' || match.status === 'PEN';
     const isPsoKick = (e: MatchEvent): boolean => {
         if (e.type === 'Miss') return true;
         if (e.type !== 'Goal') return false;
         if (MISSED_DETAILS.has(e.detail ?? '')) return true;
         const min = e.minute ?? 0, extra = e.minuteExtra ?? 0;
-        if (e.detail === 'Penalty') return min >= 121 || (min >= 120 && extra > 0);
+        if (e.detail === 'Penalty') return isPsoMatch ? min >= 120 : min >= 121 || (min >= 120 && extra > 0);
         return isPsoMatch && (min >= 121 || (min >= 120 && extra > 0));
     };
 
@@ -235,7 +242,7 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
                 {/* PSO score */}
                 <div className="flex items-center gap-2 shrink-0 px-3">
                     <span className="text-xl font-black text-emerald-300">{finalHome}</span>
-                    <span className="text-[9px] text-white/30 font-bold uppercase tracking-widest">PSO</span>
+                    <span className="text-[9px] text-white/30 font-bold uppercase tracking-widest">{L.psoLabel ?? 'PSO'}</span>
                     <span className="text-xl font-black text-emerald-300">{finalAway}</span>
                 </div>
 
@@ -263,7 +270,7 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
             {/* Pre-match penalties note */}
             {preMatchPens.length > 0 && (
                 <div className="px-4 py-1.5 bg-amber-900/20 border-y border-amber-500/20 text-[9px] text-amber-400/70 text-center font-semibold tracking-wide">
-                    {preMatchPens.length} match penalt{preMatchPens.length === 1 ? 'y' : 'ies'} scored before shootout
+                    {preMatchPens.length} {preMatchPens.length === 1 ? (L.psoPreMatchPen ?? 'match penalty scored before shootout') : (L.psoPreMatchPens ?? 'match penalties scored before shootout')}
                 </div>
             )}
 
@@ -279,14 +286,14 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
             <div className="divide-y divide-white/5">
                 {rows.length === 0 && (
                     <div className="py-8 text-center text-white/30 text-xs">
-                        No shootout data yet
+                        {L.psoNoData ?? 'No shootout data yet'}
                         <div className="mt-1 text-[9px] text-white/20">
-                            {events.length} events in · {kicks.length} pso kicks found
+                            {events.length} events · max min {Math.max(0, ...events.map(e => e.minute ?? 0))} · {events.filter(e => e.type === 'Goal' && e.detail === 'Penalty').length} pens
                         </div>
                     </div>
                 )}
                 {rows.map(({ e, isHome, scored, runningHome, runningAway, idx }) => {
-                    const missLabel = !scored ? (MissLabel[e.detail ?? ''] ?? 'Missed') : null;
+                    const missLabel = !scored ? getMissLabel(e.detail) : null;
                     const playerName = e.player ? e.player.split(' ').slice(-1)[0] : '—';
                     return (
                         <div key={e.id ?? idx} className={`flex items-center gap-2 px-3 py-2.5
@@ -361,7 +368,7 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
             {match.status === 'P' && (
                 <div className="flex items-center justify-center gap-1.5 py-2 border-t border-white/10">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Live — Penalties</span>
+                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">{L.psoLive ?? 'Live — Penalties'}</span>
                 </div>
             )}
         </div>

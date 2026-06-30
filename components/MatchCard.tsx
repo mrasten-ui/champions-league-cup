@@ -489,7 +489,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             <span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span>
                                             <span>{match.status === 'PEN' ? Math.min(match.homeScore ?? 0, match.awayScore ?? 0) : match.awayScore ?? 0}</span>
                                         </div>
-                                        {match.status === 'PEN' && <span className="text-[9px] font-black text-yellow-400/80 uppercase tracking-widest leading-none -mt-0.5">AET</span>}
+                                        {match.status === 'PEN' && <span className="text-[9px] font-black text-yellow-400/80 uppercase tracking-widest leading-none -mt-0.5">{(lang as any).aetLabel ?? 'AET'}</span>}
                                     </div>
                                 </>
                             ) : (
@@ -605,9 +605,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                    <div className="flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5 border border-slate-200">
                      {hasEvents && <TabBtn panel="events" label={lang.events || 'Events'} />}
                      {hasLineups && <TabBtn panel="lineup" label={lang.lineups || 'Lineup'} />}
-                     <TabBtn panel="stats" label="Stats" />
+                     <TabBtn panel="stats" label={(lang as any).statsTab || 'Stats'} />
                      {(match.status === 'P' || match.status === 'PEN') && (
-                       <TabBtn panel="pens" label="Pens 🥅" />
+                       <TabBtn panel="pens" label={(lang as any).pensTab || 'Pens 🥅'} />
                      )}
                    </div>
                  </div>

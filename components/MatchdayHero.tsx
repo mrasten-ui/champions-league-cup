@@ -459,14 +459,14 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                     onClick={() => setActivePanel(p => p === 'stats' ? null : 'stats')}
                     className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'stats' ? 'bg-emerald-600/40 text-emerald-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
                   >
-                    Stats
+                    {(lang as any).statsTab || 'Stats'}
                   </button>
                   {(match.status === 'P' || match.status === 'PEN') && (
                     <button
                       onClick={() => setActivePanel(p => p === 'pens' ? null : 'pens')}
                       className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${activePanel === 'pens' ? 'bg-amber-500/40 text-amber-200 shadow-sm' : 'text-white/40 hover:text-white/70'}`}
                     >
-                      Pens 🥅
+                      {(lang as any).pensTab || 'Pens 🥅'}
                     </button>
                   )}
                 </div>
