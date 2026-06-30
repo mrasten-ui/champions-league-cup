@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { Match, Team, Prediction, UserProfile, Translation } from '../types';
 import { MatchCard } from './MatchCard';
 import { Trophy, AlertCircle, ArrowRight } from 'lucide-react';
+import { applyPredictionsToBracket } from '../services/engine';
+import { INITIAL_MATCHES } from '../constants';
 
 interface MyPredictionsProps {
   matches: Match[];
@@ -34,11 +36,29 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
         const statusOrder = { 'LIVE': 0, '1H': 0, 'HT': 0, '2H': 0, 'ET': 0, 'PEN': 0, 'UPCOMING': 1, 'FT': 2, 'FINISHED': 2 };
         const statA = statusOrder[a.status as keyof typeof statusOrder] ?? 1;
         const statB = statusOrder[b.status as keyof typeof statusOrder] ?? 1;
-        
+
         if (statA !== statB) return statA - statB;
         return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
   }, [matches]);
+
+  const predictedAdvancingTeams = useMemo(() => {
+    let userPreds = allPredictions.filter(p => p.userId === currentUser.email);
+    if (currentUser.bracketPredictions) {
+        userPreds = userPreds.map(p =>
+            /^[A-L]\d$/.test(p.matchId) && currentUser.bracketPredictions![p.matchId]
+                ? { ...p, ...currentUser.bracketPredictions![p.matchId] }
+                : p
+        );
+    }
+    const bracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, userPreds);
+    return new Set(
+        bracket
+            .filter(m => m.round === 'R32')
+            .flatMap(m => [m.homeTeamId, m.awayTeamId])
+            .filter((t): t is string => !!t && t !== 'TBD')
+    );
+  }, [allPredictions, teams, currentUser.email, currentUser.bracketPredictions]);
 
   return (
     <div className="pb-24 animate-fade-in">
@@ -108,9 +128,9 @@ export const MyPredictions: React.FC<MyPredictionsProps> = ({
                             onSubstitute={() => onSubstitute(match.id)}
                             substitutionsLeft={currentUser.substitutions}
                             isUnlockedBySub={currentUser.unlockedMatches?.includes(match.id)}
-                            
+                            predictedAdvancingTeams={predictedAdvancingTeams}
                             // ENABLE BADGE FOR MANAGER TAB
-                            showStatusBadge={true} 
+                            showStatusBadge={true}
                         />
                     </div>
                 );

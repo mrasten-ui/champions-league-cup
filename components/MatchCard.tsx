@@ -49,6 +49,7 @@ interface MatchCardProps {
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   onStadiumClick?: (venue: string) => void;
   onCardClick?: () => void;
+  predictedAdvancingTeams?: Set<string>;
 }
 
 
@@ -75,7 +76,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick, predictedAdvancingTeams
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -478,6 +479,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {lang.myPick || 'My Pick'}
                             </span>
                         )}
+                        {!isKnockout && predictedAdvancingTeams?.has(match.homeTeamId) && (
+                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
+                                {lang.myPick || 'My Pick'}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -613,6 +619,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             </span>
                         )}
                         {isKnockout && !isFinished && !isLive && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
+                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
+                                {lang.myPick || 'My Pick'}
+                            </span>
+                        )}
+                        {!isKnockout && predictedAdvancingTeams?.has(match.awayTeamId) && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>

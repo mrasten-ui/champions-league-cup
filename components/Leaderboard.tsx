@@ -167,6 +167,17 @@ const getRoundsWithAllTeams = (
     const secondChanceChamp = getChamp(secondChanceBracket);
     const statusOrder: Record<TeamStatus, number> = { confirmed: 0, pending: 1, eliminated: 2 };
 
+    // Build a set of teams definitively eliminated: they played a knockout match
+    // and lost (score is settled — excludes live/PSO ties where winner is unclear).
+    const finishedStatuses = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
+    const definitivelyEliminated = new Set<string>();
+    realMatches
+        .filter(m => m.round && finishedStatuses.has(m.status ?? '') && m.homeScore !== null && m.awayScore !== null && m.homeScore !== m.awayScore)
+        .forEach(m => {
+            const loserId = m.homeScore! < m.awayScore! ? m.homeTeamId : m.awayTeamId;
+            if (loserId && !loserId.startsWith('TBD')) definitivelyEliminated.add(loserId);
+        });
+
     const result: RoundWithAllTeams[] = [];
 
     roundDefs.forEach(r => {
@@ -199,9 +210,10 @@ const getRoundsWithAllTeams = (
             const teamList: { teamId: string; status: TeamStatus }[] = [];
             userTeams.forEach(teamId => {
                 const status: TeamStatus =
-                    realTeams.has(teamId)            ? 'confirmed'
-                  : realTeams.size >= r.totalSlots   ? 'eliminated'
-                  :                                    'pending';
+                    realTeams.has(teamId)               ? 'confirmed'
+                  : realTeams.size >= r.totalSlots       ? 'eliminated'
+                  : definitivelyEliminated.has(teamId)  ? 'eliminated'
+                  :                                        'pending';
                 teamList.push({ teamId, status });
             });
             teamList.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);

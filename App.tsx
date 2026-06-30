@@ -421,6 +421,25 @@ export const App = () => {
       return new Set(thirds.slice(0, 8).map(t => t.teamId));
   }, [user, purePredictionMatches, teamsData]);
 
+  const predictedAdvancingTeams = useMemo(() => {
+      if (!user) return new Set<string>();
+      let userPreds = allPredictions.filter(p => p.userId === user.email);
+      if (user.bracketPredictions) {
+          userPreds = userPreds.map(p =>
+              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
+                  ? { ...p, ...user.bracketPredictions![p.matchId] }
+                  : p
+          );
+      }
+      const bracket = applyPredictionsToBracket(INITIAL_MATCHES, teamsData, userPreds);
+      return new Set(
+          bracket
+              .filter(m => m.round === 'R32')
+              .flatMap(m => [m.homeTeamId, m.awayTeamId])
+              .filter((t): t is string => !!t && t !== 'TBD')
+      );
+  }, [allPredictions, teamsData, user]);
+
   const allPredictedGroupStandings = useMemo((): Record<string, Record<string, number>> => {
       if (!user) return {};
       return Object.fromEntries(
@@ -1652,6 +1671,7 @@ export const App = () => {
                                 onTeamClick={(id) => setViewingTeamId(id)}
                                 showStatusBadge={false}
                                 context="groups"
+                                predictedAdvancingTeams={predictedAdvancingTeams}
                                 events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
                                 playerMatchStats={playerMatchStats}
                                 onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}

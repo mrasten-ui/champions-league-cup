@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Match, Team, Translation, Prediction } from '../types';
+import { BRACKET_VISUAL_ORDER } from '../constants';
 
 interface KnockoutTreeViewProps {
   matches: Match[];
@@ -83,9 +84,14 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
        QF: lang.quarterFinal ?? 'Quarter Final', SF: lang.semiFinal ?? 'Semi Final',
        '3RD': lang.thirdPlace ?? '3rd Place', FIN: lang.final ?? 'Final' }[r] ?? r);
 
-  const sorted = (r: string) =>
-    matches.filter(m => m.round === r)
-      .sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
+  const sorted = (r: string) => {
+    const order = BRACKET_VISUAL_ORDER[r];
+    const roundMatches = matches.filter(m => m.round === r);
+    if (order) {
+      return order.map(id => roundMatches.find(m => m.id === id)).filter(Boolean) as Match[];
+    }
+    return roundMatches.sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
+  };
 
   const MAIN = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const present = MAIN.filter(r => matches.some(m => m.round === r));
