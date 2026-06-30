@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { Match, Team, Translation, Prediction } from '../types';
-import { BRACKET_VISUAL_ORDER } from '../constants';
 
 interface KnockoutTreeViewProps {
   matches: Match[];
@@ -32,12 +31,21 @@ const BracketCard: React.FC<{
   const hs  = match.homeScore ?? pred?.home;
   const as_ = match.awayScore ?? pred?.away;
   const fin  = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-  const live = ['LIVE', '1H', '2H', 'HT'].includes(match.status);
+  const live = ['LIVE', '1H', '2H', 'HT', 'P'].includes(match.status);
   const played = fin || live;
+  const isPen = match.status === 'PEN';
+
+  // For PEN matches the sync function stores winner's score as ftDraw+1 and loser's as ftDraw,
+  // so the FT/AET score (a draw) = min(homeScore, awayScore). Show that for both teams.
+  const ftDraw = isPen && typeof hs === 'number' && typeof as_ === 'number'
+    ? Math.min(hs, as_) : undefined;
+  const displayHs = ftDraw ?? hs;
+  const displayAs = ftDraw ?? as_;
+
   const homeW = played && typeof hs === 'number' && typeof as_ === 'number' && hs > as_;
   const awayW = played && typeof hs === 'number' && typeof as_ === 'number' && as_ > hs;
 
-  const Row = ({ team, score, win }: { team?: Team; score?: number | null; win: boolean }) => (
+  const Row = ({ team, score, win, penWin }: { team?: Team; score?: number | null; win: boolean; penWin?: boolean }) => (
     <div className={`flex items-center gap-1.5 px-2 ${win ? 'bg-white/[0.06]' : ''}`} style={{ height: 22 }}>
       {team?.flag
         ? <img src={team.flag} className="w-[18px] h-[13px] object-cover rounded-sm shrink-0" alt="" />
@@ -46,6 +54,7 @@ const BracketCard: React.FC<{
       <span className={`flex-1 text-[10px] truncate leading-none ${win ? 'font-black text-white' : 'font-medium text-slate-400'}`}>
         {team?.name ?? 'TBD'}
       </span>
+      {penWin && <span className="text-[8px] font-black text-yellow-400 leading-none mr-0.5">P</span>}
       <span className={`text-[10px] font-black ml-1 shrink-0 tabular-nums leading-none
         ${win ? 'text-yellow-400' : played ? 'text-slate-400' : 'text-slate-700'}`}>
         {played ? (score ?? '–') : '–'}
@@ -61,12 +70,12 @@ const BracketCard: React.FC<{
         ${highlighted ? 'ring-2 ring-yellow-400 shadow-[0_0_16px_rgba(250,204,21,0.5)]' : ''}`}
       style={{ width: CARD_W, height: CARD_H }}
     >
-      <Row team={home} score={hs} win={homeW} />
+      <Row team={home} score={displayHs} win={homeW} penWin={isPen && homeW} />
       <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-      <Row team={away} score={as_} win={awayW} />
+      <Row team={away} score={displayAs} win={awayW} penWin={isPen && awayW} />
       {live && (
         <div className="bg-red-600 text-white text-[6px] font-black uppercase tracking-[0.2em] text-center" style={{ lineHeight: '10px' }}>
-          LIVE
+          {match.status === 'P' ? 'PSO' : 'LIVE'}
         </div>
       )}
     </div>
@@ -84,14 +93,9 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
        QF: lang.quarterFinal ?? 'Quarter Final', SF: lang.semiFinal ?? 'Semi Final',
        '3RD': lang.thirdPlace ?? '3rd Place', FIN: lang.final ?? 'Final' }[r] ?? r);
 
-  const sorted = (r: string) => {
-    const order = BRACKET_VISUAL_ORDER[r];
-    const roundMatches = matches.filter(m => m.round === r);
-    if (order) {
-      return order.map(id => roundMatches.find(m => m.id === id)).filter(Boolean) as Match[];
-    }
-    return roundMatches.sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
-  };
+  const sorted = (r: string) =>
+    matches.filter(m => m.round === r)
+      .sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
 
   const MAIN = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const present = MAIN.filter(r => matches.some(m => m.round === r));
