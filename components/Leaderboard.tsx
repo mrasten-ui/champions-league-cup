@@ -129,8 +129,9 @@ const getRoundsWithAllTeams = (
           )
         : userPredictions;
     const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
+    const unlockedRealMatches = realMatches.map(m => ({ ...m, isLocked: false }));
     const secondChanceBracket = user.hasTakenSecondChance
-        ? applyPredictionsToBracket(realMatches, teams, userPredictions)
+        ? applyPredictionsToBracket(unlockedRealMatches, teams, userPredictions)
         : standardBracket;
     const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
 
