@@ -157,11 +157,10 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
 
     const getMissLabel = (detail: string | undefined): string => {
         switch (detail) {
-            case 'Missed Penalty': return L.psoOffTarget ?? 'Off Target';
             case 'Saved Penalty':  return L.psoSaved ?? 'Saved';
             case 'Post':
             case 'Woodwork':       return L.psoPost ?? 'Post';
-            default:               return L.psoMissed ?? 'Missed';
+            default:               return L.psoMissed ?? 'Miss';
         }
     };
 
