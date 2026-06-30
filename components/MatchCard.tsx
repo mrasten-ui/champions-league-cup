@@ -50,6 +50,7 @@ interface MatchCardProps {
   onStadiumClick?: (venue: string) => void;
   onCardClick?: () => void;
   predictedAdvancingTeams?: Set<string>;
+  predictedKnockoutWinners?: Map<string, string>;
 }
 
 
@@ -76,7 +77,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
 
 export const MatchCard: React.FC<MatchCardProps> = ({
     match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick, predictedAdvancingTeams
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick, predictedAdvancingTeams, predictedKnockoutWinners
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
     
@@ -389,10 +390,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
     const isAwayClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.awayTeamId.startsWith('TBD'));
 
+    // For knockout: use the bracket-simulated winner (team-identity-based, not home/away-slot-based).
+    // For group stage: derive from local scores (used only by footer, not by badges).
     let predictedWinnerId: string | null = null;
-    if (localHome !== null && localAway !== null) {
-        if (localHome > localAway) predictedWinnerId = isHomeTBD ? '__home__' : match.homeTeamId;
-        else if (localAway > localHome) predictedWinnerId = isAwayTBD ? '__away__' : match.awayTeamId;
+    if (isKnockout) {
+        predictedWinnerId = predictedKnockoutWinners?.get(match.id) ?? null;
+    } else if (localHome !== null && localAway !== null) {
+        if (localHome > localAway) predictedWinnerId = match.homeTeamId;
+        else if (localAway > localHome) predictedWinnerId = match.awayTeamId;
     }
 
     const actualWinnerId = (() => {
@@ -474,7 +479,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
                         )}
-                        {isKnockout && !isFinished && (predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__') && (
+                        {isKnockout && !isFinished && predictedWinnerId === match.homeTeamId && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>
@@ -618,7 +623,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
                         )}
-                        {isKnockout && !isFinished && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
+                        {isKnockout && !isFinished && predictedWinnerId === match.awayTeamId && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>
@@ -1068,13 +1073,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                     {/* CENTER: User Prediction */}
                     <div className="w-1/3 flex justify-center">
-                        {isKnockout && predictedWinnerId && !isFinished ? (
+                        {isKnockout && predictedWinnerId && (predictedWinnerId === match.homeTeamId || predictedWinnerId === match.awayTeamId) && !isFinished ? (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
                                 <span className="text-[10px] font-medium text-white/70">{lang.myPick || 'Pick'}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">
-                                    {(predictedWinnerId === match.homeTeamId || predictedWinnerId === '__home__')
-                                        ? (homeTeam?.name ?? match.homeTeamId)
-                                        : (awayTeam?.name ?? match.awayTeamId)}
+                                    {predictedWinnerId === match.homeTeamId ? (homeTeam?.name ?? match.homeTeamId) : (awayTeam?.name ?? match.awayTeamId)}
                                 </span>
                             </div>
                         ) : !isKnockout && prediction ? (

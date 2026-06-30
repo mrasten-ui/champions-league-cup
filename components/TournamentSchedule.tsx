@@ -27,6 +27,7 @@ interface TournamentScheduleProps {
   onUpdate?: (id: string, h: number, a: number) => void;
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   onStadiumClick?: (venue: string) => void;
+  predictedKnockoutWinners?: Map<string, string>;
 }
 
 // MAPPING: Language Code -> Team ID (must match homeTeamId/awayTeamId in match data)
@@ -50,7 +51,7 @@ const PRIORITY_TEAMS = ['Norway', 'Scotland', 'USA', 'England'];
 
 
 export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
-  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], playerMatchStats = [], onSubstitute, onUpdate, onPlayerClick, onStadiumClick
+  matches, teams, userPredictions, user, lang, currentLang, onTeamClick, onJumpToTable, onJumpToBracket, jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], playerMatchStats = [], onSubstitute, onUpdate, onPlayerClick, onStadiumClick, predictedKnockoutWinners
 }) => {
 
   // Get the correct BCP 47 locale string
@@ -302,6 +303,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                         playerMatchStats={playerMatchStats}
                         onPlayerClick={onPlayerClick}
                         onStadiumClick={onStadiumClick}
+                        predictedKnockoutWinners={predictedKnockoutWinners}
                     />
                 </div>
             )}
@@ -345,6 +347,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         playerMatchStats={playerMatchStats}
                                         onPlayerClick={onPlayerClick}
                                         onStadiumClick={onStadiumClick}
+                                        predictedKnockoutWinners={predictedKnockoutWinners}
                                     />
                                 ) : (
                                     <MatchCard
@@ -380,6 +383,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                         playerMatchStats={playerMatchStats}
                                         onPlayerClick={onPlayerClick}
                                         onStadiumClick={onStadiumClick}
+                                        predictedKnockoutWinners={predictedKnockoutWinners}
                                     />
                                 )}
                                 {isHighStakes && !isHero && (

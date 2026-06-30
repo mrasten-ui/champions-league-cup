@@ -421,8 +421,9 @@ export const App = () => {
       return new Set(thirds.slice(0, 8).map(t => t.teamId));
   }, [user, purePredictionMatches, teamsData]);
 
-  const predictedAdvancingTeams = useMemo(() => {
-      if (!user) return new Set<string>();
+  const { predictedAdvancingTeams, predictedKnockoutWinners } = useMemo(() => {
+      const empty = { predictedAdvancingTeams: new Set<string>(), predictedKnockoutWinners: new Map<string, string>() };
+      if (!user) return empty;
       let userPreds = allPredictions.filter(p => p.userId === user.email);
       if (user.bracketPredictions) {
           userPreds = userPreds.map(p =>
@@ -432,12 +433,30 @@ export const App = () => {
           );
       }
       const bracket = applyPredictionsToBracket(INITIAL_MATCHES, teamsData, userPreds);
-      return new Set(
+
+      // Teams predicted to qualify from groups → appear in R32
+      const predictedAdvancingTeams = new Set(
           bracket
               .filter(m => m.round === 'R32')
               .flatMap(m => [m.homeTeamId, m.awayTeamId])
               .filter((t): t is string => !!t && t !== 'TBD')
       );
+
+      // For each knockout match: which specific team did the player predict to advance?
+      // Derived from the simulated bracket (team-identity-based, not home/away-slot-based).
+      const predictedKnockoutWinners = new Map<string, string>();
+      for (const bm of bracket) {
+          if (!bm.round) continue;
+          const pred = userPreds.find(p => p.matchId === bm.id);
+          if (!pred) continue;
+          if (pred.home > pred.away && bm.homeTeamId && bm.homeTeamId !== 'TBD') {
+              predictedKnockoutWinners.set(bm.id, bm.homeTeamId);
+          } else if (pred.away > pred.home && bm.awayTeamId && bm.awayTeamId !== 'TBD') {
+              predictedKnockoutWinners.set(bm.id, bm.awayTeamId);
+          }
+      }
+
+      return { predictedAdvancingTeams, predictedKnockoutWinners };
   }, [allPredictions, teamsData, user]);
 
   const allPredictedGroupStandings = useMemo((): Record<string, Record<string, number>> => {
@@ -1617,7 +1636,7 @@ export const App = () => {
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} />}
+                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} predictedKnockoutWinners={predictedKnockoutWinners} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-5xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">

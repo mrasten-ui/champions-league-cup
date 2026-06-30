@@ -30,6 +30,7 @@ interface MatchdayHeroProps {
   playerMatchStats?: PlayerMatchStat[];
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   onStadiumClick?: (venue: string) => void;
+  predictedKnockoutWinners?: Map<string, string>;
 }
 
 // --- SUB-COMPONENT: HERO TBD SLOT ---
@@ -142,7 +143,7 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
-export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onUpdate, playerMatchStats = [], onPlayerClick, onStadiumClick }) => {
+export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupStandings, lang, locale = 'en-GB', onTeamClick, allMatches, userPrediction, currentUser, events = [], lineups = [], stats = null, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onUpdate, playerMatchStats = [], onPlayerClick, onStadiumClick, predictedKnockoutWinners }) => {
   const [activePanel, setActivePanel] = React.useState<'events' | 'lineup' | 'stats' | 'pens' | null>(null);
   const [pendingSub, setPendingSub] = React.useState(false);
   const [localHome, setLocalHome] = React.useState<number>(userPrediction?.home ?? 0);
@@ -155,11 +156,13 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
   const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'PEN'].includes(match.status);
   const isFinished = ['FT', 'AET', 'PEN', 'FINISHED'].includes(match.status);
   const isKnockout = !!match.round;
-  const predictedWinnerId = userPrediction
-      ? (userPrediction.home > userPrediction.away ? match.homeTeamId
-         : userPrediction.away > userPrediction.home ? match.awayTeamId
-         : null)
-      : null;
+  const predictedWinnerId = isKnockout
+      ? (predictedKnockoutWinners?.get(match.id) ?? null)
+      : userPrediction
+          ? (userPrediction.home > userPrediction.away ? match.homeTeamId
+             : userPrediction.away > userPrediction.home ? match.awayTeamId
+             : null)
+          : null;
   const actualWinnerId = (() => {
       if (!isFinished || match.homeScore === null || match.awayScore === null) return null;
       if (match.status === 'PEN' && events.length > 0) {
@@ -792,7 +795,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
 
             {/* Center: Prediction */}
             <div className="w-1/3 flex justify-center">
-                {isKnockout && userPrediction && predictedWinnerId && !isFinished ? (
+                {isKnockout && predictedWinnerId && (predictedWinnerId === match.homeTeamId || predictedWinnerId === match.awayTeamId) && !isFinished ? (
                     <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
                         {lang.myPick || "Pick"}: {lang.teamNames?.[predictedWinnerId] || teams[predictedWinnerId]?.name || predictedWinnerId}
                     </span>
