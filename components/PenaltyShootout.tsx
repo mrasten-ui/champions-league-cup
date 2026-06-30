@@ -278,7 +278,12 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
             {/* Kick-by-kick list */}
             <div className="divide-y divide-white/5">
                 {rows.length === 0 && (
-                    <div className="py-8 text-center text-white/30 text-xs">No shootout data yet</div>
+                    <div className="py-8 text-center text-white/30 text-xs">
+                        No shootout data yet
+                        <div className="mt-1 text-[9px] text-white/20">
+                            {events.length} events in · {kicks.length} pso kicks found
+                        </div>
+                    </div>
                 )}
                 {rows.map(({ e, isHome, scored, runningHome, runningAway, idx }) => {
                     const missLabel = !scored ? (MissLabel[e.detail ?? ''] ?? 'Missed') : null;
