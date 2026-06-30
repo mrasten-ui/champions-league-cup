@@ -79,12 +79,13 @@ serve(async (req) => {
 
   // Guard: skip API call when outside an active match window
   // Covers: live matches, HT/BT breaks, NS within [-60min,+45min] for late starts,
-  // and recently finished matches (kickoff within last 3.5h for AET/PEN lag).
+  // and recently finished matches (kickoff within last 24h for AET/PEN lag — extended
+  // from 3.5h to ensure PSO events are captured even for early-kickoff matches).
   const now = new Date()
   const nsStart = new Date(now.getTime() -  60 * 60 * 1000).toISOString() // 60 min ago
   const nsEnd   = new Date(now.getTime() +  45 * 60 * 1000).toISOString() // 45 min ahead
-  const ftStart   = new Date(now.getTime() - 210 * 60 * 1000).toISOString() // 3.5h ago
-  const liveStart = new Date(now.getTime() -  36 * 60 * 60 * 1000).toISOString() // 36h ago — catches cross-day stale matches
+  const ftStart   = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() // 24h ago (was 3.5h — PSO events arrive late)
+  const liveStart = new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString() // 36h ago — catches cross-day stale matches
 
   const { data: windowCheck, error: wcError } = await supabase
     .from('matches')

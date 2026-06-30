@@ -284,14 +284,23 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
 
             {/* Kick-by-kick list */}
             <div className="divide-y divide-white/5">
-                {rows.length === 0 && (
-                    <div className="py-8 text-center text-white/30 text-xs">
-                        {L.psoNoData ?? 'No shootout data yet'}
-                        <div className="mt-1 text-[9px] text-white/20">
-                            {events.length} events · max min {Math.max(0, ...events.map(e => e.minute ?? 0))} · {events.filter(e => e.type === 'Goal' && e.detail === 'Penalty').length} pens
+                {rows.length === 0 && (() => {
+                    const maxMin = Math.max(0, ...events.map(e => e.minute ?? 0));
+                    const penCount = events.filter(e => e.type === 'Goal' && e.detail === 'Penalty').length;
+                    const missedPenCount = events.filter(e => e.type === 'Goal' && e.detail === 'Missed Penalty').length;
+                    return (
+                        <div className="py-6 text-center space-y-1">
+                            <div className="text-white/40 text-xs">{L.psoNoData ?? 'No shootout data yet'}</div>
+                            <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-full px-3 py-1">
+                                <span className="text-[10px] font-bold text-amber-400">{events.length} events</span>
+                                <span className="text-amber-500/50">·</span>
+                                <span className="text-[10px] font-bold text-amber-400">max {maxMin}'</span>
+                                <span className="text-amber-500/50">·</span>
+                                <span className="text-[10px] font-bold text-amber-400">{penCount} scored · {missedPenCount} missed</span>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
                 {rows.map(({ e, isHome, scored, runningHome, runningAway, idx }) => {
                     const missLabel = !scored ? getMissLabel(e.detail) : null;
                     const playerName = e.player ? e.player.split(' ').slice(-1)[0] : '—';
