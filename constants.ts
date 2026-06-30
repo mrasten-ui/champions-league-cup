@@ -960,9 +960,9 @@ rounds.forEach((round, idx) => {
     
     // Official FIFA Mapping for Next Matches
     if (round === 'R32') {
-        if (i === 2 || i === 5) nextMatchId = 'R16_1';        // GER/PAR + FRA/SWE
-        else if (i === 1 || i === 3) nextMatchId = 'R16_2';   // RSA/CAN + NED/MAR
-        else if (i === 4 || i === 6) nextMatchId = 'R16_3';   // BRA/JPN + CIV/NOR
+        if (i === 1 || i === 4) nextMatchId = 'R16_1';        // RSA/CAN + NED/MAR
+        else if (i === 2 || i === 5) nextMatchId = 'R16_2';   // BRA/JPN + CIV/NOR
+        else if (i === 3 || i === 6) nextMatchId = 'R16_3';   // GER/PAR + FRA/SWE
         else if (i === 7 || i === 8) nextMatchId = 'R16_4';   // MEX/ECU + ENG/COD
         else if (i === 11 || i === 12) nextMatchId = 'R16_5'; // POR/CRO + ESP/AUT
         else if (i === 9 || i === 10) nextMatchId = 'R16_6';  // USA/BIH + BEL/SEN
