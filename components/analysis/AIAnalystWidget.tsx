@@ -127,8 +127,16 @@ export const generateDailyBrief = async (
     const matchLines = upcoming.map(m => {
         const hTeam = teams[m.homeTeamId]?.name ?? m.homeTeamId;
         const aTeam = teams[m.awayTeamId]?.name ?? m.awayTeamId;
+        const isKnockout = !!(m.round && !m.groupId);
         const myPred = allPredictions.find(p => p.userId === currentUser.email && p.matchId === m.id);
-        const pick = myPred ? `${myPred.home}-${myPred.away}` : 'no pick yet';
+        const pick = (() => {
+            if (!myPred) return 'no pick yet';
+            if (isKnockout) {
+                const winner = myPred.home > myPred.away ? hTeam : myPred.away > myPred.home ? aTeam : null;
+                return winner ? `${winner} to advance` : 'no pick yet';
+            }
+            return `${myPred.home}-${myPred.away}`;
+        })();
 
         const rivalPreds = allPredictions.filter(p => p.matchId === m.id && p.userId !== currentUser.email && leagueMemberEmails.has(p.userId));
         let rivalry = '';
@@ -143,9 +151,16 @@ export const generateDailyBrief = async (
         return `- ${hTeam} vs ${aTeam}${roundLabel}: ${cleanName}'s pick is ${pick}${rivalry ? `, ${rivalry}` : ''}`;
     }).join('\n');
 
-    const stageContext = upcoming.some(m => m.round && !m.groupId)
-        ? `\nSTAGE: Knockout rounds — single elimination. One wrong result and the user scores zero for that match.\n`
+    const scStatus = currentUser.secondChanceStatus;
+    const scInfo = scStatus === 'ACTIVE'
+        ? ' Second Chance is ACTIVE (already used).'
+        : scStatus === 'PENDING'
+        ? ' Second Chance is available but unused.'
         : '';
+
+    const stageContext = upcoming.some(m => m.round && !m.groupId)
+        ? `\nSTAGE: Knockout rounds — single elimination, winner advances. Players pick who advances, not scores.${scInfo}\n`
+        : scInfo ? `\nNOTE:${scInfo}\n` : '';
 
     const prompt = `${t.systemPrompt}
 
