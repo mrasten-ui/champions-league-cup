@@ -17,6 +17,11 @@ const MissLabel: Record<string, string> = {
     'Woodwork': 'Post',
 };
 
+// API-Football returns ALL PSO kicks as type:'Goal' — detail tells us if it was scored or missed.
+const MISSED_DETAILS = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Woodwork']);
+const isPsoScored = (e: MatchEvent) => !MISSED_DETAILS.has(e.detail ?? '') && e.type !== 'Miss';
+const isPsoMissed = (e: MatchEvent) => e.type === 'Miss' || MISSED_DETAILS.has(e.detail ?? '');
+
 // Positions inside the goal net (scored kicks). Bottom row fills first.
 // Percentages relative to the goal image container (source: 1200×480px).
 const SCORED_SLOTS = [
@@ -88,8 +93,8 @@ interface GoalPanelProps {
 }
 
 const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
-    const scored = kicks.filter(e => e.type === 'Goal');
-    const missed  = kicks.filter(e => e.type === 'Miss');
+    const scored = kicks.filter(isPsoScored);
+    const missed  = kicks.filter(isPsoMissed);
 
     return (
         <div className="flex-1 min-w-0">
@@ -142,45 +147,52 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
     const homeTeam = teams[match.homeTeamId];
     const awayTeam = teams[match.awayTeamId];
 
-    // All PSO-relevant events sorted chronologically.
-    // API-Football sometimes returns PSO scored kicks as detail:'Normal Goal' instead of 'Penalty',
-    // so for PSO matches we also accept any Goal at minute >= 121 (PSO always starts after ET).
+    // API-Football represents PSO kicks as type:'Goal' at minute 120 with minuteExtra 1,2,3…
+    // (not at minute 121+ as previously assumed). Missed PSO kicks use detail:'Missed Penalty'
+    // rather than type:'Miss'. This filter catches all three observed formats.
     const isPsoMatch = match.status === 'P' || match.status === 'PEN';
-    const kicks = events
-        .filter(e =>
-            e.type === 'Miss' ||
-            (e.type === 'Goal' && e.detail === 'Penalty') ||
-            (isPsoMatch && e.type === 'Goal' && (e.minute ?? 0) >= 121)
-        )
-        .sort((a, b) => {
-            const aMin = (a.minute ?? 0) * 1000 + (a.minuteExtra ?? 0);
-            const bMin = (b.minute ?? 0) * 1000 + (b.minuteExtra ?? 0);
-            return aMin - bMin;
-        });
+    const isPsoKick = (e: MatchEvent): boolean => {
+        if (e.type === 'Miss') return true;
+        if (e.type !== 'Goal') return false;
+        if (MISSED_DETAILS.has(e.detail ?? '')) return true;
+        const min = e.minute ?? 0, extra = e.minuteExtra ?? 0;
+        if (e.detail === 'Penalty') return min >= 121 || (min >= 120 && extra > 0);
+        return isPsoMatch && (min >= 121 || (min >= 120 && extra > 0));
+    };
 
-    // Miss events only occur in PSO — use first Miss minute as the shootout boundary.
-    // If no misses yet (all kicked goals so far), fall back to all kicks at 121+.
-    const firstMissMin = kicks.find(e => e.type === 'Miss')?.minute ?? null;
-    const psoKicks = firstMissMin !== null
-        ? kicks.filter(e => (e.minute ?? 0) >= firstMissMin || e.type === 'Miss')
-        : kicks.filter(e => e.type === 'Miss' || (e.type === 'Goal' && (e.detail === 'Penalty' || (e.minute ?? 0) >= 121)));
+    // Deduplicate: the sync sometimes inserts the same kick twice — once without a player name
+    // and once with. Keep the one that has a player name.
+    const deduped = events
+        .filter(isPsoKick)
+        .reduce((acc, e) => {
+            const key = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.detail}`;
+            const prev = acc.get(key);
+            if (!prev || (!prev.player && e.player)) acc.set(key, e);
+            return acc;
+        }, new Map<string, MatchEvent>());
 
-    const preMatchPens = firstMissMin !== null
-        ? kicks.filter(e => e.type === 'Goal' && e.detail === 'Penalty' && (e.minute ?? 0) < firstMissMin)
-        : [];
+    const kicks = [...deduped.values()].sort((a, b) => {
+        const aMin = (a.minute ?? 0) * 1000 + (a.minuteExtra ?? 0);
+        const bMin = (b.minute ?? 0) * 1000 + (b.minuteExtra ?? 0);
+        return aMin - bMin;
+    });
+
+    // With the new filter all kicks are already PSO-only — no pre-match pen separation needed.
+    const psoKicks = kicks;
+    const preMatchPens: MatchEvent[] = [];
 
     const homeKicks = psoKicks.filter(e => e.teamId === match.homeTeamId);
     const awayKicks  = psoKicks.filter(e => e.teamId === match.awayTeamId);
 
-    const homeTally = homeKicks.map(e => e.type === 'Goal');
-    const awayTally = awayKicks.map(e => e.type === 'Goal');
+    const homeTally = homeKicks.map(isPsoScored);
+    const awayTally = awayKicks.map(isPsoScored);
 
     // Build running score for kick-by-kick list
     let runningHome = 0;
     let runningAway = 0;
     const rows = psoKicks.map((e, idx) => {
         const isHome = e.teamId === match.homeTeamId;
-        const scored = e.type === 'Goal';
+        const scored = isPsoScored(e);
         if (scored && isHome) runningHome++;
         if (scored && !isHome) runningAway++;
         return { e, isHome, scored, runningHome, runningAway, idx };
