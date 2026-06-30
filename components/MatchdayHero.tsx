@@ -164,11 +164,18 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
       if (!isFinished || match.homeScore === null || match.awayScore === null) return null;
       if (match.status === 'PEN' && events.length > 0) {
           const MD = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Woodwork']);
-          const psoKicks = events.filter(e =>
+          const raw = events.filter(e =>
               e.type === 'Miss' ||
               (e.type === 'Goal' && MD.has(e.detail ?? '') && (e.minute ?? 0) >= 120) ||
               (e.type === 'Goal' && e.detail === 'Penalty' && (e.minute ?? 0) >= 120)
           );
+          const dedup = new Map<string, typeof raw[0]>();
+          for (const e of raw) {
+              const k = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.detail}`;
+              const prev = dedup.get(k);
+              if (!prev || (!prev.player && e.player)) dedup.set(k, e);
+          }
+          const psoKicks = [...dedup.values()];
           if (psoKicks.length > 0) {
               const hg = psoKicks.filter(e => e.teamId === match.homeTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
               const ag = psoKicks.filter(e => e.teamId === match.awayTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
@@ -386,9 +393,9 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             <div className="flex flex-col items-center justify-center px-4 min-w-[100px]">
                 {match.homeScore !== null ? (
                     <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter tabular-nums flex items-center gap-1 font-mono drop-shadow-2xl">
-                        <span>{match.homeScore}</span>
+                        <span>{match.status === 'PEN' ? Math.min(match.homeScore, match.awayScore ?? 0) : match.homeScore}</span>
                         <span className="text-white/20 text-4xl mx-1">:</span>
-                        <span>{match.awayScore}</span>
+                        <span>{match.status === 'PEN' ? Math.min(match.homeScore, match.awayScore ?? 0) : match.awayScore}</span>
                     </div>
                 ) : isUnlockedBySub && onUpdate ? (
                     <div className="flex items-center gap-2">

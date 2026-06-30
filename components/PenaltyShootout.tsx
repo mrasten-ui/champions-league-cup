@@ -93,8 +93,27 @@ const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
         y: MISSED_Y[i % 3] ?? 70,
     }));
 
+    const scoredCount = scored.length;
+    const missedCount = missed.length;
+
     return (
         <div className="flex-1 min-w-0">
+            {/* Team label strip — identifies this goal panel */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-black/30 border-b border-white/8">
+                <div className="flex items-center gap-1.5 min-w-0">
+                    {team?.flag && (
+                        <img src={team.flag} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0 shadow-sm" />
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60 truncate">
+                        {team?.name ?? '—'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                    {Array.from({ length: scoredCount + missedCount }).map((_, i) => (
+                        <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < scoredCount ? 'bg-emerald-400' : 'bg-red-400/60'}`} />
+                    ))}
+                </div>
+            </div>
             <div className="relative w-full" style={{ paddingBottom: '40%' }}>
                 <img
                     src="/penalty-goal.png"
@@ -202,7 +221,7 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
     const finalAway = runningAway;
 
     return (
-        <div className="border-t border-white/10">
+        <div className="bg-[#0a1628] border-t border-white/10">
             <style>{`
                 @keyframes penCircleIn {
                     from { opacity: 0; transform: translate(-50%, -65%) scale(0.4); }

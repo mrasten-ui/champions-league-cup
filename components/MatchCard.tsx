@@ -399,11 +399,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         // For PSO matches, count scored kicks from events — more reliable than the hacked +1 DB score
         if (match.status === 'PEN' && events.length > 0) {
             const MD = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Woodwork']);
-            const psoKicks = events.filter(e =>
+            const raw = events.filter(e =>
                 e.type === 'Miss' ||
                 (e.type === 'Goal' && MD.has(e.detail ?? '') && (e.minute ?? 0) >= 120) ||
                 (e.type === 'Goal' && e.detail === 'Penalty' && (e.minute ?? 0) >= 120)
             );
+            // Deduplicate same way PenaltyShootout does (DB sometimes has duplicate rows — one with player, one without)
+            const dedup = new Map<string, MatchEvent>();
+            for (const e of raw) {
+                const k = `${e.teamId}_${e.minute}_${e.minuteExtra ?? 0}_${e.detail}`;
+                const prev = dedup.get(k);
+                if (!prev || (!prev.player && e.player)) dedup.set(k, e);
+            }
+            const psoKicks = [...dedup.values()];
             if (psoKicks.length > 0) {
                 const hg = psoKicks.filter(e => e.teamId === match.homeTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
                 const ag = psoKicks.filter(e => e.teamId === match.awayTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
