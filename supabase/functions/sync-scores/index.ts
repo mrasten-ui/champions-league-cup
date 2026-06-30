@@ -124,6 +124,7 @@ serve(async (req) => {
   const unlinked      = (dbMatches ?? []).filter((m: any) => !m.api_id)
 
   // Collect all dates to fetch: today + any previous days with stale live statuses
+  const ftStartDate = ftStart.slice(0, 10) // date portion only e.g. "2026-06-29"
   const datesToFetch = new Set<string>([today])
   for (const m of (dbMatches ?? [])) {
     const ms = (m as any).status
@@ -141,9 +142,15 @@ serve(async (req) => {
         if (prevDate !== mdate) datesToFetch.add(prevDate)
       }
     }
+    // Recently-finished match whose API date is earlier than today (venue local time vs UTC).
+    // A match kicked off at 18:00 in a UTC-6 city on June 29 runs until ~21:30 local (03:30 UTC
+    // June 30) — the API indexes it under June 29. Without this, events are never re-fetched.
+    if (['FT', 'AET', 'PEN'].includes(ms) && mdate && mdate < today && mdate >= ftStartDate) {
+      datesToFetch.add(mdate)
+    }
   }
   if (datesToFetch.size > 1) {
-    console.log(`[${today}] Stale live matches detected — also fetching: ${[...datesToFetch].filter(d => d !== today).join(', ')}`)
+    console.log(`[${today}] Also fetching previous dates: ${[...datesToFetch].filter(d => d !== today).join(', ')}`)
   }
 
   // Fetch fixtures for all needed dates (usually just today; adds a date only when a match

@@ -175,9 +175,21 @@ export const useAppData = () => {
             if (cachedEvents) {
               setMatchEvents(cachedEvents);
             } else {
-              const { data: events } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).limit(10000);
-              if (events) {
-                const mappedEvents: MatchEvent[] = events.map(e => ({
+              const PAGE = 1000;
+              let allEventRows: any[] = [];
+              let from = 0;
+              let keepGoing = true;
+              while (keepGoing) {
+                const { data: page, error: pageErr } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).range(from, from + PAGE - 1);
+                if (pageErr) { console.error('Events fetch error (page', from, '):', pageErr); keepGoing = false; break; }
+                if (page && page.length > 0) {
+                  allEventRows.push(...page);
+                  keepGoing = page.length === PAGE;
+                  from += PAGE;
+                } else { keepGoing = false; }
+              }
+              if (allEventRows.length > 0) {
+                const mappedEvents: MatchEvent[] = allEventRows.map(e => ({
                   id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
                   type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
                   player: e.player ?? undefined, playerId: e.player_id ?? null, assist: e.assist ?? undefined,
