@@ -483,10 +483,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             </div>
                                         );
                                     })()}
-                                    <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex items-center gap-1 sm:gap-2 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}>
-                                        <span>{match.homeScore ?? 0}</span>
-                                        <span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span>
-                                        <span>{match.awayScore ?? 0}</span>
+                                    <div className={`px-2.5 sm:px-4 py-2 rounded-xl font-mono text-xl sm:text-3xl font-bold tracking-normal sm:tracking-widest shadow-lg border-2 flex flex-col items-center gap-0 transition-all duration-500 ${isLive ? 'bg-[#0f2545] text-white border-blue-400/60 shadow-blue-500/20' : 'bg-slate-800 text-white border-slate-900'}`}>
+                                        <div className="flex items-center gap-1 sm:gap-2">
+                                            <span>{match.status === 'PEN' ? Math.min(match.homeScore ?? 0, match.awayScore ?? 0) : match.homeScore ?? 0}</span>
+                                            <span className="opacity-50 text-base sm:text-xl mx-0.5 sm:mx-1">:</span>
+                                            <span>{match.status === 'PEN' ? Math.min(match.homeScore ?? 0, match.awayScore ?? 0) : match.awayScore ?? 0}</span>
+                                        </div>
+                                        {match.status === 'PEN' && <span className="text-[9px] font-black text-yellow-400/80 uppercase tracking-widest leading-none -mt-0.5">AET</span>}
                                     </div>
                                 </>
                             ) : (

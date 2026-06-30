@@ -211,7 +211,7 @@ export const PenaltyShootout: React.FC<PenaltyShootoutProps> = ({ match, events,
             `}</style>
 
             {/* PSO Score Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-slate-900/80">
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0f2545] via-[#1a3a6c] to-[#0f2545] border-b border-yellow-500/20">
                 {/* Home team + kick tally dots */}
                 <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-1.5">
