@@ -618,7 +618,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {(lang as any).goingThrough || 'Going Through'}
                             </span>
                         )}
-                        {isKnockout && !isFinished && !isLive && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
+                        {isKnockout && !isFinished && (predictedWinnerId === match.awayTeamId || predictedWinnerId === '__away__') && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>
