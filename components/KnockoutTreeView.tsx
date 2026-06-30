@@ -93,9 +93,24 @@ export const KnockoutTreeView: React.FC<KnockoutTreeViewProps> = ({
        QF: lang.quarterFinal ?? 'Quarter Final', SF: lang.semiFinal ?? 'Semi Final',
        '3RD': lang.thirdPlace ?? '3rd Place', FIN: lang.final ?? 'Final' }[r] ?? r);
 
-  const sorted = (r: string) =>
-    matches.filter(m => m.round === r)
-      .sort((a, b) => parseInt(a.id.split('_')[1] || '0') - parseInt(b.id.split('_')[1] || '0'));
+  // Visual order derived from KNOCKOUT_PROGRESSION: adjacent pairs must feed the same next-round match
+  // so the connector line loop (i, i+1) → i/2 draws correctly.
+  const VISUAL_ORDER: Record<string, string[]> = {
+    R32: ['R32_2','R32_5','R32_1','R32_3','R32_11','R32_12','R32_9','R32_10',
+          'R32_4','R32_6','R32_7','R32_8','R32_14','R32_16','R32_13','R32_15'],
+    R16: ['R16_1','R16_2','R16_5','R16_6','R16_3','R16_4','R16_7','R16_8'],
+    QF:  ['QF_1','QF_2','QF_3','QF_4'],
+    SF:  ['SF_1','SF_2'],
+    FIN: ['FIN_1'],
+    '3RD': ['3RD_1'],
+  };
+
+  const sorted = (r: string) => {
+    const order = VISUAL_ORDER[r];
+    const roundMatches = matches.filter(m => m.round === r);
+    if (!order) return roundMatches.sort((a, b) => parseInt(a.id.split('_')[1]||'0') - parseInt(b.id.split('_')[1]||'0'));
+    return order.map(id => roundMatches.find(m => m.id === id)).filter((m): m is Match => m !== undefined);
+  };
 
   const MAIN = ['R32', 'R16', 'QF', 'SF', 'FIN'];
   const present = MAIN.filter(r => matches.some(m => m.round === r));
