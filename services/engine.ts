@@ -411,7 +411,7 @@ export const applyPredictionsToBracket = (
     teams: Record<string, Team>,
     userPredictions: Prediction[]
 ): Match[] => {
-    let currentMatches = updateBracket([...initialMatches], teams);
+    let currentMatches = initialMatches.map(m => ({ ...m }));
     const predsMap = new Map(userPredictions.map(p => [p.matchId, p]));
 
     for (let i = 0; i < 7; i++) {
