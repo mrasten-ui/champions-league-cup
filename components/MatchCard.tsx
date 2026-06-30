@@ -394,11 +394,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         else if (localAway > localHome) predictedWinnerId = isAwayTBD ? '__away__' : match.awayTeamId;
     }
 
-    const actualWinnerId = (isFinished && match.homeScore !== null && match.awayScore !== null)
-        ? (match.homeScore > match.awayScore ? match.homeTeamId
-        : match.awayScore > match.homeScore ? match.awayTeamId
-        : null)
-        : null;
+    const actualWinnerId = (() => {
+        if (!isFinished || match.homeScore === null || match.awayScore === null) return null;
+        // For PSO matches, count scored kicks from events — more reliable than the hacked +1 DB score
+        if (match.status === 'PEN' && events.length > 0) {
+            const MD = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Woodwork']);
+            const psoKicks = events.filter(e =>
+                e.type === 'Miss' ||
+                (e.type === 'Goal' && MD.has(e.detail ?? '') && (e.minute ?? 0) >= 120) ||
+                (e.type === 'Goal' && e.detail === 'Penalty' && (e.minute ?? 0) >= 120)
+            );
+            if (psoKicks.length > 0) {
+                const hg = psoKicks.filter(e => e.teamId === match.homeTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
+                const ag = psoKicks.filter(e => e.teamId === match.awayTeamId && !MD.has(e.detail ?? '') && e.type !== 'Miss').length;
+                if (hg !== ag) return hg > ag ? match.homeTeamId : match.awayTeamId;
+            }
+        }
+        return match.homeScore > match.awayScore ? match.homeTeamId
+            : match.awayScore > match.homeScore ? match.awayTeamId
+            : null;
+    })();
 
     return (
         <div id={cardId} onClick={onCardClick} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group w-full ${onCardClick ? 'cursor-pointer' : ''} ${isLive ? 'border-red-400 shadow-md ring-1 ring-red-100' : 'border-slate-200 shadow-sm'}`}>

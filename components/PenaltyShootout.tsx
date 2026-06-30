@@ -17,28 +17,12 @@ const MISSED_DETAILS = new Set(['Missed Penalty', 'Saved Penalty', 'Post', 'Wood
 const isPsoScored = (e: MatchEvent) => !MISSED_DETAILS.has(e.detail ?? '') && e.type !== 'Miss';
 const isPsoMissed = (e: MatchEvent) => e.type === 'Miss' || MISSED_DETAILS.has(e.detail ?? '');
 
-// Positions inside the goal net (scored kicks). Bottom row fills first.
-// Percentages relative to the goal image container (source: 1200×480px).
-const SCORED_SLOTS = [
-    { left: '24%', top: '67%' },
-    { left: '38%', top: '67%' },
-    { left: '62%', top: '67%' },
-    { left: '76%', top: '67%' },
-    { left: '35%', top: '40%' },
-    { left: '50%', top: '40%' },
-    { left: '65%', top: '40%' },
-    { left: '50%', top: '22%' },
-];
-
-// Positions outside the posts but safely inside the image boundary (alternating left/right).
-// left/right kept at ≥11% so 40px circles don't clip on narrow panels.
-const MISSED_SLOTS = [
-    { left: '11%', top: '65%' },
-    { left: '89%', top: '65%' },
-    { left: '11%', top: '43%' },
-    { left: '89%', top: '43%' },
-    { left: '11%', top: '26%' },
-];
+// Evenly space n items between leftPct% and rightPct% (inclusive).
+const evenSpread = (n: number, left: number, right: number): number[] => {
+    if (n === 0) return [];
+    if (n === 1) return [(left + right) / 2];
+    return Array.from({ length: n }, (_, i) => left + (i / (n - 1)) * (right - left));
+};
 
 // ─── Sub-components defined at module level to avoid remount on parent re-render ───
 
@@ -91,9 +75,26 @@ const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
     const scored = kicks.filter(isPsoScored);
     const missed  = kicks.filter(isPsoMissed);
 
+    // Inside the net: split into two rows (bottom fills first), evenly spread between posts
+    const maxPerRow = 4;
+    const scoredRow1 = scored.slice(0, maxPerRow);
+    const scoredRow2 = scored.slice(maxPerRow);
+    const hasRow2 = scoredRow2.length > 0;
+    const row1Y = hasRow2 ? 72 : 66;   // shift row1 down when it's the only row
+    const row2Y = 44;
+    const row1X = evenSpread(scoredRow1.length, 23, 77);
+    const row2X = evenSpread(scoredRow2.length, 28, 72);
+
+    // Outside posts: left column primary, right column secondary (every 3rd+)
+    const LEFT_X = 9, RIGHT_X = 91;
+    const MISSED_Y = [70, 50, 30];
+    const missedPos = missed.map((_, i) => ({
+        x: i < 3 ? LEFT_X : RIGHT_X,
+        y: MISSED_Y[i % 3] ?? 70,
+    }));
+
     return (
         <div className="flex-1 min-w-0">
-            {/* Goal graphic with overlaid player circles */}
             <div className="relative w-full" style={{ paddingBottom: '40%' }}>
                 <img
                     src="/penalty-goal.png"
@@ -102,35 +103,27 @@ const GoalPanel: React.FC<GoalPanelProps> = ({ team, kicks }) => {
                     draggable={false}
                 />
 
-                {/* Scored players — inside the net */}
-                {scored.map((kick, i) => {
-                    const slot = SCORED_SLOTS[i];
-                    if (!slot) return null;
-                    return (
-                        <div
-                            key={kick.id ?? `s${i}`}
-                            className="absolute -translate-x-1/2 -translate-y-1/2"
-                            style={{ left: slot.left, top: slot.top }}
-                        >
-                            <PenCircle event={kick} scored large delay={i * 0.12} />
-                        </div>
-                    );
-                })}
+                {/* Scored — inside the net, evenly spread */}
+                {scoredRow1.map((kick, i) => (
+                    <div key={kick.id ?? `s${i}`} className="absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${row1X[i]}%`, top: `${row1Y}%` }}>
+                        <PenCircle event={kick} scored large delay={i * 0.12} />
+                    </div>
+                ))}
+                {scoredRow2.map((kick, i) => (
+                    <div key={kick.id ?? `s2${i}`} className="absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${row2X[i]}%`, top: `${row2Y}%` }}>
+                        <PenCircle event={kick} scored large delay={(maxPerRow + i) * 0.12} />
+                    </div>
+                ))}
 
-                {/* Missed players — outside the posts */}
-                {missed.map((kick, i) => {
-                    const slot = MISSED_SLOTS[i];
-                    if (!slot) return null;
-                    return (
-                        <div
-                            key={kick.id ?? `m${i}`}
-                            className="absolute -translate-x-1/2 -translate-y-1/2"
-                            style={{ left: slot.left, top: slot.top }}
-                        >
-                            <PenCircle event={kick} scored={false} large delay={i * 0.12} />
-                        </div>
-                    );
-                })}
+                {/* Missed — outside the left post, stacked vertically */}
+                {missed.map((kick, i) => (
+                    <div key={kick.id ?? `m${i}`} className="absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${missedPos[i].x}%`, top: `${missedPos[i].y}%` }}>
+                        <PenCircle event={kick} scored={false} large delay={i * 0.12} />
+                    </div>
+                ))}
             </div>
         </div>
     );
