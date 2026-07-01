@@ -12,6 +12,7 @@ import { utcDay } from '../utils/date';
 import { useTournamentSimulation } from '../hooks/useTournamentSimulation';
 import { SimRow } from './analysis/SimRow';
 import { HeadToHead } from './analysis/HeadToHead';
+import { KnockoutOverviewPanel } from './analysis/KnockoutOverviewPanel';
 
 // HELPER: Map App Language Code to Dictionary Key
 const getLocKey = (code: LanguageCode): string => {
@@ -242,15 +243,20 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const allUsers = useMemo(() => [currentUser, ...rivals], [currentUser, rivals]);
 
+  const isKnockoutPhase = useMemo(() =>
+      matches.length > 0 && !matches.some(m => m.groupId && m.status !== 'FT'),
+  [matches]);
+
   // USE THE NEW HOOK
-  const { 
-      simulation, 
-      updateSim, 
-      resetSim, 
-      combinedStats, 
-      simulatedMatches, 
-      qualifiedThirdsSet, 
-      userBracketData 
+  const {
+      simulation,
+      updateSim,
+      resetSim,
+      combinedStats,
+      simulatedMatches,
+      qualifiedThirdsSet,
+      userBracketData,
+      mySimQualRounds
   } = useTournamentSimulation(matches, allPredictions, teams, allUsers);
 
   // DATE FILTERING FOR RIBBON
@@ -322,6 +328,18 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
                 t={t}
             />
         </div>
+
+        {isKnockoutPhase && (
+            <div className="px-4 pt-3">
+                <KnockoutOverviewPanel
+                    mySimQualRounds={mySimQualRounds}
+                    simulatedMatches={simulatedMatches}
+                    combinedStats={combinedStats}
+                    currentUser={currentUser}
+                    teams={teams}
+                />
+            </div>
+        )}
 
         <div className="flex-1 p-4 space-y-4 pb-20">
             {Object.keys(simulation).length > 0 && (

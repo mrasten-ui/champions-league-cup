@@ -72,7 +72,9 @@
       "Bash(curl -s \"https://xxlfbpykiyncoifpzzvx.supabase.co/rest/v1/predictions?user_id=eq.d.ristjouw@gmail.com&match_id=like.I*&select=match_id,home,away&order=match_id\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bGZicHlraXluY29pZnB6enZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MjIzMTUsImV4cCI6MjA4MjQ5ODMxNX0.gwC6PmBBZ4x8Vgoe4oOtsqakwqZ5xQPBWY8OdUevthE\")",
       "Read(//c/Users/mrast/**)",
       "Bash(dir \"C:\\\\Users\\\\mrast\\\\AppData\\\\Local\\\\Temp\\\\claude\" /s /b)",
-      "Bash(findstr /i csv)"
+      "Bash(findstr /i csv)",
+      "PowerShell(cd \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\"; npx tsc --noEmit --skipLibCheck 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 30)",
+      "PowerShell(cd \"c:\\\\Users\\\\mrast\\\\OneDrive\\\\Documents\\\\The Rasten Cup\"; npx tsc --noEmit --skipLibCheck 2>&1 | Where-Object { $_ -match \"error TS\" } | Select-Object -First 20)"
     ]
   }
 }

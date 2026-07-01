@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserProfile, Match, Prediction, Team, Translation, GroupStanding, LanguageCode } from '../../types'; 
 import { getSlotSource } from '../../utils/bracketHelpers';
+import { SCORING_RULES } from '../../services/engine';
 import { AvatarDisplay } from '../AvatarDisplay';
 import { ChevronUp, ChevronDown, Check, Trophy, Calculator } from 'lucide-react';
 
@@ -270,6 +271,11 @@ export const SimRow: React.FC<{
                         {isLive ? <span className="text-red-400 animate-pulse">● LIVE</span> : <span>{new Date(match.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>}
                         <span className="text-purple-700">|</span>
                         <span>{match.groupId ? `Group ${match.groupId}` : match.round}</span>
+                        {isKnockout && match.round && (SCORING_RULES as any)[match.round] && (
+                            <span className="text-amber-300 font-black">
+                                +{(SCORING_RULES as any)[match.round]}pts
+                            </span>
+                        )}
                     </div>
                     {isSimulated && (
                         <div className="flex items-center gap-1 text-[8px] font-black text-[#2e1065] bg-purple-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -296,7 +302,10 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
+                        <div className="flex flex-col items-center gap-0.5">
+                            <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
+                            <span className="text-[8px] text-slate-400 font-bold">{homePreds.length}/{[currentUser,...rivals].length}</span>
+                        </div>
                     )}
                     <div className="flex flex-wrap content-start gap-1.5 mt-1">
                         {homePreds.map(item => (
@@ -340,7 +349,10 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
+                        <div className="flex flex-col items-center gap-0.5">
+                            <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
+                            <span className="text-[8px] text-slate-400 font-bold">{awayPreds.length}/{[currentUser,...rivals].length}</span>
+                        </div>
                     )}
                     <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
                         {awayPreds.map(item => (
