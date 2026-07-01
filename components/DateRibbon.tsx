@@ -53,10 +53,10 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
       <div className="max-w-6xl mx-auto flex items-center h-20">
         
         {/* Calendar / All Toggle */}
-        <button 
+        <button
           onClick={() => onDateSelect('ALL')}
           className={`
-            h-full px-4 border-r border-white/10 flex flex-col items-center justify-center gap-1 transition-colors min-w-[4.5rem]
+            h-full px-4 border-r border-white/10 flex flex-col items-center justify-center gap-1 transition-colors min-w-[4.5rem] touch-manipulation
             ${selectedDate === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}
           `}
         >
@@ -65,9 +65,9 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         </button>
 
         {/* Left Arrow (Desktop) */}
-        <button 
+        <button
             onClick={() => handleScroll('left')}
-            className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors touch-manipulation"
         >
             <ChevronLeft size={24} />
         </button>
@@ -86,14 +86,14 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
             const isRelative = typeof label.main === 'string';
 
             return (
-              <button 
+              <button
                 key={dateStr}
                 data-date={dateStr}
                 onClick={() => onDateSelect(dateStr)}
                 className={`
-                  relative h-full flex flex-col items-center justify-center min-w-[4.5rem] snap-center transition-all duration-200 border-r border-white/5
-                  ${isSelected 
-                    ? 'bg-blue-600 text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]' 
+                  relative h-full flex flex-col items-center justify-center min-w-[4.5rem] snap-center transition-all duration-200 border-r border-white/5 touch-manipulation
+                  ${isSelected
+                    ? 'bg-blue-600 text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }
                 `}
@@ -120,7 +120,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         {/* Right Arrow (Desktop) */}
         <button
             onClick={() => handleScroll('right')}
-            className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-l border-white/10"
+            className="hidden md:flex h-full px-2 items-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-l border-white/10 touch-manipulation"
         >
             <ChevronRight size={24} />
         </button>
@@ -129,7 +129,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         {todayInDates && selectedDate !== todayInDates && (
             <button
                 onClick={() => onDateSelect(todayInDates)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 mx-2 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 hover:text-red-200 transition-all text-[9px] font-black uppercase tracking-widest whitespace-nowrap shrink-0 animate-in fade-in duration-200"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 mx-2 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 hover:text-red-200 transition-all text-[9px] font-black uppercase tracking-widest whitespace-nowrap shrink-0 animate-in fade-in duration-200 touch-manipulation"
             >
                 <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse shrink-0" />
                 {lang.today || "Today"}
