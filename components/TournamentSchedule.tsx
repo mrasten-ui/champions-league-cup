@@ -101,7 +101,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   const handleNextDate = useCallback(() => {
     const idx = uniqueDates.indexOf(filterDate);
-    if (idx < uniqueDates.length - 1) setFilterDate(uniqueDates[idx + 1]);
+    if (idx >= 0 && idx < uniqueDates.length - 1) setFilterDate(uniqueDates[idx + 1]);
   }, [uniqueDates, filterDate]);
 
   const handlePrevDate = useCallback(() => {
@@ -111,17 +111,29 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   const dateSwipe = useSwipe({ onSwipeLeft: handleNextDate, onSwipeRight: handlePrevDate, stopPropagation: true });
 
+  const FINISHED_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+
   // 3. FILTERING LOGIC (For the list below the hero)
   const filteredMatches = useMemo(() => {
       return matches.filter(m => {
           const home = teams[m.homeTeamId] || { name: 'TBD' };
           const away = teams[m.awayTeamId] || { name: 'TBD' };
-          
-          const dateMatch = filterDate === 'ALL' || (m.date && utcDay(m.date) === filterDate);
-          const searchMatch = searchTerm === '' || 
-              home.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+
+          let dateMatch: boolean;
+          if (filterDate === 'ALL') {
+              dateMatch = true;
+          } else if (filterDate === 'CONFIRMED') {
+              dateMatch = !FINISHED_STATUSES.includes(m.status) &&
+                  !!m.homeTeamId && m.homeTeamId !== 'TBD' && !m.homeTeamId.startsWith('TBD') &&
+                  !!m.awayTeamId && m.awayTeamId !== 'TBD' && !m.awayTeamId.startsWith('TBD');
+          } else {
+              dateMatch = !!(m.date && utcDay(m.date) === filterDate);
+          }
+
+          const searchMatch = searchTerm === '' ||
+              home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
               away.name.toLowerCase().includes(searchTerm.toLowerCase());
-              
+
           return dateMatch && searchMatch;
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [matches, teams, filterDate, searchTerm]);
@@ -208,6 +220,7 @@ export const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
   const getDateHeadline = (dateStr: string) => {
       if (dateStr === 'ALL') return lang.subnavSchedule || 'Schedule';
+      if (dateStr === 'CONFIRMED') return lang.filterConfirmed || 'Confirmed';
       const today = utcDay(new Date());
       const tomorrowDate = new Date(); tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
       const tomorrow = utcDay(tomorrowDate);
