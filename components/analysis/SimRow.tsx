@@ -202,6 +202,42 @@ export const SimRow: React.FC<{
     const homeLabel = home ? home.name : homeSlotCode;
     const awayLabel = away ? away.name : awaySlotCode;
 
+    // Knockout: who predicted which side to win
+    type KoPick = { u: UserProfile; predictedTeamId: string; predictedTeam: Team | undefined };
+    const koPickData = useMemo((): { homePicks: KoPick[]; awayPicks: KoPick[] } => {
+        if (!isKnockout) return { homePicks: [], awayPicks: [] };
+
+        const homePicks: KoPick[] = [];
+        const awayPicks: KoPick[] = [];
+
+        [currentUser, ...rivals].forEach(u => {
+            const matchState = userBracketData.get(u.email)?.[match.id];
+            if (!matchState?.winner) return;
+            const winnerId = matchState.winner;
+            const winnerTeam = teams[winnerId];
+
+            const actualHomeOk = match.homeTeamId && match.homeTeamId !== 'TBD' && !match.homeTeamId.startsWith('TBD');
+            const actualAwayOk = match.awayTeamId && match.awayTeamId !== 'TBD' && !match.awayTeamId.startsWith('TBD');
+
+            let side: 'home' | 'away';
+            if (actualHomeOk && winnerId === match.homeTeamId) {
+                side = 'home';
+            } else if (actualAwayOk && winnerId === match.awayTeamId) {
+                side = 'away';
+            } else {
+                // Wrong team advanced or slot still TBD — use which slot the winner occupies in their bracket
+                side = matchState.home === winnerId ? 'home' : 'away';
+            }
+            (side === 'home' ? homePicks : awayPicks).push({ u, predictedTeamId: winnerId, predictedTeam: winnerTeam });
+        });
+        return { homePicks, awayPicks };
+    }, [isKnockout, currentUser, rivals, userBracketData, match.id, match.homeTeamId, match.awayTeamId, teams]);
+
+    // Whether the match outcome has been determined (simulated or real result)
+    const isDecided = isSimulated || (match.homeScore !== null && match.awayScore !== null);
+    const rawWinnerId = isDecided && hVal !== aVal ? (hVal > aVal ? match.homeTeamId : match.awayTeamId) : null;
+    const decidedWinnerId = rawWinnerId && !rawWinnerId.startsWith('TBD') ? rawWinnerId : null;
+
     const { homePreds, drawPreds, awayPreds } = useMemo(() => {
         const h: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
         const d: { u: UserProfile, label: string, status: 'exact' | 'correct' | 'wrong' | 'neutral' }[] = [];
@@ -304,13 +340,31 @@ export const SimRow: React.FC<{
                     ) : (
                         <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
                     )}
-                    {!isKnockout && (
+                    {!isKnockout ? (
                         <div className="flex flex-wrap content-start gap-1.5 mt-1">
                             {homePreds.map(item => (
                                 <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={() => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); }} align="left" />
                             ))}
                         </div>
-                    )}
+                    ) : koPickData.homePicks.length > 0 ? (
+                        <div className="flex justify-center gap-1 flex-wrap mt-1">
+                            {koPickData.homePicks.map(({ u, predictedTeamId, predictedTeam }) => {
+                                const isMe = u.email === currentUser.email;
+                                const pickStatus = !decidedWinnerId ? 'pending' : predictedTeamId === decidedWinnerId ? 'correct' : 'wrong';
+                                const showPredFlag = predictedTeamId !== match.homeTeamId && !!predictedTeam?.flag;
+                                return (
+                                    <div key={u.email} title={`${u.name.split(' ')[0]}: ${predictedTeam?.name || predictedTeamId}`} className={`flex flex-col items-center gap-0.5 ${isMe ? 'z-10' : ''}`}>
+                                        <div className={`rounded-full overflow-hidden ring-2 shadow-sm ${isMe ? 'w-6 h-6 ring-offset-1' : 'w-5 h-5'} ${pickStatus === 'correct' ? 'ring-emerald-400' : pickStatus === 'wrong' ? 'ring-red-400' : 'ring-slate-200'}`}>
+                                            <AvatarDisplay avatar={u.avatar} size="xs" className="w-full h-full" />
+                                        </div>
+                                        {showPredFlag && (
+                                            <img src={predictedTeam!.flag} alt={predictedTeam!.name} title={predictedTeam!.name} className={`w-5 h-3 object-cover rounded-sm shadow-sm ${pickStatus === 'wrong' ? 'opacity-50' : 'opacity-80'}`} />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="flex flex-col gap-2 items-center justify-start h-full">
@@ -350,13 +404,31 @@ export const SimRow: React.FC<{
                     ) : (
                         <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
                     )}
-                    {!isKnockout && (
+                    {!isKnockout ? (
                         <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
                             {awayPreds.map(item => (
                                 <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={() => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); }} align="right" />
                             ))}
                         </div>
-                    )}
+                    ) : koPickData.awayPicks.length > 0 ? (
+                        <div className="flex justify-center gap-1 flex-wrap mt-1">
+                            {koPickData.awayPicks.map(({ u, predictedTeamId, predictedTeam }) => {
+                                const isMe = u.email === currentUser.email;
+                                const pickStatus = !decidedWinnerId ? 'pending' : predictedTeamId === decidedWinnerId ? 'correct' : 'wrong';
+                                const showPredFlag = predictedTeamId !== match.awayTeamId && !!predictedTeam?.flag;
+                                return (
+                                    <div key={u.email} title={`${u.name.split(' ')[0]}: ${predictedTeam?.name || predictedTeamId}`} className={`flex flex-col items-center gap-0.5 ${isMe ? 'z-10' : ''}`}>
+                                        <div className={`rounded-full overflow-hidden ring-2 shadow-sm ${isMe ? 'w-6 h-6 ring-offset-1' : 'w-5 h-5'} ${pickStatus === 'correct' ? 'ring-emerald-400' : pickStatus === 'wrong' ? 'ring-red-400' : 'ring-slate-200'}`}>
+                                            <AvatarDisplay avatar={u.avatar} size="xs" className="w-full h-full" />
+                                        </div>
+                                        {showPredFlag && (
+                                            <img src={predictedTeam!.flag} alt={predictedTeam!.name} title={predictedTeam!.name} className={`w-5 h-3 object-cover rounded-sm shadow-sm ${pickStatus === 'wrong' ? 'opacity-50' : 'opacity-80'}`} />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>
