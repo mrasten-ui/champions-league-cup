@@ -34,7 +34,7 @@ export const useTournamentSimulation = (
     }, [allUsers, matches, teams, allPredictions]);
 
     // 2. SIMULATION ENGINE + PULL THROUGH
-    const { combinedStats, simulatedMatches, qualifiedThirdsSet } = useMemo(() => {
+    const { combinedStats, simulatedMatches, qualifiedThirdsSet, mySimQualRounds } = useMemo(() => {
         // Create a "Simulated World" array of matches
         let simMatches = matches.map(m => {
             const sim = simulation[m.id];
@@ -64,13 +64,20 @@ export const useTournamentSimulation = (
             });
         });
 
+        // Pre-compute the "ground truth" bracket once — identical for all users (no predictions)
+        const realComputedBracket = applyPredictionsToBracket(matches, teams, []);
+        const simComputedBracket = applyPredictionsToBracket(simMatches, teams, []);
+
         // Add bracket advancement points BEFORE sorting (calculatePoints returns 0 for KO matches)
+        let mySimQualRoundsResult: QualifiedRound[] = [];
+        const currentUserEmail = allUsers[0]?.email;
         allUsers.forEach(u => {
             const userPreds = allPredictions.filter(p => p.userId === u.email);
-            const liveQR = getQualifiedRounds(matches, userPreds, u, teams);
+            const liveQR = getQualifiedRounds(matches, userPreds, u, teams, realComputedBracket);
             livePoints[u.email] += liveQR.reduce((s, r) => s + r.totalPoints, 0);
-            const simQR = getQualifiedRounds(simMatches, userPreds, u, teams);
+            const simQR = getQualifiedRounds(simMatches, userPreds, u, teams, simComputedBracket);
             simPoints[u.email] += simQR.reduce((s, r) => s + r.totalPoints, 0);
+            if (u.email === currentUserEmail) mySimQualRoundsResult = simQR;
         });
 
         const sortUsers = (pointsMap: Record<string, number>) =>
@@ -94,15 +101,8 @@ export const useTournamentSimulation = (
         const thirds = getThirdPlaceStandings(allGroupStandings);
         const qualifiedThirdsSet = new Set(thirds.slice(0, 8).map(t => t.teamId));
 
-        return { combinedStats, simulatedMatches: simMatches, qualifiedThirdsSet };
+        return { combinedStats, simulatedMatches: simMatches, qualifiedThirdsSet, mySimQualRounds: mySimQualRoundsResult };
     }, [matches, simulation, allPredictions, allUsers, teams]);
-
-    const mySimQualRounds = useMemo((): QualifiedRound[] => {
-        const me = allUsers[0];
-        if (!me) return [];
-        const myPreds = allPredictions.filter(p => p.userId === me.email);
-        return getQualifiedRounds(simulatedMatches, myPreds, me, teams);
-    }, [simulatedMatches, allPredictions, allUsers, teams]);
 
     const updateSim = (matchId: string, h: number, a: number) => {
         setSimulation(prev => ({ ...prev, [matchId]: { home: h, away: a } }));

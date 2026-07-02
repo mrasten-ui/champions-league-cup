@@ -144,167 +144,138 @@ export const useAppData = () => {
             setMatches(mappedMatches);
           }
 
-          {
+          const fetchPredictions = async () => {
             const cachedPreds = rcGet<Prediction[]>('predictions');
-            if (cachedPreds) {
-              setAllPredictions(cachedPreds);
-            } else {
-              const PAGE = 1000;
-              let allPredRows: any[] = [];
-              let from = 0;
-              let keepGoing = true;
-              while (keepGoing) {
-                const { data: page, error: pageErr } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
-                if (pageErr) { console.error('Predictions fetch error (page', from, '):', pageErr); keepGoing = false; break; }
-                if (page && page.length > 0) {
-                  allPredRows.push(...page);
-                  keepGoing = page.length === PAGE;
-                  from += PAGE;
-                } else {
-                  keepGoing = false;
-                }
-              }
-              const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 }));
-              rcSet('predictions', mappedPreds);
-              setAllPredictions(mappedPreds);
+            if (cachedPreds) { setAllPredictions(cachedPreds); return; }
+            const PAGE = 1000;
+            let allPredRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page, error: pageErr } = await supabase.from('predictions').select('*').range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Predictions fetch error (page', from, '):', pageErr); break; }
+              if (page && page.length > 0) { allPredRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
+              else { keepGoing = false; }
             }
-          }
+            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 }));
+            rcSet('predictions', mappedPreds);
+            setAllPredictions(mappedPreds);
+          };
 
-          {
+          const fetchEvents = async () => {
             const cachedEvents = rcGet<MatchEvent[]>('events');
-            if (cachedEvents) {
-              setMatchEvents(cachedEvents);
-            } else {
-              const PAGE = 1000;
-              let allEventRows: any[] = [];
-              let from = 0;
-              let keepGoing = true;
-              while (keepGoing) {
-                const { data: page, error: pageErr } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).range(from, from + PAGE - 1);
-                if (pageErr) { console.error('Events fetch error (page', from, '):', pageErr); keepGoing = false; break; }
-                if (page && page.length > 0) {
-                  allEventRows.push(...page);
-                  keepGoing = page.length === PAGE;
-                  from += PAGE;
-                } else { keepGoing = false; }
-              }
-              if (allEventRows.length > 0) {
-                const mappedEvents: MatchEvent[] = allEventRows.map(e => ({
-                  id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
-                  type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
-                  player: e.player ?? undefined, playerId: e.player_id ?? null, assist: e.assist ?? undefined,
-                  createdAt: e.created_at ?? undefined,
-                }));
-                rcSet('events', mappedEvents);
-                setMatchEvents(mappedEvents);
-              }
+            if (cachedEvents) { setMatchEvents(cachedEvents); return; }
+            const PAGE = 1000;
+            let allEventRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page, error: pageErr } = await supabase.from('match_events').select('*').order('minute', { ascending: true }).range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Events fetch error (page', from, '):', pageErr); break; }
+              if (page && page.length > 0) { allEventRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
+              else { keepGoing = false; }
             }
-          }
-
-          {
-            const cachedLineups = rcGet<MatchLineup[]>('lineups');
-            if (cachedLineups) {
-              setMatchLineups(cachedLineups);
-            } else {
-              const PAGE = 1000;
-              let allLineupRows: any[] = [];
-              let from = 0;
-              let keepGoing = true;
-              while (keepGoing) {
-                const { data: page, error: pageErr } = await supabase.from('match_lineups').select('*').range(from, from + PAGE - 1);
-                if (pageErr) { console.error('Lineups fetch error (page', from, '):', pageErr); keepGoing = false; break; }
-                if (page && page.length > 0) {
-                  allLineupRows.push(...page);
-                  keepGoing = page.length === PAGE;
-                  from += PAGE;
-                } else {
-                  keepGoing = false;
-                }
-              }
-              const mappedLineups: MatchLineup[] = allLineupRows.map((l: any) => ({
-                id: l.id, matchId: l.match_id, teamId: l.team_id,
-                playerName: l.player_name, playerId: l.player_id ?? null,
-                playerNumber: l.player_number ?? null,
-                position: l.position ?? null, grid: l.grid ?? null,
-                isStarting: l.is_starting, formation: l.formation ?? null,
-                kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
+            if (allEventRows.length > 0) {
+              const mappedEvents: MatchEvent[] = allEventRows.map(e => ({
+                id: e.id, matchId: String(e.match_id || ''), minute: e.minute ?? 0, minuteExtra: e.minute_extra ?? undefined,
+                type: e.type || '', detail: e.detail ?? undefined, teamId: e.team_id ?? undefined,
+                player: e.player ?? undefined, playerId: e.player_id ?? null, assist: e.assist ?? undefined,
+                createdAt: e.created_at ?? undefined,
               }));
-              rcSet('lineups', mappedLineups);
-              setMatchLineups(mappedLineups);
+              rcSet('events', mappedEvents);
+              setMatchEvents(mappedEvents);
             }
-          }
+          };
 
-          {
+          const fetchLineups = async () => {
+            const cachedLineups = rcGet<MatchLineup[]>('lineups');
+            if (cachedLineups) { setMatchLineups(cachedLineups); return; }
+            const PAGE = 1000;
+            let allLineupRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page, error: pageErr } = await supabase.from('match_lineups').select('*').range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Lineups fetch error (page', from, '):', pageErr); break; }
+              if (page && page.length > 0) { allLineupRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
+              else { keepGoing = false; }
+            }
+            const mappedLineups: MatchLineup[] = allLineupRows.map((l: any) => ({
+              id: l.id, matchId: l.match_id, teamId: l.team_id,
+              playerName: l.player_name, playerId: l.player_id ?? null,
+              playerNumber: l.player_number ?? null,
+              position: l.position ?? null, grid: l.grid ?? null,
+              isStarting: l.is_starting, formation: l.formation ?? null,
+              kitBg: l.kit_bg ?? null, kitText: l.kit_text ?? null,
+            }));
+            rcSet('lineups', mappedLineups);
+            setMatchLineups(mappedLineups);
+          };
+
+          const fetchStats = async () => {
             const cachedStats = rcGet<MatchStats[]>('stats');
-            if (cachedStats) {
-              setMatchStats(cachedStats);
-            } else {
-              const { data: stats } = await supabase.from('match_stats').select('*').limit(10000);
-              if (stats) {
-                const mappedStats: MatchStats[] = stats.map((s: any) => ({
-                  matchId: String(s.match_id),
-                  homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
-                  homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
-                  homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
-                  homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
-                  homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
-                  homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
-                  homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
-                  homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
-                  homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
-                }));
-                rcSet('stats', mappedStats);
-                setMatchStats(mappedStats);
-              }
+            if (cachedStats) { setMatchStats(cachedStats); return; }
+            const { data: stats } = await supabase.from('match_stats').select('*').limit(10000);
+            if (stats) {
+              const mappedStats: MatchStats[] = stats.map((s: any) => ({
+                matchId: String(s.match_id),
+                homeXg: s.home_xg ?? null, awayXg: s.away_xg ?? null,
+                homeShots: s.home_shots ?? null, awayShots: s.away_shots ?? null,
+                homeShotsOnTarget: s.home_shots_on_target ?? null, awayShotsOnTarget: s.away_shots_on_target ?? null,
+                homePossession: s.home_possession ?? null, awayPossession: s.away_possession ?? null,
+                homeCorners: s.home_corners ?? null, awayCorners: s.away_corners ?? null,
+                homeFouls: s.home_fouls ?? null, awayFouls: s.away_fouls ?? null,
+                homeYellow: s.home_yellow ?? null, awayYellow: s.away_yellow ?? null,
+                homeRed: s.home_red ?? null, awayRed: s.away_red ?? null,
+                homeOffsides: s.home_offsides ?? null, awayOffsides: s.away_offsides ?? null,
+              }));
+              rcSet('stats', mappedStats);
+              setMatchStats(mappedStats);
             }
-          }
+          };
 
-          {
+          const fetchPlayerStats = async () => {
             const cachedPlayerStats = rcGet<PlayerMatchStat[]>('playerStats');
-            if (cachedPlayerStats) {
-              setPlayerMatchStats(cachedPlayerStats);
-            } else {
-              const PAGE = 1000;
-              let allPsRows: any[] = [];
-              let from = 0;
-              let keepGoing = true;
-              while (keepGoing) {
-                const { data: page, error: pageErr } = await supabase.from('player_match_stats').select('*').range(from, from + PAGE - 1);
-                if (pageErr) { console.error('Player stats fetch error:', pageErr); keepGoing = false; break; }
-                if (page && page.length > 0) {
-                  allPsRows.push(...page);
-                  keepGoing = page.length === PAGE;
-                  from += PAGE;
-                } else { keepGoing = false; }
-              }
-              if (allPsRows.length) {
-                const mapped: PlayerMatchStat[] = allPsRows.map(r => ({
-                  matchId: String(r.match_id),
-                  playerId: r.player_id,
-                  playerName: r.player_name ?? null,
-                  teamId: r.team_id ?? null,
-                  minutes: r.minutes ?? null,
-                  rating: r.rating != null ? parseFloat(r.rating) : null,
-                  goals: r.goals ?? 0,
-                  assists: r.assists ?? 0,
-                  shotsTotal: r.shots_total ?? null,
-                  shotsOn: r.shots_on ?? null,
-                  passesTotal: r.passes_total ?? null,
-                  passesKey: r.passes_key ?? null,
-                  passAccuracy: r.pass_accuracy ?? null,
-                  tackles: r.tackles ?? null,
-                  dribblesSuccess: r.dribbles_success ?? null,
-                  dribblesAttempts: r.dribbles_attempts ?? null,
-                  foulsCommitted: r.fouls_committed ?? null,
-                  foulsDrawn: r.fouls_drawn ?? null,
-                  yellowCards: r.yellow_cards ?? 0,
-                  redCards: r.red_cards ?? 0,
-                }));
-                rcSet('playerStats', mapped);
-                setPlayerMatchStats(mapped);
-              }
+            if (cachedPlayerStats) { setPlayerMatchStats(cachedPlayerStats); return; }
+            const PAGE = 1000;
+            let allPsRows: any[] = [];
+            let from = 0;
+            let keepGoing = true;
+            while (keepGoing) {
+              const { data: page, error: pageErr } = await supabase.from('player_match_stats').select('*').range(from, from + PAGE - 1);
+              if (pageErr) { console.error('Player stats fetch error:', pageErr); break; }
+              if (page && page.length > 0) { allPsRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
+              else { keepGoing = false; }
             }
-          }
+            if (allPsRows.length) {
+              const mapped: PlayerMatchStat[] = allPsRows.map(r => ({
+                matchId: String(r.match_id),
+                playerId: r.player_id,
+                playerName: r.player_name ?? null,
+                teamId: r.team_id ?? null,
+                minutes: r.minutes ?? null,
+                rating: r.rating != null ? parseFloat(r.rating) : null,
+                goals: r.goals ?? 0,
+                assists: r.assists ?? 0,
+                shotsTotal: r.shots_total ?? null,
+                shotsOn: r.shots_on ?? null,
+                passesTotal: r.passes_total ?? null,
+                passesKey: r.passes_key ?? null,
+                passAccuracy: r.pass_accuracy ?? null,
+                tackles: r.tackles ?? null,
+                dribblesSuccess: r.dribbles_success ?? null,
+                dribblesAttempts: r.dribbles_attempts ?? null,
+                foulsCommitted: r.fouls_committed ?? null,
+                foulsDrawn: r.fouls_drawn ?? null,
+                yellowCards: r.yellow_cards ?? 0,
+                redCards: r.red_cards ?? 0,
+              }));
+              rcSet('playerStats', mapped);
+              setPlayerMatchStats(mapped);
+            }
+          };
+
+          await Promise.all([fetchPredictions(), fetchEvents(), fetchLineups(), fetchStats(), fetchPlayerStats()]);
 
           {
             const cachedProfiles = rcGet<Record<string, UserProfile>>('profiles');

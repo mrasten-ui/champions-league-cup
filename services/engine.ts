@@ -449,7 +449,8 @@ export const getQualifiedRounds = (
     realMatches: Match[],
     userPredictions: Prediction[],
     user: UserProfile,
-    teams: Record<string, Team>
+    teams: Record<string, Team>,
+    precomputedRealBracket?: Match[]
 ): QualifiedRound[] => {
     const bracketPreds = user.bracketPredictions
         ? userPredictions.map(p =>
@@ -463,7 +464,7 @@ export const getQualifiedRounds = (
     const secondChanceBracket = user.hasTakenSecondChance
         ? applyPredictionsToBracket(unlockedRealMatches, teams, userPredictions)
         : standardBracket;
-    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
+    const computedRealBracket = precomputedRealBracket ?? applyPredictionsToBracket(realMatches, teams, []);
 
     const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
         const teamSet = new Set<string>();

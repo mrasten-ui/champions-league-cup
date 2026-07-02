@@ -404,7 +404,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   }, [users, activeLeague, currentUserLeagues]);
 
   // 1. Calculate Scores for Everyone
-  const userStats = filteredUsers.map(user => {
+  const userStats = useMemo(() => filteredUsers.map(user => {
     let totalPoints = 0;
     let bankedPoints = 0; 
     let exactCount = 0;   
@@ -479,7 +479,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       form,
       streak
     };
-  });
+  }), [filteredUsers, matches, allPredictions, teams]);
 
   // 2. Determine Ranks
   const liveRanked = [...userStats].sort((a, b) => {
