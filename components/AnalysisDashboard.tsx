@@ -33,6 +33,7 @@ const TEXT: Record<string, any> = {
         fullTable: "Full Table",
         noMatches: "No matches on this date.",
         simHint: "Adjust the match scores below to simulate different results — your leaderboard position updates live so you can see exactly what you need.",
+        koSimHint: "Tap a team to pick the winner — see how your ranking changes as results fall your way.",
     },
     'en-US': {
         analysisTitle: "Road to Victory",
@@ -43,6 +44,7 @@ const TEXT: Record<string, any> = {
         fullTable: "Full Standings",
         noMatches: "No matchups on this date.",
         simHint: "Drag scores up or down below to run different scenarios — watch your simulated rank change in real time.",
+        koSimHint: "Tap a team to call the winner — watch your simulated rank shift in real time.",
     },
     sco: {
         analysisTitle: "Road tae Glory",
@@ -53,6 +55,7 @@ const TEXT: Record<string, any> = {
         fullTable: "Full Table",
         noMatches: "Nae matches on this date.",
         simHint: "Chynge the scores below an' see where ye'd end up — yer simulated rank updates as ye go.",
+        koSimHint: "Tap a team tae pick the winner — see where ye'd end up if it goes yer way.",
     },
     no: {
         analysisTitle: "Veien til Seier",
@@ -63,6 +66,7 @@ const TEXT: Record<string, any> = {
         fullTable: "Full Tabell",
         noMatches: "Ingen kamper på denne datoen.",
         simHint: "Juster kampresultatene nedenfor for å simulere ulike utfall — stillingen din oppdateres live.",
+        koSimHint: "Trykk på et lag for å velge vinneren — se hvordan rangeringen din endres i sanntid.",
     }
 };
 
@@ -286,15 +290,23 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
 
   const dateSwipe = useSwipe({ onSwipeLeft: handleNextDate, onSwipeRight: handlePrevDate, stopPropagation: true });
 
+  const FINISHED_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+
   // 2. FILTERED LIST FOR DISPLAY (Affected by User's Date Selection)
   const displayMatches = useMemo(() => {
       let filtered = simulatedMatches.filter(m => m.date && m.date !== 'TBD');
-      
-      if (filterDate !== 'ALL') {
+
+      if (filterDate === 'CONFIRMED') {
+          filtered = filtered.filter(m =>
+              !FINISHED_STATUSES.includes(m.status) &&
+              m.homeTeamId && m.homeTeamId !== 'TBD' && !m.homeTeamId.startsWith('TBD') &&
+              m.awayTeamId && m.awayTeamId !== 'TBD' && !m.awayTeamId.startsWith('TBD')
+          );
+      } else if (filterDate !== 'ALL') {
           filtered = filtered.filter(m => utcDay(m.date) === filterDate);
       } else {
           const now = Date.now();
-          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000); 
+          filtered = filtered.filter(m => new Date(m.date).getTime() > now - 86400000);
       }
       return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [simulatedMatches, filterDate]);
@@ -309,7 +321,9 @@ export const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({
         {showSimHint && (
           <div className="mx-4 mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
             <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-800 font-medium flex-1 leading-relaxed">{t.simHint}</p>
+            <p className="text-xs text-blue-800 font-medium flex-1 leading-relaxed">
+                {isKnockoutPhase ? t.koSimHint : t.simHint}
+            </p>
             <button onClick={() => { localStorage.setItem(`rasten_sim_hint_${currentUser.email}`, '1'); setShowSimHint(false); }} className="text-blue-400 hover:text-blue-600 shrink-0">
               <X size={14} />
             </button>

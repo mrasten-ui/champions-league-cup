@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Translation } from '../types';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
 
 interface DateRibbonProps {
   dates: string[];
@@ -17,7 +17,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
 
   // Auto-scroll to active date
   useEffect(() => {
-    if (scrollRef.current && selectedDate !== 'ALL') {
+    if (scrollRef.current && selectedDate !== 'ALL' && selectedDate !== 'CONFIRMED') {
       const selectedEl = scrollRef.current.querySelector(`[data-date="${selectedDate}"]`) as HTMLElement;
       if (selectedEl) {
         const container = scrollRef.current;
@@ -126,7 +126,7 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
         </button>
 
         {/* Back to Today */}
-        {todayInDates && selectedDate !== todayInDates && (
+        {todayInDates && selectedDate !== todayInDates && selectedDate !== 'CONFIRMED' && (
             <button
                 onClick={() => onDateSelect(todayInDates)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 mx-2 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 hover:text-red-200 transition-all text-[9px] font-black uppercase tracking-widest whitespace-nowrap shrink-0 animate-in fade-in duration-200 touch-manipulation"
@@ -135,6 +135,18 @@ export const DateRibbon: React.FC<DateRibbonProps> = ({ dates, selectedDate, onD
                 {lang.today || "Today"}
             </button>
         )}
+
+        {/* Confirmed filter — mirrors ALL button on the right */}
+        <button
+          onClick={() => onDateSelect('CONFIRMED')}
+          className={`
+            h-full px-4 border-l border-white/10 flex flex-col items-center justify-center gap-1 transition-colors min-w-[4.5rem] shrink-0 touch-manipulation
+            ${selectedDate === 'CONFIRMED' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}
+          `}
+        >
+          <CheckSquare size={20} />
+          <span className="text-[9px] font-black uppercase tracking-widest">{lang.filterConfirmed || "Confirmed"}</span>
+        </button>
       </div>
     </div>
   );

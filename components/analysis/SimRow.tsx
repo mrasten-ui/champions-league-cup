@@ -302,16 +302,15 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-0.5">
-                            <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
-                            <span className="text-[8px] text-slate-400 font-bold">{homePreds.length}/{[currentUser,...rivals].length}</span>
+                        <WinnerButton team={home} label={homeLabel} slotCode={!home ? homeSlotCode : undefined} isSelected={hVal > aVal} onClick={() => onUpdate(1, 0)} tbdText={t.tbd} />
+                    )}
+                    {!isKnockout && (
+                        <div className="flex flex-wrap content-start gap-1.5 mt-1">
+                            {homePreds.map(item => (
+                                <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={() => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); }} align="left" />
+                            ))}
                         </div>
                     )}
-                    <div className="flex flex-wrap content-start gap-1.5 mt-1">
-                        {homePreds.map(item => (
-                            <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={match.groupId ? () => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); } : () => onUpdate(1, 0)} align="left" />
-                        ))}
-                    </div>
                 </div>
 
                 <div className="flex flex-col gap-2 items-center justify-start h-full">
@@ -349,16 +348,15 @@ export const SimRow: React.FC<{
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-0.5">
-                            <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
-                            <span className="text-[8px] text-slate-400 font-bold">{awayPreds.length}/{[currentUser,...rivals].length}</span>
+                        <WinnerButton team={away} label={awayLabel} slotCode={!away ? awaySlotCode : undefined} isSelected={aVal > hVal} onClick={() => onUpdate(0, 1)} tbdText={t.tbd} />
+                    )}
+                    {!isKnockout && (
+                        <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
+                            {awayPreds.map(item => (
+                                <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={() => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); }} align="right" />
+                            ))}
                         </div>
                     )}
-                    <div className="flex flex-wrap justify-end content-start gap-1.5 mt-1">
-                        {awayPreds.map(item => (
-                            <PredictionPill key={item.u.email} user={item.u} label={item.label} status={item.status} isMe={item.u.email === currentUser.email} tooltipText={t.predicted} onSelect={match.groupId ? () => { const p = allPredictions.find(pred => pred.userId === item.u.email && pred.matchId === match.id); if(p) onUpdate(p.home, p.away); } : () => onUpdate(0, 1)} align="right" />
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>
