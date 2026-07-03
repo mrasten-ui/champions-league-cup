@@ -970,9 +970,9 @@ rounds.forEach((round, idx) => {
         else if (i === 13 || i === 15) nextMatchId = 'R16_8'; // SUI/ALG + COL/GHA
     }
     else if (round === 'R16') {
-        if (i === 1 || i === 2) nextMatchId = 'QF_1';
+        if (i === 1 || i === 3) nextMatchId = 'QF_1';
         else if (i === 5 || i === 6) nextMatchId = 'QF_2';
-        else if (i === 3 || i === 4) nextMatchId = 'QF_3';
+        else if (i === 2 || i === 4) nextMatchId = 'QF_3';
         else if (i === 7 || i === 8) nextMatchId = 'QF_4';
     }
     else if (round === 'QF') {

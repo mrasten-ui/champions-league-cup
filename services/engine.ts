@@ -244,8 +244,8 @@ const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'awa
     'R32_16': { nextId: 'R16_7', slot: 'away' }, // SUI/ALG (M88 → M95)
     // Round of 16 to Quarter Finals
     'R16_1': { nextId: 'QF_1', slot: 'home' }, 
-    'R16_2': { nextId: 'QF_1', slot: 'away' }, 
-    'R16_3': { nextId: 'QF_3', slot: 'home' }, 
+    'R16_2': { nextId: 'QF_3', slot: 'home' },
+    'R16_3': { nextId: 'QF_1', slot: 'away' },
     'R16_4': { nextId: 'QF_3', slot: 'away' }, 
     'R16_5': { nextId: 'QF_2', slot: 'home' }, 
     'R16_6': { nextId: 'QF_2', slot: 'away' }, 

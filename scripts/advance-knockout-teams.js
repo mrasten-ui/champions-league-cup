@@ -25,8 +25,8 @@ const PROGRESSION = {
   'R32_15': { nextId: 'R16_8', slot: 'away' },
   'R32_16': { nextId: 'R16_7', slot: 'away' },
   'R16_1': { nextId: 'QF_1', slot: 'home' },
-  'R16_2': { nextId: 'QF_1', slot: 'away' },
-  'R16_3': { nextId: 'QF_3', slot: 'home' },
+  'R16_2': { nextId: 'QF_3', slot: 'home' },
+  'R16_3': { nextId: 'QF_1', slot: 'away' },
   'R16_4': { nextId: 'QF_3', slot: 'away' },
   'R16_5': { nextId: 'QF_2', slot: 'home' },
   'R16_6': { nextId: 'QF_2', slot: 'away' },
@@ -41,6 +41,7 @@ const PROGRESSION = {
 };
 
 const FINISHED = ['FT', 'AET', 'PEN', 'FINISHED'];
+const FIX_MISMATCHES = process.argv.includes('--fix');
 
 async function run() {
   const { data: matches, error } = await supabase
@@ -81,16 +82,18 @@ async function run() {
 
     const currentValue = prog.slot === 'home' ? nextMatch.home_team_id : nextMatch.away_team_id;
     if (currentValue && currentValue !== 'TBD') {
-      // Already set — check if correct
       if (currentValue !== winner) {
-        console.log(`  MISMATCH ${matchId} → ${prog.nextId} ${prog.slot}: DB has ${currentValue}, should be ${winner}`);
+        console.log(`  MISMATCH ${matchId} → ${prog.nextId} ${prog.slot}: DB has "${currentValue}", should be "${winner}"${FIX_MISMATCHES ? ' — will fix' : ' (run with --fix to correct)'}`);
+        if (FIX_MISMATCHES) {
+          updates.push({ matchId: prog.nextId, slot: prog.slot, team: winner, from: matchId, fix: true });
+        }
       } else {
         console.log(`  OK  ${matchId} → ${prog.nextId} ${prog.slot}: ${winner} already set`);
       }
       continue;
     }
 
-    updates.push({ matchId: prog.nextId, slot: prog.slot, team: winner, from: matchId });
+    updates.push({ matchId: prog.nextId, slot: prog.slot, team: winner, from: matchId, fix: false });
   }
 
   if (updates.length === 0) {
@@ -99,7 +102,7 @@ async function run() {
   }
 
   console.log('\nPending updates:');
-  updates.forEach(u => console.log(`  ${u.from} winner ${u.team} → ${u.matchId} ${u.slot}`));
+  updates.forEach(u => console.log(`  ${u.fix ? '[FIX]' : '[NEW]'} ${u.from} winner ${u.team} → ${u.matchId} ${u.slot}`));
 
   // Apply updates
   for (const u of updates) {
@@ -111,7 +114,7 @@ async function run() {
     if (ue) {
       console.error(`  ERROR updating ${u.matchId}: ${ue.message}`);
     } else {
-      console.log(`  UPDATED ${u.matchId} ${u.slot} = ${u.team}`);
+      console.log(`  ${u.fix ? 'FIXED' : 'UPDATED'} ${u.matchId} ${u.slot} = ${u.team}`);
     }
   }
 
