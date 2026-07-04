@@ -125,6 +125,7 @@ export interface Prediction {
   matchId: string;
   home: number;
   away: number;
+  predictedWinnerId?: string;
 }
 
 export interface UserProfile {

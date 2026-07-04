@@ -157,7 +157,7 @@ export const useAppData = () => {
               if (page && page.length > 0) { allPredRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
               else { keepGoing = false; }
             }
-            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0 }));
+            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0, predictedWinnerId: p.predicted_winner_id ?? undefined }));
             rcSet('predictions', mappedPreds);
             setAllPredictions(mappedPreds);
           };

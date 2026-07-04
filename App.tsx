@@ -636,9 +636,19 @@ export const App = () => {
       return updated;
     });
 
+    // For knockout predictions, capture which team the user intends to win (routing-independent intent)
+    let predictedWinnerId: string | undefined;
+    if (match.round) {
+      const bracketMatch = userBracket.find(m => m.id === matchId);
+      if (bracketMatch && bracketMatch.homeTeamId !== 'TBD' && bracketMatch.awayTeamId !== 'TBD') {
+        if (Number(h) > Number(a)) predictedWinnerId = bracketMatch.homeTeamId;
+        else if (Number(a) > Number(h)) predictedWinnerId = bracketMatch.awayTeamId;
+      }
+    }
+
     // Save group/knockout prediction
     const { error: predError } = await supabase.from('predictions').upsert(
-      { user_id: user.email, match_id: matchId, home: Number(h), away: Number(a) } as any,
+      { user_id: user.email, match_id: matchId, home: Number(h), away: Number(a), ...(predictedWinnerId ? { predicted_winner_id: predictedWinnerId } : {}) } as any,
       { onConflict: 'user_id,match_id' }
     );
     if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
@@ -757,9 +767,16 @@ export const App = () => {
           // Push staged sc_draft picks into the real predictions table
           const draftEntries = Object.entries(user.scDraft || {});
           if (draftEntries.length > 0) {
-              const rows = draftEntries.map(([matchId, { home, away }]) => ({
-                  user_id: user.email, match_id: matchId, home, away,
-              }));
+              const bracketMatchMap = new Map(userBracket.map(m => [m.id, m]));
+              const rows = draftEntries.map(([matchId, { home, away }]) => {
+                  const bm = bracketMatchMap.get(matchId);
+                  let predicted_winner_id: string | undefined;
+                  if (bm && bm.homeTeamId !== 'TBD' && bm.awayTeamId !== 'TBD') {
+                      if (home > away) predicted_winner_id = bm.homeTeamId;
+                      else if (away > home) predicted_winner_id = bm.awayTeamId;
+                  }
+                  return { user_id: user.email, match_id: matchId, home, away, ...(predicted_winner_id ? { predicted_winner_id } : {}) };
+              });
               const { error: pushError } = await supabase.from('predictions').upsert(rows as any, { onConflict: 'user_id,match_id' });
               if (pushError) { console.error('SC lock-in push failed:', pushError.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
               // Sync local predictions state
