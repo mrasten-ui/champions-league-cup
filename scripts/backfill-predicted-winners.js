@@ -1,11 +1,17 @@
 /**
- * Backfill predicted_winner_id for all existing knockout predictions.
+ * Backfill predicted_winner_id for all knockout predictions from players who
+ * did NOT use Second Chance.
  *
- * For each user this script:
- *   1. Reconstructs their full bracket by cascading group predictions → R32 slots,
- *      then applying their knockout picks round by round (using current/new routing).
- *   2. For each knockout match where both teams are known and the user has a prediction,
- *      stores which team they predicted to win as predicted_winner_id.
+ * Why only non-SC users: everyone who didn't take SC made their knockout picks
+ * under the ORIGINAL routing (live May 31 – June 27, before the June 28
+ * SC-transition changes). Substitutions don't apply to knockout predictions,
+ * so their data is clean and deterministic. SC users will be handled separately.
+ *
+ * For each eligible user this script:
+ *   1. Cascades their group predictions → R32 slots using the original routing
+ *   2. Applies their knockout picks round by round to determine which team they
+ *      saw in each slot when they made the pick
+ *   3. Records that team as predicted_winner_id
  *
  * Run AFTER adding the column:
  *   ALTER TABLE predictions ADD COLUMN IF NOT EXISTS predicted_winner_id TEXT;
@@ -277,25 +283,50 @@ function applyPredictionsToBracket(initialMatches, userPredictions) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const KO_MATCH_RE = /^(R32|R16|QF|SF|FIN|3RD)_\d+$/;
+
 async function run() {
   const INITIAL_MATCHES = buildInitialMatches();
-  const KO_ROUNDS = new Set(['R32', 'R16', 'QF', 'SF', 'FIN', '3RD']);
 
-  // Fetch all predictions
-  console.log('Fetching predictions...');
+  // 1. Fetch profiles to identify who has NOT taken Second Chance
+  console.log('Fetching profiles...');
+  const { data: profiles, error: profileErr } = await supabase
+    .from('profiles')
+    .select('email, has_taken_second_chance, second_chance_status');
+  if (profileErr) { console.error('Profile fetch error:', profileErr.message); return; }
+
+  // PENDING = SC offered but not locked in → original predictions still in table → include
+  // ACTIVE  = SC locked in → skip (handle separately)
+  const nonScEmails = new Set(
+    profiles
+      .filter(p => !p.has_taken_second_chance && p.second_chance_status !== 'ACTIVE')
+      .map(p => p.email)
+  );
+  const scEmails = new Set(profiles.filter(p => !nonScEmails.has(p.email)).map(p => p.email));
+
+  console.log(`  ${nonScEmails.size} players WITHOUT Second Chance (will backfill)`);
+  console.log(`  ${scEmails.size} players WITH Second Chance (skipping — handle separately)`);
+  if (nonScEmails.size > 0) console.log(`  Non-SC players: ${[...nonScEmails].map(e => e.split('@')[0]).join(', ')}`);
+
+  // 2. Fetch predictions for non-SC users only
+  console.log('\nFetching predictions for non-SC users...');
   const allPreds = [];
   const PAGE = 1000;
   let from = 0;
   let keepGoing = true;
   while (keepGoing) {
-    const { data, error } = await supabase.from('predictions').select('user_id, match_id, home, away, predicted_winner_id').range(from, from + PAGE - 1);
-    if (error) { console.error('Fetch error:', error); break; }
+    const { data, error } = await supabase
+      .from('predictions')
+      .select('user_id, match_id, home, away, predicted_winner_id')
+      .in('user_id', [...nonScEmails])
+      .range(from, from + PAGE - 1);
+    if (error) { console.error('Fetch error:', error.message); break; }
     if (data && data.length > 0) { allPreds.push(...data); keepGoing = data.length === PAGE; from += PAGE; }
     else keepGoing = false;
   }
-  console.log(`  Fetched ${allPreds.length} predictions`);
+  console.log(`  Fetched ${allPreds.length} predictions across ${nonScEmails.size} players`);
 
-  // Group by user
+  // 3. Group by user and compute bracket for each
   const byUser = {};
   allPreds.forEach(p => {
     if (!byUser[p.user_id]) byUser[p.user_id] = [];
@@ -305,53 +336,65 @@ async function run() {
   const updates = [];
   let skipped = 0;
 
+  console.log('');
   for (const [userId, preds] of Object.entries(byUser)) {
-    const koPreds = preds.filter(p => {
-      // Only knockout match IDs (e.g. R32_1, R16_3, QF_2, SF_1, FIN_1, 3RD_1)
-      return /^(R32|R16|QF|SF|FIN|3RD)_\d+$/.test(p.matchId);
-    });
-
+    const koPreds = preds.filter(p => KO_MATCH_RE.test(p.matchId));
     if (koPreds.length === 0) continue;
 
-    // Compute this user's bracket from their predictions
     const userMatchPreds = preds.map(p => ({ matchId: p.matchId, home: p.home, away: p.away }));
     const bracket = applyPredictionsToBracket(INITIAL_MATCHES, userMatchPreds);
     const matchMap = new Map(bracket.map(m => [m.id, m]));
 
+    const displayName = userId.split('@')[0];
+    const userUpdates = [];
+
     for (const koPred of koPreds) {
       const m = matchMap.get(koPred.matchId);
-      if (!m) continue;
-      if (m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') {
-        // Teams unknown (group predictions missing/insufficient) — can't determine winner
-        continue;
-      }
+      if (!m || m.homeTeamId === 'TBD' || m.awayTeamId === 'TBD') continue;
 
       let winnerId = null;
       if (koPred.home > koPred.away) winnerId = m.homeTeamId;
       else if (koPred.away > koPred.home) winnerId = m.awayTeamId;
-      // draws → no predicted winner (unlikely in knockout but possible for group-stage home/away fills)
-
       if (!winnerId) continue;
-      if (winnerId === koPred.existingWinnerId) { skipped++; continue; } // already correct
 
-      updates.push({ userId, matchId: koPred.matchId, winnerId });
+      if (winnerId === koPred.existingWinnerId) { skipped++; continue; }
+      userUpdates.push({ userId, matchId: koPred.matchId, winnerId, home: m.homeTeamId, away: m.awayTeamId, score: `${koPred.home}-${koPred.away}` });
+    }
+
+    if (userUpdates.length > 0) {
+      console.log(`  ${displayName} (${userUpdates.length} knockout matches):`);
+      userUpdates.forEach(u => {
+        console.log(`    ${u.matchId.padEnd(8)}  ${u.home} vs ${u.away}  ${u.score}  → ${u.winnerId}`);
+      });
+      updates.push(...userUpdates);
+    }
+  }
+
+  // 4. Summary & champion per player
+  console.log(`\n${'─'.repeat(60)}`);
+  console.log(`Predicted champions (original routing):`);
+  for (const [userId, preds] of Object.entries(byUser)) {
+    const userMatchPreds = preds.map(p => ({ matchId: p.matchId, home: p.home, away: p.away }));
+    const bracket = applyPredictionsToBracket(INITIAL_MATCHES, userMatchPreds);
+    const fin = bracket.find(m => m.id === 'FIN_1');
+    const finPred = preds.find(p => p.matchId === 'FIN_1');
+    if (fin && finPred && fin.homeTeamId !== 'TBD' && fin.awayTeamId !== 'TBD') {
+      let champ = '???';
+      if (finPred.home > finPred.away) champ = fin.homeTeamId;
+      else if (finPred.away > finPred.home) champ = fin.awayTeamId;
+      console.log(`  ${userId.split('@')[0].padEnd(25)}  ${champ}`);
     }
   }
 
   console.log(`\n${updates.length} predictions to update, ${skipped} already correct`);
   if (updates.length === 0) { console.log('Nothing to do.'); return; }
 
-  // Show sample
-  const sample = updates.slice(0, 10);
-  console.log('\nSample (first 10):');
-  sample.forEach(u => console.log(`  ${u.userId.split('@')[0]}  ${u.matchId} → ${u.winnerId}`));
-  if (updates.length > 10) console.log(`  ... and ${updates.length - 10} more`);
-
   if (!WRITE) {
     console.log('\nDry run — add --write to apply.');
     return;
   }
 
+  // 5. Write updates
   console.log('\nApplying updates...');
   let ok = 0, fail = 0;
   for (const u of updates) {

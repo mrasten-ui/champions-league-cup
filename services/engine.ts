@@ -242,11 +242,11 @@ const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'awa
     'R32_14': { nextId: 'R16_7', slot: 'home' }, // COL/GHA (M86 → M95)
     'R32_15': { nextId: 'R16_8', slot: 'away' }, // ESP/AUT (M87 → M96)
     'R32_16': { nextId: 'R16_7', slot: 'away' }, // SUI/ALG (M88 → M95)
-    // Round of 16 to Quarter Finals (R16_1+R16_3→QF_1, R16_5+R16_6→QF_2, R16_2+R16_4→QF_3, R16_7+R16_8→QF_4)
+    // Round of 16 to Quarter Finals (R16_1+R16_2→QF_1, R16_5+R16_6→QF_2, R16_3+R16_4→QF_3, R16_7+R16_8→QF_4)
     'R16_1': { nextId: 'QF_1', slot: 'home' },
-    'R16_2': { nextId: 'QF_3', slot: 'home' },
-    'R16_3': { nextId: 'QF_1', slot: 'away' },
-    'R16_4': { nextId: 'QF_3', slot: 'away' }, 
+    'R16_2': { nextId: 'QF_1', slot: 'away' },
+    'R16_3': { nextId: 'QF_3', slot: 'home' },
+    'R16_4': { nextId: 'QF_3', slot: 'away' },
     'R16_5': { nextId: 'QF_2', slot: 'home' }, 
     'R16_6': { nextId: 'QF_2', slot: 'away' }, 
     'R16_7': { nextId: 'QF_4', slot: 'home' }, 
