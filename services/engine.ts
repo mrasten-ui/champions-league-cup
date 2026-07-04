@@ -497,6 +497,24 @@ export const getQualifiedRounds = (
     const standardChamp = getChamp(standardBracket);
     const secondChanceChamp = getChamp(secondChanceBracket);
 
+    // For KO rounds: "teams predicted to reach this round" = predictedWinnerId of the prior round's matches.
+    // This bypasses the cascade entirely and uses the stored, routing-corrected DB values.
+    // Feeding round prefix per display round: R16←R32, QF←R16, SF←QF, FIN←SF.
+    const FEEDING_ROUND: Record<string, string> = { R16: 'R32', QF: 'R16', SF: 'QF', FIN: 'SF' };
+
+    const getTeamsFromPredictedWinners = (feedingPrefix: string): Set<string> => {
+        const teamSet = new Set<string>();
+        userPredictions.forEach(p => {
+            if (p.matchId.startsWith(feedingPrefix + '_') && p.predictedWinnerId && !p.predictedWinnerId.startsWith('TBD')) {
+                teamSet.add(p.predictedWinnerId);
+            }
+        });
+        return teamSet;
+    };
+
+    // User's predicted champion — prefer stored predictedWinnerId over cascade.
+    const storedUserChamp = userPredictions.find(p => p.matchId === 'FIN_1')?.predictedWinnerId ?? null;
+
     const result: QualifiedRound[] = [];
 
     rounds.forEach(r => {
@@ -505,11 +523,11 @@ export const getQualifiedRounds = (
         let penaltyApplied = false;
 
         let targetBracket = standardBracket;
-        let userChamp = standardChamp;
+        let userChamp = storedUserChamp ?? standardChamp;
 
         if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
             targetBracket = secondChanceBracket;
-            userChamp = secondChanceChamp;
+            userChamp = storedUserChamp ?? secondChanceChamp;
             penaltyApplied = true;
             pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
         }
@@ -520,7 +538,15 @@ export const getQualifiedRounds = (
             }
         } else {
             const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
-            const userTeams = getTeamsInRound(targetBracket, r.key as any);
+            const feedingPrefix = FEEDING_ROUND[r.key];
+            let userTeams: Set<string>;
+            if (feedingPrefix) {
+                const fromDB = getTeamsFromPredictedWinners(feedingPrefix);
+                // Fall back to cascade only if no predictedWinnerId data available.
+                userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, r.key as any);
+            } else {
+                userTeams = getTeamsInRound(targetBracket, r.key as any);
+            }
             realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
         }
 

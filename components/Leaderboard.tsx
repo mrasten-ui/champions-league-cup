@@ -178,17 +178,30 @@ const getRoundsWithAllTeams = (
             if (loserId && !loserId.startsWith('TBD')) definitivelyEliminated.add(loserId);
         });
 
+    // Use predictedWinnerId from DB: teams in round N = winners (predictedWinnerId) of round N-1.
+    const FEEDING_ROUND: Record<string, string> = { R16: 'R32', QF: 'R16', SF: 'QF', FIN: 'SF' };
+    const getTeamsFromPredictedWinners = (feedingPrefix: string): Set<string> => {
+        const teamSet = new Set<string>();
+        userPredictions.forEach(p => {
+            if (p.matchId.startsWith(feedingPrefix + '_') && p.predictedWinnerId && !p.predictedWinnerId.startsWith('TBD')) {
+                teamSet.add(p.predictedWinnerId);
+            }
+        });
+        return teamSet;
+    };
+    const storedUserChamp = userPredictions.find(p => p.matchId === 'FIN_1')?.predictedWinnerId ?? null;
+
     const result: RoundWithAllTeams[] = [];
 
     roundDefs.forEach(r => {
         let pointsPerTeam = r.points;
         let penaltyApplied = false;
         let targetBracket = standardBracket;
-        let userChamp = standardChamp;
+        let userChamp = storedUserChamp ?? standardChamp;
 
         if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
             targetBracket = secondChanceBracket;
-            userChamp = secondChanceChamp;
+            userChamp = storedUserChamp ?? secondChanceChamp;
             penaltyApplied = true;
             pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
         }
@@ -204,7 +217,14 @@ const getRoundsWithAllTeams = (
             });
         } else {
             const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
-            const userTeams = getTeamsInRound(targetBracket, r.key as any);
+            const feedingPrefix = FEEDING_ROUND[r.key];
+            let userTeams: Set<string>;
+            if (feedingPrefix) {
+                const fromDB = getTeamsFromPredictedWinners(feedingPrefix);
+                userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, r.key as any);
+            } else {
+                userTeams = getTeamsInRound(targetBracket, r.key as any);
+            }
             if (userTeams.size === 0) return;
 
             const teamList: { teamId: string; status: TeamStatus }[] = [];
@@ -1047,12 +1067,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
 
-        const userBracket = applyPredictionsToBracket(matches, teams, userPreds);
-        const finMatch = userBracket.find(m => m.round === 'FIN');
-        let champId: string | null = null;
-        if (finMatch && finMatch.homeScore !== null && finMatch.awayScore !== null) {
-          const winnerId = finMatch.homeScore >= finMatch.awayScore ? finMatch.homeTeamId : finMatch.awayTeamId;
-          if (winnerId && !winnerId.startsWith('TBD')) champId = winnerId;
+        const finPred = userPreds.find(p => p.matchId === 'FIN_1');
+        let champId: string | null = finPred?.predictedWinnerId ?? null;
+        if (!champId) {
+          const userBracket = applyPredictionsToBracket(matches, teams, userPreds);
+          const finMatch = userBracket.find(m => m.round === 'FIN');
+          if (finMatch && finMatch.homeScore !== null && finMatch.awayScore !== null) {
+            const winnerId = finMatch.homeScore >= finMatch.awayScore ? finMatch.homeTeamId : finMatch.awayTeamId;
+            if (winnerId && !winnerId.startsWith('TBD')) champId = winnerId;
+          }
         }
 
         return (
