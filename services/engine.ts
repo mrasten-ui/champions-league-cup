@@ -235,8 +235,8 @@ const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'awa
     'R32_7':  { nextId: 'R16_5', slot: 'home' }, // USA → R16_5 home
     'R32_8':  { nextId: 'R16_7', slot: 'away' }, // EGY → R16_7 away
     'R32_9':  { nextId: 'R16_7', slot: 'home' }, // ARG → R16_7 home
-    'R32_10': { nextId: 'R16_4', slot: 'away' }, // MEX → R16_4 away
-    'R32_11': { nextId: 'R16_4', slot: 'home' }, // ENG → R16_4 home
+    'R32_10': { nextId: 'R16_4', slot: 'home' }, // MEX → R16_4 home
+    'R32_11': { nextId: 'R16_4', slot: 'away' }, // ENG → R16_4 away
     'R32_12': { nextId: 'R16_5', slot: 'away' }, // BEL → R16_5 away
     'R32_13': { nextId: 'R16_6', slot: 'home' }, // POR → R16_6 home
     'R32_14': { nextId: 'R16_8', slot: 'away' }, // COL → R16_8 away
