@@ -225,30 +225,30 @@ export const getThirdPlaceStandings = (allGroupStandings: Record<string, GroupSt
 // EXPLICIT FIFA KNOCKOUT PROGRESSION MAP (Article 12)
 // This ensures that regardless of DB next_match_id flaws, teams route perfectly.
 const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'away' }> = {
-    // Round of 32 to Round of 16 (FIFA M73-M88 → M89-M96, same-time pairs on consecutive days)
-    'R32_1':  { nextId: 'R16_1', slot: 'home' }, // RSA/CAN (M73 01:00 → M89)
-    'R32_2':  { nextId: 'R16_2', slot: 'home' }, // BRA/JPN (M74 19:00 → M90)
-    'R32_3':  { nextId: 'R16_3', slot: 'home' }, // GER/PAR (M75 22:00 → M91)
-    'R32_4':  { nextId: 'R16_1', slot: 'away' }, // NED/MAR (M76 01:00 → M89)
-    'R32_5':  { nextId: 'R16_2', slot: 'away' }, // CIV/NOR (M77 19:00 → M90)
-    'R32_6':  { nextId: 'R16_3', slot: 'away' }, // FRA/SWE (M78 22:00 → M91)
-    'R32_7':  { nextId: 'R16_4', slot: 'home' }, // USA/BIH (M79 → M92)
-    'R32_8':  { nextId: 'R16_4', slot: 'away' }, // AUS/EGY (M80 → M92)
-    'R32_9':  { nextId: 'R16_6', slot: 'home' }, // ARG/CPV (M81 → M94)
-    'R32_10': { nextId: 'R16_6', slot: 'away' }, // MEX/ECU (M82 → M94)
-    'R32_11': { nextId: 'R16_5', slot: 'home' }, // ENG/COD (M83 → M93)
-    'R32_12': { nextId: 'R16_5', slot: 'away' }, // BEL/SEN (M84 → M93)
-    'R32_13': { nextId: 'R16_8', slot: 'home' }, // POR/CRO (M85 → M96)
-    'R32_14': { nextId: 'R16_7', slot: 'home' }, // COL/GHA (M86 → M95)
-    'R32_15': { nextId: 'R16_8', slot: 'away' }, // ESP/AUT (M87 → M96)
-    'R32_16': { nextId: 'R16_7', slot: 'away' }, // SUI/ALG (M88 → M95)
-    // Round of 16 to Quarter Finals (R16_1+R16_2→QF_1, R16_5+R16_6→QF_2, R16_3+R16_4→QF_3, R16_7+R16_8→QF_4)
-    'R16_1': { nextId: 'QF_1', slot: 'home' },
-    'R16_2': { nextId: 'QF_1', slot: 'away' },
-    'R16_3': { nextId: 'QF_3', slot: 'home' },
-    'R16_4': { nextId: 'QF_3', slot: 'away' },
-    'R16_5': { nextId: 'QF_2', slot: 'home' }, 
-    'R16_6': { nextId: 'QF_2', slot: 'away' }, 
+    // Round of 32 to Round of 16 — derived from actual DB team placements (real FIFA 2026 draw)
+    'R32_1':  { nextId: 'R16_1', slot: 'home' }, // CAN → R16_1 home
+    'R32_2':  { nextId: 'R16_2', slot: 'home' }, // BRA → R16_2 home
+    'R32_3':  { nextId: 'R16_3', slot: 'home' }, // PAR → R16_3 home
+    'R32_4':  { nextId: 'R16_1', slot: 'away' }, // MAR → R16_1 away
+    'R32_5':  { nextId: 'R16_2', slot: 'away' }, // NOR → R16_2 away
+    'R32_6':  { nextId: 'R16_3', slot: 'away' }, // FRA → R16_3 away
+    'R32_7':  { nextId: 'R16_5', slot: 'home' }, // USA → R16_5 home
+    'R32_8':  { nextId: 'R16_7', slot: 'away' }, // EGY → R16_7 away
+    'R32_9':  { nextId: 'R16_7', slot: 'home' }, // ARG → R16_7 home
+    'R32_10': { nextId: 'R16_4', slot: 'away' }, // MEX → R16_4 away
+    'R32_11': { nextId: 'R16_4', slot: 'home' }, // ENG → R16_4 home
+    'R32_12': { nextId: 'R16_5', slot: 'away' }, // BEL → R16_5 away
+    'R32_13': { nextId: 'R16_6', slot: 'home' }, // POR → R16_6 home
+    'R32_14': { nextId: 'R16_8', slot: 'away' }, // COL → R16_8 away
+    'R32_15': { nextId: 'R16_6', slot: 'away' }, // ESP → R16_6 away
+    'R32_16': { nextId: 'R16_8', slot: 'home' }, // SUI → R16_8 home
+    // Round of 16 to Quarter Finals — derived from actual DB QF teams (FRA/MAR→QF_1, NOR/ENG→QF_2, ESP/BEL→QF_3)
+    'R16_1': { nextId: 'QF_1', slot: 'away' }, // MAR → QF_1 away
+    'R16_2': { nextId: 'QF_2', slot: 'home' }, // NOR → QF_2 home
+    'R16_3': { nextId: 'QF_1', slot: 'home' }, // FRA → QF_1 home
+    'R16_4': { nextId: 'QF_2', slot: 'away' }, // ENG → QF_2 away
+    'R16_5': { nextId: 'QF_3', slot: 'away' }, // BEL → QF_3 away
+    'R16_6': { nextId: 'QF_3', slot: 'home' }, // ESP → QF_3 home
     'R16_7': { nextId: 'QF_4', slot: 'home' }, 
     'R16_8': { nextId: 'QF_4', slot: 'away' }, 
     // Quarter Finals to Semi Finals
