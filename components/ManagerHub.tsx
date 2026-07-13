@@ -238,8 +238,8 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
           const matchDetails = roundMatches.map(m => {
               const pred = myPreds.get(m.id);
               const isDone = DONE.includes(m.status);
-              const predictedWinnerId = pred
-                  ? (pred.home > pred.away ? m.homeTeamId : pred.away > pred.home ? m.awayTeamId : null)
+              const predictedWinnerId = pred?.predictedWinnerId && !pred.predictedWinnerId.startsWith('TBD')
+                  ? pred.predictedWinnerId
                   : null;
               const actualWinnerId = isDone && m.homeScore !== null && m.awayScore !== null
                   ? (m.homeScore > m.awayScore ? m.homeTeamId : m.awayScore > m.homeScore ? m.awayTeamId : null)
