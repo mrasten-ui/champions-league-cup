@@ -636,13 +636,18 @@ export const App = () => {
       return updated;
     });
 
-    // For knockout predictions, capture which team the user intends to win (routing-independent intent)
+    // For knockout predictions, capture which team the user intends to win.
+    // Prefer real match teams (routing-independent) so client-side routing bugs never corrupt pwid.
+    // Fall back to userBracket only for matches with TBD real teams (future rounds not yet assigned).
     let predictedWinnerId: string | undefined;
     if (match.round) {
-      const bracketMatch = userBracket.find(m => m.id === matchId);
-      if (bracketMatch && bracketMatch.homeTeamId !== 'TBD' && bracketMatch.awayTeamId !== 'TBD') {
-        if (Number(h) > Number(a)) predictedWinnerId = bracketMatch.homeTeamId;
-        else if (Number(a) > Number(h)) predictedWinnerId = bracketMatch.awayTeamId;
+      const realHome = match.homeTeamId !== 'TBD' ? match.homeTeamId : undefined;
+      const realAway = match.awayTeamId !== 'TBD' ? match.awayTeamId : undefined;
+      const homeId = realHome ?? userBracket.find(m => m.id === matchId)?.homeTeamId;
+      const awayId = realAway ?? userBracket.find(m => m.id === matchId)?.awayTeamId;
+      if (homeId && awayId && homeId !== 'TBD' && awayId !== 'TBD') {
+        if (Number(h) > Number(a)) predictedWinnerId = homeId;
+        else if (Number(a) > Number(h)) predictedWinnerId = awayId;
       }
     }
 
@@ -767,13 +772,17 @@ export const App = () => {
           // Push staged sc_draft picks into the real predictions table
           const draftEntries = Object.entries(user.scDraft || {});
           if (draftEntries.length > 0) {
+              const realMatchMap = new Map(matches.map(m => [m.id, m]));
               const bracketMatchMap = new Map(userBracket.map(m => [m.id, m]));
               const rows = draftEntries.map(([matchId, { home, away }]) => {
+                  const rm = realMatchMap.get(matchId);
                   const bm = bracketMatchMap.get(matchId);
+                  const homeId = (rm?.homeTeamId !== 'TBD' ? rm?.homeTeamId : undefined) ?? bm?.homeTeamId;
+                  const awayId = (rm?.awayTeamId !== 'TBD' ? rm?.awayTeamId : undefined) ?? bm?.awayTeamId;
                   let predicted_winner_id: string | undefined;
-                  if (bm && bm.homeTeamId !== 'TBD' && bm.awayTeamId !== 'TBD') {
-                      if (home > away) predicted_winner_id = bm.homeTeamId;
-                      else if (away > home) predicted_winner_id = bm.awayTeamId;
+                  if (homeId && awayId && homeId !== 'TBD' && awayId !== 'TBD') {
+                      if (home > away) predicted_winner_id = homeId;
+                      else if (away > home) predicted_winner_id = awayId;
                   }
                   return { user_id: user.email, match_id: matchId, home, away, ...(predicted_winner_id ? { predicted_winner_id } : {}) };
               });
