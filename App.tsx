@@ -12,6 +12,7 @@ import {
   updateBracket,
   calculatePoints,
   getQualifiedRounds,
+  resolvePredictedKnockoutBracket,
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -343,7 +344,10 @@ export const App = () => {
               .filter(m => m.groupId || SC_MATCH_IDS.has(m.id))
               .map(m => m.groupId ? m : { ...m, isLocked: false, homeScore: null, awayScore: null });
           const userKoPicks = userPreds.filter(p => !/^[A-L]\d$/.test(p.matchId));
-          const bracket = applyPredictionsToBracket(scBaseTeamsOnly, teamsData, userKoPicks);
+          const bracket = resolvePredictedKnockoutBracket(
+              applyPredictionsToBracket(scBaseTeamsOnly, teamsData, userKoPicks),
+              userKoPicks
+          );
 
           // Auto-fill 3rd place pick for SC users who didn't select one:
           // use the higher-ranked (lower rank number) SF loser as the winner.
@@ -370,7 +374,11 @@ export const App = () => {
       const fallbackResults = matches
           .filter(m => KO_IDS.has(m.id) && FINISHED_STATUSES.has(m.status ?? '') && m.homeScore !== null && m.awayScore !== null && !userKOIds.has(m.id))
           .map(m => ({ userId: user.email, matchId: m.id, home: m.homeScore!, away: m.awayScore! }));
-      return applyPredictionsToBracket(INITIAL_MATCHES, teamsData, [...userPreds, ...fallbackResults]);
+      const combinedPreds = [...userPreds, ...fallbackResults];
+      return resolvePredictedKnockoutBracket(
+          applyPredictionsToBracket(INITIAL_MATCHES, teamsData, combinedPreds),
+          combinedPreds
+      );
   }, [allPredictions, user, teamsData, matches]);
 
   const liveResultsAsPredictions = useMemo(() => {
@@ -432,7 +440,10 @@ export const App = () => {
                   : p
           );
       }
-      const bracket = applyPredictionsToBracket(INITIAL_MATCHES, teamsData, userPreds);
+      const bracket = resolvePredictedKnockoutBracket(
+          applyPredictionsToBracket(INITIAL_MATCHES, teamsData, userPreds),
+          userPreds
+      );
 
       // Teams predicted to qualify from groups → appear in R32
       const predictedAdvancingTeams = new Set(

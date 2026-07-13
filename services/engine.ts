@@ -435,6 +435,113 @@ export const applyPredictionsToBracket = (
     return currentMatches;
 };
 
+// ─── Historical (frozen) knockout routing ───────────────────────────────────
+// KNOCKOUT_PROGRESSION above reflects the CURRENT, corrected real-world bracket
+// and must keep tracking reality for live scoring. But a player's R16+ picks
+// were made against whatever routing was on screen AT THE TIME — which has
+// since been corrected twice (commits 32ed16d, c80b865). Replaying old picks
+// through the current map silently reassigns them to different teams. This
+// frozen snapshot is verified byte-identical to git commits d450b595 (live
+// right before R32_1 kickoff — the non-SC deadline) and e2cc8eef (live right
+// before R32_2 kickoff — the SC deadline): both audiences saw the same
+// routing, so one table serves both. Use ONLY to reconstruct "what did this
+// player predict" for display; never for real-match bracket progression.
+const HISTORICAL_KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'away' }> = {
+    'R32_1':  { nextId: 'R16_2', slot: 'home' },
+    'R32_2':  { nextId: 'R16_1', slot: 'home' },
+    'R32_3':  { nextId: 'R16_2', slot: 'away' },
+    'R32_4':  { nextId: 'R16_3', slot: 'home' },
+    'R32_5':  { nextId: 'R16_1', slot: 'away' },
+    'R32_6':  { nextId: 'R16_3', slot: 'away' },
+    'R32_7':  { nextId: 'R16_4', slot: 'home' },
+    'R32_8':  { nextId: 'R16_4', slot: 'away' },
+    'R32_9':  { nextId: 'R16_6', slot: 'home' },
+    'R32_10': { nextId: 'R16_6', slot: 'away' },
+    'R32_11': { nextId: 'R16_5', slot: 'home' },
+    'R32_12': { nextId: 'R16_5', slot: 'away' },
+    'R32_13': { nextId: 'R16_8', slot: 'home' },
+    'R32_14': { nextId: 'R16_7', slot: 'home' },
+    'R32_15': { nextId: 'R16_8', slot: 'away' },
+    'R32_16': { nextId: 'R16_7', slot: 'away' },
+    'R16_1': { nextId: 'QF_1', slot: 'home' },
+    'R16_2': { nextId: 'QF_1', slot: 'away' },
+    'R16_3': { nextId: 'QF_3', slot: 'home' },
+    'R16_4': { nextId: 'QF_3', slot: 'away' },
+    'R16_5': { nextId: 'QF_2', slot: 'home' },
+    'R16_6': { nextId: 'QF_2', slot: 'away' },
+    'R16_7': { nextId: 'QF_4', slot: 'home' },
+    'R16_8': { nextId: 'QF_4', slot: 'away' },
+    'QF_1': { nextId: 'SF_1', slot: 'home' },
+    'QF_2': { nextId: 'SF_1', slot: 'away' },
+    'QF_3': { nextId: 'SF_2', slot: 'home' },
+    'QF_4': { nextId: 'SF_2', slot: 'away' },
+    'SF_1': { nextId: 'FIN_1', slot: 'home' },
+    'SF_2': { nextId: 'FIN_1', slot: 'away' },
+};
+
+// Rebuilds a player's own predicted bracket for display. R32 team identity is
+// taken as-is from `baseMatches` (already resolved by the caller — real R32
+// results for SC players, or the player's own group-stage cascade for
+// non-SC). R16+ team identity is resolved from each match's stored
+// `predictedWinnerId` (the authoritative record of what the player actually
+// picked, now backfilled correctly), routed forward through
+// HISTORICAL_KNOCKOUT_PROGRESSION rather than the live/current map. Falls
+// back to deriving the winner from home/away scores only when
+// predictedWinnerId is missing for a match.
+export const resolvePredictedKnockoutBracket = (
+    baseMatches: Match[],
+    userPredictions: Prediction[]
+): Match[] => {
+    const next = baseMatches.map(m => ({ ...m }));
+    const predsMap = new Map(userPredictions.map(p => [p.matchId, p]));
+    const winnerOf = (matchId: string): string | undefined => {
+        const w = predsMap.get(matchId)?.predictedWinnerId;
+        return w && !w.startsWith('TBD') ? w : undefined;
+    };
+
+    // R16+ identity must be rebuilt from historical routing, not whatever the
+    // base bracket (built with the current/live map) already assigned.
+    next.forEach(m => {
+        if (m.round && m.round !== 'R32') {
+            m.homeTeamId = 'TBD';
+            m.awayTeamId = 'TBD';
+        }
+    });
+
+    (['R32', 'R16', 'QF', 'SF'] as const).forEach(round => {
+        next.filter(m => m.round === round).forEach(match => {
+            const prog = HISTORICAL_KNOCKOUT_PROGRESSION[match.id];
+            if (!prog) return;
+
+            let winnerId = winnerOf(match.id);
+            if (!winnerId && match.homeScore !== null && match.awayScore !== null &&
+                match.homeTeamId !== 'TBD' && match.awayTeamId !== 'TBD') {
+                if (match.homeScore > match.awayScore) winnerId = match.homeTeamId;
+                else if (match.awayScore > match.homeScore) winnerId = match.awayTeamId;
+            }
+            if (!winnerId) return;
+
+            const nextMatch = next.find(m => m.id === prog.nextId);
+            if (nextMatch) {
+                if (prog.slot === 'home') nextMatch.homeTeamId = winnerId;
+                else nextMatch.awayTeamId = winnerId;
+            }
+
+            // 3rd place match is fed by the SF losers.
+            if (round === 'SF' && (match.id === 'SF_1' || match.id === 'SF_2')) {
+                const loserId = winnerId === match.homeTeamId ? match.awayTeamId : match.homeTeamId;
+                const thirdPlaceMatch = next.find(m => m.id === '3RD_1');
+                if (thirdPlaceMatch && loserId && loserId !== 'TBD') {
+                    if (match.id === 'SF_1') thirdPlaceMatch.homeTeamId = loserId;
+                    else thirdPlaceMatch.awayTeamId = loserId;
+                }
+            }
+        });
+    });
+
+    return next;
+};
+
 export interface QualifiedRound {
     key: string;
     label: string;
