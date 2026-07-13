@@ -251,11 +251,11 @@ const KNOCKOUT_PROGRESSION: Record<string, { nextId: string, slot: 'home' | 'awa
     'R16_6': { nextId: 'QF_3', slot: 'home' }, // ESP → QF_3 home
     'R16_7': { nextId: 'QF_4', slot: 'home' }, 
     'R16_8': { nextId: 'QF_4', slot: 'away' }, 
-    // Quarter Finals to Semi Finals
-    'QF_1': { nextId: 'SF_1', slot: 'home' }, 
-    'QF_2': { nextId: 'SF_1', slot: 'away' }, 
-    'QF_3': { nextId: 'SF_2', slot: 'home' }, 
-    'QF_4': { nextId: 'SF_2', slot: 'away' }, 
+    // Quarter Finals to Semi Finals — DB: SF_1=FRA/ESP (QF_1,QF_3), SF_2=ENG/ARG (QF_2,QF_4)
+    'QF_1': { nextId: 'SF_1', slot: 'home' }, // FRA → SF_1 home
+    'QF_2': { nextId: 'SF_2', slot: 'home' }, // ENG → SF_2 home (was SF_1 away — FIXED)
+    'QF_3': { nextId: 'SF_1', slot: 'away' }, // ESP → SF_1 away (was SF_2 home — FIXED)
+    'QF_4': { nextId: 'SF_2', slot: 'away' }, // ARG → SF_2 away
     // Semi Finals to Final / 3rd Place
     'SF_1': { nextId: 'FIN_1', slot: 'home' },
     'SF_2': { nextId: 'FIN_1', slot: 'away' },
