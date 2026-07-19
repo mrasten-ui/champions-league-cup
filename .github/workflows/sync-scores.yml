@@ -1,13 +1,8 @@
 name: Sync Live Scores
 
 on:
-  schedule:
-    # Runs every 5 minutes — GitHub's minimum for scheduled workflows.
-    # During the World Cup (June 11 – July 19 2026) this keeps scores
-    # current within 5 minutes of real time. The script skips the API
-    # call entirely on days with no scheduled matches, so quota is only
-    # consumed on actual match days.
-    - cron: '*/5 * * * *'
+  # Automatic 5-minute schedule disabled — tournament ended July 19, 2026.
+  # Re-add a `schedule: - cron: '*/5 * * * *'` entry here for the next one.
   workflow_dispatch: # Manual trigger from the GitHub Actions UI
 
 jobs:

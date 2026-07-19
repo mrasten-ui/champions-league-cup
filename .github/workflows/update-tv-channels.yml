@@ -1,9 +1,8 @@
 name: Update TV Channels
 
 on:
-  schedule:
-    # Once a day at 07:00 UTC — picks up any newly confirmed channel assignments
-    - cron: '0 7 * * *'
+  # Automatic daily schedule disabled — tournament ended July 19, 2026.
+  # Re-add a `schedule: - cron: '0 7 * * *'` entry here for the next one.
   workflow_dispatch:
     # Manual "Run workflow" button for testing or immediate refresh
 
