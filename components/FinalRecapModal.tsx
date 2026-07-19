@@ -12,73 +12,87 @@ interface FinalRecapModalProps {
     totalPoints: number;
     rank: number;
     totalPlayers: number;
+    championName: string;
+    championFlag: string;
 }
 
 const assetLang: Record<LanguageCode, string> = { EN: 'en', NO: 'no', SCO: 'sc', US: 'us' };
 
 type TierMessageFn = (rank: number, totalPlayers: number, name: string) => string;
 
-const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: string; cta: string; close: string; message: TierMessageFn }> = {
+const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: string; leagueLabel: string; cta: string; close: string; thanks: string; champion: (name: string) => string; message: TierMessageFn }> = {
     EN: {
         badge: 'FULL TIME — TOURNAMENT OVER ✓',
         ptsLabel: 'points',
         rankLabel: 'of',
+        leagueLabel: 'in your league',
         cta: 'See Full Leaderboard →',
         close: 'Close',
+        thanks: 'Thanks for playing the Rasten Cup!',
+        champion: (name) => `${name} are World Champions!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, you actually won the whole thing. Champion manager — take a bow!`;
             if (rank <= 3) return `${name}, a podium finish! Top ${rank} of ${total} managers — brilliant tournament.`;
             if (rank <= 10) return `${name}, a top ${rank} finish out of ${total}. Proper managerial nous.`;
             if (rank / total <= 0.5) return `${name}, finishing #${rank} of ${total} — solidly upper half. Respectable stuff.`;
-            return `${name}, you finished #${rank} of ${total}. There's always next tournament — thanks for playing!`;
+            return `${name}, you finished #${rank} of ${total}. There's always next tournament!`;
         },
     },
     NO: {
         badge: 'FULLTID — TURNERINGEN ER OVER ✓',
         ptsLabel: 'poeng',
         rankLabel: 'av',
+        leagueLabel: 'i ligaen din',
         cta: 'Se hele resultatlisten →',
         close: 'Lukk',
+        thanks: 'Takk for at du ble med i Rasten Cup!',
+        champion: (name) => `${name} er verdensmestere!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, du vant hele greia! Mesterskapsmanager — buk for folket!`;
             if (rank <= 3) return `${name}, pallplass! Nummer ${rank} av ${total} managere — strålende turnering.`;
             if (rank <= 10) return `${name}, en topp ${rank}-plassering av ${total}. Skikkelig manager-teft.`;
             if (rank / total <= 0.5) return `${name}, du endte på #${rank} av ${total} — solid øvre halvdel. Bra jobba.`;
-            return `${name}, du endte på #${rank} av ${total}. Det er alltid neste turnering — takk for at du var med!`;
+            return `${name}, du endte på #${rank} av ${total}. Det er alltid neste turnering!`;
         },
     },
     SCO: {
         badge: "FULL TIME — IT'S A' OVER ✓",
         ptsLabel: 'points',
         rankLabel: 'oot of',
+        leagueLabel: 'in yer league',
         cta: 'See the Full Table →',
         close: 'Away ye go',
+        thanks: 'Cheers for playin' + "' the Rasten Cup!",
+        champion: (name) => `${name} are World Champions, so they are!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, ye actually won the hale thing. Champion manager — get it up ye!`;
             if (rank <= 3) return `${name}, a podium finish! Top ${rank} oot o' ${total} managers — magic tournament.`;
             if (rank <= 10) return `${name}, a top ${rank} finish oot o' ${total}. Pure gallus.`;
             if (rank / total <= 0.5) return `${name}, finishin' #${rank} oot o' ${total} — solid upper half, nae bad.`;
-            return `${name}, ye finished #${rank} oot o' ${total}. There's always next time — cheers for playin'!`;
+            return `${name}, ye finished #${rank} oot o' ${total}. There's always next time!`;
         },
     },
     US: {
         badge: 'FINAL WHISTLE — IT’S ALL OVER ✓',
         ptsLabel: 'points',
         rankLabel: 'of',
+        leagueLabel: 'in your league',
         cta: 'See Full Leaderboard →',
         close: 'Close',
+        thanks: 'Thanks for playing the Rasten Cup!',
+        champion: (name) => `${name} are World Champions!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, you actually won the whole thing. Champion manager — take a bow!`;
             if (rank <= 3) return `${name}, a podium finish! Top ${rank} of ${total} managers — brilliant tournament.`;
             if (rank <= 10) return `${name}, a top ${rank} finish out of ${total}. That's real managerial instinct.`;
             if (rank / total <= 0.5) return `${name}, finishing #${rank} of ${total} — solidly upper half. Nice work.`;
-            return `${name}, you finished #${rank} of ${total}. There's always next tournament — thanks for playing!`;
+            return `${name}, you finished #${rank} of ${total}. There's always next tournament!`;
         },
     },
 };
 
 export const FinalRecapModal: React.FC<FinalRecapModalProps> = ({
-    isOpen, onClose, onViewLeaderboard, langCode, userName, totalPoints, rank, totalPlayers,
+    isOpen, onClose, onViewLeaderboard, langCode, userName, totalPoints, rank, totalPlayers, championName, championFlag,
 }) => {
     if (!isOpen) return null;
 
@@ -95,6 +109,21 @@ export const FinalRecapModal: React.FC<FinalRecapModalProps> = ({
             <div className="relative w-full max-w-lg mx-0 sm:mx-4 sm:mb-0 animate-in slide-in-from-bottom-4 duration-400">
                 <div className={`w-full bg-[#0f172a] border-t-4 shadow-[0_-20px_60px_rgba(0,0,0,0.9)] sm:rounded-2xl sm:border-4 overflow-hidden ${isChampion ? 'border-yellow-400' : isPodium ? 'border-amber-400' : 'border-blue-500'}`}>
 
+                    {/* World Cup winner banner — always the real result, independent of this player's score */}
+                    {championFlag && championName && (
+                        <div className="flex items-center justify-center gap-3 py-4 bg-gradient-to-b from-yellow-400/15 to-transparent border-b border-yellow-400/20">
+                            <img src={championFlag} alt="" className="w-12 h-9 sm:w-14 sm:h-10 object-cover rounded shadow-[0_0_20px_rgba(250,204,21,0.4)]" />
+                            <div className="flex flex-col">
+                                <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest leading-none flex items-center gap-1">
+                                    <Trophy size={10} /> World Champions
+                                </span>
+                                <span className="text-white text-base sm:text-lg font-black leading-tight mt-0.5">
+                                    {copy.champion(championName)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Character layer + badge */}
                     <div className="relative flex items-end min-h-[110px] sm:min-h-[130px]">
                         <img
@@ -110,6 +139,9 @@ export const FinalRecapModal: React.FC<FinalRecapModalProps> = ({
                             </span>
                             <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
                                 {copy.message(rank, totalPlayers, userName)}
+                            </p>
+                            <p className="text-slate-400 text-[11px] sm:text-[13px] leading-snug italic">
+                                {copy.thanks}
                             </p>
                         </div>
                     </div>
@@ -130,6 +162,9 @@ export const FinalRecapModal: React.FC<FinalRecapModalProps> = ({
                             </span>
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">
                                 {copy.rankLabel} {totalPlayers}
+                            </span>
+                            <span className="text-[8px] font-bold text-slate-500 mt-0.5">
+                                {copy.leagueLabel}
                             </span>
                         </div>
                     </div>

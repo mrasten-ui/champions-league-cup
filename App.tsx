@@ -1268,7 +1268,18 @@ export const App = () => {
           u => !user.leagues?.length || u.leagues?.some(l => user.leagues!.includes(l))
       );
       const { rank, totalPlayers, score } = computeFinalRank(user.email, leagueMates, matches, allPredictions, teamsData);
-      return { rank, totalPlayers, totalPoints: score.totalPoints };
+
+      const fin = matches.find(m => m.id === 'FIN_1');
+      const championId = fin && fin.homeScore !== null && fin.awayScore !== null
+          ? (fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayScore > fin.homeScore ? fin.awayTeamId : null)
+          : null;
+      const championTeam = championId ? teamsData[championId] : undefined;
+
+      return {
+          rank, totalPlayers, totalPoints: score.totalPoints,
+          championName: championTeam?.name ?? '',
+          championFlag: championTeam?.flag ?? '',
+      };
   }, [isFinalOver, user, usersDb, matches, allPredictions, teamsData]);
 
   // Show the final recap once, the first time this player loads the app after FIN_1 finishes.
@@ -1888,6 +1899,8 @@ export const App = () => {
               totalPoints={finalRecap.totalPoints}
               rank={finalRecap.rank}
               totalPlayers={finalRecap.totalPlayers}
+              championName={finalRecap.championName}
+              championFlag={finalRecap.championFlag}
           />
       )}
       <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} pickedTeams={predictedKOTeamCount} r32Tracker={r32Tracker} onDismiss={handleSCReminderDismiss} langCode={language} />
