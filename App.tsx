@@ -62,7 +62,6 @@ const STORAGE_KEYS = {
   NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
   SC_REMINDER_GROUP_PREFIX:    'rasten_sc_reminder_group_v1_',
   SC_REMINDER_KNOCKOUT_PREFIX: 'rasten_sc_reminder_ko_v1_',
-  FINAL_RECAP_SHOWN_PREFIX:    'rasten_final_recap_v1_',
 };
 
 export const App = () => {
@@ -1282,15 +1281,18 @@ export const App = () => {
       };
   }, [isFinalOver, user, usersDb, matches, allPredictions, teamsData]);
 
-  // Show the final recap once, the first time this player loads the app after FIN_1 finishes.
+  // Show the final recap once per app load/session — it's the tournament closing
+  // screen, so it's meant to greet every login rather than be dismissed forever.
+  // The ref (not localStorage) just stops it re-firing mid-session if finalRecap
+  // recomputes (e.g. a live data refresh) while the modal is already showing.
+  const finalRecapShownThisSessionRef = useRef(false);
   useEffect(() => {
-      if (!user || !finalRecap) return;
-      const shownKey = STORAGE_KEYS.FINAL_RECAP_SHOWN_PREFIX + user.email;
-      if (!localStorage.getItem(shownKey)) setShowFinalRecapModal(true);
+      if (!user || !finalRecap || finalRecapShownThisSessionRef.current) return;
+      finalRecapShownThisSessionRef.current = true;
+      setShowFinalRecapModal(true);
   }, [finalRecap, user]);
 
   const handleFinalRecapDismiss = () => {
-      if (user) localStorage.setItem(STORAGE_KEYS.FINAL_RECAP_SHOWN_PREFIX + user.email, Date.now().toString());
       setShowFinalRecapModal(false);
   };
 
