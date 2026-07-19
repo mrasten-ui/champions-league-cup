@@ -13,6 +13,7 @@ import {
   calculatePoints,
   getQualifiedRounds,
   resolvePredictedKnockoutBracket,
+  computeFinalRank,
 } from './services/engine';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
@@ -34,6 +35,7 @@ import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
 import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
+import { FinalRecapModal } from './components/FinalRecapModal';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
@@ -60,6 +62,7 @@ const STORAGE_KEYS = {
   NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
   SC_REMINDER_GROUP_PREFIX:    'rasten_sc_reminder_group_v1_',
   SC_REMINDER_KNOCKOUT_PREFIX: 'rasten_sc_reminder_ko_v1_',
+  FINAL_RECAP_SHOWN_PREFIX:    'rasten_final_recap_v1_',
 };
 
 export const App = () => {
@@ -119,6 +122,7 @@ export const App = () => {
   const [showLiveTour, setShowLiveTour] = useState(false);
   const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
+  const [showFinalRecapModal, setShowFinalRecapModal] = useState(false);
   const [showSCReminder, setShowSCReminder] = useState(false);
   const [scReminderType, setScReminderType] = useState<SCReminderType>('group');
   const [goalQueue, setGoalQueue] = useState<GoalNotification[]>([]);
@@ -1252,6 +1256,33 @@ export const App = () => {
       if (neverShown || remindAgain) setShowKnockoutReminder(true);
   }, [isGroupStageComplete, userKnockoutPredictionsCount, user, tournamentPhase]);
 
+  const isFinalOver = useMemo(() => {
+      const FINISHED_STATUSES = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
+      const fin = matches.find(m => m.id === 'FIN_1');
+      return !!fin && FINISHED_STATUSES.has(fin.status ?? '') && fin.homeScore !== null && fin.awayScore !== null;
+  }, [matches]);
+
+  const finalRecap = useMemo(() => {
+      if (!isFinalOver || !user) return null;
+      const leagueMates = (Object.values(usersDb) as UserProfile[]).filter(
+          u => !user.leagues?.length || u.leagues?.some(l => user.leagues!.includes(l))
+      );
+      const { rank, totalPlayers, score } = computeFinalRank(user.email, leagueMates, matches, allPredictions, teamsData);
+      return { rank, totalPlayers, totalPoints: score.totalPoints };
+  }, [isFinalOver, user, usersDb, matches, allPredictions, teamsData]);
+
+  // Show the final recap once, the first time this player loads the app after FIN_1 finishes.
+  useEffect(() => {
+      if (!user || !finalRecap) return;
+      const shownKey = STORAGE_KEYS.FINAL_RECAP_SHOWN_PREFIX + user.email;
+      if (!localStorage.getItem(shownKey)) setShowFinalRecapModal(true);
+  }, [finalRecap, user]);
+
+  const handleFinalRecapDismiss = () => {
+      if (user) localStorage.setItem(STORAGE_KEYS.FINAL_RECAP_SHOWN_PREFIX + user.email, Date.now().toString());
+      setShowFinalRecapModal(false);
+  };
+
   const handleTickerMatchClick = (match: Match) => {
     if (match.groupId) {
       if (tournamentPhase === 'LIVE') {
@@ -1847,6 +1878,18 @@ export const App = () => {
       <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
+      {finalRecap && (
+          <FinalRecapModal
+              isOpen={showFinalRecapModal}
+              onClose={handleFinalRecapDismiss}
+              onViewLeaderboard={() => { handleFinalRecapDismiss(); setActiveTab('leaderboard'); }}
+              langCode={language}
+              userName={user?.name || ''}
+              totalPoints={finalRecap.totalPoints}
+              rank={finalRecap.rank}
+              totalPlayers={finalRecap.totalPlayers}
+          />
+      )}
       <SecondChanceReminderModal isOpen={showSCReminder} type={scReminderType} pickedTeams={predictedKOTeamCount} r32Tracker={r32Tracker} onDismiss={handleSCReminderDismiss} langCode={language} />
       <GoalBanner
         notification={goalNotification}

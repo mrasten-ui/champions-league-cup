@@ -673,6 +673,78 @@ export const getQualifiedRounds = (
     return result;
 };
 
+export interface UserFinalScore {
+    totalPoints: number;
+    groupPoints: number;
+    knockoutPoints: number;
+    exactCount: number;
+}
+
+// Mirrors Leaderboard.tsx's userStats calculation (totalPoints/groupPoints/
+// knockoutPoints/exactCount only — bankedPoints/form/streak/koBreakdown are
+// display-only extras that live in Leaderboard.tsx). Kept here so any other
+// caller needing "this player's score" reuses the same calculatePoints +
+// getQualifiedRounds combination instead of re-deriving it.
+export const computeUserFinalScore = (
+    user: UserProfile,
+    matches: Match[],
+    allPredictions: Prediction[],
+    teams: Record<string, Team>
+): UserFinalScore => {
+    let totalPoints = 0;
+    let groupPoints = 0;
+    let knockoutPoints = 0;
+    let exactCount = 0;
+
+    matches.forEach(match => {
+        const pred = allPredictions.find(p => p.userId === user.email && p.matchId === match.id);
+        if (pred && match.homeScore !== null && match.awayScore !== null) {
+            const pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, user.hasTakenSecondChance || false, match.round);
+            totalPoints += pts;
+            if (match.groupId) {
+                groupPoints += pts;
+                if (pred.home === match.homeScore && pred.away === match.awayScore) exactCount++;
+            } else {
+                knockoutPoints += pts;
+            }
+        }
+    });
+
+    const bracketQualPoints = getQualifiedRounds(
+        matches,
+        allPredictions.filter(p => p.userId === user.email),
+        user,
+        teams
+    ).reduce((sum, qr) => sum + qr.totalPoints, 0);
+    totalPoints += bracketQualPoints;
+    knockoutPoints += bracketQualPoints;
+
+    return { totalPoints, groupPoints, knockoutPoints, exactCount };
+};
+
+// Same tie-break order as Leaderboard.tsx's liveRanked sort (totalPoints,
+// then exactCount, then knockoutPoints).
+export const computeFinalRank = (
+    targetEmail: string,
+    users: UserProfile[],
+    matches: Match[],
+    allPredictions: Prediction[],
+    teams: Record<string, Team>
+): { rank: number; totalPlayers: number; score: UserFinalScore } => {
+    const ranked = users
+        .map(u => ({ email: u.email, ...computeUserFinalScore(u, matches, allPredictions, teams) }))
+        .sort((a, b) => {
+            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+            if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
+            return b.knockoutPoints - a.knockoutPoints;
+        });
+    const idx = ranked.findIndex(u => u.email === targetEmail);
+    const score = idx === -1
+        ? { totalPoints: 0, groupPoints: 0, knockoutPoints: 0, exactCount: 0 }
+        : ranked[idx];
+    return { rank: idx === -1 ? -1 : idx + 1, totalPlayers: ranked.length, score };
+};
+
 export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[], riskLevel = 0.5): Match[] => {
   return matches.map(match => {
     if (match.homeTeamId === 'TBD' || match.awayTeamId === 'TBD') return match;
