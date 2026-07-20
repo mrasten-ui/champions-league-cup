@@ -80,10 +80,16 @@ export interface Translation {
   rulesLiveAnalysisDesc: string;
 }
 
-export type Round = 'R32' | 'R16' | 'QF' | 'SF' | 'FIN' | '3RD';
+// 'R32'/'3RD' are World Cup leftovers with no CL equivalent — kept only so the
+// still-unmigrated peripheral display files (Leaderboard, KnockoutTreeView,
+// SecondChanceView, etc — see Phase A refactor plan) keep compiling. Nothing
+// produces an 'R32' or '3RD' match going forward. 'PO' is the new Swiss-format
+// Playoff Round (replaces R32 as the first knockout round).
+export type Round = 'PO' | 'R16' | 'QF' | 'SF' | 'FIN' | 'R32' | '3RD';
 
 export interface Match {
   id: string;
+  /** @deprecated World Cup group concept. No longer populated — Match.round is the sole phase discriminator (undefined = League Phase, set = Knockout). Kept only for compile compatibility with not-yet-migrated peripheral files. */
   groupId?: string;
   round?: Round;
   homeTeamId: string;
@@ -151,7 +157,7 @@ export interface UserProfile {
   scDraft?: Record<string, { home: number; away: number }>;
 }
 
-export interface GroupStanding {
+export interface LeagueStanding {
   teamId: string;
   played: number;
   won: number;
@@ -161,8 +167,17 @@ export interface GroupStanding {
   ga: number;
   gd: number;
   pts: number;
-  form: string[]; 
+  form: string[];
+  // Tracked separately for the away-goals/away-wins tiebreak steps (CL League
+  // Phase tiebreak order: Pts, GD, GF, Away Goals, Wins, Away Wins). Optional —
+  // not populated by the legacy World Cup group-standings code path (aliased
+  // below as GroupStanding), which has no away-goals tiebreak concept.
+  awayGoals?: number;
+  awayWins?: number;
 }
+
+/** @deprecated World Cup name for this shape. Use LeagueStanding. Kept as an alias so not-yet-migrated peripheral files keep compiling. */
+export type GroupStanding = LeagueStanding;
 
 export interface HeadToHeadStats {
     totalMatches: number;

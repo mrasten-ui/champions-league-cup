@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap, Shield } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
-import { 
+import {
   calculateGroupStandings,
+  calculateLeagueStandings,
   simulateFullTournament,
   applyPredictionsToBracket,
   simulateTournamentAtDate,
@@ -11,10 +12,11 @@ import {
   getThirdPlaceStandings,
   updateBracket,
   calculatePoints,
-  getQualifiedRounds,
+  getQualifiedRoundsSwiss,
   resolvePredictedKnockoutBracket,
   computeFinalRank,
 } from './services/engine';
+import { isMatchLocked } from './utils/date';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
 import { MagicWand } from './components/MagicWand';
@@ -22,8 +24,7 @@ import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
 import { KnockoutTreeView } from './components/KnockoutTreeView';
 import { Leaderboard } from './components/Leaderboard';
-import { ManagerHub } from './components/ManagerHub'; 
-import { GroupStageSummary } from './components/GroupStageSummary';
+import { ManagerHub } from './components/ManagerHub';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesPage } from './components/RulesPage';
 import { PredictionNudge } from './components/PredictionNudge';
@@ -100,10 +101,13 @@ export const App = () => {
   // Admin can override for testing only (requires admin mode to be active).
   const tournamentPhase = useMemo<TournamentPhase>(() => {
       if (isAdminMode && adminPhaseOverride !== null) return adminPhaseOverride;
-      const anyGroupStarted = matches.some(
-          m => m.groupId && !['UPCOMING', 'NS'].includes(m.status)
+      // !m.round (not m.groupId) is the League Phase discriminator — identical to the old check
+      // for existing World Cup data (group matches never have a round set either), but also
+      // correctly covers new League Phase matches, which never populate groupId at all.
+      const anyLeaguePhaseStarted = matches.some(
+          m => !m.round && !['UPCOMING', 'NS'].includes(m.status)
       );
-      return (anyGroupStarted || lockTimePassed) ? 'LIVE' : 'PRE_LIVE';
+      return (anyLeaguePhaseStarted || lockTimePassed) ? 'LIVE' : 'PRE_LIVE';
   }, [matches, isAdminMode, adminPhaseOverride, lockTimePassed]);
   const setTournamentPhase = setAdminPhaseOverride;
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -395,19 +399,6 @@ export const App = () => {
         }));
   }, [matches]);
 
-  // --- 3RD PLACE CALCULATIONS ---
-  const officialQualifiedThirds = useMemo(() => {
-      const all = getAllGroupStandings(matches, teamsData);
-      const thirds = getThirdPlaceStandings(all);
-      return new Set(thirds.slice(0, 8).map(t => t.teamId));
-  }, [matches, teamsData]);
-
-  const predictedQualifiedThirds = useMemo(() => {
-      const all = getAllGroupStandings(userMatches, teamsData);
-      const thirds = getThirdPlaceStandings(all);
-      return new Set(thirds.slice(0, 8).map(t => t.teamId));
-  }, [userMatches, teamsData]);
-
   // Pure prediction matches: force-unlock all group matches so the user's original
   // predictions always override real scores. Finished matches are normally locked,
   // which makes "predicted" standings converge to actual as games complete — not what we want here.
@@ -591,9 +582,14 @@ export const App = () => {
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
     const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
     const matchKickoffPassed = match.date !== 'TBD' && new Date(match.date).getTime() <= Date.now();
-    const isSecondChanceDrafting = user.secondChanceStatus === 'PENDING' && !match.groupId && !matchKickoffPassed;
+    // !!match.round (not !match.groupId) is the knockout discriminator — identical for existing
+    // World Cup data, also correct for new League Phase matches (which never set groupId).
+    const isSecondChanceDrafting = user.secondChanceStatus === 'PENDING' && !!match.round && !matchKickoffPassed;
+    // isMatchLocked folds in the rolling 1-hour-before-kickoff window on top of the same checks
+    // match.isLocked used to cover alone (admin override, live, finished) — keeps this write-time
+    // gate in sync with what MatchCard's input UI actually disables.
     const effectiveLock = isSecondChanceDrafting ? false
-        : (isInLateWindow && matchNotStarted ? false : match.isLocked);
+        : (isInLateWindow && matchNotStarted ? false : isMatchLocked(match));
     if (!match || (effectiveLock && !isWhitelisted)) return;
 
     // SC DRAFTING: save to staging (sc_draft on profiles), not predictions table
@@ -607,9 +603,9 @@ export const App = () => {
 
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
 
-    // --- Cascade: detect knockout slots that shift due to this group prediction ---
+    // --- Cascade: detect knockout slots that shift due to this League Phase prediction ---
     let idsToDelete: string[] = [];
-    if (match.groupId) {
+    if (!match.round) {
       const updatedPreds = (() => {
         const idx = allPredictions.findIndex(p => p.userId === user.email && p.matchId === matchId);
         if (idx > -1) { const copy = [...allPredictions]; copy[idx] = newPred; return copy; }
@@ -1143,31 +1139,18 @@ export const App = () => {
       [allPredictions, user, knockoutMatches]
   );
   
-  const firstIncompleteGroup = useMemo(() => {
-    if (isGroupStageComplete || !user) return null;
-    for (const group of GROUP_CONFIG) {
-        const gMatches = matches.filter(m => m.groupId === group.id);
-        const gPreds = allPredictions.filter(p => p.userId === user.email && gMatches.some(gm => gm.id === p.matchId));
-        if (gPreds.length < gMatches.length) return group.id;
-    }
-    return 'A';
-  }, [matches, allPredictions, user, isGroupStageComplete]);
+  // Real-world (not per-user prediction-completeness) gate: the Knockout Bracket unlocks once
+  // every League Phase match has actually finished, same for all players.
+  const isLeaguePhaseComplete = useMemo(() => {
+      const leagueMatches = matches.filter(m => !m.round);
+      if (leagueMatches.length === 0) return false;
+      const DONE_STATUSES = ['FT', 'AET', 'PEN', 'FINISHED'];
+      return leagueMatches.every(m => DONE_STATUSES.includes(m.status));
+  }, [matches]);
 
   // --- NAVIGATION ---
-  const handlePrevGroup = useCallback(() => {
-    const idx = GROUP_CONFIG.findIndex(g => g.id === activeGroup);
-    setActiveGroup(GROUP_CONFIG[(idx - 1 + GROUP_CONFIG.length) % GROUP_CONFIG.length].id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activeGroup]);
-
-  const handleNextGroup = useCallback(() => {
-    const idx = GROUP_CONFIG.findIndex(g => g.id === activeGroup);
-    setActiveGroup(GROUP_CONFIG[(idx + 1) % GROUP_CONFIG.length].id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activeGroup]);
-
-  const ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
-  const SC_ROUND_ORDER: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const ROUND_ORDER: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
+  const SC_ROUND_ORDER: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
   const isScUser = user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE';
   const handlePrevRound = () => {
     const order = isScUser ? SC_ROUND_ORDER : ROUND_ORDER;
@@ -1181,8 +1164,6 @@ export const App = () => {
     if (idx < order.length - 1) { setActiveKnockoutRound(order[idx + 1]); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     else setActiveTab('leaderboard');
   };
-
-  const handleGoToGroup = (groupId: string) => { setActiveGroup(groupId); setActiveTab('groups'); setShowOverview(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const navTabs = useMemo(() => {
       if (effectiveTournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
@@ -1214,12 +1195,8 @@ export const App = () => {
   }, [tournamentSubTab, handlePrevTab]);
 
   const swipeHandlers = useSwipe({
-      onSwipeLeft:  activeTab === 'groups'     ? handleNextGroup
-                  : activeTab === 'tournament' ? handleNextTournamentSub
-                  : handleNextTab,
-      onSwipeRight: activeTab === 'groups'     ? handlePrevGroup
-                  : activeTab === 'tournament' ? handlePrevTournamentSub
-                  : handlePrevTab,
+      onSwipeLeft:  activeTab === 'tournament' ? handleNextTournamentSub : handleNextTab,
+      onSwipeRight: activeTab === 'tournament' ? handlePrevTournamentSub : handlePrevTab,
   });
 
   useEffect(() => {
@@ -1513,7 +1490,7 @@ export const App = () => {
                   if (!pred) return sum;
                   return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
               }, 0);
-              const bracketPts = getQualifiedRounds(matches, userPreds, u, teamsData)
+              const bracketPts = getQualifiedRoundsSwiss(matches, userPreds, u, teamsData)
                   .reduce((sum, r) => sum + r.totalPoints, 0);
               return { user: u, score: matchPts + bracketPts, rank: 0, diff: 0 };
           }).sort((a, b) => b.score - a.score).map((s, i) => ({ ...s, rank: i + 1 }));
@@ -1537,8 +1514,8 @@ export const App = () => {
           runBriefGeneration();
       }
   }, [user?.email, matches.length, Object.keys(teamsData).length]);
-  const standings = useMemo(() => calculateGroupStandings(activeGroup, userMatches, teamsData), [activeGroup, userMatches, teamsData]);
-  const groupMatchesList = userMatches.filter(m => m.groupId === activeGroup);
+  const leagueStandings = useMemo(() => calculateLeagueStandings(userMatches, teamsData), [userMatches, teamsData]);
+  const leagueMatchesList = userMatches.filter(m => !m.round);
   
   const showClearTrash = useMemo(() => {
     if (!user) return false;
@@ -1719,16 +1696,10 @@ export const App = () => {
                 </div>
                 {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} predictedKnockoutWinners={predictedKnockoutWinners} />}
                 {tournamentSubTab === 'tables' && (
-                    <div className="pb-20 max-w-5xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-1">
-                            {GROUP_CONFIG.map(g => (
-                                <div key={g.id} id={`group-card-${g.id}`} className="w-full">
-                                    <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden h-full">
-                                        <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups} {g.id}</h3></div>
-                                        <StandingsTable standings={calculateGroupStandings(g.id, matches, teamsData)} teams={teamsData} lang={t} compact={true} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} qualifiedThirds={officialQualifiedThirds} predictedRankMap={allPredictedGroupStandings[g.id]} predictedQualifiedThirds={purePredictedQualifiedThirds} />
-                                    </div>
-                                </div>
-                            ))}
+                    <div className="pb-20 max-w-3xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups || 'League Phase'}</h3></div>
+                            <StandingsTable standings={calculateLeagueStandings(matches, teamsData)} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} />
                         </div>
                     </div>
                 )}
@@ -1736,69 +1707,59 @@ export const App = () => {
             </div>
         )}
 
-        {/* GROUPS TAB */}
+        {/* LEAGUE PHASE TAB */}
         {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
             <div className="animate-fade-in">
-                {showOverview ? (
-                   <GroupStageSummary matches={userMatches} teams={teamsData} lang={t} phase={tournamentPhase} hasTakenSecondChance={user?.hasTakenSecondChance} onSecondChance={handlePledgeSecondChance} userPredictions={allPredictions.filter(p => p.userId === user?.email)} onGoToGroup={handleGoToGroup} onGoToKnockout={() => setActiveTab('knockout')} onTeamClick={(id) => setViewingTeamId(id)} />
-                ) : (
-                   <>
-                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                          <StandingsTable standings={standings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} qualifiedThirds={predictedQualifiedThirds} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {groupMatchesList.map((match, index) => (
-                              <MatchCard
-                                key={match.id}
-                                cardId={index === 0 ? "tour-first-match" : undefined}
-                                match={match}
-                                homeTeam={teamsData[match.homeTeamId]}
-                                awayTeam={teamsData[match.awayTeamId]}
-                                onUpdate={handleScoreUpdate}
-                                lang={t}
-                                locale={currentLocale}
-                                userTokens={user?.tokens || 0}
-                                rivals={rivalsList}
-                                onSpy={handleSpy}
-                                currentUser={user}
-                                allPredictions={allPredictions}
-                                phase={tournamentPhase}
-                                isAdminMode={isAdminMode}
-                                isLateJoiner={isInLateWindow}
-                                onSubstitute={() => handleSubstitute(match.id)}
-                                substitutionsLeft={user?.substitutions || 0}
-                                isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
-                                onTeamClick={(id) => setViewingTeamId(id)}
-                                showStatusBadge={false}
-                                context="groups"
-                                predictedAdvancingTeams={predictedAdvancingTeams}
-                                events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
-                                playerMatchStats={playerMatchStats}
-                                onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
-                                onStadiumClick={v => setStadiumVenue(v)}
-                              />
-                          ))}
-                      </div>
-                      <div className="mt-12 flex flex-col items-center gap-4">
-                          <div className="flex gap-3 w-full max-w-lg">
-                              {activeGroup !== 'A' && <button onClick={handlePrevGroup} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{t.prevGroup}</span></button>}
-                              {activeGroup !== 'L' ? <button onClick={handleNextGroup} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextGroup}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button> : <div className="flex-[2] flex flex-col gap-3">
-                                  <button onClick={() => setShowOverview(true)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm"><LayoutGrid size={16} /> {t.tablesBtn}</button>
-                                  <button onClick={() => setActiveTab('knockout')} className="w-full px-6 py-5 bg-gradient-to-r from-[#0f2545] to-[#1a3a6c] border border-yellow-400/30 text-white rounded-2xl shadow-xl font-black uppercase tracking-widest hover:from-[#153055] hover:to-[#1e4080] hover:shadow-yellow-500/20 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-between gap-3 group">
-                                    <div className="flex items-center gap-3">
-                                      <GitMerge size={22} className="text-yellow-400 shrink-0" />
-                                      <div className="flex flex-col items-start">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">{isGroupStageComplete ? '✓ All groups predicted' : 'Next up'}</span>
-                                        <span className="text-base leading-none">{t.bracketBtn}</span>
-                                      </div>
-                                    </div>
-                                    <ChevronRight size={20} className="text-yellow-400 group-hover:translate-x-1 transition-transform shrink-0" />
-                                  </button>
-                                </div>}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                    <StandingsTable standings={leagueStandings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {leagueMatchesList.map((match, index) => (
+                        <MatchCard
+                          key={match.id}
+                          cardId={index === 0 ? "tour-first-match" : undefined}
+                          match={match}
+                          homeTeam={teamsData[match.homeTeamId]}
+                          awayTeam={teamsData[match.awayTeamId]}
+                          onUpdate={handleScoreUpdate}
+                          lang={t}
+                          locale={currentLocale}
+                          userTokens={user?.tokens || 0}
+                          rivals={rivalsList}
+                          onSpy={handleSpy}
+                          currentUser={user}
+                          allPredictions={allPredictions}
+                          phase={tournamentPhase}
+                          isAdminMode={isAdminMode}
+                          isLateJoiner={isInLateWindow}
+                          onSubstitute={() => handleSubstitute(match.id)}
+                          substitutionsLeft={user?.substitutions || 0}
+                          isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
+                          onTeamClick={(id) => setViewingTeamId(id)}
+                          showStatusBadge={false}
+                          context="groups"
+                          predictedAdvancingTeams={predictedAdvancingTeams}
+                          events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
+                          playerMatchStats={playerMatchStats}
+                          onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
+                          onStadiumClick={v => setStadiumVenue(v)}
+                        />
+                    ))}
+                </div>
+                <div className="mt-12 flex flex-col items-center gap-4">
+                    <div className="flex gap-3 w-full max-w-lg">
+                        <button onClick={() => setActiveTab('knockout')} className="flex-1 px-6 py-5 bg-gradient-to-r from-[#0f2545] to-[#1a3a6c] border border-yellow-400/30 text-white rounded-2xl shadow-xl font-black uppercase tracking-widest hover:from-[#153055] hover:to-[#1e4080] hover:shadow-yellow-500/20 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-between gap-3 group">
+                          <div className="flex items-center gap-3">
+                            <GitMerge size={22} className="text-yellow-400 shrink-0" />
+                            <div className="flex flex-col items-start">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">{isGroupStageComplete ? '✓ All predictions in' : 'Next up'}</span>
+                              <span className="text-base leading-none">{t.bracketBtn}</span>
+                            </div>
                           </div>
-                      </div>
-                   </>
-                )}
+                          <ChevronRight size={20} className="text-yellow-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                        </button>
+                    </div>
+                </div>
             </div>
         )}
 
@@ -1824,14 +1785,14 @@ export const App = () => {
                     <KnockoutBracket
                         matches={userBracket} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
                         onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase}
-                        isGroupStageComplete={isGroupStageComplete || showTour} firstIncompleteGroup={firstIncompleteGroup} onGoToGroup={handleGoToGroup}
+                        isLeaguePhaseComplete={isLeaguePhaseComplete || showTour}
                         onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
                         matchEvents={matchEvents} isLateJoiner={isInLateWindow}
                     />
                 )}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'R32' ? t.groups : t.prevRound}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'PO' ? t.groups : t.prevRound}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
                             <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : user?.secondChanceStatus === 'PENDING' ? (
@@ -2209,7 +2170,7 @@ export const App = () => {
                 if (user && supabase) { await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email); setUser({ ...user, favorites: favs }); }
                 const safeScope = (getSimMode() === 'knockout') ? 'KNOCKOUT' : 'GROUPS';
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, safeScope, riskLevel);
-                const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !!m.groupId; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
+                const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !m.round; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
 
                 if (user && supabase) {
                     const predictionsToSave = relevantMatches.filter(m => {

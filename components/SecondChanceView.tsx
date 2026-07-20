@@ -272,9 +272,7 @@ export const SecondChanceView: React.FC<SecondChanceViewProps> = ({
             rivals={[]}
             allPredictions={scPredictions}
             phase={phase}
-            isGroupStageComplete={true}
-            firstIncompleteGroup={null}
-            onGoToGroup={() => {}}
+            isLeaguePhaseComplete={true}
             onTeamClick={handleTeamClick}
             onSpy={onSpy}
             revealedRivals={revealedRivals}

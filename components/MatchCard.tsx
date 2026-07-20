@@ -12,6 +12,7 @@ import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
 import { PenaltyShootout } from './PenaltyShootout';
+import { isMatchLocked, msUntilLock } from '../utils/date';
 
 interface MatchCardProps {
   match: Match;
@@ -73,6 +74,13 @@ const formatMinute = (minute?: number | null, minuteExtra?: number | null, statu
   return `${minute}`;
 };
 
+const formatLockCountdown = (ms: number): string => {
+  const totalMin = Math.max(0, Math.floor(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
 // --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({
@@ -123,15 +131,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     // --- STATUS HELPERS ---
     const isLive     = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT'].includes(match.status);
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
-    const isStarted = isLive || isFinished; 
-    
-    // Only lock if it's actually locked, live, or finished.
-    // Late joiners bypass the global lock for matches that haven't started yet.
+    const isStarted = isLive || isFinished;
+
+    // isMatchLocked folds in the admin hard-lock, live/finished state, and the rolling
+    // 1-hour-before-kickoff window. Late joiners bypass all of that for matches that
+    // haven't started yet, same as before.
     const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
     const isRealLifeLocked = (isLateJoiner && matchNotStarted)
       ? false
-      : (match.isLocked || isLive || isFinished);
+      : isMatchLocked(match);
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
+
+    // Live-updating "Locks in Xh Ym" countdown, shown once inside 24h of the rolling lock.
+    const [lockTick, setLockTick] = useState(() => Date.now());
+    useEffect(() => {
+        if (isLocked) return;
+        const id = setInterval(() => setLockTick(Date.now()), 30000);
+        return () => clearInterval(id);
+    }, [isLocked]);
+    const msToLock = isLocked ? null : msUntilLock(match, lockTick);
+    const showLockCountdown = msToLock !== null && msToLock > 0 && msToLock < 24 * 60 * 60 * 1000;
     
     const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute && !isKnockout;
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
@@ -535,6 +554,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="flex flex-col items-center gap-2 w-full">
                             {!isLocked ? (
                                 <div className="flex flex-col items-center gap-2 w-full">
+                                    {showLockCountdown && (
+                                        <div className="flex items-center gap-1 text-[9px] font-bold text-amber-500 uppercase tracking-wide">
+                                            <LockIcon size={9} />
+                                            <span>{(lang as any).locksIn || 'Locks in'} {formatLockCountdown(msToLock as number)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-2">
                                         <ScoreStepper
                                             value={localHome}

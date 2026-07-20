@@ -1,21 +1,34 @@
 import React from 'react';
-import { Team, Translation, GroupStanding } from '../types';
+import { Team, Translation, LeagueStanding } from '../types';
 
 interface StandingsTableProps {
-  standings: GroupStanding[];
+  standings: LeagueStanding[];
   teams: Record<string, Team>;
   lang: Translation;
   compact?: boolean;
   onTeamClick?: (teamId: string) => void;
   highlightedTeamId?: string | null;
-  qualifiedThirds?: Set<string>;
   predictedRankMap?: Record<string, number>;
-  predictedQualifiedThirds?: Set<string>;
 }
 
+// Swiss-format League Phase zones: ranks 1-8 go straight to the Round of 16,
+// ranks 9-24 enter the Playoff Round, ranks 25-36 are eliminated.
+const DIRECT_R16_CUTOFF = 8;
+const PLAYOFF_CUTOFF = 24;
+
 export const StandingsTable: React.FC<StandingsTableProps> = ({
-  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, qualifiedThirds, predictedRankMap, predictedQualifiedThirds
+  standings, teams, lang, compact = false, onTeamClick, highlightedTeamId, predictedRankMap
 }) => {
+  const totalCols = 3 + (compact ? 0 : 5) + 2 + (predictedRankMap ? 1 : 0);
+
+  const zoneDivider = (label: string, colorClasses: string) => (
+    <tr>
+      <td colSpan={totalCols} className={`p-2 text-center border-y border-dashed ${colorClasses}`}>
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
@@ -43,79 +56,80 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
         <tbody className="divide-y divide-slate-100">
           {standings.map((row, index) => {
             const team = teams[row.teamId];
+            const rank = index + 1;
             const isHighlighted = highlightedTeamId === row.teamId;
-            
-            // --- QUALIFICATION LOGIC ---
-            const isTopTwo = index < 2;
-            const isQualifiedThird = index === 2 && qualifiedThirds?.has(row.teamId);
-            const isQualified = isTopTwo || isQualifiedThird;
+
+            const isDirectR16 = rank <= DIRECT_R16_CUTOFF;
+            const isPlayoffBound = rank > DIRECT_R16_CUTOFF && rank <= PLAYOFF_CUTOFF;
+            const isEliminated = rank > PLAYOFF_CUTOFF;
 
             let rankBg = 'bg-slate-100 text-slate-400';
-            if (isTopTwo) rankBg = 'bg-green-100 text-green-700';
-            if (isQualifiedThird) rankBg = 'bg-amber-100 text-amber-700';
+            if (isDirectR16) rankBg = 'bg-green-100 text-green-700';
+            else if (isPlayoffBound) rankBg = 'bg-amber-100 text-amber-700';
 
             return (
-              <tr 
-                key={row.teamId} 
-                onClick={() => onTeamClick && onTeamClick(row.teamId)}
-                className={`
-                    group transition-all duration-1000 ease-out cursor-pointer
-                    ${isHighlighted 
-                        ? 'bg-yellow-200 scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)] z-10 relative' 
-                        : 'hover:bg-slate-50 bg-white'
-                    }
-                    ${isQualified ? 'bg-opacity-100' : 'bg-opacity-50'}
-                `}
-              >
-                <td className="pl-3 py-3 font-bold text-[10px]">
-                    <div className={`w-5 h-5 flex items-center justify-center rounded-full ${rankBg}`}>
-                        {index + 1}
-                        {isQualifiedThird && <span className="ml-0.5 text-[7px] font-black opacity-80">Q</span>}
-                    </div>
-                </td>
-                <td className="py-3">
-                    <div className="flex items-center gap-3">
-                        {team?.flag && (
-                            <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" />
-                        )}
-                        <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'} ${!isQualified ? 'opacity-60' : ''}`}>
-                            {lang.teamNames[row.teamId] || team?.name || row.teamId}
-                        </span>
-                    </div>
-                </td>
-                <td className="text-center font-medium text-slate-500">{row.played}</td>
-                {!compact && (
-                    <>
-                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.won}</td>
-                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.drawn}</td>
-                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.lost}</td>
-                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.gf}</td>
-                        <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.ga}</td>
-                    </>
-                )}
-                <td className={`text-center font-bold ${row.gd > 0 ? 'text-green-600' : row.gd < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                    {row.gd > 0 ? `+${row.gd}` : row.gd}
-                </td>
-                <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
-                {predictedRankMap && (() => {
-                    const predictedRank = predictedRankMap[row.teamId];
-                    if (predictedRank == null) return <td className="text-center text-slate-300 text-[10px] border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">-</td>;
-                    const isPredTop2 = predictedRank <= 2;
-                    const isPredQ3 = predictedRank === 3 && predictedQualifiedThirds?.has(row.teamId);
-                    let badgeBg = 'bg-slate-100 text-slate-400';
-                    if (isPredTop2) badgeBg = 'bg-green-100 text-green-700';
-                    if (isPredQ3) badgeBg = 'bg-amber-100 text-amber-700';
-                    return (
-                        <td className="text-center border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">
-                            <div className="flex items-center justify-center">
-                                <div className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-black ${badgeBg}`}>
-                                    {predictedRank}{isPredQ3 && <span className="ml-0.5 text-[6px] font-black opacity-80">Q</span>}
+              <React.Fragment key={row.teamId}>
+                {index === DIRECT_R16_CUTOFF && zoneDivider('Playoff Round (9th – 24th)', 'bg-amber-50 border-amber-200 text-amber-600')}
+                {index === PLAYOFF_CUTOFF && zoneDivider('Eliminated', 'bg-slate-100 border-slate-300 text-slate-400')}
+
+                <tr
+                    onClick={() => onTeamClick && onTeamClick(row.teamId)}
+                    className={`
+                        group transition-all duration-1000 ease-out cursor-pointer
+                        ${isHighlighted
+                            ? 'bg-yellow-200 scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.4)] z-10 relative'
+                            : 'hover:bg-slate-50 bg-white'
+                        }
+                        ${isEliminated ? 'opacity-60 grayscale' : ''}
+                    `}
+                >
+                    <td className="pl-3 py-3 font-bold text-[10px]">
+                        <div className={`w-5 h-5 flex items-center justify-center rounded-full ${rankBg}`}>
+                            {rank}
+                        </div>
+                    </td>
+                    <td className="py-3">
+                        <div className="flex items-center gap-3">
+                            {team?.flag && (
+                                <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" />
+                            )}
+                            <span className={`font-bold ${isHighlighted ? 'text-slate-900' : 'text-slate-700'} ${isEliminated ? 'line-through decoration-slate-400/50' : ''}`}>
+                                {lang.teamNames[row.teamId] || team?.name || row.teamId}
+                            </span>
+                        </div>
+                    </td>
+                    <td className="text-center font-medium text-slate-500">{row.played}</td>
+                    {!compact && (
+                        <>
+                            <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.won}</td>
+                            <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.drawn}</td>
+                            <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.lost}</td>
+                            <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.gf}</td>
+                            <td className="text-center font-normal text-slate-400 hidden sm:table-cell">{row.ga}</td>
+                        </>
+                    )}
+                    <td className={`text-center font-bold ${row.gd > 0 ? 'text-green-600' : row.gd < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                        {row.gd > 0 ? `+${row.gd}` : row.gd}
+                    </td>
+                    <td className="text-center font-black text-slate-800 text-sm bg-slate-50/50">{row.pts}</td>
+                    {predictedRankMap && (() => {
+                        const predictedRank = predictedRankMap[row.teamId];
+                        if (predictedRank == null) return <td className="text-center text-slate-300 text-[10px] border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">-</td>;
+                        let badgeBg = 'bg-slate-100 text-slate-400';
+                        if (predictedRank <= DIRECT_R16_CUTOFF) badgeBg = 'bg-green-100 text-green-700';
+                        else if (predictedRank <= PLAYOFF_CUTOFF) badgeBg = 'bg-amber-100 text-amber-700';
+                        return (
+                            <td className="text-center border-l-2 border-dashed border-indigo-200 bg-indigo-50/20">
+                                <div className="flex items-center justify-center">
+                                    <div className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-black ${badgeBg}`}>
+                                        {predictedRank}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                    );
-                })()}
-              </tr>
+                            </td>
+                        );
+                    })()}
+                </tr>
+              </React.Fragment>
             );
           })}
         </tbody>

@@ -15,6 +15,9 @@ export interface Database {
         Insert: { id?: number; match_id?: string | null; api_event_id?: string | null; minute?: number | null; minute_extra?: number | null; type?: string | null; detail?: string | null; team_id?: string | null; player?: string | null; assist?: string | null; created_at?: string | null; };
         Update: { id?: number; match_id?: string | null; api_event_id?: string | null; minute?: number | null; minute_extra?: number | null; type?: string | null; detail?: string | null; team_id?: string | null; player?: string | null; assist?: string | null; created_at?: string | null; };
       };
+      // group_id stays: Leaderboard/ManagerHub/MyPredictions and the World Cup final-recap
+      // feature still read it for the (concluded) legacy tournament. Not populated for new
+      // League Phase matches going forward — see services/engine.ts's League Phase functions.
       matches: {
         Row: { id: string; date: string | null; venue: string | null; group_id: string | null; round: string | null; home_team_id: string | null; away_team_id: string | null; home_score: number | null; away_score: number | null; status: string | null; is_locked: boolean | null; api_id: string | null; next_match_id: string | null; channels: Json | null; minute: number | null; };
         Insert: { id: string; date?: string | null; venue?: string | null; group_id?: string | null; round?: string | null; home_team_id?: string | null; away_team_id?: string | null; home_score?: number | null; away_score?: number | null; status?: string | null; is_locked?: boolean | null; api_id?: string | null; next_match_id?: string | null; channels?: Json | null; minute?: number | null; };
@@ -51,14 +54,9 @@ export interface Database {
         Update: { team_id?: string | null; style?: string | null; att?: number | null; mid?: number | null; def?: number | null; pace?: number | null; phys?: number | null; tech?: number | null; key_player_role?: string | null; narrative?: Json | null; };
       };
       teams: {
-        Row: { id: string; name: string | null; flag: string | null; rank: number | null; rating: number | null; att: number | null; mid: number | null; def: number | null; overview: string | null; group_letter: string | null; iso_code: string | null; region: string | null; elo_rating: number | null; };
-        Insert: { id: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
-        Update: { id?: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; group_letter?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
-      };
-      worldcup2026_schedule: {
-        Row: { matchid: number | null; matchdate: string | null; time_uk: string | null; stage: string | null; hometeam: string | null; awayteam: string | null; channel_uk_england: string | null; channel_uk_scotland: string | null; channel_norway: string | null; channel_us: string | null; };
-        Insert: { matchid?: number | null; matchdate?: string | null; time_uk?: string | null; stage?: string | null; hometeam?: string | null; awayteam?: string | null; channel_uk_england?: string | null; channel_uk_scotland?: string | null; channel_norway?: string | null; channel_us?: string | null; };
-        Update: { matchid?: number | null; matchdate?: string | null; time_uk?: string | null; stage?: string | null; hometeam?: string | null; awayteam?: string | null; channel_uk_england?: string | null; channel_uk_scotland?: string | null; channel_norway?: string | null; channel_us?: string | null; };
+        Row: { id: string; name: string | null; flag: string | null; rank: number | null; rating: number | null; att: number | null; mid: number | null; def: number | null; overview: string | null; iso_code: string | null; region: string | null; elo_rating: number | null; };
+        Insert: { id: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
+        Update: { id?: string; name?: string | null; flag?: string | null; rank?: number | null; rating?: number | null; att?: number | null; mid?: number | null; def?: number | null; overview?: string | null; iso_code?: string | null; region?: string | null; elo_rating?: number | null; };
       };
     };
   };
