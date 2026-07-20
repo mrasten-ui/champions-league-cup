@@ -235,7 +235,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
                    )}
                    {/* Active underline — same treatment on both mobile and desktop */}
-                   {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-t-full shadow-[0_0_10px_rgba(250,204,21,0.7)]" />}
+                   {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 rounded-t-full shadow-[0_0_10px_rgba(129,140,248,0.7)]" />}
                 </button>
              );
           })}
@@ -667,11 +667,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     id={tabId}
                     onClick={() => props.setActiveTab(tab as any)}
                     className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                        isActive ? 'text-yellow-400' : 'text-slate-500 active:text-slate-300'
+                        isActive ? 'text-indigo-400' : 'text-slate-500 active:text-slate-300'
                     }`}
                 >
                     {isActive && (
-                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-yellow-400 rounded-full shadow-[0_0_6px_rgba(250,204,21,0.8)]" />
+                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-blue-400 to-violet-400 rounded-full shadow-[0_0_6px_rgba(129,140,248,0.8)]" />
                     )}
                     {getTabIcon(tab)}
                     <span className="text-[8px] font-black uppercase tracking-wide leading-none">

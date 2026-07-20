@@ -3,6 +3,7 @@ import { ChevronRight, RefreshCw, Mail, KeyRound, UserCircle2, X, CheckCircle2, 
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { AvatarGenerator } from './AvatarGenerator';
 import { Logo } from './Logo';
+import { StarField } from './StarField';
 import { LANGUAGES, TRANSLATIONS } from '../constants';
 import { LanguageCode } from '../types';
 
@@ -119,13 +120,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#05101c] text-white p-6 relative overflow-hidden">
        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/40 via-[#05101c] to-[#05101c] pointer-events-none"></div>
        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+       <div className="absolute bottom-[-15%] left-[-10%] w-96 h-96 bg-violet-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+       <StarField density={40} />
 
        <div className="w-full max-w-md animate-fade-in z-10 flex flex-col items-center gap-8">
           <div className="text-center space-y-4 flex flex-col items-center">
               <div className="relative inline-block mb-4">
                 <Logo className="w-52 h-52 transition-transform duration-700 hover:scale-110" variant="theme" />
               </div>
-              <h1 className="text-4xl font-black italic tracking-tighter uppercase bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">The Rasten Cup '26</h1>
+              <h1 className="text-4xl font-black italic tracking-tighter uppercase bg-gradient-to-br from-white via-blue-200 to-violet-300 bg-clip-text text-transparent">The Rasten Cup '26</h1>
               <p className="text-blue-400 font-bold text-xs tracking-[0.2em] uppercase opacity-90">{t.subTitle}</p>
           </div>
           <div className="w-full bg-slate-900/50 backdrop-blur-md rounded-3xl p-8 shadow-2xl text-slate-100 border border-white/10 ring-1 ring-white/5">
@@ -179,7 +182,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   </div>
                 )}
 
-                <button type="submit" disabled={isProcessing} className="w-full py-4 mt-4 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl font-black uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"> 
+                <button type="submit" disabled={isProcessing} className="w-full py-4 mt-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-600 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-violet-900/30 transition-all flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                   {isProcessing ? <><RefreshCw size={18} className="animate-spin" /> Connecting...</> : <>{mode === 'reset' ? 'Send Reset Link' : t.enterBtn} {mode !== 'reset' && <ChevronRight size={18} />}</>}
                 </button>
 

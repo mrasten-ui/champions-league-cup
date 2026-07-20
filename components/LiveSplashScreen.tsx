@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { LanguageCode } from '../types';
+import { StarField } from './StarField';
 
 interface LiveSplashScreenProps {
   isOpen: boolean;
@@ -45,15 +46,18 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
         .live-scale-in { animation: live-scale-in 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
       `}</style>
 
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(79,70,229,0.25),_transparent_60%)] pointer-events-none" />
+      <StarField density={50} variant="vivid" />
+
       {/* LIVE badge */}
-      <div className="flex items-center gap-2 mb-8 live-scale-in" style={{ animationDelay: '0ms' }}>
+      <div className="flex items-center gap-2 mb-8 live-scale-in relative" style={{ animationDelay: '0ms' }}>
         <span className="live-dot w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
         <span className="text-red-400 text-sm font-black uppercase tracking-[0.3em]">Live</span>
       </div>
 
       {/* Main title */}
-      <div className="text-center live-scale-in" style={{ animationDelay: '100ms' }}>
-        <h1 className="text-4xl sm:text-6xl font-black text-yellow-400 uppercase tracking-tight leading-none drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+      <div className="text-center live-scale-in relative" style={{ animationDelay: '100ms' }}>
+        <h1 className="text-4xl sm:text-6xl font-black italic uppercase tracking-tight leading-none bg-gradient-to-br from-blue-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(129,140,248,0.4)]">
           {s.line1}
         </h1>
         <p className="text-3xl sm:text-5xl font-black text-white uppercase tracking-widest mt-2">
@@ -62,7 +66,7 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
       </div>
 
       {/* Divider */}
-      <div className="w-24 h-1 bg-yellow-400 rounded-full mt-8 mb-8 live-scale-in" style={{ animationDelay: '200ms' }} />
+      <div className="w-24 h-1 bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 rounded-full mt-8 mb-8 live-scale-in relative" style={{ animationDelay: '200ms' }} />
 
       {/* Skip button */}
       <button

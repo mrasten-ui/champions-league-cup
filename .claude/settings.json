@@ -40,7 +40,23 @@
       "Bash(node scripts/sync-scores.js)",
       "WebFetch(domain:www.skysports.com)",
       "WebFetch(domain:www.cbssports.com)",
-      "WebFetch(domain:www.broadcastnow.co.uk)"
+      "WebFetch(domain:www.broadcastnow.co.uk)",
+      "Read(//dev/**)",
+      "Bash(awk '/^const BASE_TEAM_NAMES/{s=NR} /^const TEAM_STATS/{t=NR} END{print \"BASE_TEAM_NAMES starts\",s; print \"TEAM_STATS starts\",t}' \"constants.ts\")",
+      "Bash(git rm *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"App.tsx transform: HTTP %{http_code}\\\\n\" http://localhost:5173/App.tsx)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:www.uefa.com)",
+      "WebSearch",
+      "WebFetch(domain:www.footyheadlines.com)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(curl -s -o /dev/null -w \"index\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/)",
+      "Bash(curl -s -o /dev/null -w \"LoginScreen\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/components/LoginScreen.tsx)",
+      "Bash(curl -s -o /dev/null -w \"StarField\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/components/StarField.tsx)"
     ]
   }
 }
