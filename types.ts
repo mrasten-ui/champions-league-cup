@@ -98,6 +98,8 @@ export interface Match {
   awayScore: number | null;
   date: string;
   venue: string;
+  /** League Phase matchday (1-8). Undefined for Knockout Phase matches. */
+  matchday?: number;
   status: 'UPCOMING' | 'LIVE' | 'HT' | 'BT' | 'FT' | 'AET' | 'PEN' | 'FINISHED' | '1H' | '2H' | 'NS' | 'ET' | 'P' | 'INT' | 'ABD' | 'AWD' | 'WO';
   isLocked: boolean;
   channels?: Record<string, string>;

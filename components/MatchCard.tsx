@@ -220,10 +220,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const getContextLabel = () => {
         if (match.round) {
-            const rounds: Record<string, string> = { 'R32': lang.roundOf32 || 'Round of 32', 'R16': lang.roundOf16 || 'Round of 16', 'QF': lang.quarterFinal || 'Quarter Final', 'SF': lang.semiFinal || 'Semi Final', 'FIN': lang.final || 'Final', '3RD': lang.thirdPlace || '3rd Place' };
+            const rounds: Record<string, string> = { 'PO': (lang as any).playoffRound || 'Playoff Round', 'R32': lang.roundOf32 || 'Round of 32', 'R16': lang.roundOf16 || 'Round of 16', 'QF': lang.quarterFinal || 'Quarter Final', 'SF': lang.semiFinal || 'Semi Final', 'FIN': lang.final || 'Final', '3RD': lang.thirdPlace || '3rd Place' };
             return rounds[match.round] || match.round;
         }
         if (match.groupId) return `${lang.group || 'GROUP'} ${match.groupId}`;
+        if (match.matchday) return `${(lang as any).leaguePhase || 'League Phase'} - ${(lang as any).matchday || 'Matchday'} ${match.matchday}`;
         return match.venue || 'FRIENDLY';
     };
 

@@ -412,11 +412,16 @@ export const getTieAggregate = (matches: Match[], tieId: string): TieAggregate |
     return { tieId, teamAId, teamBId, aggA, aggB, leg1Played, leg2Played, winnerId, loserId };
 };
 
-// Once the Round of 16 draw is known (a real, constrained UEFA draw — not a
-// formula, so it's entered manually/via seed script, not computed here), the
-// rest of the tree is standard single-elimination bracket math: generated,
-// not hardcoded, unlike the old World Cup KNOCKOUT_PROGRESSION table above
-// (which encoded a specific real-world draw result).
+// Standard 8-seed single-elimination bracket order (tennis/NCAA-style): the seed occupying
+// R16 tie i (1-indexed via this array). Guarantees seed 1 and seed 2 fall in opposite SF halves
+// (R16 ties 1-4 feed SF1, ties 5-8 feed SF2 — see SWISS_KNOCKOUT_PROGRESSION below), so they can
+// only meet in the Final.
+const R16_SEED_SLOTS = [1, 8, 4, 5, 2, 7, 3, 6];
+
+// Once seeded (see R16_SEED_SLOTS above), the rest of the tree is standard
+// single-elimination bracket math: generated, not hardcoded, unlike the old
+// World Cup KNOCKOUT_PROGRESSION table above (which encoded a specific
+// real-world draw result).
 const SWISS_KNOCKOUT_PROGRESSION: Record<'R16' | 'QF', Record<number, { nextRound: 'QF' | 'SF', nextIndex: number, slot: 'home' | 'away' }>> = (() => {
     const build = (tieCount: number, nextRound: 'QF' | 'SF') => {
         const map: Record<number, { nextRound: 'QF' | 'SF', nextIndex: number, slot: 'home' | 'away' }> = {};
@@ -457,9 +462,24 @@ const applySwissBracketCascade = (nextMatches: Match[], teams: Record<string, Te
         setSlot(`PO_${i}_L2`, 'away', lowSeed);
     }
 
-    // Playoff winners feed the Round of 16, but WHICH seed meets which winner
-    // is a real UEFA draw (not a formula) — deliberately not auto-routed here.
-    // R16 matchups get set manually/via seed script once the real draw happens.
+    // Round of 16: seeds 1-8 (direct qualifiers) auto-placed into a deterministic seeded
+    // bracket — NOT the real UEFA draw (which has association/no-repeat-opponent constraints
+    // no formula can replicate), a simplified tennis-style seeding instead, per product decision.
+    // R16_SEED_SLOTS[i-1] is which seed occupies R16 tie i; playoff tie i's winner (once known)
+    // fills the other side. Standard 8-seed bracket order (1,8,4,5,2,7,3,6) guarantees seed 1 and
+    // seed 2 land in opposite SF halves — they can only meet in the Final, same for 3 & 4-ish
+    // fairness further down. The seeded team hosts leg 2, mirroring the Playoff Round convention.
+    for (let i = 1; i <= 8; i++) {
+        const seedRank = R16_SEED_SLOTS[i - 1];
+        const seedTeam = getSeed(seedRank);
+        const playoffWinner = getTieAggregate(nextMatches, `PO_${i}`)?.winnerId;
+        setSlot(`R16_${i}_L1`, 'away', seedTeam);
+        setSlot(`R16_${i}_L2`, 'home', seedTeam);
+        if (playoffWinner) {
+            setSlot(`R16_${i}_L1`, 'home', playoffWinner);
+            setSlot(`R16_${i}_L2`, 'away', playoffWinner);
+        }
+    }
 
     // R16 → QF → SF: fixed bracket math once R16 pairing is known.
     (['R16', 'QF'] as const).forEach(round => {
