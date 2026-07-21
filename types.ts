@@ -61,6 +61,15 @@ export interface Translation {
   riskBalancedDesc: string;
   riskWildcardDesc: string;
 
+  // --- Signup risk profile: scoring-volume axis ---
+  scoringTitle: string;
+  scoringCagey: string;
+  scoringBalanced: string;
+  scoringGoalFest: string;
+  scoringCageyDesc: string;
+  scoringBalancedDesc: string;
+  scoringGoalFestDesc: string;
+
   // --- Bracket cascade ---
   bracketAdjusted: string;
   bracketAdjustedMsg: string;
@@ -157,6 +166,11 @@ export interface UserProfile {
   isAdmin?: boolean;
   bracketPredictions?: Record<string, { home: number; away: number }>;
   scDraft?: Record<string, { home: number; away: number }>;
+
+  // --- Risk profile (set at signup) — drives missed-deadline auto-fill.
+  // Undefined for pre-feature accounts that never set one; auto-fill skips them.
+  riskResult?: number;   // 0-1: favorites (0) <-> upsets (1)
+  riskScoring?: number;  // 0-1: cagey/low-scoring (0) <-> high-scoring (1)
 }
 
 export interface LeagueStanding {

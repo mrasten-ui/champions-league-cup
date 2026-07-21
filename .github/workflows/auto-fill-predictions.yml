@@ -1,0 +1,44 @@
+name: Auto-Fill Missed Predictions
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 minutes — matches lock on an hour-granularity window
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — log what would be written without writing anything'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  auto-fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Auto-fill missed predictions
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            node scripts/auto-fill-missed-predictions.js --dry-run
+          else
+            node scripts/auto-fill-missed-predictions.js
+          fi
+        env:
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY:  ${{ secrets.SUPABASE_SERVICE_KEY }}

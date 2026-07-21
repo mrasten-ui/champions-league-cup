@@ -37,7 +37,7 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0a1020] transition-opacity duration-500 ${exiting ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950 transition-opacity duration-500 ${exiting ? 'opacity-0' : 'opacity-100'}`}
     >
       <style>{`
         @keyframes live-pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
@@ -46,7 +46,7 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
         .live-scale-in { animation: live-scale-in 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
       `}</style>
 
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(79,70,229,0.25),_transparent_60%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.15),_transparent_60%)] pointer-events-none" />
       <StarField density={50} variant="vivid" />
 
       {/* LIVE badge */}
@@ -57,7 +57,7 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
 
       {/* Main title */}
       <div className="text-center live-scale-in relative" style={{ animationDelay: '100ms' }}>
-        <h1 className="text-4xl sm:text-6xl font-black italic uppercase tracking-tight leading-none bg-gradient-to-br from-blue-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(129,140,248,0.4)]">
+        <h1 className="text-4xl sm:text-6xl font-black italic uppercase tracking-tight leading-none bg-gradient-to-br from-cyan-300 via-cyan-200 to-fuchsia-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
           {s.line1}
         </h1>
         <p className="text-3xl sm:text-5xl font-black text-white uppercase tracking-widest mt-2">
@@ -66,7 +66,7 @@ export const LiveSplashScreen: React.FC<LiveSplashScreenProps> = ({ isOpen, onDo
       </div>
 
       {/* Divider */}
-      <div className="w-24 h-1 bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 rounded-full mt-8 mb-8 live-scale-in relative" style={{ animationDelay: '200ms' }} />
+      <div className="w-24 h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400 rounded-full mt-8 mb-8 live-scale-in relative" style={{ animationDelay: '200ms' }} />
 
       {/* Skip button */}
       <button

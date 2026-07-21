@@ -252,7 +252,8 @@ export const calculateLeagueStandings = (matches: Match[], teams: Record<string,
   });
 
   // Seed every known team so the table always has all 36 rows, even before kickoff.
-  Object.keys(teams).forEach(tId => { standingsMap[tId] = initTeam(tId); });
+  // Skip 'TBD' — the reserved sentinel id for not-yet-determined knockout slots, never a real entrant.
+  Object.keys(teams).forEach(tId => { if (tId !== 'TBD') standingsMap[tId] = initTeam(tId); });
   leagueMatches.forEach(m => {
     if (teams[m.homeTeamId] && !standingsMap[m.homeTeamId]) standingsMap[m.homeTeamId] = initTeam(m.homeTeamId);
     if (teams[m.awayTeamId] && !standingsMap[m.awayTeamId]) standingsMap[m.awayTeamId] = initTeam(m.awayTeamId);

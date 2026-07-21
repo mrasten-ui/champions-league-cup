@@ -2,8 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
-import { LANGUAGES, GROUP_CONFIG } from '../constants';
+import { LANGUAGES } from '../constants';
 import { LanguageCode, TournamentPhase, Round, UserProfile, Translation, Match, Team, Prediction } from '../types';
+
+const MATCHDAYS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 interface AppHeaderProps {
   user: UserProfile;
@@ -13,10 +15,8 @@ interface AppHeaderProps {
   setTournamentPhase: (p: TournamentPhase) => void;
   activeTab: string;
   setActiveTab: (t: any) => void;
-  activeGroup: string;
-  setActiveGroup: (g: string) => void;
-  showOverview: boolean;
-  setShowOverview: (b: boolean) => void;
+  activeMatchday?: number;
+  setActiveMatchday?: (md: number) => void;
   isProfileMenuOpen: boolean;
   setIsProfileMenuOpen: (b: boolean) => void;
   setShowAvatarEditor: (b: boolean) => void;
@@ -45,21 +45,20 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   const getRoundIcon = (r: Round) => {
       switch(r) {
-          case 'R32': return <Users size={48} className="text-white/20" />; 
+          case 'PO': return <Users size={48} className="text-white/20" />;
           case 'R16': return <Shield size={42} className="text-white/20" />;
           case 'QF': return <LayoutGrid size={42} className="text-white/20" />;
           case 'SF': return <Columns size={42} className="text-white/20" />;
-          case 'FIN': return <Crown size={48} className="text-yellow-400/30" />;
+          case 'FIN': return <Crown size={48} className="text-cyan-400/30" />;
           default: return null;
       }
   };
 
   const isScUser = user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE';
-  const rounds: Round[] = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
-  const displayRounds: Round[] = isScUser ? ['R32', 'R16', 'QF', 'SF', 'FIN'] : rounds;
+  const displayRounds: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
 
   const DONE_KO = ['FT', 'AET', 'PEN', 'FINISHED'];
-  const KO_ROUNDS: Round[] = ['R32', 'R16', 'QF', 'SF', 'FIN'];
+  const KO_ROUNDS: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
 
   // For PENDING SC users, knockout picks live in scDraft not allPredictions
   const effectivePredictions = useMemo(() => {
@@ -103,7 +102,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   // --- MODIFIED: Count ALL Matches (104 Total) ---
   const completionStats = useMemo(() => {
     // Filter for any match that has a Group ID OR a Round (Knockout)
-    const tournamentMatches = matches.filter(m => m.groupId || m.round);
+    const tournamentMatches = matches;
     const total = tournamentMatches.length;
     
     const myPreds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
@@ -197,6 +196,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       if (tab === 'tournament')  return props.t.tabTournament as string;
       if (tab === 'leaderboard') return (props.tournamentPhase === 'PRE_LIVE' ? props.t.competition : props.t.leaderboard) as string;
       if (tab === 'rules')       return props.t.rulesBtn as string;
+      if (tab === 'groups')      return (props.t.leaguePhase || props.t.groups) as string;
       const val = props.t[tab as keyof typeof props.t];
       return typeof val === 'string' ? val : tab;
   };
@@ -235,7 +235,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
                    )}
                    {/* Active underline — same treatment on both mobile and desktop */}
-                   {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 rounded-t-full shadow-[0_0_10px_rgba(129,140,248,0.7)]" />}
+                   {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-cyan-400 rounded-t-full shadow-[0_0_10px_rgba(34,211,238,0.7)]" />}
                 </button>
              );
           })}
@@ -247,7 +247,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     <header className="sticky top-0 z-50">
       
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
-      <div className="bg-[#0f2545] text-white border-b border-white/10 shadow-lg relative z-20">
+      <div className="bg-slate-950/80 backdrop-blur-lg text-white border-b border-white/10 shadow-lg relative z-20">
           
           {/* PRE_LIVE: fill-out progress bar */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
@@ -418,42 +418,39 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
 
-      {/* 3. GROUP NAV (Only for Groups Tab) */}
-      {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && (
-          <div id="subnav-groups" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
-              <div className="flex gap-2 px-4 justify-start sm:justify-center">
-                  {GROUP_CONFIG.map(g => {
-                      const groupMatches = matches.filter(m => m.groupId === g.id);
-                      const userPredsCount = allPredictions.filter(p => groupMatches.some(m => m.id === p.matchId && p.userId === user?.email)).length;
-                      const isComplete = userPredsCount === groupMatches.length && groupMatches.length > 0;
+      {/* 3. MATCHDAY NAV (League Phase — Swiss format has no groups) — a slim jump-to-round strip,
+          kept deliberately lightweight so the matches themselves stay the visual focus. */}
+      {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && props.setActiveMatchday && (
+          <div id="subnav-matchday" className="bg-slate-950/40 border-b border-white/5 py-2 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 px-4 justify-start sm:justify-center min-w-max">
+                  {MATCHDAYS.map(md => {
+                      const mdMatches = matches.filter(m => m.matchday === md);
+                      const userPredsCount = allPredictions.filter(p => mdMatches.some(m => m.id === p.matchId && p.userId === user?.email)).length;
+                      const isComplete = userPredsCount === mdMatches.length && mdMatches.length > 0;
                       const inProgress = userPredsCount > 0 && !isComplete;
-                      const isActive = props.activeGroup === g.id && !props.showOverview;
-                      
+                      const isActive = props.activeMatchday === md;
+
                       return (
-                          <button key={g.id} onClick={() => { props.setActiveGroup(g.id); props.setShowOverview(false); }} className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 ${isActive ? 'scale-110 border-yellow-400 z-10 shadow-2xl' : 'border-white/10 hover:border-white/30'}`}>
-                              <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-50 group-hover:opacity-70 transition-opacity">
-                                  {g.teams.map(tid => (<img key={tid} src={teamsData[tid]?.flag} className="w-full h-full object-cover" alt="" />))}
-                              </div>
-                              <div className="absolute inset-0 bg-black/40"></div>
-                              <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl font-black text-white italic drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{g.id}</span></div>
-                              <div className={`absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : 'bg-slate-500'}`}></div>
+                          <button
+                            key={md}
+                            onClick={() => props.setActiveMatchday?.(md)}
+                            className={`relative min-w-[30px] h-7 px-1.5 rounded-full text-[11px] font-black transition-colors active:scale-95 ${isActive ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 bg-white/5 hover:bg-white/10 hover:text-white'}`}
+                          >
+                              {md}
+                              <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-slate-950 ${isComplete ? 'bg-emerald-400' : inProgress ? 'bg-cyan-300' : 'bg-transparent'}`}></span>
                           </button>
                       );
                   })}
-                  <button onClick={() => props.setShowOverview(true)} className={`relative min-w-[64px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 flex flex-col items-center justify-center gap-1 ${props.showOverview ? 'scale-110 border-yellow-400 z-10 shadow-2xl bg-blue-900' : 'border-white/10 hover:border-white/30 bg-white/5'}`}>
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 opacity-80"></div>
-                      <div className="relative z-10 flex flex-col items-center"><LayoutGrid size={24} className="text-white" /><span className="text-[9px] font-black text-white uppercase tracking-widest">{t.tablesBtn}</span></div>
-                  </button>
               </div>
           </div>
       )}
 
       {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
-          <div id="subnav-knockout" className="bg-[#0f2545] border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar"> 
+          <div id="subnav-knockout" className="bg-slate-950/60 border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
                   {displayRounds.map(r => {
-                      const isActive = props.activeKnockoutRound === r || (isScUser && r === 'FIN' && props.activeKnockoutRound === '3RD');
+                      const isActive = props.activeKnockoutRound === r;
                       const roundMatches = matches.filter(m => m.round === r);
                       const userPredictions = effectivePredictions.filter(p => p.userId === user?.email);
                       const predsCount = userPredictions.filter(p => roundMatches.some(m => m.id === p.matchId)).length;
@@ -465,9 +462,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                               key={r}
                               onClick={() => props.setActiveKnockoutRound?.(r)}
                               className={`
-                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2 
-                                  ${isActive 
-                                    ? 'scale-110 border-yellow-400 z-10 shadow-[0_0_20px_rgba(250,204,21,0.4)]' 
+                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2
+                                  ${isActive
+                                    ? 'scale-110 border-cyan-400 z-10 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
                                     : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
                                   }
                               `}
@@ -483,9 +480,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                               </div>
                               <div className={`
                                   absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
-                                  ${isComplete ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' 
-                                    : inProgress ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' 
-                                    : 'bg-slate-500'}
+                                  ${isComplete ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]'
+                                    : inProgress ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.8)]'
+                                    : 'bg-slate-600'}
                               `}></div>
                           </button>
                       );
@@ -647,7 +644,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
     )}
 
     {/* MOBILE BOTTOM NAV BAR */}
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f2545] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {props.navTabs.map(tab => {
             const isActive = props.activeTab === tab;
             const label = getTabLabel(tab);
@@ -667,11 +664,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     id={tabId}
                     onClick={() => props.setActiveTab(tab as any)}
                     className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                        isActive ? 'text-indigo-400' : 'text-slate-500 active:text-slate-300'
+                        isActive ? 'text-cyan-400' : 'text-slate-500 active:text-slate-300'
                     }`}
                 >
                     {isActive && (
-                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-blue-400 to-violet-400 rounded-full shadow-[0_0_6px_rgba(129,140,248,0.8)]" />
+                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-cyan-400 rounded-full shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
                     )}
                     {getTabIcon(tab)}
                     <span className="text-[8px] font-black uppercase tracking-wide leading-none">

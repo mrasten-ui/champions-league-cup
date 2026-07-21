@@ -35,6 +35,29 @@ export const bustPredictionsCache = (): void => {
   try { localStorage.removeItem('RC_predictions'); } catch { /* ignore */ }
 };
 
+// ── DEV-ONLY LOGIN BYPASS ──────────────────────────────────────────────────
+// Set VITE_DEV_SKIP_LOGIN=true in .env to skip LoginScreen during local
+// testing. LoginScreen itself is untouched — flip this back to false (or
+// delete the line) to restore normal auth. This is a client-side mock user
+// with NO real Supabase auth session, so writes that depend on RLS matching
+// auth.uid() (predictions, profile updates, etc.) may be rejected — this is
+// for browsing/UI testing, not for testing persistence. Say the word if you
+// want a real auto-login (against an actual test account) instead.
+const DEV_SKIP_LOGIN = (import.meta as any).env?.VITE_DEV_SKIP_LOGIN === 'true';
+const DEV_MOCK_USER: UserProfile = {
+  email: 'dev@local.test',
+  name: 'Dev Tester',
+  avatar: '',
+  tokens: 5,
+  substitutions: 5,
+  leagues: [],
+  favorites: [],
+  spiedMatches: [],
+  unlockedMatches: [],
+  hasTakenSecondChance: false,
+  secondChanceStatus: 'NONE',
+};
+
 export const useAppData = () => {
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -371,6 +394,8 @@ export const useAppData = () => {
                   isAdmin: !!data.is_admin,
                   bracketPredictions: (data as any).bracket_predictions ?? undefined,
                   scDraft: (data as any).sc_draft ?? undefined,
+                  riskResult: data.risk_result ?? undefined,
+                  riskScoring: data.risk_scoring ?? undefined,
               });
               // Carry through AI-generated avatar from signup if the profile was pre-created before this session
               const pendingAvatar = sessionStorage.getItem('pending_avatar');
@@ -384,10 +409,17 @@ export const useAppData = () => {
               if (authUser) {
                   const pendingAvatar = sessionStorage.getItem('pending_avatar') || '';
                   sessionStorage.removeItem('pending_avatar');
+                  // Risk profile set during the signup flow's second step (LoginScreen.tsx) —
+                  // defaults to balanced (0.5/0.5) for any path that skips it (e.g. pre-feature
+                  // sign-ins that somehow hit this branch).
+                  const pendingRiskResult = parseFloat(sessionStorage.getItem('pending_risk_result') ?? '0.5');
+                  const pendingRiskScoring = parseFloat(sessionStorage.getItem('pending_risk_scoring') ?? '0.5');
+                  sessionStorage.removeItem('pending_risk_result');
+                  sessionStorage.removeItem('pending_risk_scoring');
                   // Clear stale localStorage tour flags so the tour always fires for a fresh profile
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}`);
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}_live`);
-                  const dbRow = { id: authUser.id, email, name: authUser.user_metadata?.full_name || email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE' };
+                  const dbRow = { id: authUser.id, email, name: authUser.user_metadata?.full_name || email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE', risk_result: pendingRiskResult, risk_scoring: pendingRiskScoring };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
@@ -401,6 +433,8 @@ export const useAppData = () => {
                       unlockedMatches: [],
                       hasTakenSecondChance: false,
                       secondChanceStatus: 'NONE',
+                      riskResult: pendingRiskResult,
+                      riskScoring: pendingRiskScoring,
                   });
               }
           }
@@ -409,6 +443,13 @@ export const useAppData = () => {
   };
 
   useEffect(() => {
+      if (DEV_SKIP_LOGIN) {
+          setSession({ user: { email: DEV_MOCK_USER.email } });
+          setUser(DEV_MOCK_USER);
+          setLoading(false);
+          if (isSupabaseConfigured && supabase) { fetchPresetAvatars(); loadGameData(); }
+          return;
+      }
       if (isSupabaseConfigured && supabase) {
           fetchPresetAvatars();
           supabase.auth.getSession().then(({ data: { session } }) => {

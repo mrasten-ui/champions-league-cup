@@ -19,6 +19,8 @@ import {
 import { isMatchLocked } from './utils/date';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
+import { StandingsStrip } from './components/StandingsStrip';
+import { StarField } from './components/StarField';
 import { MagicWand } from './components/MagicWand';
 import { HelpingHandModal } from './components/HelpingHandModal';
 import { KnockoutBracket } from './components/KnockoutBracket';
@@ -75,9 +77,8 @@ export const App = () => {
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout' | 'leaderboard' | 'manager' | 'tournament' | 'analysis' | 'rules'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables' | 'bracket'>('schedule');
   const [scheduleJumpMatchId, setScheduleJumpMatchId] = useState<string | undefined>(undefined);
-  const [showOverview, setShowOverview] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string>('A');
-  const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('R32'); 
+  const [activeMatchday, setActiveMatchday] = useState<number>(1);
+  const [activeKnockoutRound, setActiveKnockoutRound] = useState<Round>('PO');
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
   const [leagueLangs, setLeagueLangs] = useState<Record<string, LanguageCode>>(LEAGUE_DEFAULT_LANGS);
@@ -1071,11 +1072,11 @@ export const App = () => {
 
   const handleTourNavigation = (stepId: string) => {
       setCurrentTourStepId(stepId);
-      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveGroup('A'); }
+      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveMatchday(1); }
       else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
-      else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('R32'); }
+      else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('PO'); }
       else if (stepId === 'rules_tab') setActiveTab('rules');
-      else if (stepId === 'profile_menu') { setActiveTab('groups'); setActiveGroup('A'); }
+      else if (stepId === 'profile_menu') { setActiveTab('groups'); setActiveMatchday(1); }
 
       clearTimeout(wandTourTimerRef.current);
       if (stepId === 'magic_wand') {
@@ -1274,20 +1275,21 @@ export const App = () => {
   };
 
   const handleTickerMatchClick = (match: Match) => {
-    if (match.groupId) {
+    if (!match.round) {
+      // League Phase match
       if (tournamentPhase === 'LIVE') {
         setActiveTab('tournament');
         setTournamentSubTab('schedule');
         setScheduleJumpMatchId(match.id);
       } else {
         setActiveTab('groups');
-        setActiveGroup(match.groupId);
+        if (match.matchday) setActiveMatchday(match.matchday);
         setTimeout(() => {
           const el = document.getElementById(`match-card-${match.id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 150);
       }
-    } else if (match.round) {
+    } else {
       if (tournamentPhase === 'LIVE') {
         setActiveTab('tournament');
         setTournamentSubTab('schedule');
@@ -1297,9 +1299,6 @@ export const App = () => {
         setActiveKnockoutRound(match.round as any);
         handleJumpToBracket(match.id);
       }
-    } else {
-      setActiveTab('tournament');
-      setTournamentSubTab('schedule');
     }
   };
 
@@ -1516,6 +1515,7 @@ export const App = () => {
   }, [user?.email, matches.length, Object.keys(teamsData).length]);
   const leagueStandings = useMemo(() => calculateLeagueStandings(userMatches, teamsData), [userMatches, teamsData]);
   const leagueMatchesList = userMatches.filter(m => !m.round);
+  const currentMatchdayMatches = leagueMatchesList.filter(m => m.matchday === activeMatchday);
   
   const showClearTrash = useMemo(() => {
     if (!user) return false;
@@ -1574,14 +1574,15 @@ export const App = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-44 md:pb-12 relative">
+    <div className="min-h-screen bg-gradient-to-b from-[#060c1a] via-slate-950 to-slate-950 text-white pb-44 md:pb-12 relative isolate">
+      <StarField density={50} variant="subtle" position="fixed" className="-z-10" />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
       <AppHeader
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
-        activeTab={activeTab} setActiveTab={setActiveTab} activeGroup={activeGroup} setActiveGroup={setActiveGroup}
-        showOverview={showOverview} setShowOverview={setShowOverview} isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
+        activeTab={activeTab} setActiveTab={setActiveTab} activeMatchday={activeMatchday} setActiveMatchday={setActiveMatchday}
+        isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
         handleLogout={handleLogout}
         onReplayIntro={handleReplayIntro}
@@ -1707,14 +1708,21 @@ export const App = () => {
             </div>
         )}
 
-        {/* LEAGUE PHASE TAB */}
+        {/* LEAGUE PHASE TAB — round-centric: default view is "this matchday", not the whole season at once.
+            The matchday itself is the headline; standings/table are supplementary and sit below the games. */}
         {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
             <div className="animate-fade-in">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                    <StandingsTable standings={leagueStandings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} />
+                <div className="flex items-end justify-between mb-4 px-1">
+                    <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">Matchday {activeMatchday}</h1>
+                    <span className="text-[10px] font-bold text-slate-500 pb-0.5">{currentMatchdayMatches.length} {currentMatchdayMatches.length === 1 ? 'match' : 'matches'}</span>
                 </div>
+                {currentMatchdayMatches.length === 0 && (
+                    <div className="rounded-xl border border-white/10 bg-blue-950/40 backdrop-blur-md py-16 text-center mb-6">
+                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No fixtures for this matchday yet</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {leagueMatchesList.map((match, index) => (
+                    {currentMatchdayMatches.map((match, index) => (
                         <MatchCard
                           key={match.id}
                           cardId={index === 0 ? "tour-first-match" : undefined}
@@ -1746,19 +1754,29 @@ export const App = () => {
                         />
                     ))}
                 </div>
-                <div className="mt-12 flex flex-col items-center gap-4">
+                <div className="mt-6">
+                    <StandingsStrip standings={leagueStandings} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} />
+                </div>
+                <div className="mt-2 flex flex-col items-center gap-4">
                     <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={() => setActiveTab('knockout')} className="flex-1 px-6 py-5 bg-gradient-to-r from-[#0f2545] to-[#1a3a6c] border border-yellow-400/30 text-white rounded-2xl shadow-xl font-black uppercase tracking-widest hover:from-[#153055] hover:to-[#1e4080] hover:shadow-yellow-500/20 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-between gap-3 group">
-                          <div className="flex items-center gap-3">
-                            <GitMerge size={22} className="text-yellow-400 shrink-0" />
-                            <div className="flex flex-col items-start">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">{isGroupStageComplete ? '✓ All predictions in' : 'Next up'}</span>
-                              <span className="text-base leading-none">{t.bracketBtn}</span>
-                            </div>
-                          </div>
-                          <ChevronRight size={20} className="text-yellow-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                        <button
+                          onClick={() => setActiveMatchday(md => Math.max(1, md - 1))}
+                          disabled={activeMatchday <= 1}
+                          className="flex-1 px-4 py-4 bg-blue-950/40 backdrop-blur-md border border-white/10 rounded-2xl text-slate-300 font-black uppercase tracking-widest hover:border-white/20 hover:text-white transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>MD {activeMatchday - 1}</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveMatchday(md => Math.min(8, md + 1))}
+                          disabled={activeMatchday >= 8}
+                          className="flex-[2] px-6 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl shadow-lg shadow-cyan-900/40 font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <span>Matchday {activeMatchday + 1}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
+                    <button onClick={() => setActiveTab('knockout')} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+                        <GitMerge size={12} /> {t.bracketBtn}
+                    </button>
                 </div>
             </div>
         )}
@@ -1792,7 +1810,7 @@ export const App = () => {
                 )}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'PO' ? t.groups : t.prevRound}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'PO' ? (t.leaguePhase || t.groups) : t.prevRound}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
                             <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : user?.secondChanceStatus === 'PENDING' ? (

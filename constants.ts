@@ -136,7 +136,7 @@ const TEAM_NAMES_NO: Record<string, string> = {
 
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
-    group: "Group", groups: "Groups", lineups: "Line-up", startingXi: "Starting XI", benchLabel: "Bench", knockout: "Knockout", myPredictions: "My Picks",
+    group: "Group", groups: "Groups", leaguePhase: "League Phase", lineups: "Line-up", startingXi: "Starting XI", benchLabel: "Bench", knockout: "Knockout", myPredictions: "My Picks",
     
     competition: "The Competition", 
     leaderboard: "Leaderboard",     
@@ -155,6 +155,7 @@ const EN_TRANSLATION: Translation = {
     profile: "Manager Profile", logout: "Log Out", rulesBtn: "Game Rules", rulesTitle: "Tournament Rules",
     tabHowToPlay: "How to Play", tabScoring: "Points System",
     riskTitle: "How chaotic should the results be?", riskBanker: "Banker", riskBalanced: "Balanced", riskWildcard: "Wildcard", riskBankerDesc: "Top teams dominate", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Giant killers 🌪️",
+    scoringTitle: "How high-scoring should matches be?", scoringCagey: "Cagey", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, low-scoring games", scoringBalancedDesc: "A normal spread of goals", scoringGoalFestDesc: "Goals galore ⚽🔥",
     bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks were cleared — bracket shifted.", undo: "Undo",
     nudgeTitle: "Missing predictions", nudgeMsg: "You're missing {n} predictions — fill them in before kickoff!", nudgeCta: "Fill them in",
     rulesPreSubtitle: "Build your predictions. Collect points. Compete for glory.",
@@ -313,7 +314,7 @@ const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     isScotland: true,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
-    group: "Group", groups: "The Groups", lineups: "Team Sheet", startingXi: "The Startin' XI", benchLabel: "The Bench", knockout: "The Knockoots", myPredictions: "Ma Guesses",
+    group: "Group", groups: "The Groups", leaguePhase: "The League Phase", lineups: "Team Sheet", startingXi: "The Startin' XI", benchLabel: "The Bench", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
     competition: "The Opposition",
     leaderboard: "Big Table",
@@ -331,6 +332,7 @@ const SCO_TRANSLATION: Translation = {
     progressGroups: "Groups", progressKnockout: "Knockoots", managerReady: "Sorted", managerIncomplete: "Slackin'",
     profile: "Ma Profile", logout: "Cheerio", rulesBtn: "The Rules", rulesTitle: "Hoo tae Play", tabHowToPlay: "The Basics", tabScoring: "Points",
     riskTitle: "How daft dae ye want the results tae be?", riskBanker: "Banker", riskBalanced: "Balanced", riskWildcard: "Dafty", riskBankerDesc: "The big teams win", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Giant killers ahoy",
+    scoringTitle: "How many goals dae ye want tae see?", scoringCagey: "Canny", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, nae many goals", scoringBalancedDesc: "A normal spread o' goals", scoringGoalFestDesc: "Goals galore",
     bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks cleared — bracket shifted.", undo: "Undo",
     nudgeTitle: "Missing predictions", nudgeMsg: "Ye're missing {n} picks — get them in before the whistle!", nudgeCta: "Fill them in",
     rulesPreSubtitle: "Build yer picks. Score points. Take the glory.",
@@ -457,7 +459,7 @@ const SCO_TRANSLATION: Translation = {
 const US_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Male Coach", genderWoman: "Female Coach", genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...", credits: "Tokens",
-    group: "Group", groups: "Group Play", lineups: "Lineup", startingXi: "Starting XI", benchLabel: "Bench", knockout: "The Playoffs", myPredictions: "My Picks",
+    group: "Group", groups: "Group Play", leaguePhase: "League Phase", lineups: "Lineup", startingXi: "Starting XI", benchLabel: "Bench", knockout: "The Playoffs", myPredictions: "My Picks",
     
     competition: "The Field",
     leaderboard: "Power Rankings",
@@ -475,6 +477,7 @@ const US_TRANSLATION: Translation = {
     progressGroups: "Regular Season", progressKnockout: "Post Season", managerReady: "Locked In", managerIncomplete: "Pending",
     profile: "Coach Profile", logout: "Sign Out", rulesBtn: "Rulebook", rulesTitle: "Official Rules", tabHowToPlay: "Basics", tabScoring: "Scoring",
     riskTitle: "How wild should the results get?", riskBanker: "Safe Pick", riskBalanced: "Balanced", riskWildcard: "Chaos", riskBankerDesc: "Favorites take it", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Upsets everywhere",
+    scoringTitle: "How high-scoring should games be?", scoringCagey: "Defensive", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, low-scoring games", scoringBalancedDesc: "A normal spread of goals", scoringGoalFestDesc: "Goals galore",
     bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks were cleared — bracket shifted.", undo: "Undo",
     nudgeTitle: "Missing predictions", nudgeMsg: "You're missing {n} predictions — fill them in before kickoff!", nudgeCta: "Fill them in",
     rulesPreSubtitle: "Build your bracket. Score points. Win the cup.",
@@ -594,7 +597,7 @@ const US_TRANSLATION: Translation = {
 const NO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
-    group: "Gruppe", groups: "Gruppene", lineups: "Lagoppstilling", startingXi: "Startoppstilling", benchLabel: "Benken", knockout: "Sluttspill", myPredictions: "Mine Tips",
+    group: "Gruppe", groups: "Gruppene", leaguePhase: "Ligafasen", lineups: "Lagoppstilling", startingXi: "Startoppstilling", benchLabel: "Benken", knockout: "Sluttspill", myPredictions: "Mine Tips",
     
     competition: "Konkurrentene",
     leaderboard: "Resultatliste",
@@ -612,6 +615,7 @@ const NO_TRANSLATION: Translation = {
     progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
     profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
     riskTitle: "Hvor uforutsigbare skal resultatene være?", riskBanker: "Sikker", riskBalanced: "Balansert", riskWildcard: "Kaos", riskBankerDesc: "Favorittene vinner", riskBalancedDesc: "Den vakre sporten", riskWildcardDesc: "Overraskelsenes tur",
+    scoringTitle: "Hvor målrike skal kampene være?", scoringCagey: "Forsiktig", scoringBalanced: "Balansert", scoringGoalFest: "Målfest", scoringCageyDesc: "Tette, målfattige kamper", scoringBalancedDesc: "Et normalt antall mål", scoringGoalFestDesc: "Mål i bøtter og spann",
     bracketAdjusted: "Bracket oppdatert", bracketAdjustedMsg: "Noen knockout-tips ble fjernet — bracket er oppdatert.", undo: "Angre",
     nudgeTitle: "Tips mangler", nudgeMsg: "Du mangler {n} tips — legg dem inn før kampstart!", nudgeCta: "Legg inn nå",
     rulesPreSubtitle: "Bygg dine tips. Samle poeng. Kjemp om æren.",

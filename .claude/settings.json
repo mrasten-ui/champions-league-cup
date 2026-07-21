@@ -56,7 +56,12 @@
       "Skill(run:*)",
       "Bash(curl -s -o /dev/null -w \"index\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/)",
       "Bash(curl -s -o /dev/null -w \"LoginScreen\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/components/LoginScreen.tsx)",
-      "Bash(curl -s -o /dev/null -w \"StarField\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/components/StarField.tsx)"
+      "Bash(curl -s -o /dev/null -w \"StarField\\(5174\\): HTTP %{http_code}\\\\n\" http://localhost:5174/components/StarField.tsx)",
+      "Bash(curl -s -o /dev/null -w \"index: HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"useAppData transform: HTTP %{http_code}\\\\n\" http://localhost:5173/hooks/useAppData.ts)",
+      "Bash(rm -f \"C:\\\\Users\\\\mrast\\\\.claude\\\\plans\\\\hashed-herding-meadow.md\")",
+      "Bash(node scripts/auto-fill-missed-predictions.js --dry-run)",
+      "Bash(curl -s -o /dev/null -w \"5174: HTTP %{http_code}\\\\n\" http://localhost:5174/)"
     ]
   }
 }
