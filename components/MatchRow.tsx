@@ -5,6 +5,9 @@ import { ScoreStepper } from './ScoreStepper';
 import { AvatarDisplay } from './AvatarDisplay';
 import { isMatchLocked, msUntilLock } from '../utils/date';
 
+const LIVE_STATUSES = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT'];
+const FINISHED_STATUSES = ['FINISHED', 'FT', 'AET', 'PEN'];
+
 interface MatchRowProps {
   match: Match;
   homeTeam: Team;
@@ -31,9 +34,10 @@ const getInitials = (name: string) => {
 
 /**
  * Compact single-line match row for the day-grouped League Phase matchday list —
- * a denser alternative to MatchCard for browsing many fixtures at once. Scoped to
- * the PRE_LIVE prediction case only (no live/finished/knockout states); MatchCard
- * remains the full-featured card used everywhere else.
+ * a denser alternative to MatchCard for browsing many fixtures at once. Handles
+ * upcoming (predict), live, and finished states so a matchday's row stays usable
+ * all season, not just before its own kickoff; MatchCard remains the full-featured
+ * card used for knockout/detail views.
  */
 export const MatchRow: React.FC<MatchRowProps> = ({
   match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, isAdminMode, isLateJoiner = false, onTeamClick,
@@ -75,6 +79,12 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
   const isRealLifeLocked = (isLateJoiner && matchNotStarted) ? false : isMatchLocked(match);
   const isLocked = isRealLifeLocked && !isAdminMode;
+  const isLive = LIVE_STATUSES.includes(match.status);
+  const isFinished = FINISHED_STATUSES.includes(match.status);
+  const hasResult = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null;
+  const isExact = hasResult && !!prediction && prediction.home === match.homeScore && prediction.away === match.awayScore;
+  const isCorrectOutcome = hasResult && !!prediction && !isExact &&
+    Math.sign(prediction.home - prediction.away) === Math.sign(match.homeScore! - match.awayScore!);
 
   const [lockTick, setLockTick] = useState(() => Date.now());
   useEffect(() => {
@@ -124,9 +134,16 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   return (
     <div className="border-b border-white/5 last:border-b-0">
       <div className="flex items-center gap-2 px-3 py-2.5">
-        {/* Kickoff time / lock state */}
+        {/* Kickoff time / live / FT / lock state */}
         <div className="w-9 shrink-0 flex flex-col items-start">
-          {isLocked ? (
+          {isLive ? (
+            <span className="text-[9px] font-black tabular-nums text-rose-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              {match.minute ? `${match.minute}'` : 'LIVE'}
+            </span>
+          ) : isFinished ? (
+            <span className="text-[9px] font-black tabular-nums text-slate-400">FT</span>
+          ) : isLocked ? (
             <LockIcon size={11} className="text-slate-500" />
           ) : (
             <span className={`text-[9px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
@@ -139,26 +156,37 @@ export const MatchRow: React.FC<MatchRowProps> = ({
           <Crest team={homeTeam} initials={homeInitials} align="left" />
         </div>
 
-        {/* Score entry */}
-        <div className="flex items-center gap-1 shrink-0">
-          <ScoreStepper
-            size="compact"
-            value={localHome}
-            onChange={(v) => handleScoreChange('home', v)}
-            isLocked={isLocked}
-            onActivate={handleActivate}
-            saveState={saveState}
-          />
-          <span className="text-slate-600 text-xs font-black">-</span>
-          <ScoreStepper
-            size="compact"
-            value={localAway}
-            onChange={(v) => handleScoreChange('away', v)}
-            isLocked={isLocked}
-            onActivate={handleActivate}
-            saveState={saveState}
-          />
-        </div>
+        {/* Score entry, or the real result once the match has kicked off */}
+        {hasResult ? (
+          <div className="flex flex-col items-center shrink-0 min-w-[52px]">
+            <span className="text-sm font-black text-white tabular-nums tracking-tight">{match.homeScore}&nbsp;-&nbsp;{match.awayScore}</span>
+            {prediction && (
+              <span className={`text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : 'text-slate-600'}`}>
+                {lang.myPick || 'Pick'}: {prediction.home}-{prediction.away}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 shrink-0">
+            <ScoreStepper
+              size="compact"
+              value={localHome}
+              onChange={(v) => handleScoreChange('home', v)}
+              isLocked={isLocked}
+              onActivate={handleActivate}
+              saveState={saveState}
+            />
+            <span className="text-slate-600 text-xs font-black">-</span>
+            <ScoreStepper
+              size="compact"
+              value={localAway}
+              onChange={(v) => handleScoreChange('away', v)}
+              isLocked={isLocked}
+              onActivate={handleActivate}
+              saveState={saveState}
+            />
+          </div>
+        )}
 
         {/* Away team */}
         <div className="flex-1 min-w-0 flex items-center gap-1.5">

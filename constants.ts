@@ -753,7 +753,6 @@ const NO_TRANSLATION: Translation = {
 
 // --- GAME CONFIG CONSTANTS ---
 export const MAX_SUBSTITUTIONS = 5;  // Max subs per manager (also used for scout tokens)
-export const TOTAL_MATCHES = 104;    // 72 group stage + 32 knockout
 
 // --- BROADCAST DEFAULTS ---
 // Default TV channels per locale when no match-specific override is set.

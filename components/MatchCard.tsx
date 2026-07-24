@@ -1080,13 +1080,24 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="px-3 pb-2 flex flex-col gap-1 max-h-24 overflow-y-auto no-scrollbar">
                       {rivals.map(rival => {
                         const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
+                        // Knockout picks are anchored to predictedWinnerId (the actual team chosen),
+                        // not the match's current home/away sides — those can shift as bracket slots
+                        // resolve, but predictedWinnerId always points at the real team the rival
+                        // picked. Falls back to the raw score for older picks made before this existed.
+                        const rivalWinnerName = isKnockout && rivalPred?.predictedWinnerId
+                          ? (allTeams?.[rivalPred.predictedWinnerId]?.name ?? rivalPred.predictedWinnerId)
+                          : null;
                         return (
                           <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded border border-white/5">
                             <div className="flex items-center gap-3">
                               <AvatarDisplay avatar={rival.avatar} size="xs" className="w-6 h-6 text-[10px]" />
                               <span className="text-xs font-bold text-white truncate max-w-[80px]">{rival.name}</span>
                             </div>
-                            <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span>
+                            {rivalWinnerName ? (
+                              <span className="text-xs font-black text-yellow-400 truncate max-w-[110px]">{rivalWinnerName}</span>
+                            ) : (
+                              <span className="text-xs font-mono font-black text-yellow-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '-'}</span>
+                            )}
                           </div>
                         );
                       })}

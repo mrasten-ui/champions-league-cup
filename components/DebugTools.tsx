@@ -7,7 +7,8 @@ interface DebugToolsProps {
   isOpen: boolean;
   onClose: () => void;
   onClear: () => void;
-  onTimeTravel: (timestamp: number) => void;
+  onRevealRealResults: (upToMatchday: number) => Promise<void>;
+  onResetToFuture: () => Promise<void>;
   onUpdateUserLeagues: (email: string, leagues: string[]) => Promise<void>;
   onUpdateMatchChannels: (matchId: string, channels: Record<string, string>) => Promise<void>;
   onBulkUpdateChannels: (locale: string, scope: 'all' | 'groups' | 'knockout', channel: string) => Promise<void>;
@@ -38,11 +39,13 @@ interface LateInviteRecipient {
 }
 
 export const DebugTools: React.FC<DebugToolsProps> = ({
-  isOpen, onClose, onClear, onTimeTravel, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, onTestNotification, onSyncNow, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
+  isOpen, onClose, onClear, onRevealRealResults, onResetToFuture, onUpdateUserLeagues, onUpdateMatchChannels, onBulkUpdateChannels, users, matches, predictions, leagueLangs, onUpdateLeagueLang, onToggleAdmin, onRenameUser, onDeleteUser, onAutoFillAllUsers, onTestNotification, onSyncNow, lateJoinerCutoff, onSetLateJoinerCutoff, onPreviewLateInvites, onSendLateInvites
 }) => {
   if (!isOpen) return null;
 
-  const [dateInput, setDateInput] = useState('2026-06-11T14:00');
+  const [revealMatchday, setRevealMatchday] = useState(1);
+  const [revealing, setRevealing] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [savingLeague, setSavingLeague] = useState<string | null>(null);
   const [renamingEmail, setRenamingEmail] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -109,13 +112,6 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
     setBulkDone(true);
   };
 
-  const MIN_DATE = "2026-06-08T00:00";
-  const MAX_DATE = "2026-07-21T23:59";
-
-  const handleTimeTravelClick = () => {
-      const ts = new Date(dateInput).getTime();
-      onTimeTravel(ts);
-  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -234,27 +230,41 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
               </div>
             </div>
 
-            {/* 2. TIME TRAVEL */}
+            {/* 2. TIME TRAVEL (real 2024/25 results) */}
             <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={14} /> Temporal Controls
+                    <Calendar size={14} /> Time Travel — Real 2024/25 Results
                 </h4>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                    <input
-                        type="datetime-local"
-                        value={dateInput}
-                        min={MIN_DATE}
-                        max={MAX_DATE}
-                        onChange={(e) => setDateInput(e.target.value)}
-                        className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-mono font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
-                    />
-                    <button onClick={handleTimeTravelClick} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black uppercase text-xs tracking-widest shadow-md transition-all active:scale-95 whitespace-nowrap">
-                        Time Travel
-                    </button>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="text-[11px] text-slate-500">
+                        Replays the actual results from the real 2024/25 Champions League League Phase onto your seeded fixtures, so you can test standings and knockout qualification with real result patterns instead of typing scores by hand.
+                    </p>
+                    <div className="flex flex-col md:flex-row gap-3 items-center">
+                        <select
+                            value={revealMatchday}
+                            onChange={(e) => setRevealMatchday(Number(e.target.value))}
+                            className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-mono font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 w-full md:w-auto"
+                        >
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(md => (
+                                <option key={md} value={md}>Through Matchday {md}</option>
+                            ))}
+                        </select>
+                        <button
+                            disabled={revealing}
+                            onClick={async () => { setRevealing(true); try { await onRevealRealResults(revealMatchday); } finally { setRevealing(false); } }}
+                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-black uppercase text-xs tracking-widest shadow-md transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            {revealing ? 'Revealing…' : 'Reveal Results'}
+                        </button>
+                        <button
+                            disabled={resetting}
+                            onClick={async () => { setResetting(true); try { await onResetToFuture(); } finally { setResetting(false); } }}
+                            className="px-6 py-2 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-700 rounded-lg font-black uppercase text-xs tracking-widest shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            {resetting ? 'Resetting…' : 'Reset to Future'}
+                        </button>
+                    </div>
                 </div>
-                <p className="text-[10px] text-slate-400 text-center italic">
-                    Range: Jun 8 – Jul 21, 2026
-                </p>
             </div>
 
             {/* 2. LEAGUE INVITE LINKS */}

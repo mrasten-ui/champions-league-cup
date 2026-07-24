@@ -1,11 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, CheckCircle, PlayCircle, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES } from '../constants';
 import { LanguageCode, TournamentPhase, Round, UserProfile, Translation, Match, Team, Prediction } from '../types';
-
-const MATCHDAYS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 interface AppHeaderProps {
   user: UserProfile;
@@ -15,16 +13,12 @@ interface AppHeaderProps {
   setTournamentPhase: (p: TournamentPhase) => void;
   activeTab: string;
   setActiveTab: (t: any) => void;
-  activeMatchday?: number;
-  setActiveMatchday?: (md: number) => void;
   isProfileMenuOpen: boolean;
   setIsProfileMenuOpen: (b: boolean) => void;
   setShowAvatarEditor: (b: boolean) => void;
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
   handleLogout: () => void;
-  onStartTour: () => void;
-  onStartLiveTour?: () => void;
   showSecondChanceBadge?: boolean;
   isAdminMode?: boolean;
   unassignedCount?: number;
@@ -98,28 +92,14 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       }).filter(Boolean) as { round: Round; matched: number; wrong: number; pending: number; total: number }[];
   }, [matches, effectivePredictions, user.email]);
 
-  // --- MODIFIED: Count ALL Matches (104 Total) ---
-  const completionStats = useMemo(() => {
-    // Filter for any match that has a Group ID OR a Round (Knockout)
-    const tournamentMatches = matches;
-    const total = tournamentMatches.length;
-    
-    const myPreds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
-    const completed = tournamentMatches.filter(m => myPreds.has(m.id)).length;
-    
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { completed, total, percentage };
-  }, [matches, allPredictions, user.email]);
-
-
-  // --- DEADLINE COUNTDOWN ---
+  // --- DEADLINE COUNTDOWN --- counts down to the next match that hasn't kicked off yet,
+  // so it stays relevant all season instead of only before the very first match.
   const deadline = useMemo(() => {
-    if (props.tournamentPhase !== 'PRE_LIVE') return null;
-    const valid = matches.filter(m => m.date && m.date !== 'TBD');
+    const valid = matches.filter(m => m.date && m.date !== 'TBD' && (m.status === 'NS' || m.status === 'UPCOMING'));
     if (!valid.length) return null;
     const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
     return new Date(earliest.date).getTime();
-  }, [matches, props.tournamentPhase]);
+  }, [matches]);
 
   const [remaining, setRemaining] = useState(() => deadline ? deadline - Date.now() : 0);
   useEffect(() => {
@@ -189,11 +169,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   // --- HELPER: Tab label (shared between bottom nav and desktop tabs) ---
   const getTabLabel = (tab: string): string => {
-      if (tab === 'manager')     return (props.tournamentPhase === 'PRE_LIVE' ? props.t.managersTab : props.t.tabManager) as string;
+      if (tab === 'manager')     return props.t.tabManager as string;
       if (tab === 'analysis')    return props.t.analysisTab as string;
       if (tab === 'scouting')    return props.t.scoutingTab as string;
       if (tab === 'tournament')  return props.t.tabTournament as string;
-      if (tab === 'leaderboard') return (props.tournamentPhase === 'PRE_LIVE' ? props.t.competition : props.t.leaderboard) as string;
+      if (tab === 'leaderboard') return props.t.leaderboard as string;
       if (tab === 'rules')       return props.t.rulesBtn as string;
       if (tab === 'groups')      return (props.t.leaguePhase || props.t.groups) as string;
       const val = props.t[tab as keyof typeof props.t];
@@ -248,35 +228,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
       <div className="bg-slate-950/80 backdrop-blur-lg text-white border-b border-white/10 shadow-lg relative z-20">
 
-          {/* PRE_LIVE: fill-out progress bar */}
-          {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
-            <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
-                <div className="max-w-7xl mx-auto flex items-center gap-3 relative z-10">
-                    <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                        <span className="opacity-50">{(t as any).progressTotal || "Tournament Progress"}:</span>
-                        <span className={completionStats.percentage === 100 ? "text-green-400" : "text-white"}>
-                            {completionStats.completed}/{completionStats.total}
-                        </span>
-                    </span>
-                    <div className="flex-1 h-1.5 bg-blue-900/30 rounded-full overflow-hidden relative">
-                        <div
-                            className={`h-full transition-all duration-1000 ease-out rounded-full ${completionStats.percentage === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'bg-gradient-to-r from-blue-500 to-cyan-400'}`}
-                            style={{ width: `${completionStats.percentage}%` }}
-                        />
-                    </div>
-                    {completionStats.percentage === 100 && (
-                        <div className="flex items-center gap-1 text-[9px] font-black text-green-400 uppercase tracking-widest animate-in fade-in zoom-in">
-                            <CheckCircle size={10} strokeWidth={3} />
-                            <span>{t.managerReady || "Ready"}</span>
-                        </div>
-                    )}
-                </div>
-                {completionStats.percentage === 100 && <div className="absolute inset-0 bg-green-500/5 animate-pulse" />}
-            </div>
-          )}
-
-          {/* LIVE: knockout bracket tracker strip */}
-          {props.tournamentPhase !== 'PRE_LIVE' && knockoutTracking.length > 0 && (
+          {/* Knockout bracket tracker strip — shown whenever the user has knockout picks in, regardless of League Phase status */}
+          {knockoutTracking.length > 0 && (
             <div
                 className="bg-[#0a1a2f] border-b border-white/5 py-1.5 px-4 overflow-x-auto cursor-pointer hover:bg-[#0d1f38] active:bg-[#0a1a2f] transition-colors"
                 onClick={() => props.setActiveTab('manager' as any)}
@@ -375,13 +328,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   </div>
                               </div>
                               <div className="p-1">
-                                  {props.tournamentPhase === 'PRE_LIVE' && (
-                                      <button onClick={() => { props.onStartTour(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Stadium Tour</button>
-                                  )}
-                                  {props.tournamentPhase === 'LIVE' && props.onStartLiveTour && (
-                                      <button onClick={() => { props.onStartLiveTour!(); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 transition-colors"><PlayCircle size={16} /> Replay Live Tour</button>
-                                  )}
-                                  
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
                                   {user.leagues && user.leagues.length > 0 && (
                                     <button
@@ -414,33 +360,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               </div>
           </div>
       </div>
-
-      {/* 3. MATCHDAY NAV (League Phase — Swiss format has no groups) — a slim jump-to-round strip,
-          kept deliberately lightweight so the matches themselves stay the visual focus. */}
-      {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && props.setActiveMatchday && (
-          <div id="subnav-matchday" className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 py-2 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-1.5 px-4 justify-start sm:justify-center min-w-max">
-                  {MATCHDAYS.map(md => {
-                      const mdMatches = matches.filter(m => m.matchday === md);
-                      const userPredsCount = allPredictions.filter(p => mdMatches.some(m => m.id === p.matchId && p.userId === user?.email)).length;
-                      const isComplete = userPredsCount === mdMatches.length && mdMatches.length > 0;
-                      const inProgress = userPredsCount > 0 && !isComplete;
-                      const isActive = props.activeMatchday === md;
-
-                      return (
-                          <button
-                            key={md}
-                            onClick={() => props.setActiveMatchday?.(md)}
-                            className={`relative min-w-[30px] h-7 px-1.5 rounded-full text-[11px] font-black border transition-colors active:scale-95 ${isActive ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.5)]' : 'text-slate-300 bg-white/10 border-white/10 hover:bg-white/20 hover:text-white'}`}
-                          >
-                              {md}
-                              <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-slate-950 ${isComplete ? 'bg-emerald-400' : inProgress ? 'bg-cyan-300' : 'bg-transparent'}`}></span>
-                          </button>
-                      );
-                  })}
-              </div>
-          </div>
-      )}
 
       {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (

@@ -13,8 +13,8 @@
  *   SUPABASE_URL / VITE_SUPABASE_URL
  *   SUPABASE_SERVICE_KEY / SUPABASE_SERVICE_ROLE_KEY
  *   RESEND_API_KEY
- *   APP_URL      — e.g. https://rastencup.com
- *   FROM_EMAIL   — e.g. The Rasten Cup <noreply@rastencup.com>
+ *   APP_URL      — e.g. https://clpredictor.com
+ *   FROM_EMAIL   — e.g. CL Predictor <noreply@clpredictor.com>
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -28,8 +28,8 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const APP_URL        = process.env.APP_URL    ?? 'https://rastencup.com';
-const FROM_EMAIL     = process.env.FROM_EMAIL ?? 'The Rasten Cup <noreply@rastencup.com>';
+const APP_URL        = process.env.APP_URL    ?? 'https://clpredictor.com';
+const FROM_EMAIL     = process.env.FROM_EMAIL ?? 'CL Predictor <noreply@clpredictor.com>';
 
 // ── League → language mapping (mirrors constants.ts) ─────────────────────────
 const LEAGUE_DEFAULT_LANGS = {
@@ -53,40 +53,40 @@ function buildEmail(lang, name, inviteUrl, cutoffStr) {
 
   const templates = {
     EN: {
-      subject: '⚽ Rasten Cup — You still have a chance to join',
+      subject: '⚽ CL Predictor — You still have a chance to join',
       heading: "You're still on the teamsheet",
-      intro: `Hey ${cleanName}, the World Cup is underway — and you're still registered for The Rasten Cup but haven't filled in any predictions yet.`,
+      intro: `Hey ${cleanName}, the Champions League is underway — and you're still registered for CL Predictor but haven't filled in any predictions yet.`,
       window: "Click below to get a <strong style=\"color:#fbbf24;\">4-hour window</strong> to fill in your picks for upcoming matches.",
       zeroNote: "Matches already played will automatically score <strong style=\"color:#fbbf24;\">0 points</strong> — no action needed for those.",
       cta: 'Join Now →',
-      footer: "You're receiving this because you registered for The Rasten Cup.",
+      footer: "You're receiving this because you registered for CL Predictor.",
     },
     NO: {
-      subject: '⚽ Rasten Cup — Du har fortsatt en sjanse',
+      subject: '⚽ CL Predictor — Du har fortsatt en sjanse',
       heading: 'Du er fortsatt med på laget',
-      intro: `Hei ${cleanName}, VM er i gang — og du er registrert i Rasten Cup, men har ikke lagt inn noen tips ennå.`,
+      intro: `Hei ${cleanName}, Champions League er i gang — og du er registrert i CL Predictor, men har ikke lagt inn noen tips ennå.`,
       window: "Klikk nedenfor for å få et <strong style=\"color:#fbbf24;\">4-timers vindu</strong> til å legge inn tips på kommende kamper.",
       zeroNote: "Kamper som allerede er spilt gir automatisk <strong style=\"color:#fbbf24;\">0 poeng</strong> — du trenger ikke gjøre noe for dem.",
       cta: 'Bli med nå →',
-      footer: 'Du mottar denne fordi du er registrert i Rasten Cup.',
+      footer: 'Du mottar denne fordi du er registrert i CL Predictor.',
     },
     SCO: {
-      subject: "⚽ Rasten Cup — Ye're still on the teamsheet",
+      subject: "⚽ CL Predictor — Ye're still on the teamsheet",
       heading: "Ye're no oot yet",
-      intro: `Aye ${cleanName}, the World Cup's kicked off — ye're signed up for The Rasten Cup but haven't put a single tip in yet.`,
+      intro: `Aye ${cleanName}, the Champions League has kicked off — ye're signed up for CL Predictor but haven't put a single tip in yet.`,
       window: "Click below and ye get a <strong style=\"color:#fbbf24;\">4-hour window</strong> tae fill in yer picks for the games still tae come.",
       zeroNote: "Games already played'll automatically score <strong style=\"color:#fbbf24;\">0 points</strong> — nae need tae worry aboot those.",
       cta: 'Get Stuck In →',
-      footer: "Ye're getting this because ye registered for The Rasten Cup.",
+      footer: "Ye're getting this because ye registered for CL Predictor.",
     },
     US: {
-      subject: '⚽ Rasten Cup — You\'re still in the game',
+      subject: '⚽ CL Predictor — You\'re still in the game',
       heading: "You're still in the game",
-      intro: `Hey ${cleanName}, the World Cup is live — you're registered for The Rasten Cup but haven't entered any predictions yet.`,
+      intro: `Hey ${cleanName}, the Champions League is live — you're registered for CL Predictor but haven't entered any predictions yet.`,
       window: "Hit the button below for a <strong style=\"color:#fbbf24;\">4-hour window</strong> to lock in your picks for upcoming matches.",
       zeroNote: "Games already played will automatically score <strong style=\"color:#fbbf24;\">0 points</strong> — nothing to do for those.",
       cta: 'Get In The Game →',
-      footer: "You're receiving this because you signed up for The Rasten Cup.",
+      footer: "You're receiving this because you signed up for CL Predictor.",
     },
   };
 
@@ -101,7 +101,7 @@ function buildEmail(lang, name, inviteUrl, cutoffStr) {
 
       <!-- Header -->
       <div style="background:linear-gradient(135deg,#78350f,#1e3a5f);padding:28px 28px 20px;">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">The Rasten Cup</p>
+        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">CL Predictor</p>
         <h1 style="margin:0;font-size:22px;font-weight:900;color:#ffffff;">⚽ ${t.heading}</h1>
       </div>
 
@@ -161,7 +161,7 @@ async function sendEmail(to, subject, html) {
 }
 
 async function main() {
-  console.log(`\n🏆 Rasten Cup — Late Invite Script${isDryRun ? ' [DRY RUN]' : ''}\n`);
+  console.log(`\n🏆 CL Predictor — Late Invite Script${isDryRun ? ' [DRY RUN]' : ''}\n`);
 
   if (!RESEND_API_KEY && !isDryRun) {
     console.error('❌  RESEND_API_KEY not set. Add it to .env or run with --dry-run.');

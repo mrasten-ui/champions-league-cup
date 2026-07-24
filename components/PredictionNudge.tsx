@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, X, ArrowRight } from 'lucide-react';
 import { Translation } from '../types';
 
@@ -7,21 +7,28 @@ interface PredictionNudgeProps {
   userEmail: string;
   onGoToPredictions: () => void;
   lang: Translation;
+  /** Scopes the dismiss flag to the current round (e.g. matchday number) so dismissing
+   * this round's nudge doesn't silently suppress it for every future round too. */
+  scopeKey: string | number;
 }
 
-const NUDGE_KEY_PREFIX = 'rasten_nudge_dismissed_v1_';
+const NUDGE_KEY_PREFIX = 'rasten_nudge_dismissed_v2_';
 
 export const PredictionNudge: React.FC<PredictionNudgeProps> = ({
-  missingCount, userEmail, onGoToPredictions, lang,
+  missingCount, userEmail, onGoToPredictions, lang, scopeKey,
 }) => {
   const [dismissed, setDismissed] = useState(
-    () => !!localStorage.getItem(NUDGE_KEY_PREFIX + userEmail)
+    () => !!localStorage.getItem(NUDGE_KEY_PREFIX + userEmail + '_' + scopeKey)
   );
+
+  useEffect(() => {
+    setDismissed(!!localStorage.getItem(NUDGE_KEY_PREFIX + userEmail + '_' + scopeKey));
+  }, [userEmail, scopeKey]);
 
   if (dismissed || missingCount <= 0) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(NUDGE_KEY_PREFIX + userEmail, '1');
+    localStorage.setItem(NUDGE_KEY_PREFIX + userEmail + '_' + scopeKey, '1');
     setDismissed(true);
   };
 

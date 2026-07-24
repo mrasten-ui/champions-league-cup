@@ -11,8 +11,8 @@
  *   SUPABASE_URL / VITE_SUPABASE_URL
  *   SUPABASE_SERVICE_KEY / SUPABASE_SERVICE_ROLE_KEY
  *   RESEND_API_KEY                             — from resend.com
- *   APP_URL                                    — e.g. https://rastencup.com (for the CTA link)
- *   FROM_EMAIL                                 — e.g. noreply@rastencup.com (must be verified in Resend)
+ *   APP_URL                                    — e.g. https://clpredictor.com (for the CTA link)
+ *   FROM_EMAIL                                 — e.g. noreply@clpredictor.com (must be verified in Resend)
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -27,8 +27,8 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const APP_URL        = process.env.APP_URL        ?? 'https://rastencup.com';
-const FROM_EMAIL     = process.env.FROM_EMAIL     ?? 'The Rasten Cup <noreply@rastencup.com>';
+const APP_URL        = process.env.APP_URL        ?? 'https://clpredictor.com';
+const FROM_EMAIL     = process.env.FROM_EMAIL     ?? 'CL Predictor <noreply@clpredictor.com>';
 
 function formatLockCountdown(firstMatchDate) {
   const now = Date.now();
@@ -64,14 +64,14 @@ async function sendEmail(to, name, missingCount, totalMatches, firstMatchDate) {
 
       <!-- Header -->
       <div style="background:linear-gradient(135deg,#1e3a5f,#1e1b4b);padding:28px 28px 20px;">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">The Rasten Cup</p>
+        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">CL Predictor</p>
         <h1 style="margin:0;font-size:22px;font-weight:900;color:#ffffff;">⚽ You're missing ${missingCount} predictions</h1>
       </div>
 
       <!-- Body -->
       <div style="padding:24px 28px;">
         <p style="margin:0 0 16px;font-size:15px;color:#cbd5e1;line-height:1.6;">
-          Hey ${name || 'Manager'}, the World Cup kicks off <strong style="color:#fbbf24;">${lockCountdown}</strong>
+          Hey ${name || 'Manager'}, the Champions League kicks off <strong style="color:#fbbf24;">${lockCountdown}</strong>
           — and you still have <strong style="color:#fbbf24;">${missingCount} of ${totalMatches} predictions</strong> to fill in.
         </p>
 
@@ -99,7 +99,7 @@ async function sendEmail(to, name, missingCount, totalMatches, firstMatchDate) {
 
       <!-- Footer -->
       <div style="padding:16px 28px;border-top:1px solid rgba(255,255,255,0.06);">
-        <p style="margin:0;font-size:11px;color:#475569;">You're receiving this because you're registered for The Rasten Cup.</p>
+        <p style="margin:0;font-size:11px;color:#475569;">You're receiving this because you're registered for CL Predictor.</p>
       </div>
 
     </div>
@@ -116,7 +116,7 @@ async function sendEmail(to, name, missingCount, totalMatches, firstMatchDate) {
     body: JSON.stringify({
       from: FROM_EMAIL,
       to: [to],
-      subject: '⚽ Your Rasten Cup predictions are incomplete',
+      subject: '⚽ Your CL Predictor predictions are incomplete',
       html: body,
     }),
   });
@@ -138,7 +138,7 @@ async function sendApology(to, name) {
 
       <!-- Header -->
       <div style="background:linear-gradient(135deg,#14532d,#1e1b4b);padding:28px 28px 20px;">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">The Rasten Cup</p>
+        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">CL Predictor</p>
         <h1 style="margin:0;font-size:22px;font-weight:900;color:#ffffff;">✅ You're all set — sorry for the noise!</h1>
       </div>
 
@@ -158,7 +158,7 @@ async function sendApology(to, name) {
         <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:12px 16px;margin:0 0 24px;">
           <p style="margin:0;font-size:13px;color:#fde68a;line-height:1.5;">
             ✏️ <strong>You can still change your predictions!</strong><br>
-            <span style="color:#94a3b8;">Predictions stay open right up until the opening kick-off on Thursday 11 June. So if you want to tweak anything, now's your chance.</span>
+            <span style="color:#94a3b8;">Predictions stay open right up until each match's own kick-off. So if you want to tweak anything, now's your chance.</span>
           </p>
         </div>
 
@@ -173,7 +173,7 @@ async function sendApology(to, name) {
 
       <!-- Footer -->
       <div style="padding:16px 28px;border-top:1px solid rgba(255,255,255,0.06);">
-        <p style="margin:0;font-size:11px;color:#475569;">You're receiving this because you're registered for The Rasten Cup.</p>
+        <p style="margin:0;font-size:11px;color:#475569;">You're receiving this because you're registered for CL Predictor.</p>
       </div>
 
     </div>
@@ -190,7 +190,7 @@ async function sendApology(to, name) {
     body: JSON.stringify({
       from: FROM_EMAIL,
       to: [to],
-      subject: '✅ Sorry — you\'re all set for The Rasten Cup',
+      subject: '✅ Sorry — you\'re all set for CL Predictor',
       html: body,
     }),
   });
@@ -203,7 +203,7 @@ async function sendApology(to, name) {
 }
 
 async function main() {
-  console.log(`\n🏆 Rasten Cup — Prediction Reminder Script${isDryRun ? ' [DRY RUN]' : ''}${isApology ? ' [APOLOGY MODE]' : ''}\n`);
+  console.log(`\n🏆 CL Predictor — Prediction Reminder Script${isDryRun ? ' [DRY RUN]' : ''}${isApology ? ' [APOLOGY MODE]' : ''}\n`);
 
   if (!RESEND_API_KEY && !isDryRun) {
     console.error('❌  RESEND_API_KEY not set. Add it to .env or GitHub Secrets.');

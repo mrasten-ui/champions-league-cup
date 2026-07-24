@@ -7,7 +7,6 @@ import {
   calculateLeagueStandings,
   simulateFullTournament,
   applyPredictionsToBracket,
-  simulateTournamentAtDate,
   getAllGroupStandings,
   getThirdPlaceStandings,
   updateBracket,
@@ -15,7 +14,10 @@ import {
   getQualifiedRoundsSwiss,
   resolvePredictedKnockoutBracket,
   computeFinalRank,
+  buildRealResultReveal,
+  buildFutureReset,
 } from './services/engine';
+import REAL_CL_2024_RESULTS from './data/real-cl-2024-results.json';
 import { isMatchLocked } from './utils/date';
 import { MatchRow } from './components/MatchRow';
 import { StandingsTable } from './components/StandingsTable';
@@ -42,10 +44,6 @@ import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader } from './components/AppHeader';
-import { PlayerProgress } from './components/PlayerProgress'; 
-import { TourGuide } from './components/TourGuide';
-import { LiveSplashScreen } from './components/LiveSplashScreen';
-import { PRE_SEASON_TOUR, LIVE_SEASON_TOUR } from './components/tourConfig';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { SecondChanceView } from './components/SecondChanceView';
 import { KnockoutReminderModal } from './components/KnockoutReminderModal';
@@ -57,7 +55,6 @@ import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
-  TOUR_COMPLETED_PREFIX: 'rasten_cup_tour_done_v1_',
   AUTO_FILLED_PREFIX: 'rasten_autofill_v1_',
   KNOCKOUT_COMPLETION_TIME_PREFIX: 'rasten_knockout_done_v1_',
   KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX: 'rasten_knockout_reminder_v1_',
@@ -118,10 +115,6 @@ export const App = () => {
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null);
 
-  const [showTour, setShowTour] = useState(false);
-  const [currentTourStepId, setCurrentTourStepId] = useState<string | null>(null);
-  const [showLiveTour, setShowLiveTour] = useState(false);
-  const [showLiveSplash, setShowLiveSplash] = useState(false);
   const [showKnockoutReminder, setShowKnockoutReminder] = useState(false);
   const [showFinalRecapModal, setShowFinalRecapModal] = useState(false);
   const [showSCReminder, setShowSCReminder] = useState(false);
@@ -139,7 +132,6 @@ export const App = () => {
   const [stadiumVenue, setStadiumVenue] = useState<string | null>(null);
   const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
   const kitInitializedRef = useRef(false);
-  const wandTourTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
@@ -204,11 +196,6 @@ export const App = () => {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const totalMatchesCount = useMemo(() => ({
-      group: matches.filter(m => m.groupId).length,
-      knockout: matches.filter(m => m.round).length
-  }), [matches]);
-
   // --- ACTIONS: NAVIGATION JUMPS ---
   const handleJumpToTable = (groupId: string, teamId: string) => {
       setTournamentSubTab('tables');
@@ -238,8 +225,6 @@ export const App = () => {
     const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
     return Date.now() < until;
   }, [user?.email, lateWindowCleared]);
-
-  const effectiveTournamentPhase: TournamentPhase = isInLateWindow ? 'PRE_LIVE' : tournamentPhase;
 
   // --- CORE LOGIC WITH 3-STAGE SECOND CHANCE OVERRIDE ---
   const userMatches = useMemo(() => {
@@ -599,7 +584,7 @@ export const App = () => {
       return;
     }
 
-    const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a) };
+    const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a), homeTeamId: match.homeTeamId, awayTeamId: match.awayTeamId };
 
     // --- Cascade: detect knockout slots that shift due to this League Phase prediction ---
     let idsToDelete: string[] = [];
@@ -661,7 +646,7 @@ export const App = () => {
 
     // Save group/knockout prediction
     const { error: predError } = await supabase.from('predictions').upsert(
-      { user_id: user.email, match_id: matchId, home: Number(h), away: Number(a), ...(predictedWinnerId ? { predicted_winner_id: predictedWinnerId } : {}) } as any,
+      { user_id: user.email, match_id: matchId, home: Number(h), away: Number(a), home_team_id: match.homeTeamId, away_team_id: match.awayTeamId, ...(predictedWinnerId ? { predicted_winner_id: predictedWinnerId } : {}) } as any,
       { onConflict: 'user_id,match_id' }
     );
     if (predError) { console.error('Prediction save failed:', predError.message, predError); addToast('error', t.saveFailed, t.saveFailedMsg); }
@@ -682,7 +667,7 @@ export const App = () => {
         try {
           if (previousGroupPred) {
             await supabase.from('predictions').upsert(
-              { user_id: previousGroupPred.userId, match_id: previousGroupPred.matchId, home: previousGroupPred.home, away: previousGroupPred.away } as any,
+              { user_id: previousGroupPred.userId, match_id: previousGroupPred.matchId, home: previousGroupPred.home, away: previousGroupPred.away, home_team_id: previousGroupPred.homeTeamId, away_team_id: previousGroupPred.awayTeamId } as any,
               { onConflict: 'user_id,match_id' }
             );
           } else {
@@ -690,7 +675,7 @@ export const App = () => {
           }
           if (deletedPreds.length > 0) {
             await supabase.from('predictions').upsert(
-              deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away })) as any,
+              deletedPreds.map(p => ({ user_id: p.userId, match_id: p.matchId, home: p.home, away: p.away, home_team_id: p.homeTeamId, away_team_id: p.awayTeamId })) as any,
               { onConflict: 'user_id,match_id' }
             );
           }
@@ -792,16 +777,17 @@ export const App = () => {
                       if (home > away) predicted_winner_id = homeId;
                       else if (away > home) predicted_winner_id = awayId;
                   }
-                  return { user_id: user.email, match_id: matchId, home, away, ...(predicted_winner_id ? { predicted_winner_id } : {}) };
+                  return { user_id: user.email, match_id: matchId, home, away, home_team_id: homeId, away_team_id: awayId, ...(predicted_winner_id ? { predicted_winner_id } : {}) };
               });
               const { error: pushError } = await supabase.from('predictions').upsert(rows as any, { onConflict: 'user_id,match_id' });
               if (pushError) { console.error('SC lock-in push failed:', pushError.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
               // Sync local predictions state
               setAllPredictions(prev => {
                   let updated = [...prev];
-                  for (const [matchId, { home, away }] of draftEntries) {
+                  for (const row of rows) {
+                      const { match_id: matchId, home, away, home_team_id: homeTeamId, away_team_id: awayTeamId } = row;
                       const idx = updated.findIndex(p => p.userId === user.email && p.matchId === matchId);
-                      const entry = { userId: user.email, matchId, home, away };
+                      const entry = { userId: user.email, matchId, home, away, homeTeamId, awayTeamId };
                       if (idx > -1) updated[idx] = entry; else updated = [...updated, entry];
                   }
                   return updated;
@@ -856,10 +842,24 @@ export const App = () => {
       }
   }, [user?.secondChanceStatus, knockoutStartTime]);
 
-  const handleTimeTravel = (timestamp: number) => {
-      const simulatedMatches = simulateTournamentAtDate(matches, teamsData, timestamp);
-      setMatches(simulatedMatches);
-      setTournamentPhase('LIVE');
+  // Admin testing tool: replay the REAL 2024/25 League Phase results (same match ids
+  // as seeded) onto matches up to a chosen matchday, written to Supabase so standings/
+  // knockout qualification behave exactly as they would with real results coming in.
+  const handleRevealRealResults = async (upToMatchday: number) => {
+      if (!supabase) return;
+      const rows = buildRealResultReveal(matches, upToMatchday, REAL_CL_2024_RESULTS as any);
+      if (rows.length === 0) return;
+      const { error } = await supabase.from('matches').upsert(rows as any, { onConflict: 'id' });
+      if (error) { console.error('Reveal real results failed:', error.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
+      addToast('success', 'Time Travel', `Revealed real results through Matchday ${upToMatchday} (${rows.length} matches).`);
+  };
+
+  const handleResetToFuture = async () => {
+      if (!supabase) return;
+      const rows = buildFutureReset(matches);
+      const { error } = await supabase.from('matches').upsert(rows as any, { onConflict: 'id' });
+      if (error) { console.error('Reset to future failed:', error.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
+      addToast('success', 'Time Travel', 'All League Phase matches reset to upcoming.');
   };
 
   const handleLanguageSwitch = (code: LanguageCode) => {
@@ -973,29 +973,6 @@ export const App = () => {
     setLateWindowCleared(true);
   };
 
-  // --- TOUR GUIDE CONTROLS ---
-  useEffect(() => {
-      const localTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email) : null;
-      if (user && tournamentPhase === 'PRE_LIVE' && !user.toursCompleted?.preSeason && !localTourCompleted) {
-          const timer = setTimeout(() => setShowTour(true), 1500);
-          return () => clearTimeout(timer);
-      }
-  }, [user, tournamentPhase]);
-
-  useEffect(() => {
-      const localLiveTourCompleted = user?.email ? localStorage.getItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live') : null;
-      if (user && tournamentPhase === 'LIVE' && !isInLateWindow && !user.toursCompleted?.liveSeason && !localLiveTourCompleted) {
-          const timer = setTimeout(() => setShowLiveSplash(true), 1500);
-          return () => clearTimeout(timer);
-      }
-  }, [user, tournamentPhase]);
-
-  const handleSplashDone = () => {
-      setShowLiveSplash(false);
-      setActiveTab('leaderboard');
-      setTimeout(() => setShowLiveTour(true), 300);
-  };
-
   // Auto-fill predictions for late-joining users in LIVE phase
   useEffect(() => {
       if (!user || !supabase || tournamentPhase !== 'LIVE') return;
@@ -1015,7 +992,7 @@ export const App = () => {
               && !m.isLocked
               && (m.status === 'UPCOMING' || m.status === 'NS')
               && !userGroupPreds.some(p => p.matchId === m.id))
-          .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
+          .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
 
       if (toSave.length === 0) return;
 
@@ -1026,7 +1003,7 @@ export const App = () => {
               setAllPredictions(prev => {
                   const others = prev.filter(p => p.userId !== user.email);
                   const kept = prev.filter(p => p.userId === user.email && !toSave.some(s => s.match_id === p.matchId));
-                  return [...others, ...kept, ...toSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }))];
+                  return [...others, ...kept, ...toSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away, homeTeamId: p.home_team_id, awayTeamId: p.away_team_id }))];
               });
               if (qualifiesForSubsBonus) {
                   const newSubCount = (user.substitutions ?? 5) + 3;
@@ -1043,87 +1020,6 @@ export const App = () => {
           }
       });
   }, [user?.email, tournamentPhase, matches.length, Object.keys(teamsData).length, allPredictions.length]);
-
-  const handleTourComplete = async () => {
-      setShowTour(false);
-      if (user?.email) localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email, 'true');
-      if (user && supabase) {
-          const newTours = { ...(user.toursCompleted || { liveSeason: false }), preSeason: true };
-          setUser({ ...user, toursCompleted: newTours });
-          await supabase.from('profiles').update({ tours_completed: newTours } as any).eq('email', user.email);
-      }
-  };
-
-  const handleLiveTourComplete = async () => {
-      setShowLiveTour(false);
-      setActiveTab('leaderboard');
-      if (user?.email) localStorage.setItem(STORAGE_KEYS.TOUR_COMPLETED_PREFIX + user.email + '_live', 'true');
-      if (user && supabase) {
-          const newTours = { ...(user.toursCompleted || { preSeason: false }), liveSeason: true };
-          setUser({ ...user, toursCompleted: newTours });
-          await supabase.from('profiles').update({ tours_completed: newTours } as any).eq('email', user.email);
-      }
-  };
-
-  const handleTourNavigation = (stepId: string) => {
-      setCurrentTourStepId(stepId);
-      if (stepId === 'match_card' && activeTab !== 'groups') { setActiveTab('groups'); setActiveMatchday(1); }
-      else if (stepId === 'groups_nav' && activeTab !== 'groups') setActiveTab('groups');
-      else if (stepId === 'knockout_tab') { setActiveTab('knockout'); setActiveKnockoutRound('PO'); }
-      else if (stepId === 'rules_tab') setActiveTab('rules');
-      else if (stepId === 'profile_menu') { setActiveTab('groups'); setActiveMatchday(1); }
-
-      clearTimeout(wandTourTimerRef.current);
-      if (stepId === 'magic_wand') {
-          wandTourTimerRef.current = setTimeout(() => setIsHelpingHandOpen(true), 1500);
-      } else {
-          setIsHelpingHandOpen(false);
-      }
-  };
-
-  const handleLiveTourNavigation = (stepId: string) => {
-      if (stepId === 'live_welcome' || stepId === 'live_coach_brief' || stepId === 'live_leaderboard') {
-          setActiveTab('leaderboard');
-          if (stepId === 'live_leaderboard') {
-              setTimeout(() => {
-                  const myRow = document.getElementById('tour-my-row');
-                  if (myRow) {
-                      myRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      const alreadyExpanded = !!document.getElementById('tour-my-row-expanded');
-                      if (!alreadyExpanded) setTimeout(() => myRow.click(), 400);
-                  }
-              }, 450);
-          }
-      } else if (stepId === 'live_tournament') {
-          setActiveTab('tournament');
-          setTournamentSubTab('schedule');
-          setTimeout(() => {
-              document.getElementById('tour-schedule-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 500);
-      } else if (stepId === 'live_manager') {
-          setActiveTab('manager');
-          setTimeout(() => {
-              document.getElementById('tour-manager-first-group')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 450);
-      } else if (stepId === 'live_second_chance') {
-          setActiveTab('manager');
-          setTimeout(() => {
-              document.getElementById('tour-knockout-btn')?.click();
-              setTimeout(() => {
-                  document.getElementById('tour-second-chance-promo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 350);
-          }, 450);
-      } else if (stepId === 'live_analysis') {
-          setActiveTab('analysis');
-          setTimeout(() => {
-              document.getElementById('tour-analysis-simleaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 500);
-      } else if (stepId === 'live_rules') {
-          setActiveTab('rules');
-      } else if (stepId === 'live_profile') {
-          setActiveTab('leaderboard');
-      }
-  };
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => user ? allPredictions.filter(p => p.userId === user.email && groupStageMatches.some(gm => gm.id === p.matchId)).length : 0, [allPredictions, user, groupStageMatches]);
@@ -1161,10 +1057,10 @@ export const App = () => {
     else setActiveTab('leaderboard');
   };
 
-  const navTabs = useMemo(() => {
-      if (effectiveTournamentPhase === 'PRE_LIVE') return ['groups', 'knockout', 'leaderboard', 'rules'];
-      return ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
-  }, [effectiveTournamentPhase]);
+  // Always the same tabs — predicting, live tracking, and standings all coexist
+  // throughout the season instead of the app switching to a different nav set
+  // once the first match kicks off.
+  const navTabs = useMemo(() => ['groups', 'knockout', 'tournament', 'leaderboard', 'manager', 'analysis', 'rules'], []);
 
   const handleNextTab = useCallback(() => {
       const idx = navTabs.indexOf(activeTab);
@@ -1195,16 +1091,6 @@ export const App = () => {
       onSwipeRight: activeTab === 'tournament' ? handlePrevTournamentSub : handlePrevTab,
   });
 
-  useEffect(() => {
-      const liveTabs = ['leaderboard', 'tournament', 'manager', 'analysis', 'rules'];
-      // SC users need the knockout tab to access SecondChanceView — don't bounce them
-      const scOnKnockout = activeTab === 'knockout' &&
-          (user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE');
-      if (effectiveTournamentPhase === 'LIVE' && !liveTabs.includes(activeTab) && !scOnKnockout) {
-          setActiveTab('tournament');
-      }
-  }, [effectiveTournamentPhase, activeTab, user?.secondChanceStatus]);
-
   // Record the moment group stage is fully predicted (once, never overwrites)
   useEffect(() => {
       if (!user || !isGroupStageComplete) return;
@@ -1216,7 +1102,7 @@ export const App = () => {
 
   // Show knockout reminder immediately on completion, then re-show if 24h pass with no bracket entry
   useEffect(() => {
-      if (!user || tournamentPhase !== 'PRE_LIVE' || !isGroupStageComplete || userKnockoutPredictionsCount > 0) return;
+      if (!user || !isGroupStageComplete || userKnockoutPredictionsCount > 0) return;
       const lastShownKey = STORAGE_KEYS.KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX + user.email;
       const completionTimeKey = STORAGE_KEYS.KNOCKOUT_COMPLETION_TIME_PREFIX + user.email;
       const lastShown = parseInt(localStorage.getItem(lastShownKey) || '0');
@@ -1269,32 +1155,12 @@ export const App = () => {
       setShowFinalRecapModal(false);
   };
 
+  // LiveTicker only ever surfaces matches that are actually in progress, so a
+  // ticker click always means "show me this live match" — no phase branching needed.
   const handleTickerMatchClick = (match: Match) => {
-    if (!match.round) {
-      // League Phase match
-      if (tournamentPhase === 'LIVE') {
-        setActiveTab('tournament');
-        setTournamentSubTab('schedule');
-        setScheduleJumpMatchId(match.id);
-      } else {
-        setActiveTab('groups');
-        if (match.matchday) setActiveMatchday(match.matchday);
-        setTimeout(() => {
-          const el = document.getElementById(`match-card-${match.id}`);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 150);
-      }
-    } else {
-      if (tournamentPhase === 'LIVE') {
-        setActiveTab('tournament');
-        setTournamentSubTab('schedule');
-        setScheduleJumpMatchId(match.id);
-      } else {
-        setActiveTab('knockout');
-        setActiveKnockoutRound(match.round as any);
-        handleJumpToBracket(match.id);
-      }
-    }
+    setActiveTab('tournament');
+    setTournamentSubTab('schedule');
+    setScheduleJumpMatchId(match.id);
   };
 
   const handleKnockoutReminderDismiss = (goToKnockouts: boolean) => {
@@ -1457,12 +1323,14 @@ export const App = () => {
     return rivalsList.filter(u => u.leagues?.some(l => userLeagues.includes(l)));
   }, [rivalsList, user?.leagues]);
 
+  // Scoped to the round the user is currently viewing, not the whole season —
+  // there's no single "everyone predicts everything now" moment to nag about.
   const missingGroupPredictions = useMemo(() => {
-    if (!user || tournamentPhase !== 'PRE_LIVE') return 0;
-    const allMatchIds = matches.map(m => m.id);
+    if (!user) return 0;
+    const roundMatchIds = matches.filter(m => !m.round && m.matchday === activeMatchday).map(m => m.id);
     const userPredMatchIds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
-    return allMatchIds.filter(id => !userPredMatchIds.has(id)).length;
-  }, [user?.email, tournamentPhase, matches, allPredictions]);
+    return roundMatchIds.filter(id => !userPredMatchIds.has(id)).length;
+  }, [user?.email, matches, allPredictions, activeMatchday]);
 
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
   const runBriefGeneration = async () => {
@@ -1558,10 +1426,9 @@ export const App = () => {
     addToast('info', t.predictionsCleared, t.predictionsClearedMsg);
   }, [user, activeTab, matches]);
 
-  const showMagicWand = (
-      (effectiveTournamentPhase === 'PRE_LIVE' && activeTab !== 'leaderboard' && activeTab !== 'manager' && activeTab !== 'analysis') ||
-      (tournamentPhase === 'LIVE' && user?.hasTakenSecondChance && (activeTab === 'knockout'))
-  );
+  // Auto-fill is relevant wherever there are picks left to make — groups or knockout —
+  // regardless of whether some other match elsewhere in the season has already kicked off.
+  const showMagicWand = activeTab === 'groups' || activeTab === 'knockout';
 
   const getSimMode = (): 'knockout' | 'groups' => {
       if (activeTab === 'knockout') return 'knockout';
@@ -1596,12 +1463,10 @@ export const App = () => {
 
       <AppHeader
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
-        activeTab={activeTab} setActiveTab={setActiveTab} activeMatchday={activeMatchday} setActiveMatchday={setActiveMatchday}
+        activeTab={activeTab} setActiveTab={setActiveTab}
         isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
         handleLogout={handleLogout}
-        onStartTour={() => setShowTour(true)}
-        onStartLiveTour={() => { setActiveTab('leaderboard'); setShowLiveTour(true); }}
         showSecondChanceBadge={false}
         isAdminMode={isAdminMode}
         unassignedCount={unassignedCount}
@@ -1645,6 +1510,7 @@ export const App = () => {
             userEmail={user.email}
             onGoToPredictions={() => setActiveTab('groups')}
             lang={t}
+            scopeKey={activeMatchday}
           />
         )}
 
@@ -1724,7 +1590,7 @@ export const App = () => {
 
         {/* LEAGUE PHASE TAB — round-centric: default view is "this matchday", not the whole season at once.
             The matchday itself is the headline; standings/table are supplementary and sit below the games. */}
-        {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
+        {activeTab === 'groups' && (
             <div className="animate-fade-in">
                 <div className="flex items-end justify-between mb-4 px-1 pb-3 border-b border-white/10">
                     <div className="flex items-center gap-3">
@@ -1817,7 +1683,7 @@ export const App = () => {
                     <KnockoutBracket
                         matches={userBracket} teams={teamsData} onUpdate={handleScoreUpdate} lang={t} user={user}
                         onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase}
-                        isLeaguePhaseComplete={isLeaguePhaseComplete || showTour}
+                        isLeaguePhaseComplete={isLeaguePhaseComplete}
                         onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
                         matchEvents={matchEvents} isLateJoiner={isInLateWindow}
                     />
@@ -1837,15 +1703,10 @@ export const App = () => {
             </div>
         )}
         
-        {/* LEADERBOARD */}
+        {/* LEADERBOARD — always the real standings; there's no single moment where
+            everyone has "finished predicting" and the board "goes live". */}
         {activeTab === 'leaderboard' && (
-            <>
-                {tournamentPhase === 'PRE_LIVE' ? (
-                    <PlayerProgress users={Object.values(usersDb)} allPredictions={allPredictions} totalMatches={totalMatchesCount} lang={t} currentUserLeagues={user.leagues} currentUserEmail={user?.email} currentLang={language} />
-                ) : (
-                    <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} currentLang={language} />
-                )}
-            </>
+            <Leaderboard users={Object.values(usersDb)} matches={matches} allPredictions={allPredictions} lang={t} currentUserEmail={user?.email} currentUserLeagues={user?.leagues} teams={teamsData} onTeamClick={(id) => setViewingTeamId(id)} preloadedAnalysis={dailyBrief} onRefreshBrief={() => { const cacheKey = `rasten_brief_${user.email}_${new Date().toDateString()}`; localStorage.removeItem(cacheKey); runBriefGeneration(); }} briefRefreshing={briefRefreshing} currentLang={language} />
         )}
         
         {/* MANAGER TAB */}
@@ -1880,9 +1741,6 @@ export const App = () => {
         addToast={addToast}
       />
 
-      <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
-      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} />
-      <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
       {finalRecap && (
           <FinalRecapModal
@@ -1990,7 +1848,7 @@ export const App = () => {
         onAutoFillAllUsers={async () => {
           if (!supabase) return { filled: 0, users: 0 };
           const groupMatches = matches.filter(m => m.groupId);
-          const allUpserts: { user_id: string; match_id: string; home: number; away: number }[] = [];
+          const allUpserts: { user_id: string; match_id: string; home: number; away: number; home_team_id?: string; away_team_id?: string }[] = [];
           for (const [email, profile] of Object.entries(usersDb)) {
             const userPreds = allPredictions.filter(p => p.userId === email);
             const simulated = simulateFullTournament(matches, teamsData, profile.favorites || [], 'GROUPS', 50);
@@ -1999,7 +1857,7 @@ export const App = () => {
               !m.isLocked && (m.status === 'UPCOMING' || m.status === 'NS') &&
               groupMatches.some(gm => gm.id === m.id) &&
               !userPreds.some(p => p.matchId === m.id)
-            ).map(m => ({ user_id: email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
+            ).map(m => ({ user_id: email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
             allUpserts.push(...toSave);
           }
           if (allUpserts.length === 0) return { filled: 0, users: 0 };
@@ -2007,14 +1865,15 @@ export const App = () => {
           if (error) throw error;
           bustPredictionsCache();
           setAllPredictions(prev => {
-            const newPreds = allUpserts.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
+            const newPreds = allUpserts.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away, homeTeamId: p.home_team_id, awayTeamId: p.away_team_id }));
             const kept = prev.filter(p => !allUpserts.some(u => u.user_id === p.userId && u.match_id === p.matchId));
             return [...kept, ...newPreds];
           });
           return { filled: allUpserts.length, users: new Set(allUpserts.map(u => u.user_id)).size };
         }}
         onClear={() => { localStorage.clear(); window.location.reload(); }}
-        onTimeTravel={handleTimeTravel}
+        onRevealRealResults={handleRevealRealResults}
+        onResetToFuture={handleResetToFuture}
         lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}
         leagueLangs={leagueLangs}
         onUpdateLeagueLang={async (slug, lang) => {
@@ -2210,7 +2069,7 @@ export const App = () => {
                         // Late joiners: only predict future matches — no retroactive picks on played matches
                         if (isInLateWindow && m.status !== 'NS' && m.status !== 'UPCOMING') return false;
                         return true;
-                    }).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore! }));
+                    }).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
                     if (predictionsToSave.length > 0) {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {
@@ -2218,7 +2077,7 @@ export const App = () => {
                             setAllPredictions(prev => {
                                 const others = prev.filter(p => p.userId !== user.email);
                                 const myOldPreds = prev.filter(p => p.userId === user.email && !predictionsToSave.some(newP => newP.match_id === p.matchId));
-                                const myNewPreds = predictionsToSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away }));
+                                const myNewPreds = predictionsToSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away, homeTeamId: p.home_team_id, awayTeamId: p.away_team_id }));
                                 return [...others, ...myOldPreds, ...myNewPreds];
                             });
                         } else { addToast('error', t.saveFailed, t.saveFailedMsg); }
@@ -2229,7 +2088,7 @@ export const App = () => {
         />
       )}
 
-      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} isTourActive={currentTourStepId === 'magic_wand' && !isHelpingHandOpen} />}
+      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />}
       {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
 
 

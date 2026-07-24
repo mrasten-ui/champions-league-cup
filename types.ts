@@ -143,6 +143,11 @@ export interface Prediction {
   home: number;
   away: number;
   predictedWinnerId?: string;
+  // Snapshot of which teams this prediction was actually made against, captured
+  // at save time — so the prediction stays correct even if the match's fixture
+  // (matches.home_team_id / away_team_id) is ever reassigned later.
+  homeTeamId?: string;
+  awayTeamId?: string;
 }
 
 export interface UserProfile {
@@ -332,24 +337,4 @@ export interface PlayerMatchStat {
   foulsDrawn?: number | null;
   yellowCards?: number;
   redCards?: number;
-}
-
-// --- UPDATED: Tour Configuration Interface (TV Mode) ---
-export interface TourStep {
-  id: string;
-  targetId?: string; // HTML ID of the element to highlight (Legacy/Single target)
-  targets?: string[]; // NEW: Array of IDs to highlight simultaneously
-  position: 'center' | 'top' | 'bottom';
-  
-  // NEW: Defines which "Telestrator" graphic to draw
-  overlayType?: 'none' | 'score-arrows' | 'swipe-hand' | 'sparkles' | 'tap-target';
-
-  // Visual Text (Short headlines for the TV Graphic)
-  display: Record<string, {
-    title: string;
-    lines: string[];
-  }>;
-
-  // Audio Script (Full text spoken by personas)
-  audioScript: Record<string, { host: string; pundit: string }>;
 }

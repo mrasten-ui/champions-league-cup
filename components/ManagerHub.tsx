@@ -292,10 +292,10 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       if (realMatch.round) return false;
       const isStarted = ['LIVE', '1H', 'HT', '2H', 'FT', 'FINISHED', 'PEN', 'AET'].includes(realMatch.status);
       if (isStarted) return false;
-      
-      // If already unlocked, user can just "edit", but the button logic is handled by 'phase' mostly
-      // We return true here so the button shows up. Inside handleSubClick we check status.
-      return phase === 'LIVE'; 
+
+      // Available whenever this specific match hasn't kicked off yet — not gated by
+      // whether some other match elsewhere in the season has already gone live.
+      return true;
   };
 
   // --- DIRECT CONFIRMATION HANDLER ---
@@ -325,17 +325,13 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
       const realMatch = matches.find(m => m.id === selectedMatchId);
       if (!userMatch || !realMatch) return null;
       
-      // Force 'isLocked' to true if in LIVE phase (unless unlocked) 
-      // ensuring the modal handles the UI correctly
-      const effectiveLocked = phase === 'LIVE' ? true : realMatch.isLocked;
-
       return {
           ...realMatch,
-          isLocked: effectiveLocked,
+          isLocked: realMatch.isLocked,
           homeTeamId: userMatch.homeTeamId,
           awayTeamId: userMatch.awayTeamId
       };
-  }, [selectedMatchId, userMatches, matches, phase]);
+  }, [selectedMatchId, userMatches, matches]);
 
   const getKnockoutGridClass = (round: string, count: number) => {
       if (round === 'FIN') return 'flex justify-center max-w-sm mx-auto';
@@ -437,19 +433,15 @@ export const ManagerHub: React.FC<ManagerHubProps> = ({
                           </div>
                           <div className="text-base font-black text-slate-800">{totalPoints}</div>
                       </div>
-                      {phase === 'LIVE' && (
-                          <>
-                              <div className="w-px h-6 bg-slate-200" />
-                              <div className="flex-1 flex flex-col items-center">
-                                  <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 mb-0.5 ${currentUser.substitutions > 0 ? 'text-blue-500' : 'text-slate-400'}`}>
-                                      <RefreshCw size={10} /> Subs
-                                  </div>
-                                  <div className={`text-base font-black ${currentUser.substitutions > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
-                                      {currentUser.substitutions}<span className="text-xs text-slate-300 ml-0.5 align-top">/{MAX_SUBSTITUTIONS}</span>
-                                  </div>
-                              </div>
-                          </>
-                      )}
+                      <div className="w-px h-6 bg-slate-200" />
+                      <div className="flex-1 flex flex-col items-center">
+                          <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 mb-0.5 ${currentUser.substitutions > 0 ? 'text-blue-500' : 'text-slate-400'}`}>
+                              <RefreshCw size={10} /> Subs
+                          </div>
+                          <div className={`text-base font-black ${currentUser.substitutions > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                              {currentUser.substitutions}<span className="text-xs text-slate-300 ml-0.5 align-top">/{MAX_SUBSTITUTIONS}</span>
+                          </div>
+                      </div>
                   </div>
               </div>
           </div>

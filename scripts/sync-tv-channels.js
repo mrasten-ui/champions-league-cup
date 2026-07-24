@@ -258,7 +258,7 @@ function parseNorwegianDate(str) {
 
 async function fetchNOKnockoutListings() {
   console.log('\n── NO knockout: Fetching', NO_URL);
-  const res = await fetch(NO_URL, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RastenCupBot/1.0)' } });
+  const res = await fetch(NO_URL, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CLPredictorBot/1.0)' } });
   if (!res.ok) throw new Error(`NO fetch failed: HTTP ${res.status}`);
 
   const html = await res.text();

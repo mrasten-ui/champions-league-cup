@@ -1525,3 +1525,35 @@ export const fetchAllTeamRanks = async (): Promise<Record<string, number>> => {
   } catch (e) { console.error("Rank Sync Error:", e); }
   return {};
 };
+
+// ── ADMIN "TIME TRAVEL" (real 2024/25 results) ───────────────────────────────
+// Lets an admin replay the REAL historical results of the League Phase matches
+// (pulled once via scripts/pull-real-cl-2024-results.mjs, keyed by the same
+// match ids seeded into Supabase) onto however many matchdays they choose —
+// for testing standings/knockout behavior against authentic result patterns
+// instead of hand-typing scores one match at a time.
+export interface RealResultsMap { [matchId: string]: { home: number; away: number } }
+
+export const buildRealResultReveal = (
+  matches: Match[],
+  upToMatchday: number,
+  realResults: RealResultsMap
+): { id: string; home_score: number; away_score: number; status: string; is_locked: boolean }[] => {
+  return matches
+    .filter(m => !m.round && m.matchday != null && m.matchday <= upToMatchday && realResults[m.id])
+    .map(m => ({
+      id: m.id,
+      home_score: realResults[m.id].home,
+      away_score: realResults[m.id].away,
+      status: 'FINISHED',
+      is_locked: true,
+    }));
+};
+
+export const buildFutureReset = (
+  matches: Match[]
+): { id: string; home_score: null; away_score: null; status: string; is_locked: boolean }[] => {
+  return matches
+    .filter(m => !m.round)
+    .map(m => ({ id: m.id, home_score: null, away_score: null, status: 'UPCOMING', is_locked: false }));
+};

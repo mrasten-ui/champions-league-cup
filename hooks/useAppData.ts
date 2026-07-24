@@ -179,7 +179,7 @@ export const useAppData = () => {
               if (page && page.length > 0) { allPredRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
               else { keepGoing = false; }
             }
-            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0, predictedWinnerId: p.predicted_winner_id ?? undefined }));
+            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0, predictedWinnerId: p.predicted_winner_id ?? undefined, homeTeamId: p.home_team_id ?? undefined, awayTeamId: p.away_team_id ?? undefined }));
             rcSet('predictions', mappedPreds);
             setAllPredictions(mappedPreds);
           };

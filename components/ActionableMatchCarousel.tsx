@@ -86,6 +86,7 @@ export const ActionableMatchCarousel: React.FC<ActionableMatchCarouselProps> = (
                     revealedRivals={currentUser?.spiedMatches || []}
                     currentUser={currentUser}
                     allPredictions={allPredictions}
+                    allTeams={teams}
                     phase={phase}
                     isAdminMode={false}
                     

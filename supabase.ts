@@ -24,9 +24,9 @@ export interface Database {
         Update: { id?: string; date?: string | null; venue?: string | null; group_id?: string | null; round?: string | null; matchday?: number | null; home_team_id?: string | null; away_team_id?: string | null; home_score?: number | null; away_score?: number | null; status?: string | null; is_locked?: boolean | null; api_id?: string | null; next_match_id?: string | null; channels?: Json | null; minute?: number | null; };
       };
       predictions: {
-        Row: { id: number; user_id: string | null; match_id: string | null; home: number | null; away: number | null; created_at: string | null; auto_filled: boolean | null; };
-        Insert: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; auto_filled?: boolean | null; };
-        Update: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; auto_filled?: boolean | null; };
+        Row: { id: number; user_id: string | null; match_id: string | null; home: number | null; away: number | null; created_at: string | null; auto_filled: boolean | null; home_team_id: string | null; away_team_id: string | null; };
+        Insert: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; auto_filled?: boolean | null; home_team_id?: string | null; away_team_id?: string | null; };
+        Update: { id?: number; user_id?: string | null; match_id?: string | null; home?: number | null; away?: number | null; created_at?: string | null; auto_filled?: boolean | null; home_team_id?: string | null; away_team_id?: string | null; };
       };
       profiles: {
         Row: { email: string; name: string | null; avatar: string | null; tokens: number | null; favorites: string[] | null; leagues: string[] | null; spied_matches: string[] | null; has_taken_second_chance: boolean | null; second_chance_status: string | null; is_admin: boolean | null; created_at: string | null; id: string; substitutions: number | null; unlocked_matches: string[] | null; tours_completed: Json | null; risk_result: number | null; risk_scoring: number | null; };

@@ -23,7 +23,7 @@ function buildEmail(lang: string, name: string, appUrl: string): { subject: stri
       intro: `Hey ${cleanName}, we found and fixed a bug in the Second Chance bracket that may have caused some teams to appear in incorrect slots.`,
       detail: `Your picks are still saved, but the teams they apply to may have shifted. <strong style="color:#fbbf24;">Please open the app and check your Second Chance bracket</strong> before the window closes — make any changes you need.`,
       cta: 'Review My Picks →',
-      footer: "You're receiving this because you activated Second Chance in The Rasten Cup.",
+      footer: "You're receiving this because you activated Second Chance in CL Predictor.",
     },
     NO: {
       subject: '🛡️ Second Chance — sjekk tipsene dine i brakett',
@@ -31,7 +31,7 @@ function buildEmail(lang: string, name: string, appUrl: string): { subject: stri
       intro: `Hei ${cleanName}, vi oppdaget og fikset en feil i Second Chance-brakketten som kan ha plassert noen lag i feil spor.`,
       detail: `Tipsene dine er lagret, men lagene de gjelder kan ha endret seg. <strong style="color:#fbbf24;">Åpne appen og sjekk Second Chance-brakketten din</strong> før vinduet stenger — gjør de endringene du trenger.`,
       cta: 'Sjekk tipsene mine →',
-      footer: 'Du mottar dette fordi du aktiverte Second Chance i Rasten Cup.',
+      footer: 'Du mottar dette fordi du aktiverte Second Chance i CL Predictor.',
     },
     SCO: {
       subject: "🛡️ Second Chance — gie yer bracket picks a wee check",
@@ -39,7 +39,7 @@ function buildEmail(lang: string, name: string, appUrl: string): { subject: stri
       intro: `Aye ${cleanName}, we found and sorted a bug in the Second Chance bracket that micht've put some teams in the wrang slots.`,
       detail: `Yer picks are still there, but the teams they're attached tae may have shifted aboot. <strong style="color:#fbbf24;">Open the app and gie yer Second Chance bracket a wee look</strong> before the window shuts — fix whatever needs fixing.`,
       cta: 'Check My Picks →',
-      footer: "Ye're getting this because ye activated Second Chance in The Rasten Cup.",
+      footer: "Ye're getting this because ye activated Second Chance in CL Predictor.",
     },
     US: {
       subject: '🛡️ Second Chance — please review your bracket picks',
@@ -47,7 +47,7 @@ function buildEmail(lang: string, name: string, appUrl: string): { subject: stri
       intro: `Hey ${cleanName}, we found and fixed a bug in the Second Chance bracket that may have caused some teams to land in the wrong slots.`,
       detail: `Your picks are still saved, but the teams they apply to may have shifted. <strong style="color:#fbbf24;">Please open the app and check your Second Chance bracket</strong> before the window closes — make any adjustments you need.`,
       cta: 'Review My Picks →',
-      footer: "You're receiving this because you activated Second Chance in The Rasten Cup.",
+      footer: "You're receiving this because you activated Second Chance in CL Predictor.",
     },
   }
 
@@ -60,7 +60,7 @@ function buildEmail(lang: string, name: string, appUrl: string): { subject: stri
   <div style="max-width:480px;margin:40px auto;padding:0 16px;">
     <div style="background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
       <div style="background:linear-gradient(135deg,#312e81,#1e3a5f);padding:28px 28px 20px;">
-        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">The Rasten Cup · Second Chance</p>
+        <p style="margin:0 0 4px;font-size:11px;font-weight:900;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;">CL Predictor · Second Chance</p>
         <h1 style="margin:0;font-size:22px;font-weight:900;color:#ffffff;">🛡️ ${t.heading}</h1>
       </div>
       <div style="padding:24px 28px;">
@@ -93,8 +93,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const resendKey   = Deno.env.get('RESEND_API_KEY')
-    const appUrl      = Deno.env.get('APP_URL') ?? 'https://rastencup.com'
-    const fromEmail   = Deno.env.get('FROM_EMAIL') ?? 'The Rasten Cup <noreply@rastencup.com>'
+    const appUrl      = Deno.env.get('APP_URL') ?? 'https://clpredictor.com'
+    const fromEmail   = Deno.env.get('FROM_EMAIL') ?? 'CL Predictor <noreply@clpredictor.com>'
 
     if (!dry_run && !resendKey) throw new Error('RESEND_API_KEY not set in Supabase secrets')
 

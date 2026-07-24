@@ -155,7 +155,7 @@ async function main() {
       if (!homeTeam || !awayTeam) continue;
 
       const { home, away } = generateScore(homeTeam, awayTeam, profile.risk_result, profile.risk_scoring, favorites);
-      toWrite.push({ user_id: profile.email, match_id: match.id, home, away, auto_filled: true, label: `${profile.email} — ${match.id} (${home}-${away})` });
+      toWrite.push({ user_id: profile.email, match_id: match.id, home, away, auto_filled: true, home_team_id: match.home_team_id, away_team_id: match.away_team_id, label: `${profile.email} — ${match.id} (${home}-${away})` });
     }
   }
 
@@ -176,7 +176,7 @@ async function main() {
   // Batch upserts (500 rows at a time is comfortably under Supabase's request limits)
   const BATCH = 500;
   for (let i = 0; i < toWrite.length; i += BATCH) {
-    const batch = toWrite.slice(i, i + BATCH).map(({ user_id, match_id, home, away, auto_filled }) => ({ user_id, match_id, home, away, auto_filled }));
+    const batch = toWrite.slice(i, i + BATCH).map(({ user_id, match_id, home, away, auto_filled, home_team_id, away_team_id }) => ({ user_id, match_id, home, away, auto_filled, home_team_id, away_team_id }));
     const { error } = await supabase.from('predictions').upsert(batch, { onConflict: 'user_id,match_id' });
     if (error) { console.error(`   ❌  Batch ${i / BATCH + 1} failed:`, error.message); process.exit(1); }
     console.log(`   ✅  Wrote batch ${i / BATCH + 1} (${batch.length} predictions)`);
