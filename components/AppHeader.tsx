@@ -202,9 +202,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     id={tabId}
                     onClick={() => props.setActiveTab(tab as any)}
                     className={`
-                        relative font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center
+                        relative font-black uppercase tracking-normal transition-all duration-300 flex items-center justify-center whitespace-nowrap shrink-0
                         ${isDesktop
-                            ? `h-full px-5 text-[13px] ${isActive ? 'text-white' : 'text-slate-300 hover:text-white'}`
+                            ? `h-full px-2 text-[11px] ${isActive ? 'text-white' : 'text-slate-300 hover:text-white'}`
                             : `px-4 py-7 text-xs ${isActive ? 'text-white' : 'text-slate-400 hover:text-blue-200'}`
                         }
                     `}
@@ -251,7 +251,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             </div>
           )}
 
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
               {/* LEFT: Logo */}
               <div className="flex items-center gap-3 shrink-0">
                  <Logo className="w-12 h-12" variant="theme" />
@@ -260,8 +260,10 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                  </div>
               </div>
 
-              {/* CENTER: Desktop Navigation (Hidden on Mobile) */}
-              <div className="hidden md:flex flex-1 justify-center px-8">
+              {/* CENTER: Desktop Navigation (Hidden on Mobile) — min-w-0 + overflow-x-auto is a safety
+                  net so a full tab set never pushes the page wider than the viewport; it scrolls
+                  internally instead. */}
+              <div className="hidden md:flex flex-1 justify-center px-2 min-w-0 overflow-x-auto no-scrollbar">
                   {renderNavTabs(true)}
               </div>
 

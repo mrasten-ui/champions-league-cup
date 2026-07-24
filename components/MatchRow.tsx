@@ -152,7 +152,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
 
         {/* Home team */}
         <div className="flex-1 min-w-0 flex items-center justify-end gap-1.5">
-          <span className="text-[11px] font-bold text-white truncate text-right">{homeName}</span>
+          <span className="text-[11px] font-bold text-white text-right leading-tight line-clamp-2 min-w-0">{homeName}</span>
           <Crest team={homeTeam} initials={homeInitials} align="left" />
         </div>
 
@@ -191,7 +191,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
         {/* Away team */}
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
           <Crest team={awayTeam} initials={awayInitials} align="right" />
-          <span className="text-[11px] font-bold text-white truncate">{awayName}</span>
+          <span className="text-[11px] font-bold text-white leading-tight line-clamp-2 min-w-0">{awayName}</span>
         </div>
 
         {/* Scout / rivals toggle */}
