@@ -51,7 +51,7 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
     }
 
     return (
-        <div className="bg-white rounded-xl border border-slate-100 p-3 shadow-sm flex flex-col gap-2 relative overflow-visible mt-2 group">
+        <div className="bg-blue-950/40 backdrop-blur-md rounded-xl border border-white/10 p-3 shadow-sm flex flex-col gap-2 relative overflow-visible mt-2 group">
             {/* Points Badge - Top Right Corner */}
             <div className={`absolute -top-3 -right-2 w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-xs shadow-md z-10 ${badgeClass}`}>
                 {points}
@@ -74,14 +74,14 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
                     className={`flex items-center gap-2 flex-1 ${onTeamClick ? 'cursor-pointer hover:text-blue-600' : ''}`}
                 >
                     <img src={home?.flag} className="w-6 h-4 rounded shadow-sm object-cover" alt="" />
-                    <span className="text-xs font-bold truncate text-slate-700">
+                    <span className="text-xs font-bold truncate text-slate-300">
                         {home?.id}
                     </span>
                 </div>
 
                 {/* Score */}
                 <div className="flex flex-col items-center px-4">
-                    <div className="flex items-center gap-1 text-sm font-black text-slate-900 bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                    <div className="flex items-center gap-1 text-sm font-black text-white bg-white/10 px-2 py-1 rounded border border-white/10">
                         <span>{match.homeScore}</span>
                         <span className="text-slate-300">-</span>
                         <span>{match.awayScore}</span>
@@ -96,7 +96,7 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
                     onClick={(e) => handleTeamClick(e, away?.id)}
                     className={`flex items-center gap-2 flex-1 justify-end ${onTeamClick ? 'cursor-pointer hover:text-blue-600' : ''}`}
                 >
-                    <span className="text-xs font-bold truncate text-slate-700">
+                    <span className="text-xs font-bold truncate text-slate-300">
                         {away?.id}
                     </span>
                     <img src={away?.flag} className="w-6 h-4 rounded shadow-sm object-cover" alt="" />
@@ -268,10 +268,10 @@ const QualifiedTeamsGrid: React.FC<{
     return (
         <div className="space-y-6 pb-4 pt-2">
             {rounds.map(r => (
-                <div key={r.key} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <div className="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
+                <div key={r.key} className="bg-white/5 rounded-xl p-3 border border-white/10">
+                    <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
                         <div className="flex flex-col gap-0.5">
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-700">{r.label}</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-300">{r.label}</h4>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 {r.pointsPerTeam} pts / team
                             </span>
@@ -307,10 +307,10 @@ const QualifiedTeamsGrid: React.FC<{
                                         e.stopPropagation();
                                         if (onTeamClick) onTeamClick(tid);
                                     }}
-                                    className={`flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm animate-in zoom-in ${onTeamClick ? 'cursor-pointer hover:border-blue-300' : ''}`}
+                                    className={`flex items-center gap-2 bg-white/10 px-2 py-1.5 rounded-lg border border-white/10 shadow-sm animate-in zoom-in ${onTeamClick ? 'cursor-pointer hover:border-blue-300' : ''}`}
                                 >
                                     <img src={team?.flag} className="w-5 h-3.5 rounded-sm object-cover" alt={tid} />
-                                    <span className="text-[10px] font-bold text-slate-700">{tid}</span>
+                                    <span className="text-[10px] font-bold text-slate-300">{tid}</span>
                                     <Check size={10} className="text-green-500 ml-1" strokeWidth={4} />
                                 </div>
                             );
@@ -335,15 +335,15 @@ const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
         : <span className="shrink-0 text-[10px]">{f || '🏳'}</span>;
 
     return (
-        <div className="inline-flex items-center gap-1 bg-slate-50 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-700 whitespace-nowrap">
+        <div className="inline-flex items-center gap-1 bg-white/10 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-300 whitespace-nowrap">
             {renderFlag(home?.flag)}
             {props.mode === 'result' ? (
                 <>
-                    <span className="font-black text-slate-800">{match.homeScore}-{match.awayScore}</span>
+                    <span className="font-black text-white">{match.homeScore}-{match.awayScore}</span>
                     <span className="text-slate-400 font-medium">({pred.home}-{pred.away})</span>
                 </>
             ) : (
-                <span className="font-black text-slate-800">{pred ? `${pred.home}-${pred.away}` : '?-?'}</span>
+                <span className="font-black text-white">{pred ? `${pred.home}-${pred.away}` : '?-?'}</span>
             )}
             {renderFlag(away?.flag)}
             {props.mode === 'result' && (
@@ -708,7 +708,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       })()}
 
       {/* THE LIST */}
-      <div id="tour-leaderboard-table" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <div id="tour-leaderboard-table" className="bg-blue-950/40 backdrop-blur-md rounded-3xl shadow-sm border border-white/15 overflow-hidden">
         {/* Navy table header — title + league tabs + LIVE toggle */}
         <div className="bg-[#0f2545] px-4 pt-3 pb-0 border-b border-slate-700">
             <div className="flex items-center justify-between mb-2">
@@ -745,7 +745,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
         <div className="overflow-x-auto">
           <table className="w-full text-left table-fixed">
-            <thead className="bg-slate-50 border-b border-slate-100">
+            <thead className="bg-white/5 border-b border-white/10">
               <tr>
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">#</th>
                 <th className={`${allGroupsDone ? 'w-[70%]' : 'w-[50%]'} px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400`}>{lang.manager}</th>
@@ -753,7 +753,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Pts</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-white/5">
               {displayList.map((user) => {
                 const points = showLive ? user.totalPoints : user.bankedPoints;
                 const isMe = user.email === currentUserEmail;
@@ -761,7 +761,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                 const rank = user.liveRank;
                 
                 let MoveIcon = Minus;
-                let moveColor = "text-slate-300";
+                let moveColor = "text-slate-500";
                 
                 if (showLive) {
                     if (user.rankDiff > 0) { MoveIcon = TrendingUp; moveColor = "text-green-500"; } 
@@ -778,7 +778,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       <tr
                         id={isMe ? 'tour-my-row' : undefined}
                         onClick={() => toggleExpand(user.email)}
-                        className={`transition-all cursor-pointer group ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-slate-50 shadow-inner' : ''}`}
+                        className={`transition-all cursor-pointer group ${isMe ? 'bg-blue-500/10' : 'hover:bg-white/5'} ${isExpanded ? 'bg-white/5 shadow-inner' : ''}`}
                       >
                         <td className="w-[15%] px-4 py-4 text-center align-middle relative">
                             {/* FIX: Blue indicator bar is inside this relative TD, preventing layout shift */}
@@ -788,7 +788,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                 {RankIcon ? (
                                     <div className="transform scale-110">{RankIcon}</div>
                                 ) : (
-                                    <span className="text-sm font-black text-slate-500">#{rank}</span>
+                                    <span className="text-sm font-black text-slate-400">#{rank}</span>
                                 )}
                                 
                                 {showLive && (
@@ -803,7 +803,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                             <div className="flex items-center gap-3">
                                 {!isExpanded && <AvatarDisplay avatar={user.avatar} size="md" ring={rank <= 3} className={rank === 1 ? 'ring-yellow-400' : rank === 2 ? 'ring-slate-300' : rank === 3 ? 'ring-orange-300' : ''} />}
                                 <div className="flex flex-col min-w-0">
-                                    <div className={`flex items-center gap-1.5 truncate transition-all ${isExpanded ? 'text-lg font-black text-slate-900' : 'text-sm font-bold text-slate-800'}`}>
+                                    <div className={`flex items-center gap-1.5 truncate transition-all ${isExpanded ? 'text-lg font-black text-white' : 'text-sm font-bold text-slate-200'}`}>
                                         {user.name}
                                         {user.hasTakenSecondChance && (
                                             <Shield size={10} className="text-purple-500 shrink-0" fill="currentColor" />
@@ -838,18 +838,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                         )}
 
                         <td className="w-[15%] px-4 py-4 text-right align-middle">
-                            <div className="text-xl font-black text-slate-900 tracking-tight">{points}</div>
+                            <div className="text-xl font-black text-white tracking-tight">{points}</div>
                         </td>
                       </tr>
 
                       {/* EXPANDED DETAILS */}
                       {isExpanded && (
-                          <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-slate-50/50">
+                          <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-white/5">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
 
                                   {/* Avatar + Last 3 / Next 3 — hidden once all group games are done */}
                                   {!allGroupsDone && (
-                                  <div className="flex flex-wrap items-start gap-3 mb-4 pb-3 border-b border-slate-200">
+                                  <div className="flex flex-wrap items-start gap-3 mb-4 pb-3 border-b border-white/10">
                                       <div
                                           className="shrink-0 flex items-center gap-1 cursor-pointer group"
                                           onClick={() => setLbProfileModal(user)}
@@ -902,7 +902,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                           <span className="text-2xl font-black text-blue-600 leading-none">{user.resultCount}</span>
                                           <span className="text-[9px] font-bold text-blue-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbCorrect}</span>
                                       </button>
-                                      <div className="bg-indigo-50 py-3 px-2 rounded-xl border border-indigo-200 flex flex-col items-center shadow-sm">
+                                      <div className="bg-indigo-500/10 py-3 px-2 rounded-xl border border-indigo-500/30 flex flex-col items-center shadow-sm">
                                           <span className="text-2xl font-black text-indigo-600 leading-none">{user.groupPoints}</span>
                                           <span className="text-[9px] font-bold text-indigo-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbGroupPts}</span>
                                       </div>
@@ -920,8 +920,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                       if (roundDetails.length === 0) return null;
 
                                       return (
-                                          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                                          <div className="bg-white/5 rounded-xl border border-white/10 shadow-sm overflow-hidden">
+                                              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                                                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
                                                   {user.hasTakenSecondChance && (
                                                       <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
@@ -929,17 +929,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                                       </span>
                                                   )}
                                               </div>
-                                              <div className="divide-y divide-slate-50">
+                                              <div className="divide-y divide-white/5">
                                                   {roundDetails.map(r => {
                                                       const isOpen = openRoundKeys.has(r.key);
                                                       return (
                                                           <div key={r.key}>
                                                               <div
-                                                                  className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                                                                  className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-white/5 transition-colors"
                                                                   onClick={() => toggleRound(r.key)}
                                                               >
                                                                   <div className="flex flex-col gap-0.5">
-                                                                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{r.label}</span>
+                                                                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-tight">{r.label}</span>
                                                                       <span className="text-[9px] text-slate-400 font-medium">{r.pointsPerTeam} pts / team</span>
                                                                   </div>
                                                                   <div className="flex items-center gap-2">
@@ -963,8 +963,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                                                                   key={teamId}
                                                                                   onClick={e => { e.stopPropagation(); if (onTeamClick && status !== 'pending') onTeamClick(teamId); }}
                                                                                   className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold ${
-                                                                                      status === 'confirmed' ? 'bg-white border-slate-200 text-slate-700 cursor-pointer hover:border-blue-300'
-                                                                                    : status === 'pending'  ? 'bg-slate-50 border-slate-100 text-slate-400'
+                                                                                      status === 'confirmed' ? 'bg-white/10 border-white/10 text-slate-300 cursor-pointer hover:border-blue-300'
+                                                                                    : status === 'pending'  ? 'bg-white/5 border-white/5 text-slate-500'
                                                                                     :                         'bg-red-50 border-red-100 text-red-400'
                                                                                   }`}
                                                                               >
@@ -999,15 +999,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       {modalData && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setModalData(null)}></div>
-              <div className="relative w-full max-w-md bg-slate-50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95">
-                  <div className="bg-[#0f2545] p-4 text-white flex justify-between items-center shrink-0">
+              <div className="relative w-full max-w-md bg-blue-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95">
+                  <div className="bg-cyan-600 p-4 text-white flex justify-between items-center shrink-0">
                       <div>
                           <h3 className="font-black uppercase tracking-tight text-lg">{modalData.user.name}</h3>
-                          <p className="text-xs text-blue-200 font-medium uppercase tracking-widest">
+                          <p className="text-xs text-cyan-100 font-medium uppercase tracking-widest">
                               {modalData.type === 'EXACT' ? 'Perfect Scores' : modalData.type === 'RESULT' ? 'Correct Outcomes' : 'Knockout Points'}
                           </p>
                       </div>
-                      <button onClick={() => setModalData(null)} className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"><X size={18} /></button>
+                      <button onClick={() => setModalData(null)} className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"><X size={18} /></button>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -1081,14 +1081,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLbProfileModal(null)}>
             <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
-            <div className="relative bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-4 w-80 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="relative bg-blue-950 rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-4 w-80 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <button onClick={() => setLbProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
                 <X size={18} />
               </button>
 
               <AvatarDisplay avatar={u.avatar} size="5xl" className="ring-4 ring-white shadow-xl" />
               <div className="text-center -mt-1">
-                <div className="text-xl font-black text-slate-800">{u.name}</div>
+                <div className="text-xl font-black text-white">{u.name}</div>
                 <div className="text-sm text-slate-500 mt-0.5">#{u.liveRank} of {totalUsers} · {u.totalPoints} pts</div>
                 {u.rankDiff !== 0 && (
                   <div className={`text-xs font-bold mt-1 ${u.rankDiff > 0 ? 'text-green-600' : 'text-red-500'}`}>
@@ -1110,13 +1110,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       const matchDate = new Date(m.date);
                       const dateLabel = matchDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + matchDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                       return (
-                        <div key={m.id} className="bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                        <div key={m.id} className="bg-white/5 rounded-xl px-3 py-2 text-xs font-bold text-slate-300">
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1 min-w-0 flex-1">
                               {renderFlag(homeFlag)}
                               <span className="truncate">{teams[m.homeTeamId]?.name ?? m.homeTeamId}</span>
                             </div>
-                            <div className="text-sm font-black text-slate-800 mx-2 shrink-0">
+                            <div className="text-sm font-black text-white mx-2 shrink-0">
                               {pred ? `${pred.home}–${pred.away}` : '?–?'}
                             </div>
                             <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
@@ -1140,7 +1140,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                   }
                   <div>
                     <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Tournament Winner</div>
-                    <div className="text-sm font-black text-slate-800">{teams[champId].name}</div>
+                    <div className="text-sm font-black text-white">{teams[champId].name}</div>
                   </div>
                   <span className="ml-auto text-xl">🏆</span>
                 </div>

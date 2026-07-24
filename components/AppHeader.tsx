@@ -23,7 +23,6 @@ interface AppHeaderProps {
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
   handleLogout: () => void;
-  onReplayIntro: () => void;
   onStartTour: () => void;
   onStartLiveTour?: () => void;
   showSecondChanceBadge?: boolean;
@@ -248,7 +247,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
       <div className="bg-slate-950/80 backdrop-blur-lg text-white border-b border-white/10 shadow-lg relative z-20">
-          
+
           {/* PRE_LIVE: fill-out progress bar */}
           {props.tournamentPhase === 'PRE_LIVE' && completionStats.total > 0 && (
             <div className="bg-[#0a1a2f] border-b border-white/5 py-1 px-4 relative overflow-hidden group">
@@ -302,11 +301,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
               {/* LEFT: Logo */}
               <div className="flex items-center gap-3 shrink-0">
-                 <button onClick={props.onReplayIntro} className="focus:outline-none transition-transform active:scale-95" title="Replay Intro Video">
-                     <Logo className="w-12 h-12" variant="theme" />
-                 </button>
+                 <Logo className="w-12 h-12" variant="theme" />
                  <div className="hidden md:block">
-                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">Rasten Cup</h1>
+                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">CL Predictor</h1>
                  </div>
               </div>
 
@@ -391,7 +388,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                       onClick={() => {
                                         const url = `${window.location.origin}?invite=${user.leagues[0]}`;
                                         if (navigator.share) {
-                                          navigator.share({ url, title: 'The Rasten Cup 2026', text: 'Join me in The Rasten Cup 2026 — World Cup prediction game!' }).catch(() => {});
+                                          navigator.share({ url, title: 'CL Predictor', text: 'Join me on CL Predictor — Champions League prediction game!' }).catch(() => {});
                                         } else {
                                           navigator.clipboard.writeText(url);
                                           props.onLinkCopied?.();
@@ -421,7 +418,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       {/* 3. MATCHDAY NAV (League Phase — Swiss format has no groups) — a slim jump-to-round strip,
           kept deliberately lightweight so the matches themselves stay the visual focus. */}
       {props.activeTab === 'groups' && props.tournamentPhase === 'PRE_LIVE' && props.setActiveMatchday && (
-          <div id="subnav-matchday" className="bg-slate-950/40 border-b border-white/5 py-2 overflow-x-auto no-scrollbar">
+          <div id="subnav-matchday" className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 py-2 overflow-x-auto no-scrollbar">
               <div className="flex items-center gap-1.5 px-4 justify-start sm:justify-center min-w-max">
                   {MATCHDAYS.map(md => {
                       const mdMatches = matches.filter(m => m.matchday === md);
@@ -434,7 +431,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                           <button
                             key={md}
                             onClick={() => props.setActiveMatchday?.(md)}
-                            className={`relative min-w-[30px] h-7 px-1.5 rounded-full text-[11px] font-black transition-colors active:scale-95 ${isActive ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 bg-white/5 hover:bg-white/10 hover:text-white'}`}
+                            className={`relative min-w-[30px] h-7 px-1.5 rounded-full text-[11px] font-black border transition-colors active:scale-95 ${isActive ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-[0_0_12px_rgba(34,211,238,0.5)]' : 'text-slate-300 bg-white/10 border-white/10 hover:bg-white/20 hover:text-white'}`}
                           >
                               {md}
                               <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-slate-950 ${isComplete ? 'bg-emerald-400' : inProgress ? 'bg-cyan-300' : 'bg-transparent'}`}></span>
@@ -447,7 +444,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
       {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
       {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
-          <div id="subnav-knockout" className="bg-slate-950/60 border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
+          <div id="subnav-knockout" className="bg-slate-950/60 backdrop-blur-md border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
               <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
                   {displayRounds.map(r => {
                       const isActive = props.activeKnockoutRound === r;

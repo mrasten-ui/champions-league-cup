@@ -342,10 +342,8 @@ export interface TourStep {
   position: 'center' | 'top' | 'bottom';
   
   // NEW: Defines which "Telestrator" graphic to draw
-  overlayType?: 'none' | 'score-arrows' | 'swipe-hand' | 'sparkles' | 'tap-target'; 
-  
-  audioFiles: Record<string, string>; // e.g. { 'en': '/audio/...', 'no': '/audio/...' }
-  
+  overlayType?: 'none' | 'score-arrows' | 'swipe-hand' | 'sparkles' | 'tap-target';
+
   // Visual Text (Short headlines for the TV Graphic)
   display: Record<string, {
     title: string;

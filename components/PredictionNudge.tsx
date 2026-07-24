@@ -28,9 +28,9 @@ export const PredictionNudge: React.FC<PredictionNudgeProps> = ({
   const message = lang.nudgeMsg.replace('{n}', String(missingCount));
 
   return (
-    <div className="mb-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/15 shrink-0">
-        <AlertTriangle size={16} className="text-amber-400" strokeWidth={2.5} />
+    <div className="mb-4 rounded-2xl bg-amber-500/15 border border-amber-400/40 shadow-[0_0_24px_rgba(245,158,11,0.12)] px-4 py-3 flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/25 shrink-0">
+        <AlertTriangle size={16} className="text-amber-300" strokeWidth={2.5} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[11px] font-black uppercase tracking-widest text-amber-300 leading-none">{lang.nudgeTitle}</p>

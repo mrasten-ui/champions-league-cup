@@ -55,8 +55,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
     <div className="animate-fade-in pb-20">
       
       {/* Main Container Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        
+      <div className="bg-blue-950/40 backdrop-blur-md rounded-2xl border border-white/15 shadow-sm overflow-hidden">
+
         {/* 1. Navy Header Strip (Updated) */}
         <div className="bg-[#0f2545] px-4 py-4 flex items-center justify-between border-b border-slate-700">
             <div className="flex items-center gap-3">
@@ -76,7 +76,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                     </div>
                 </div>
             </div>
-            
+
             {/* Total Count */}
             <div className="text-right hidden sm:block">
                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</div>
@@ -86,7 +86,7 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
 
         {/* 2. League Tab Strip */}
         {tabs.length > 1 && (
-            <div className="flex overflow-x-auto no-scrollbar border-b border-slate-100 bg-slate-50 px-2 pt-2 gap-1">
+            <div className="flex overflow-x-auto no-scrollbar border-b border-white/5 bg-black/20 px-2 pt-2 gap-1">
                 {tabs.map(slug => {
                     const isActive = activeLeague === slug;
                     return (
@@ -95,8 +95,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                             onClick={() => setActiveLeague(slug)}
                             className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${
                                 isActive
-                                    ? 'bg-white text-blue-700 border-blue-600 shadow-sm'
-                                    : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-white/60'
+                                    ? 'bg-blue-950/40 text-cyan-400 border-cyan-400 shadow-sm'
+                                    : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/5'
                             }`}
                         >
                             {getLeagueName(slug)}
@@ -107,8 +107,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
         )}
 
         {/* 3. Managers List */}
-        <div className="divide-y divide-slate-50">
-            <div className="flex items-center justify-between px-4 py-2 bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+        <div className="divide-y divide-white/5">
+            <div className="flex items-center justify-between px-4 py-2 bg-black/10 text-[9px] font-black text-slate-500 uppercase tracking-widest">
                 <span>{lang.manager}</span>
                 <span>{lang.status}</span>
             </div>
@@ -121,19 +121,19 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                 const isMe = user.email === currentUserEmail;
 
                 return (
-                    <div key={user.email} onClick={() => setProfileModal(user)} className={`p-4 flex items-center justify-between transition-colors group relative cursor-pointer ${isMe ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}>
+                    <div key={user.email} onClick={() => setProfileModal(user)} className={`p-4 flex items-center justify-between transition-colors group relative cursor-pointer ${isMe ? 'bg-blue-500/10' : 'hover:bg-white/5'}`}>
                         {isMe && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r" />}
                         <div className="flex items-center gap-3">
-                            <AvatarDisplay avatar={user.avatar} size="md" className="ring-2 ring-white shadow-sm" />
+                            <AvatarDisplay avatar={user.avatar} size="md" className="ring-2 ring-white/10 shadow-sm" />
                             <div>
-                                <div className="text-sm font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{user.name}</div>
+                                <div className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">{user.name}</div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                     {isReady ? (
                                         <CheckCircle2 size={12} className="text-green-500" />
                                     ) : (
                                         <div className="w-2.5 h-2.5 rounded-full border-2 border-yellow-400 border-t-transparent animate-spin"></div>
                                     )}
-                                    <span className={`text-[10px] font-bold uppercase ${isReady ? 'text-green-600' : 'text-yellow-600'}`}>
+                                    <span className={`text-[10px] font-bold uppercase ${isReady ? 'text-green-400' : 'text-yellow-400'}`}>
                                         {isReady ? (lang.managerReady || "Ready") : (lang.managerIncomplete || "Predicting...")}
                                     </span>
                                 </div>
@@ -141,8 +141,8 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                         </div>
 
                         <div className="flex flex-col items-end gap-1 w-24">
-                            <div className="text-xs font-black text-slate-700">{count}/{totalGameMatches}</div>
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="text-xs font-black text-slate-300">{count}/{totalGameMatches}</div>
+                            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <div 
                                     className={`h-full rounded-full transition-all duration-1000 ${isReady ? 'bg-green-500' : 'bg-blue-500'}`} 
                                     style={{ width: `${percent}%` }}
@@ -165,24 +165,24 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
       {profileModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setProfileModal(null)}>
               <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
-              <div className="relative bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-3 w-72 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
+              <div className="relative bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-3 w-72 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setProfileModal(null)} className="absolute top-3 right-3 text-slate-400 hover:text-white">
                       <X size={18} />
                   </button>
-                  <AvatarDisplay avatar={profileModal.avatar} size="5xl" className="ring-4 ring-white shadow-xl" />
+                  <AvatarDisplay avatar={profileModal.avatar} size="5xl" className="ring-4 ring-white/10 shadow-xl" />
                   <div className="text-center">
-                      <div className="text-xl font-black text-slate-800">{profileModal.name}</div>
+                      <div className="text-xl font-black text-white">{profileModal.name}</div>
                       {profileModal.leagues && profileModal.leagues.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 justify-center mt-1.5">
                               {profileModal.leagues.map(l => (
-                                  <span key={l} className="text-[10px] font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                                  <span key={l} className="text-[10px] font-bold uppercase tracking-wide bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
                                       {LEAGUES[l] ?? l}
                                   </span>
                               ))}
                           </div>
                       )}
                       {profileModal.email === currentUserEmail && currentLang && (
-                          <span className="inline-block text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full mt-1.5">
+                          <span className="inline-block text-[10px] font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full mt-1.5">
                               {LANG_LABELS[currentLang] ?? currentLang.toUpperCase()}
                           </span>
                       )}
@@ -191,11 +191,11 @@ export const PlayerProgress: React.FC<PlayerProgressProps> = ({ users, allPredic
                       const count = allPredictions.filter(p => p.userId === profileModal.email).length;
                       const isReady = count >= totalGameMatches;
                       return (
-                          <div className="w-full bg-slate-100 rounded-2xl p-3 text-center">
-                              <div className={`text-sm font-black ${isReady ? 'text-green-600' : 'text-slate-600'}`}>
+                          <div className="w-full bg-white/5 rounded-2xl p-3 text-center">
+                              <div className={`text-sm font-black ${isReady ? 'text-green-400' : 'text-slate-300'}`}>
                                   {isReady ? (lang.managerReady || 'Ready') : `${count} / ${totalGameMatches}`}
                               </div>
-                              <div className="w-full h-1.5 bg-slate-200 rounded-full mt-1.5 overflow-hidden">
+                              <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
                                   <div
                                       className={`h-full rounded-full ${isReady ? 'bg-green-500' : 'bg-blue-500'}`}
                                       style={{ width: `${Math.min(100, Math.round((count / totalGameMatches) * 100))}%` }}

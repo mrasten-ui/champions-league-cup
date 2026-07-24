@@ -1,7 +1,7 @@
 {
-  "name": "The Rasten Cup '26",
-  "short_name": "Rasten Cup",
-  "description": "World Cup 2026 prediction game",
+  "name": "CL Predictor",
+  "short_name": "CL Predictor",
+  "description": "Champions League prediction game",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

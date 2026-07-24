@@ -6,17 +6,11 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     id: 'welcome',
     position: 'center',
     overlayType: 'none',
-    audioFiles: {
-      en: '/audio/tour_pre_en_01.mp3',
-      'en-US': '/audio/tour_pre_us_01.mp3',
-      no: '/audio/tour_pre_no_01.mp3',
-      sco: '/audio/tour_pre_sco_01.mp3'
-    },
     display: {
-      en:      { title: "Welcome",    lines: ["Welcome to The Rasten Cup.", "Follow this tour to learn how to play."] },
-      'en-US': { title: "Welcome",    lines: ["Welcome to The Rasten Cup.", "Follow this tour to learn how to play."] },
-      sco:     { title: "Welcome",    lines: ["Welcome tae The Rasten Cup.", "Follow this tour tae learn the game."] },
-      no:      { title: "Velkommen", lines: ["Velkommen til The Rasten Cup.", "Følg omvisningen for å lære spillet."] }
+      en:      { title: "Welcome",    lines: ["Welcome to CL Predictor.", "Follow this tour to learn how to play."] },
+      'en-US': { title: "Welcome",    lines: ["Welcome to CL Predictor.", "Follow this tour to learn how to play."] },
+      sco:     { title: "Welcome",    lines: ["Welcome tae CL Predictor.", "Follow this tour tae learn the game."] },
+      no:      { title: "Velkommen", lines: ["Velkommen til CL Predictor.", "Følg omvisningen for å lære spillet."] }
     },
     audioScript: {
       en:      { host: "I'm Sarah, and this is Gaz. Quick briefing.", pundit: "Can they predict a score? We're about to find out." },
@@ -32,10 +26,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-first-match', 'tour-up-home', 'tour-down-home', 'tour-up-away', 'tour-down-away', 'tour-spy-btn'],
     position: 'top',
     overlayType: 'score-arrows',
-    audioFiles: {
-      en: '/audio/tour_pre_en_02.mp3', 'en-US': '/audio/tour_pre_us_02.mp3',
-      no: '/audio/tour_pre_no_02.mp3', sco: '/audio/tour_pre_sco_02.mp3'
-    },
     display: {
       en:      { title: "Predictions", lines: ["Predict the exact score for every match.", "Scouts button = spy on a rival's picks."] },
       'en-US': { title: "Predictions", lines: ["Pick the exact final score with the arrows.", "Scouts button = peek at a rival's picks."] },
@@ -56,10 +46,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targets: ['nav-groups', 'nav-groups-desk', 'subnav-groups'],
     position: 'bottom',
     overlayType: 'swipe-hand',
-    audioFiles: {
-      en: '/audio/tour_pre_en_03.mp3', 'en-US': '/audio/tour_pre_us_03.mp3',
-      no: '/audio/tour_pre_no_03.mp3', sco: '/audio/tour_pre_sco_03.mp3'
-    },
     display: {
       en:      { title: "Groups",  lines: ["12 groups — complete them all.", "Don't just do Group A and stop."] },
       'en-US': { title: "Groups",  lines: ["12 groups — swipe through every one.", "Blank picks = zero points. Simple."] },
@@ -80,10 +66,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targetId: 'tour-magic-wand-panel',
     position: 'top',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_pre_en_04.mp3', 'en-US': '/audio/tour_pre_us_04.mp3',
-      no: '/audio/tour_pre_no_04.mp3', sco: '/audio/tour_pre_sco_04.mp3'
-    },
     display: {
       en:      { title: "Magic Wand", lines: ["One tap auto-fills your remaining picks.", "Stats-based. Not a guarantee."] },
       'en-US': { title: "Auto-Pick",  lines: ["One tap fills all remaining picks.", "Stats-based — not a sure thing."] },
@@ -104,10 +86,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targetId: 'tour-first-knockout',
     position: 'bottom',
     overlayType: 'tap-target',
-    audioFiles: {
-      en: '/audio/tour_pre_en_05.mp3', 'en-US': '/audio/tour_pre_us_05.mp3',
-      no: '/audio/tour_pre_no_05.mp3', sco: '/audio/tour_pre_sco_05.mp3'
-    },
     display: {
       en:      { title: "Knockouts",  lines: ["No scores — just tap who advances.", "Pick your champion or you're wasting time."] },
       'en-US': { title: "Playoffs",   lines: ["No scores — just pick who advances.", "Pick a champion. That's why you're here."] },
@@ -128,10 +106,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targetId: 'rules-scoring-section',
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_pre_en_06.mp3', 'en-US': '/audio/tour_pre_us_06.mp3',
-      no: '/audio/tour_pre_no_06.mp3', sco: '/audio/tour_pre_sco_06.mp3'
-    },
     display: {
       en:      { title: "Points System", lines: ["The full scoring breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
       'en-US': { title: "Points System", lines: ["Full points breakdown — right here.", "Exact: 5 · Result: 3 · Champion: 40."] },
@@ -152,10 +126,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targetId: 'rules-howtoplay-section',
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_pre_en_07.mp3', 'en-US': '/audio/tour_pre_us_07.mp3',
-      no: '/audio/tour_pre_no_07.mp3', sco: '/audio/tour_pre_sco_07.mp3'
-    },
     display: {
       en:      { title: "The Rules", lines: ["Six rules — everything you need to know.", "Read them once. No excuses after."] },
       'en-US': { title: "The Rules", lines: ["Six rules — everything you need.", "Read before you play."] },
@@ -176,10 +146,6 @@ export const PRE_SEASON_TOUR: TourStep[] = [
     targetId: 'btn-profile-menu',
     position: 'bottom',
     overlayType: 'none',
-    audioFiles: {
-      en: '/audio/tour_pre_en_08.mp3', 'en-US': '/audio/tour_pre_us_08.mp3',
-      no: '/audio/tour_pre_no_08.mp3', sco: '/audio/tour_pre_sco_08.mp3'
-    },
     display: {
       en:      { title: "Ready",  lines: ["Briefing done — now get your picks in.", "Replay this tour from your Profile anytime."] },
       'en-US': { title: "Ready",  lines: ["Briefing done — lock in those picks.", "Replay this tour from your Profile anytime."] },
@@ -205,10 +171,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     id: 'live_welcome',
     position: 'center',
     overlayType: 'none',
-    audioFiles: {
-      en: '/audio/tour_live_en_01.mp3', 'en-US': '/audio/tour_live_us_01.mp3',
-      no: '/audio/tour_live_no_01.mp3', sco: '/audio/tour_live_sco_01.mp3'
-    },
     display: {
       en:      { title: "We're Live!",  lines: ["The tournament has kicked off.", "Your predictions are locked — let's show you around."] },
       'en-US': { title: "It's Live!",   lines: ["The tournament has kicked off.", "Picks are locked — let's walk you through what's new."] },
@@ -229,10 +191,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-leaderboard-top'],
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_live_en_02.mp3', 'en-US': '/audio/tour_live_us_02.mp3',
-      no: '/audio/tour_live_no_02.mp3', sco: '/audio/tour_live_sco_02.mp3'
-    },
     display: {
       en:      { title: "Your Command Card",    lines: ["This card is your personal command centre.", "At the top: your daily brief from Tuchel — his AI-powered take on your rank, your closest rivals, and how your specific picks are holding up.", "Below it: your gap to the leader, who you're chasing, and your 3-day rank trend.", "Tap Tuchel's circular image in the card to get the full written commentary."] },
       'en-US': { title: "Your Command Card",    lines: ["This card is your personal command center.", "Top: your daily brief from Pochettino — his AI-powered take on your rank, rivals, and how your picks are performing.", "Below: your gap to the leader, who you're chasing, and your 3-day trend.", "Tap Pochettino's circular image in the card for the full written breakdown."] },
@@ -253,10 +211,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-my-row', 'tour-my-row-expanded'],
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_live_en_03.mp3', 'en-US': '/audio/tour_live_us_03.mp3',
-      no: '/audio/tour_live_no_03.mp3', sco: '/audio/tour_live_sco_03.mp3'
-    },
     display: {
       en:      { title: "Your Points",  lines: ["This is your row — tapped open so you can see the full breakdown.", "Green = exact score correct (5 pts each). Blue = right winner or draw, wrong exact score (3 pts each).", "Indigo = total group stage points. Purple = knockout stage points, including your tournament winner.", "Toggle LIVE / BANKED at the top of the table. LIVE includes points from matches still in play; BANKED is confirmed points only."] },
       'en-US': { title: "Your Points",  lines: ["This is your row — opened up so you can see the full breakdown.", "Green = nailed the exact score (5 pts each). Blue = right winner or draw, wrong exact score (3 pts each).", "Indigo = group stage points. Purple = knockout points, including your tournament winner pick.", "Toggle LIVE / BANKED at the top. LIVE includes points from games still in play; BANKED is confirmed points only."] },
@@ -277,10 +231,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-schedule-hero', 'nav-tournament', 'nav-tournament-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_live_en_04.mp3', 'en-US': '/audio/tour_live_us_04.mp3',
-      no: '/audio/tour_live_no_04.mp3', sco: '/audio/tour_live_sco_04.mp3'
-    },
     display: {
       en:      { title: "Tournament",   lines: ["You're looking at the Schedule — today's featured match.", "Each card shows the kick-off time, your prediction, and your rivals' picks.", "When a match is live the score updates in real time, along with goal scorers and the current minute.", "Switch to Tables for group standings, or Bracket to see how your knockout picks are holding up."] },
       'en-US': { title: "Tournament",   lines: ["You're on the Schedule — today's featured match.", "Each card shows kick-off, your pick, and what your rivals are predicting.", "When a game is live you'll see the live score, goal scorers, and the clock in real time.", "Switch to Standings for group tables, or Bracket to track your playoff picks."] },
@@ -301,10 +251,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-manager-hub', 'tour-manager-first-group', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'tap-target',
-    audioFiles: {
-      en: '/audio/tour_live_en_05.mp3', 'en-US': '/audio/tour_live_us_05.mp3',
-      no: '/audio/tour_live_no_05.mp3', sco: '/audio/tour_live_sco_05.mp3'
-    },
     display: {
       en:      { title: "Manager — Substitutions",  lines: ["These are your match cards — each one shows your locked prediction for that game.", "See the substitution icon on a card? Tap it and you'll be asked to spend one of your Substitution tokens.", "A Sub works like a football substitution — you swap your old prediction for a new one before the match kicks off.", "The number of tokens you have left is shown in the header at the top. They don't refill, so pick your moments."] },
       'en-US': { title: "Manager — Substitutions",  lines: ["These are your match cards — each shows your locked pick for that game.", "See the sub icon on a card? Tap it and spend one of your Substitution tokens to change your pick.", "A Sub is a football-style substitution — swap your old prediction for a new one before kick-off.", "Your remaining tokens are shown in the header. They don't come back, so use them wisely."] },
@@ -325,10 +271,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-second-chance-promo', 'tour-knockout-btn', 'nav-manager', 'nav-manager-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_live_en_06.mp3', 'en-US': '/audio/tour_live_us_06.mp3',
-      no: '/audio/tour_live_no_06.mp3', sco: '/audio/tour_live_sco_06.mp3'
-    },
     display: {
       en:      { title: "Second Chance",  lines: ["You're now in the Knockouts view of the Manager tab — tap the Knockouts button at the top to get here any time.", "Second Chance is a one-off lifeline: if the team you predicted to win the whole tournament gets knocked out, you can activate this to pick a new winner from whoever's still in it.", "You only get one. Activate it here when — and if — you need it."] },
       'en-US': { title: "Second Chance",  lines: ["You're now in the Knockouts view of the Manager tab — tap the Knockouts button to get here any time.", "Second Chance is a one-time lifeline: if your predicted tournament winner gets eliminated, activate this to pick a new winner from the remaining teams.", "One shot. Use it when you need it, not before."] },
@@ -349,10 +291,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['tour-analysis-simleaderboard', 'tour-analysis-first-simrow', 'nav-analysis', 'nav-analysis-desk'],
     position: 'bottom',
     overlayType: 'tap-target',
-    audioFiles: {
-      en: '/audio/tour_live_en_07.mp3', 'en-US': '/audio/tour_live_us_07.mp3',
-      no: '/audio/tour_live_no_07.mp3', sco: '/audio/tour_live_sco_07.mp3'
-    },
     display: {
       en:      { title: "Analysis — Play Out Scenarios",  lines: ["The sticky bar at the top shows your simulated rank — updating live as you adjust scores below.", "Each match card has score adjusters. Change the result and watch your leaderboard position react in real time.", "Play out 'what if' scenarios — if these matches go my way, where do I end up?", "Your simulated rank resets when you leave, so nothing here affects your real score."] },
       'en-US': { title: "Analysis — Run Your Scenarios",  lines: ["The bar at the top shows your simulated rank — it updates as you adjust scores below.", "Tap the score adjusters on each match card and watch your leaderboard position change in real time.", "Run 'what if' scenarios — if these results go my way, where do I finish?", "Your simulated rank resets when you leave. Nothing here touches your real score."] },
@@ -373,10 +311,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targets: ['rules-scoring-section', 'nav-rules', 'nav-rules-desk'],
     position: 'bottom',
     overlayType: 'sparkles',
-    audioFiles: {
-      en: '/audio/tour_live_en_08.mp3', 'en-US': '/audio/tour_live_us_08.mp3',
-      no: '/audio/tour_live_no_08.mp3', sco: '/audio/tour_live_sco_08.mp3'
-    },
     display: {
       en:      { title: "Points System",  lines: ["Exact score: 5 points. Correct outcome (right winner or draw, wrong score): 3 points. Tournament winner: 40 points.", "Spy Scouts let you peek at a rival's locked picks — useful for judging whether to burn a sub.", "The full breakdown is right here — substitutions, scouts, second chance, all of it.", "Read it once. No excuses after."] },
       'en-US': { title: "Points System",  lines: ["Exact score: 5 pts. Correct outcome (right winner or draw, wrong score): 3 pts. Tournament winner: 40 pts.", "Spy Scouts let you check a rival's locked picks — handy for deciding whether to use a sub.", "Full breakdown right here — subs, scouts, second chance, all of it.", "Know the system. No excuses."] },
@@ -397,10 +331,6 @@ export const LIVE_SEASON_TOUR: TourStep[] = [
     targetId: 'btn-profile-menu',
     position: 'bottom',
     overlayType: 'none',
-    audioFiles: {
-      en: '/audio/tour_live_en_09.mp3', 'en-US': '/audio/tour_live_us_09.mp3',
-      no: '/audio/tour_live_no_09.mp3', sco: '/audio/tour_live_sco_09.mp3'
-    },
     display: {
       en:      { title: "You're Set",   lines: ["That's the full live tour.", "You can replay this tour any time from your Profile menu.", "Good luck — may your picks hold up."] },
       'en-US': { title: "You're Set",   lines: ["That's the full live tour.", "You can replay from your Profile menu any time.", "Good luck — may your bracket survive."] },

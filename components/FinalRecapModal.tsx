@@ -28,7 +28,7 @@ const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: s
         leagueLabel: 'in your league',
         cta: 'See Full Leaderboard →',
         close: 'Close',
-        thanks: 'Thanks for playing the Rasten Cup!',
+        thanks: 'Thanks for playing CL Predictor!',
         champion: (name) => `${name} are World Champions!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, you actually won the whole thing. Champion manager — take a bow!`;
@@ -45,7 +45,7 @@ const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: s
         leagueLabel: 'i ligaen din',
         cta: 'Se hele resultatlisten →',
         close: 'Lukk',
-        thanks: 'Takk for at du ble med i Rasten Cup!',
+        thanks: 'Takk for at du ble med i CL Predictor!',
         champion: (name) => `${name} er verdensmestere!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, du vant hele greia! Mesterskapsmanager — buk for folket!`;
@@ -62,7 +62,7 @@ const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: s
         leagueLabel: 'in yer league',
         cta: 'See the Full Table →',
         close: 'Away ye go',
-        thanks: 'Cheers for playin' + "' the Rasten Cup!",
+        thanks: 'Cheers for playin' + "' CL Predictor!",
         champion: (name) => `${name} are World Champions, so they are!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, ye actually won the hale thing. Champion manager — get it up ye!`;
@@ -79,7 +79,7 @@ const COPY: Record<LanguageCode, { badge: string; ptsLabel: string; rankLabel: s
         leagueLabel: 'in your league',
         cta: 'See Full Leaderboard →',
         close: 'Close',
-        thanks: 'Thanks for playing the Rasten Cup!',
+        thanks: 'Thanks for playing CL Predictor!',
         champion: (name) => `${name} are World Champions!`,
         message: (rank, total, name) => {
             if (rank === 1) return `${name}, you actually won the whole thing. Champion manager — take a bow!`;

@@ -6,6 +6,11 @@ import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
 
 // ── localStorage cache — cuts repeated Supabase egress on page refresh/re-mount ──
+// RC_VERSION is baked into the storage key: bump it whenever seed data changes
+// underneath the app (team/match reseeds, schema changes) so every client
+// picks up fresh data on next load instead of serving stale cached rows for
+// up to an hour. Old-versioned keys are simply orphaned, not read.
+const RC_VERSION = 2;
 const RC_TTL = {
   predictions: 3 * 60 * 1000,
   profiles:    5 * 60 * 1000,
@@ -19,7 +24,7 @@ const RC_TTL = {
 
 const rcGet = <T>(key: keyof typeof RC_TTL): T | null => {
   try {
-    const raw = localStorage.getItem(`RC_${key}`);
+    const raw = localStorage.getItem(`RC_v${RC_VERSION}_${key}`);
     if (!raw) return null;
     const { data, ts } = JSON.parse(raw) as { data: T; ts: number };
     return Date.now() - ts < RC_TTL[key] ? data : null;
@@ -27,12 +32,12 @@ const rcGet = <T>(key: keyof typeof RC_TTL): T | null => {
 };
 
 const rcSet = (key: keyof typeof RC_TTL, data: unknown): void => {
-  try { localStorage.setItem(`RC_${key}`, JSON.stringify({ data, ts: Date.now() })); }
+  try { localStorage.setItem(`RC_v${RC_VERSION}_${key}`, JSON.stringify({ data, ts: Date.now() })); }
   catch { /* ignore localStorage quota */ }
 };
 
 export const bustPredictionsCache = (): void => {
-  try { localStorage.removeItem('RC_predictions'); } catch { /* ignore */ }
+  try { localStorage.removeItem(`RC_v${RC_VERSION}_predictions`); } catch { /* ignore */ }
 };
 
 // ── DEV-ONLY LOGIN BYPASS ──────────────────────────────────────────────────

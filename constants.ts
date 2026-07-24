@@ -1,13 +1,5 @@
 import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } from './types';
 
-// --- INTRO VIDEOS ---
-export const INTRO_VIDEOS: Record<LanguageCode, string> = {
-  EN: '/Video/intro_en.mp4',
-  NO: '/Video/intro_no.mp4',
-  SCO: '/Video/intro_sc.mp4',
-  US: '/Video/intro_us.mp4'
-};
-
 export const LANGUAGES = [
   { code: 'EN' as LanguageCode, name: 'English', flag: 'https://flagcdn.com/w160/gb.png' },
   { code: 'NO' as LanguageCode, name: 'Norsk', flag: 'https://flagcdn.com/w160/no.png' },

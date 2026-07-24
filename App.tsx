@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap, Shield } from 'lucide-react';
-import { GROUP_CONFIG, TRANSLATIONS, INTRO_VIDEOS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
+import { GROUP_CONFIG, TRANSLATIONS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import {
   calculateGroupStandings,
@@ -17,7 +17,7 @@ import {
   computeFinalRank,
 } from './services/engine';
 import { isMatchLocked } from './utils/date';
-import { MatchCard } from './components/MatchCard';
+import { MatchRow } from './components/MatchRow';
 import { StandingsTable } from './components/StandingsTable';
 import { StandingsStrip } from './components/StandingsStrip';
 import { StarField } from './components/StarField';
@@ -36,7 +36,6 @@ import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
-import { IntroVideoModal } from './components/IntroVideoModal';
 import { TournamentSchedule } from './components/TournamentSchedule';
 import { FinalRecapModal } from './components/FinalRecapModal';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
@@ -114,8 +113,6 @@ export const App = () => {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminPasswordError, setAdminPasswordError] = useState(false);
-  const [showIntroModal, setShowIntroModal] = useState(false);
-  const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
 
   const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
@@ -869,8 +866,6 @@ export const App = () => {
       setLanguage(code);
   };
 
-  const handleReplayIntro = () => { const videoUrl = INTRO_VIDEOS[language]; if (videoUrl) { setIntroVideoUrl(videoUrl); setShowIntroModal(true); } };
-
   // --- REFUND WATCHER ---
   // Tracks IDs already refunded this session to prevent double-processing if the
   // effect fires twice before the state update has propagated.
@@ -1516,7 +1511,24 @@ export const App = () => {
   const leagueStandings = useMemo(() => calculateLeagueStandings(userMatches, teamsData), [userMatches, teamsData]);
   const leagueMatchesList = userMatches.filter(m => !m.round);
   const currentMatchdayMatches = leagueMatchesList.filter(m => m.matchday === activeMatchday);
-  
+  // Group the matchday's fixtures by kickoff day (Tue 8 Sept / Wed 9 Sept / ...) for the
+  // day-grouped compact list — mirrors how broadcasters lay out a round's results.
+  const currentMatchdayByDay = useMemo(() => {
+      const groups: { day: string; matches: typeof currentMatchdayMatches }[] = [];
+      const indexByDay: Record<string, number> = {};
+      currentMatchdayMatches.forEach(m => {
+          const day = (m.date && m.date !== 'TBD' && !isNaN(new Date(m.date).getTime()))
+              ? new Date(m.date).toLocaleDateString(currentLocale || 'en-US', { weekday: 'short', day: 'numeric', month: 'long' }).toUpperCase()
+              : 'DATE TBD';
+          if (indexByDay[day] === undefined) {
+              indexByDay[day] = groups.length;
+              groups.push({ day, matches: [] });
+          }
+          groups[indexByDay[day]].matches.push(m);
+      });
+      return groups;
+  }, [currentMatchdayMatches, currentLocale]);
+
   const showClearTrash = useMemo(() => {
     if (!user) return false;
     if (activeTab === 'groups') return allPredictions.some(p => p.userId === user.email);
@@ -1557,7 +1569,7 @@ export const App = () => {
       return 'groups';
   };
 
-  if (loading) return <div className="min-h-screen bg-[#05101c] flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-blue-500" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
+  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white"><div className="flex flex-col items-center gap-4"><RefreshCw className="animate-spin text-cyan-400" size={32} /><div className="text-xs font-black uppercase tracking-widest opacity-60">Initializing...</div></div></div>;
 
 
   if (!user || !session) {
@@ -1575,9 +1587,12 @@ export const App = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#060c1a] via-slate-950 to-slate-950 text-white pb-44 md:pb-12 relative isolate">
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div className="absolute -top-1/4 -right-1/4 w-[70vw] h-[70vw] bg-cyan-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 -left-1/4 w-[60vw] h-[60vw] bg-fuchsia-600/10 rounded-full blur-[120px]" />
+      </div>
       <StarField density={50} variant="subtle" position="fixed" className="-z-10" />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      <IntroVideoModal isOpen={showIntroModal} videoSrc={introVideoUrl} onClose={() => setShowIntroModal(false)} />
 
       <AppHeader
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
@@ -1585,7 +1600,6 @@ export const App = () => {
         isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
         setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
         handleLogout={handleLogout}
-        onReplayIntro={handleReplayIntro}
         onStartTour={() => setShowTour(true)}
         onStartLiveTour={() => { setActiveTab('leaderboard'); setShowLiveTour(true); }}
         showSecondChanceBadge={false}
@@ -1601,7 +1615,7 @@ export const App = () => {
       {/* Admin: unassigned players banner */}
       {showAdminBanner && unassignedCount > 0 && (
         <div className="fixed bottom-16 inset-x-0 z-[44] px-3 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-[#0f2545] border border-red-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+          <div className="bg-blue-950/80 backdrop-blur-md border border-red-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl">
             <div className="bg-red-500/15 border border-red-500/30 p-2 rounded-xl shrink-0">
               <span className="text-red-400 font-black text-sm">{unassignedCount}</span>
             </div>
@@ -1687,9 +1701,9 @@ export const App = () => {
         {activeTab === 'tournament' && (
             <div className="flex flex-col h-full animate-fade-in">
                 <div className="flex justify-center mb-6">
-                   <div className="bg-slate-200 p-1 rounded-xl flex gap-1 shadow-inner border border-slate-300">
+                   <div className="bg-slate-900/60 p-1 rounded-xl flex gap-1 shadow-inner border border-white/10">
                       {(['schedule', 'tables', 'bracket'] as const).map(sub => (
-                         <button key={sub} id={`tour-subnav-${sub}`} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-[#0f2545] text-white shadow-md' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
+                         <button key={sub} id={`tour-subnav-${sub}`} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
                             {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'bracket' && <GitMerge size={14} />}{sub === 'schedule' ? t.subnavSchedule : sub === 'tables' ? t.subnavTables : t.subnavBracket}
                          </button>
                       ))}
@@ -1698,8 +1712,8 @@ export const App = () => {
                 {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} onJumpToBracket={handleJumpToBracket} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onSubstitute={handleSubstitute} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} predictedKnockoutWinners={predictedKnockoutWinners} />}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-3xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                            <div className="bg-[#0f2545] p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups || 'League Phase'}</h3></div>
+                        <div className="bg-blue-950/40 backdrop-blur-md rounded-xl shadow-md border border-white/15 overflow-hidden">
+                            <div className="bg-cyan-600 p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups || 'League Phase'}</h3></div>
                             <StandingsTable standings={calculateLeagueStandings(matches, teamsData)} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} />
                         </div>
                     </div>
@@ -1712,46 +1726,46 @@ export const App = () => {
             The matchday itself is the headline; standings/table are supplementary and sit below the games. */}
         {activeTab === 'groups' && effectiveTournamentPhase === 'PRE_LIVE' && (
             <div className="animate-fade-in">
-                <div className="flex items-end justify-between mb-4 px-1">
-                    <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">Matchday {activeMatchday}</h1>
-                    <span className="text-[10px] font-bold text-slate-500 pb-0.5">{currentMatchdayMatches.length} {currentMatchdayMatches.length === 1 ? 'match' : 'matches'}</span>
+                <div className="flex items-end justify-between mb-4 px-1 pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                        <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></span>
+                        <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">Matchday {activeMatchday}</h1>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white/10 border border-white/10 rounded-full px-2.5 py-1">{currentMatchdayMatches.length} {currentMatchdayMatches.length === 1 ? 'match' : 'matches'}</span>
                 </div>
                 {currentMatchdayMatches.length === 0 && (
-                    <div className="rounded-xl border border-white/10 bg-blue-950/40 backdrop-blur-md py-16 text-center mb-6">
+                    <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md shadow-sm py-16 text-center mb-6">
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No fixtures for this matchday yet</p>
                     </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {currentMatchdayMatches.map((match, index) => (
-                        <MatchCard
-                          key={match.id}
-                          cardId={index === 0 ? "tour-first-match" : undefined}
-                          match={match}
-                          homeTeam={teamsData[match.homeTeamId]}
-                          awayTeam={teamsData[match.awayTeamId]}
-                          onUpdate={handleScoreUpdate}
-                          lang={t}
-                          locale={currentLocale}
-                          userTokens={user?.tokens || 0}
-                          rivals={rivalsList}
-                          onSpy={handleSpy}
-                          currentUser={user}
-                          allPredictions={allPredictions}
-                          phase={tournamentPhase}
-                          isAdminMode={isAdminMode}
-                          isLateJoiner={isInLateWindow}
-                          onSubstitute={() => handleSubstitute(match.id)}
-                          substitutionsLeft={user?.substitutions || 0}
-                          isUnlockedBySub={user?.unlockedMatches?.includes(match.id) || false}
-                          onTeamClick={(id) => setViewingTeamId(id)}
-                          showStatusBadge={false}
-                          context="groups"
-                          predictedAdvancingTeams={predictedAdvancingTeams}
-                          events={matchEvents.filter(e => String(e.matchId) === String(match.id) || e.matchId === `${match.homeTeamId}_${match.awayTeamId}`)}
-                          playerMatchStats={playerMatchStats}
-                          onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
-                          onStadiumClick={v => setStadiumVenue(v)}
-                        />
+                <div className="space-y-4">
+                    {currentMatchdayByDay.map(({ day, matches: dayMatches }) => (
+                        <div key={day} className="rounded-xl border border-white/10 bg-blue-950/40 backdrop-blur-md overflow-hidden shadow-sm">
+                            <div className="px-3 py-1.5 bg-white/5 border-b border-white/10">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
+                            </div>
+                            <div>
+                                {dayMatches.map(match => (
+                                    <MatchRow
+                                      key={match.id}
+                                      match={match}
+                                      homeTeam={teamsData[match.homeTeamId]}
+                                      awayTeam={teamsData[match.awayTeamId]}
+                                      onUpdate={handleScoreUpdate}
+                                      lang={t}
+                                      locale={currentLocale}
+                                      userTokens={user?.tokens || 0}
+                                      rivals={rivalsList}
+                                      onSpy={handleSpy}
+                                      currentUser={user}
+                                      allPredictions={allPredictions}
+                                      isAdminMode={isAdminMode}
+                                      isLateJoiner={isInLateWindow}
+                                      onTeamClick={(id) => setViewingTeamId(id)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
                 <div className="mt-6">
@@ -1762,14 +1776,14 @@ export const App = () => {
                         <button
                           onClick={() => setActiveMatchday(md => Math.max(1, md - 1))}
                           disabled={activeMatchday <= 1}
-                          className="flex-1 px-4 py-4 bg-blue-950/40 backdrop-blur-md border border-white/10 rounded-2xl text-slate-300 font-black uppercase tracking-widest hover:border-white/20 hover:text-white transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
+                          className="flex-1 px-4 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-slate-200 font-black uppercase tracking-widest hover:bg-white/15 hover:text-white transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
                         >
                           <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>MD {activeMatchday - 1}</span>
                         </button>
                         <button
                           onClick={() => setActiveMatchday(md => Math.min(8, md + 1))}
                           disabled={activeMatchday >= 8}
-                          className="flex-[2] px-6 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl shadow-lg shadow-cyan-900/40 font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
+                          className="flex-[2] px-6 py-4 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white rounded-2xl shadow-lg shadow-cyan-900/40 font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:pointer-events-none"
                         >
                           <span>Matchday {activeMatchday + 1}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
@@ -1810,7 +1824,7 @@ export const App = () => {
                 )}
                 <div className="mt-8 flex justify-center pb-8">
                      <div className="flex gap-3 w-full max-w-lg">
-                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'PO' ? (t.leaguePhase || t.groups) : t.prevRound}</span></button>
+                        <button onClick={handlePrevRound} className="flex-1 px-4 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-sm text-slate-200 font-black uppercase tracking-widest hover:bg-white/15 hover:text-white transition-all flex items-center justify-center gap-2 group"><ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span>{activeKnockoutRound === 'PO' ? (t.leaguePhase || t.groups) : t.prevRound}</span></button>
                         {activeKnockoutRound !== 'FIN' ? (
                             <button onClick={handleNextRound} className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl shadow-lg font-black uppercase tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"><span>{t.nextRound}</span><ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></button>
                         ) : user?.secondChanceStatus === 'PENDING' ? (
@@ -1867,7 +1881,7 @@ export const App = () => {
       />
 
       <TourGuide steps={PRE_SEASON_TOUR} isOpen={showTour} onComplete={handleTourComplete} langCode={language} onStepChange={handleTourNavigation} />
-      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} defaultMode="text" />
+      <TourGuide steps={LIVE_SEASON_TOUR} isOpen={showLiveTour} onComplete={handleLiveTourComplete} langCode={language} onStepChange={handleLiveTourNavigation} />
       <LiveSplashScreen isOpen={showLiveSplash} onDone={handleSplashDone} langCode={language} />
       <KnockoutReminderModal isOpen={showKnockoutReminder} onDismiss={handleKnockoutReminderDismiss} langCode={language} />
       {finalRecap && (
@@ -1938,7 +1952,7 @@ export const App = () => {
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
-            <div className="relative w-full max-w-md bg-[#0f2545] border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
+            <div className="relative w-full max-w-md bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
                 <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 {/* Name editor */}
                 <div className="mb-5">
@@ -1949,13 +1963,13 @@ export const App = () => {
                             value={pendingName}
                             onChange={e => { setPendingName(e.target.value); setNameError(null); }}
                             maxLength={30}
-                            className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                            className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
                             onKeyDown={e => { if (e.key === 'Enter') saveNewName(); }}
                         />
                         <button
                             onClick={saveNewName}
                             disabled={nameSaving || !pendingName.trim()}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all"
+                            className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all"
                         >
                             {nameSaving ? <RefreshCw size={14} className="animate-spin" /> : t.saveBtn}
                         </button>
@@ -2137,14 +2151,14 @@ export const App = () => {
       {showAdminLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setShowAdminLogin(false); setAdminPasswordInput(''); setAdminPasswordError(false); }} />
-          <div className="relative w-full max-w-xs bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-[#0f2545] px-5 py-4 flex items-center gap-3 text-white">
+          <div className="relative w-full max-w-xs bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-cyan-600 px-5 py-4 flex items-center gap-3 text-white">
               <div className="bg-amber-500 p-2 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
               <div>
                 <div className="font-black uppercase tracking-widest text-sm">Admin Login</div>
-                <div className="text-[10px] text-blue-200">Enter admin password to continue</div>
+                <div className="text-[10px] text-cyan-100">Enter admin password to continue</div>
               </div>
             </div>
             <form
@@ -2169,7 +2183,7 @@ export const App = () => {
                 placeholder="Password"
                 value={adminPasswordInput}
                 onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminPasswordError(false); }}
-                className={`w-full px-4 py-3 border rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 ${adminPasswordError ? 'border-red-400 ring-red-200 bg-red-50 text-red-700 placeholder-red-300' : 'border-slate-200 ring-blue-200 bg-slate-50 text-slate-800'}`}
+                className={`w-full px-4 py-3 border rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 ${adminPasswordError ? 'border-red-400 ring-red-500/30 bg-red-500/10 text-red-300 placeholder-red-400/50' : 'border-white/10 ring-cyan-500/30 bg-black/20 text-white placeholder-slate-500'}`}
               />
               {adminPasswordError && (
                 <p className="text-xs text-red-500 font-bold text-center">Incorrect password</p>

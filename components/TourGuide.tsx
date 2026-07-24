@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { TourStep, LanguageCode } from '../types';
-import { ChevronRight, ChevronLeft, Volume2, VolumeX, Play, RotateCcw } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Play } from 'lucide-react';
 
 interface TourGuideProps {
   steps: TourStep[];
@@ -9,29 +9,25 @@ interface TourGuideProps {
   onComplete: () => void;
   langCode: LanguageCode;
   onStepChange?: (stepId: string) => void;
-  defaultMode?: 'audio' | 'text';
 }
 
 // --- LOCALIZATION DICTIONARY ---
 const UI_STRINGS = {
-  EN:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
-  US:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Update',   assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Read-Only Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
-  NO:  { title: 'Omvisning', subtitle: 'Før-sesong Brief',   liveSubtitle: 'Livesesong Brief',     assistant: 'Din Assistent', start: 'Lydtur', startText: 'Tekstomvisning', skip: 'Jeg har spilt før', next: 'Neste', finish: 'Ferdig', host: 'Programleder', pundit: 'Ekspert' },
-  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Audio Tour', startText: 'Text Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  EN:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Start Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  US:  { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Update',   assistant: 'Your Assistant', start: 'Start Tour', skip: "I've played before", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
+  NO:  { title: 'Omvisning', subtitle: 'Før-sesong Brief',   liveSubtitle: 'Livesesong Brief',     assistant: 'Din Assistent', start: 'Start Omvisning', skip: 'Jeg har spilt før', next: 'Neste', finish: 'Ferdig', host: 'Programleder', pundit: 'Ekspert' },
+  SCO: { title: 'The Tour', subtitle: 'Pre-Season Briefing', liveSubtitle: 'Live Season Briefing', assistant: 'Your Assistant', start: 'Start Tour', skip: "Aye, I ken the game", next: 'Next', finish: 'Finish', host: 'Host', pundit: 'Pundit' },
 };
 
-export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange, defaultMode = 'audio' }) => {
+export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete, langCode, onStepChange }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [tourMode, setTourMode] = useState<'audio' | 'text'>('audio');
-  
+
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties | null>(null);
   const [primaryIconPos, setPrimaryIconPos] = useState<{ left: string; top: string }>({ left: '50%', top: '50%' });
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const requestRef = useRef<number | null>(null); 
-  
+
+  const requestRef = useRef<number | null>(null);
+
   const currentStep = steps[currentStepIdx];
   const ui = UI_STRINGS[langCode] || UI_STRINGS['EN'];
 
@@ -64,15 +60,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
       if (isOpen) {
           setCurrentStepIdx(0);
           setHasStarted(false);
-          setIsMuted(false);
-          setTourMode(defaultMode);
           setHighlightStyle(null);
           setPrimaryIconPos({ left: '50%', top: '50%' });
       } else {
-          if (audioRef.current) { 
-              audioRef.current.pause(); 
-              audioRef.current.currentTime = 0; 
-          }
           if (requestRef.current !== null) cancelAnimationFrame(requestRef.current);
       }
   }, [isOpen]);
@@ -149,64 +139,9 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
     };
   }, [currentStep.id, isOpen, hasStarted, onStepChange]); 
 
-  // --- 5. AUDIO PLAYER ---
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    if (!hasStarted || isMuted) {
-        if (audioRef.current) {
-            audioRef.current.pause();
-        }
-        return;
-    }
-
-    const src = currentStep.audioFiles[configLang as any] || currentStep.audioFiles['en'];
-    
-    if (src) {
-        if (audioRef.current && !audioRef.current.paused && audioRef.current.src.endsWith(src)) {
-            return; 
-        }
-
-        if (audioRef.current) {
-             audioRef.current.pause();
-             audioRef.current.currentTime = 0;
-        }
-
-        const audio = new Audio(src);
-        audioRef.current = audio;
-        
-        audio.onended = () => {
-            setTimeout(() => {
-                if (currentStepIdx < steps.length - 1) {
-                    setCurrentStepIdx(prev => prev + 1);
-                } else {
-                    onComplete();
-                }
-            }, 600);
-        };
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                if (error.name !== 'AbortError') {
-                    console.error("[TourGuide] Audio playback error:", error);
-                }
-            });
-        }
-    }
-  }, [currentStep.id, hasStarted, isMuted, isOpen, configLang, currentStepIdx, steps.length, onComplete]); 
-
   // --- HANDLERS ---
   const handleStart = () => {
       setHasStarted(true);
-      setIsMuted(false);
-      setTourMode('audio');
-  };
-
-  const handleStartText = () => {
-      setHasStarted(true);
-      setIsMuted(true);
-      setTourMode('text');
   };
 
   const handleNext = () => {
@@ -224,13 +159,6 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
   };
 
   const handleSkip = () => onComplete();
-
-  const handleReplay = () => {
-      if (audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(() => {});
-      }
-  };
 
   if (!isOpen) return null;
 
@@ -304,53 +232,13 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                     </div>
 
                     <div className="flex flex-col gap-2 sm:gap-3 pt-1 sm:pt-2">
-                        {defaultMode === 'text' ? (
-                            <>
-                                <button
-                                    onClick={handleStartText}
-                                    className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-[#0f2545] rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <VolumeX size={16} />
-                                    <div className="flex flex-col items-start leading-none gap-0.5">
-                                        <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~1 min</span>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={handleStart}
-                                    className="w-full py-3.5 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
-                                >
-                                    <Play size={20} fill="currentColor" className="text-yellow-400" />
-                                    <div className="flex flex-col items-start leading-none gap-0.5">
-                                        <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~2 min</span>
-                                    </div>
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={handleStart}
-                                    className="w-full py-4 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
-                                >
-                                    <Play size={20} fill="currentColor" className="text-yellow-400" />
-                                    <div className="flex flex-col items-start leading-none gap-0.5">
-                                        <span>{ui.start}</span>
-                                        <span className="text-[9px] font-normal opacity-50 normal-case tracking-normal">~2 min</span>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={handleStartText}
-                                    className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-[#0f2545] rounded-xl font-black uppercase tracking-widest text-sm transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <VolumeX size={16} />
-                                    <div className="flex flex-col items-start leading-none gap-0.5">
-                                        <span>{ui.startText}</span>
-                                        <span className="text-[9px] font-normal opacity-60 normal-case tracking-normal">~1 min</span>
-                                    </div>
-                                </button>
-                            </>
-                        )}
+                        <button
+                            onClick={handleStart}
+                            className="w-full py-3.5 bg-[#0f2545] text-white rounded-xl font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-3"
+                        >
+                            <Play size={20} fill="currentColor" className="text-yellow-400" />
+                            <span>{ui.start}</span>
+                        </button>
                         <button
                             onClick={handleSkip}
                             className="w-full py-3 border-2 border-slate-300 hover:border-slate-400 bg-transparent text-slate-500 hover:text-slate-700 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-colors"
@@ -444,7 +332,7 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                   {/* TEXT CONTENT: Padding-left acts as a physical barrier preventing text from going behind the images */}
                   <div className="flex-1 py-2 sm:py-3 pr-2 pl-[120px] sm:pl-[290px] lg:pl-[330px] flex flex-col justify-center min-w-0 z-[101]">
                       
-                      {/* Header row: tag + step counter + audio controls */}
+                      {/* Header row: tag + step counter */}
                       <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-2">
                               <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest border border-yellow-400/40 rounded px-1.5 py-0.5 leading-none">
@@ -454,47 +342,20 @@ export const TourGuide: React.FC<TourGuideProps> = ({ steps, isOpen, onComplete,
                                   {currentStepIdx}/{steps.length - 1}
                               </span>
                           </div>
-                          <div className="flex gap-1">
-                              {tourMode === 'audio' && (
-                                  <button onClick={handleReplay} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full" title="Replay">
-                                      <RotateCcw size={14} />
-                                  </button>
-                              )}
-                              <button onClick={() => setIsMuted(!isMuted)} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full">
-                                  {isMuted ? <VolumeX size={14}/> : <Volume2 size={14}/>}
-                              </button>
-                          </div>
                       </div>
 
                       {/* Headline + all content lines */}
                       <div className="flex flex-col gap-0.5">
-                          {tourMode === 'text' ? (
-                              <>
-                                  <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
-                                      {audioScript?.host || content?.lines?.[0]}
+                          <>
+                              <p className="text-white text-[13px] sm:text-[15px] font-black leading-tight">
+                                  {audioScript?.host || content?.lines?.[0]}
+                              </p>
+                              {(audioScript?.pundit || content?.lines?.[1]) && (
+                                  <p className="text-slate-400 text-[11px] sm:text-[12px] leading-snug italic">
+                                      {audioScript?.pundit || content?.lines?.[1]}
                                   </p>
-                                  {(audioScript?.pundit || content?.lines?.[1]) && (
-                                      <p className="text-slate-400 text-[11px] sm:text-[12px] leading-snug italic">
-                                          {audioScript?.pundit || content?.lines?.[1]}
-                                      </p>
-                                  )}
-                              </>
-                          ) : (
-                              <>
-                                  {content?.lines?.map((line, i) => (
-                                      <p
-                                          key={i}
-                                          className={
-                                              i === 0
-                                                  ? "text-white text-[13px] sm:text-[15px] font-black leading-tight"
-                                                  : "text-slate-300 text-[11px] sm:text-[12px] leading-snug"
-                                          }
-                                      >
-                                          {line}
-                                      </p>
-                                  ))}
-                              </>
-                          )}
+                              )}
+                          </>
                       </div>
                   </div>
 

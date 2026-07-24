@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TEAMS } from '../constants';
 import { JerseyIcon } from './JerseyIcon';
 
@@ -29,30 +29,13 @@ export function resolveKitType(
   return Math.min(diff, 360 - diff) <= 40 ? 'home' : 'away';
 }
 
-// ── File name overrides where the PNG name differs from the app team ID ───────
-const FILE_ID_OVERRIDE: Record<string, string> = {
-  HAI: 'HTI', // app ID → PNG filename prefix
-  PAR: 'PRY',
-  SUI: 'CHE',
-  KSA: 'SAU',
-};
-
-function kitPath(teamId: string, type: 'home' | 'away' | 'third') {
-  const fileId = FILE_ID_OVERRIDE[teamId] ?? teamId;
-  return `/kits/${fileId}-${type}.png`;
-}
-
 // ── Size classes ──────────────────────────────────────────────────────────────
-
-const SIZE_CLASS = {
-  xs: 'w-[18px] h-[26px]',
-  sm: 'w-[46px] h-[64px]',
-  md: 'w-[58px] h-[82px]',
-} as const;
 
 const JERSEY_SIZE = { xs: 22, sm: 62, md: 78 } as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
+// Renders a colored SVG jersey from live kit-color data (kitBg/kitText), since
+// there are no per-club kit PNGs to fall back to.
 
 export interface KitImageProps {
   teamId: string;
@@ -68,43 +51,18 @@ export const KitImage: React.FC<KitImageProps> = ({
   teamId,
   kitBg,
   kitText,
-  kitType,
   size = 'sm',
   className = '',
 }) => {
-  // 'primary' → try home/away; 'third' → try third kit; 'svg' → SVG fallback
-  const [phase, setPhase] = useState<'primary' | 'third' | 'svg'>('primary');
-
-  const resolvedType = kitType ?? resolveKitType(teamId, kitBg);
-  const src = phase === 'primary' ? kitPath(teamId, resolvedType) : kitPath(teamId, 'third');
-
-  const handleError = () => {
-    if (phase === 'primary') setPhase('third');
-    else setPhase('svg');
-  };
-
-  if (phase === 'svg') {
-    const bg   = kitBg   ?? TEAMS[teamId]?.jerseyBg;
-    const text = kitText ?? TEAMS[teamId]?.jerseyText;
-    if (!bg) return null;
-    return (
-      <JerseyIcon
-        bg={bg}
-        text={text ?? '#ffffff'}
-        size={JERSEY_SIZE[size]}
-        className={`shrink-0 ${className}`}
-      />
-    );
-  }
-
+  const bg   = kitBg   ?? TEAMS[teamId]?.jerseyBg;
+  const text = kitText ?? TEAMS[teamId]?.jerseyText;
+  if (!bg) return null;
   return (
-    <img
-      src={src}
-      className={`shrink-0 object-contain ${SIZE_CLASS[size]} ${className}`}
-      onError={handleError}
-      loading="lazy"
-      decoding="async"
-      alt=""
+    <JerseyIcon
+      bg={bg}
+      text={text ?? '#ffffff'}
+      size={JERSEY_SIZE[size]}
+      className={`shrink-0 ${className}`}
     />
   );
 };

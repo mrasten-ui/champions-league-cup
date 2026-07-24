@@ -35,11 +35,11 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
   if (isLockedState) {
       return (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in slide-in-from-bottom-4">
-              <div className="bg-slate-100 p-6 rounded-full mb-6 text-slate-300">
+              <div className="bg-white/5 p-6 rounded-full mb-6 text-slate-500">
                   <Lock size={48} />
               </div>
-              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">{lang.lockedState}</h2>
-              <p className="text-slate-500 font-medium max-w-xs mb-8">
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">{lang.lockedState}</h2>
+              <p className="text-slate-400 font-medium max-w-xs mb-8">
                   The Knockout Bracket unlocks once the League Phase has finished.
               </p>
           </div>
@@ -130,7 +130,7 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
                 const teamB = leg1 ? teams[leg1.awayTeamId] : undefined;
 
                 return (
-                    <div key={tieId} className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                    <div key={tieId} className="rounded-2xl border border-white/15 overflow-hidden bg-blue-950/40 backdrop-blur-md shadow-sm">
                         <div className="bg-[#0f2545] px-4 py-2.5 flex items-center justify-between text-white flex-wrap gap-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
                                 {lang.tieLabel || 'Tie'} {tieId.split('_')[1]}

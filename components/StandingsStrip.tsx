@@ -27,7 +27,7 @@ export const StandingsStrip: React.FC<StandingsStripProps> = ({ standings, teams
         <StandingsTable standings={standings} teams={teams} lang={lang} onTeamClick={onTeamClick} highlightedTeamId={highlightedTeamId} />
         <button
           onClick={() => setExpanded(false)}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 bg-blue-950/40 backdrop-blur-md text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/15 transition-colors"
         >
           <ChevronUp size={14} /> {lang.collapseTable || 'Collapse Table'}
         </button>
@@ -38,10 +38,10 @@ export const StandingsStrip: React.FC<StandingsStripProps> = ({ standings, teams
   return (
     <button
       onClick={() => setExpanded(true)}
-      className="mb-6 w-full text-left rounded-xl border border-white/10 bg-blue-950/40 backdrop-blur-md overflow-hidden hover:border-white/20 transition-colors"
+      className="mb-6 w-full text-left rounded-xl border border-white/20 bg-blue-900/50 backdrop-blur-md overflow-hidden hover:border-white/30 transition-colors shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
     >
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{lang.leaguePhaseTable || 'League Phase'}</span>
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">{lang.leaguePhaseTable || 'League Phase'}</span>
         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-cyan-400">
           {lang.viewFullTable || 'Full Table'} <ChevronDown size={12} />
         </span>
