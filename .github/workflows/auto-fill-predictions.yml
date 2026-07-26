@@ -1,8 +1,9 @@
 name: Auto-Fill Missed Predictions
 
 on:
-  schedule:
-    - cron: '*/15 * * * *' # every 15 minutes — matches lock on an hour-granularity window
+  # Automatic 15-minute schedule disabled — still in testing/development, no real
+  # season/matches to auto-fill for yet. Re-add a
+  # `schedule: - cron: '*/15 * * * *'` entry here closer to the real season.
   workflow_dispatch:
     inputs:
       dry_run:
