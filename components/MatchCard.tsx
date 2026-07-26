@@ -29,7 +29,6 @@ interface MatchCardProps {
   allPredictions: Prediction[];
   phase: TournamentPhase;
   isAdminMode: boolean;
-  isLateJoiner?: boolean;
   onSubstitute?: () => void;
   substitutionsLeft?: number;
   isUnlockedBySub?: boolean;
@@ -84,7 +83,7 @@ const formatLockCountdown = (ms: number): string => {
 // --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, isLateJoiner = false, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
+    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
     homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick, predictedAdvancingTeams, predictedKnockoutWinners
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
@@ -134,12 +133,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isStarted = isLive || isFinished;
 
     // isMatchLocked folds in the admin hard-lock, live/finished state, and the rolling
-    // 1-hour-before-kickoff window. Late joiners bypass all of that for matches that
-    // haven't started yet, same as before.
-    const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
-    const isRealLifeLocked = (isLateJoiner && matchNotStarted)
-      ? false
-      : isMatchLocked(match);
+    // 1-hour-before-kickoff window.
+    const isRealLifeLocked = isMatchLocked(match);
     const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
 
     // Live-updating "Locks in Xh Ym" countdown, shown once inside 24h of the rolling lock.
@@ -227,7 +222,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       </button>
     );
 
-    const showRivals = !isLateJoiner && (isSpied || isRealLifeLocked);
+    const showRivals = isSpied || isRealLifeLocked;
 
     const getContextLabel = () => {
         if (match.round) {

@@ -21,7 +21,6 @@ interface MatchRowProps {
   currentUser: UserProfile | null;
   allPredictions: Prediction[];
   isAdminMode: boolean;
-  isLateJoiner?: boolean;
   onTeamClick?: (teamId: string) => void;
 }
 
@@ -40,7 +39,7 @@ const getInitials = (name: string) => {
  * card used for knockout/detail views.
  */
 export const MatchRow: React.FC<MatchRowProps> = ({
-  match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, isAdminMode, isLateJoiner = false, onTeamClick,
+  match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, isAdminMode, onTeamClick,
 }) => {
   const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
 
@@ -76,8 +75,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
     }
   }, [localHome, localAway, isDirty, match.id, onUpdate]);
 
-  const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
-  const isRealLifeLocked = (isLateJoiner && matchNotStarted) ? false : isMatchLocked(match);
+  const isRealLifeLocked = isMatchLocked(match);
   const isLocked = isRealLifeLocked && !isAdminMode;
   const isLive = LIVE_STATUSES.includes(match.status);
   const isFinished = FINISHED_STATUSES.includes(match.status);
@@ -97,7 +95,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
 
   const isSpied = currentUser?.spiedMatches?.includes(match.id);
   const canSpy = !isLocked && !isSpied && !!onSpy && rivals.length > 0;
-  const showRivals = !isLateJoiner && (isSpied || isRealLifeLocked);
+  const showRivals = isSpied || isRealLifeLocked;
 
   const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
   const handleScoreChange = (side: 'home' | 'away', val: number) => {

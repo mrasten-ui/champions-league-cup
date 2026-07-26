@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Clock, Zap, Shield } from 'lucide-react';
+import { RefreshCw, LayoutGrid, CalendarDays, ListOrdered, GitMerge, ChevronRight, ChevronLeft, X, Shield } from 'lucide-react';
 import { GROUP_CONFIG, TRANSLATIONS, LEAGUES, LEAGUE_DEFAULT_LANGS, INITIAL_MATCHES } from './constants';
 import { LanguageCode, UserProfile, Prediction, TournamentPhase, Round, Match } from './types';
 import {
@@ -55,7 +55,6 @@ import { LiveTicker } from './components/LiveTicker';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
-  AUTO_FILLED_PREFIX: 'rasten_autofill_v1_',
   KNOCKOUT_COMPLETION_TIME_PREFIX: 'rasten_knockout_done_v1_',
   KNOCKOUT_REMINDER_LAST_SHOWN_PREFIX: 'rasten_knockout_reminder_v1_',
   NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
@@ -78,7 +77,6 @@ export const App = () => {
   
   const [language, setLanguage] = useState<LanguageCode>('EN');
   const [leagueLangs, setLeagueLangs] = useState<Record<string, LanguageCode>>(LEAGUE_DEFAULT_LANGS);
-  const [lateJoinerCutoff, setLateJoinerCutoff] = useState<string | null>(null);
   const [adminPhaseOverride, setAdminPhaseOverride] = useState<TournamentPhase | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [scAnnouncementDismissed, setScAnnouncementDismissed] = useState(() => !!localStorage.getItem('rc_sc_announcement_v1'));
@@ -90,8 +88,6 @@ export const App = () => {
   const [nameSaving, setNameSaving] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [lateWindowCleared, setLateWindowCleared] = useState(false);
-  const [lateWindowRemaining, setLateWindowRemaining] = useState(0);
   const [showAdminBanner, setShowAdminBanner] = useState(false);
 
   // Derived from match data — flips to LIVE the moment any group match leaves UPCOMING/NS.
@@ -141,19 +137,17 @@ export const App = () => {
   const currentLocale = localeMap[language];
 
   // --- INVITE LINK HANDLER ---
-  // Reads ?invite=slug and ?late=1 from URL on first load and stores in sessionStorage.
+  // Reads ?invite=slug from URL on first load and stores in sessionStorage.
   // Also applies the league's default language immediately (for the login screen).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const invite = params.get('invite');
-    const late   = params.get('late');
     if (invite) {
       sessionStorage.setItem('pending_league_invite', invite);
       const defaultLang = LEAGUE_DEFAULT_LANGS[invite];
       if (defaultLang) setLanguage(defaultLang);
+      window.history.replaceState({}, '', window.location.pathname);
     }
-    if (late === '1') sessionStorage.setItem('pending_late_joiner', '1');
-    if (invite || late) window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
   // Keep ?invite=slug in the URL while the user is logged in with a league,
@@ -171,20 +165,14 @@ export const App = () => {
   // shows the right language even when the constants fallback is 'EN'.
   useEffect(() => {
     if (!supabase) return;
-    supabase.from('settings').select('key, value').in('key', ['league_langs', 'late_joiner_cutoff'])
+    supabase.from('settings').select('key, value').eq('key', 'league_langs')
       .then(({ data }) => {
-        if (!data) return;
-        for (const row of data) {
-          if (row.key === 'league_langs' && row.value) {
-            const overrides = row.value as Record<string, LanguageCode>;
-            setLeagueLangs(prev => ({ ...prev, ...overrides }));
-            const pendingInvite = sessionStorage.getItem('pending_league_invite');
-            if (pendingInvite && overrides[pendingInvite]) setLanguage(overrides[pendingInvite]);
-          }
-          if (row.key === 'late_joiner_cutoff') {
-            setLateJoinerCutoff(row.value as string ?? null);
-          }
-        }
+        const row = data?.[0];
+        if (!row?.value) return;
+        const overrides = row.value as Record<string, LanguageCode>;
+        setLeagueLangs(prev => ({ ...prev, ...overrides }));
+        const pendingInvite = sessionStorage.getItem('pending_league_invite');
+        if (pendingInvite && overrides[pendingInvite]) setLanguage(overrides[pendingInvite]);
       })
       .catch(() => { /* settings table not yet created — silently ignore */ });
   }, []);
@@ -220,12 +208,6 @@ export const App = () => {
       setTimeout(() => setHighlightedMatchId(null), 1500);
   };
 
-  const isInLateWindow = useMemo(() => {
-    if (lateWindowCleared || !user?.email) return false;
-    const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
-    return Date.now() < until;
-  }, [user?.email, lateWindowCleared]);
-
   // --- CORE LOGIC WITH 3-STAGE SECOND CHANCE OVERRIDE ---
   const userMatches = useMemo(() => {
       if (!user) return matches;
@@ -241,11 +223,8 @@ export const App = () => {
                   : p
           );
       }
-      const matchesForBracket = isInLateWindow
-          ? matches.map(m => (m.status === 'NS' || m.status === 'UPCOMING') ? { ...m, isLocked: false } : m)
-          : matches;
-      return applyPredictionsToBracket(matchesForBracket, teamsData, userSpecificPreds);
-  }, [matches, teamsData, allPredictions, user, groupStageEndTime, isInLateWindow]);
+      return applyPredictionsToBracket(matches, teamsData, userSpecificPreds);
+  }, [matches, teamsData, allPredictions, user, groupStageEndTime]);
 
   // Bracket display — cascades predictions freely.
   // SC players: use real group results as base so R32 shows actual qualifiers, then apply SC knockout picks.
@@ -563,7 +542,6 @@ export const App = () => {
     const match = matches.find(m => m.id === matchId);
 
     const isWhitelisted = user.unlockedMatches?.includes(matchId);
-    const matchNotStarted = match.status === 'NS' || match.status === 'UPCOMING';
     const matchKickoffPassed = match.date !== 'TBD' && new Date(match.date).getTime() <= Date.now();
     // !!match.round (not !match.groupId) is the knockout discriminator — identical for existing
     // World Cup data, also correct for new League Phase matches (which never set groupId).
@@ -571,8 +549,7 @@ export const App = () => {
     // isMatchLocked folds in the rolling 1-hour-before-kickoff window on top of the same checks
     // match.isLocked used to cover alone (admin override, live, finished) — keeps this write-time
     // gate in sync with what MatchCard's input UI actually disables.
-    const effectiveLock = isSecondChanceDrafting ? false
-        : (isInLateWindow && matchNotStarted ? false : isMatchLocked(match));
+    const effectiveLock = isSecondChanceDrafting ? false : isMatchLocked(match);
     if (!match || (effectiveLock && !isWhitelisted)) return;
 
     // SC DRAFTING: save to staging (sc_draft on profiles), not predictions table
@@ -940,86 +917,6 @@ export const App = () => {
     return () => clearTimeout(t);
   }, [isAdminMode, usersDb]);
 
-  // --- LATE JOINER WINDOW ---
-  // Activates a 4-hour PRE_LIVE window for users who signed up via /?late=1.
-  useEffect(() => {
-    if (!user?.email) return;
-    if (sessionStorage.getItem('pending_late_joiner') !== '1') return;
-    sessionStorage.removeItem('pending_late_joiner');
-    if (lateJoinerCutoff && Date.now() > new Date(lateJoinerCutoff).getTime()) {
-      addToast('error', 'Registration closed', 'The late entry window has now closed. Better luck next tournament!');
-      return;
-    }
-    const expiresAt = Date.now() + 4 * 60 * 60 * 1000;
-    localStorage.setItem('rasten_late_until_' + user.email, String(expiresAt));
-    addToast('success', 'Welcome, late joiner!', 'You have 4 hours to fill in your predictions. Past matches count as 0 pts.');
-  }, [user?.email, lateJoinerCutoff]);
-
-  // Countdown ticker for late joiner banner
-  useEffect(() => {
-    if (!isInLateWindow || !user?.email) return;
-    const tick = () => {
-      const until = parseInt(localStorage.getItem('rasten_late_until_' + user.email) || '0');
-      setLateWindowRemaining(Math.max(0, until - Date.now()));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [isInLateWindow, user?.email]);
-
-  const handleGoLive = () => {
-    if (!user?.email) return;
-    localStorage.removeItem('rasten_late_until_' + user.email);
-    setLateWindowCleared(true);
-  };
-
-  // Auto-fill predictions for late-joining users in LIVE phase
-  useEffect(() => {
-      if (!user || !supabase || tournamentPhase !== 'LIVE') return;
-      if (isInLateWindow) return; // late joiners predict manually
-      if (!matches.length || !Object.keys(teamsData).length) return;
-      const alreadyFilled = localStorage.getItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email);
-      if (alreadyFilled) return;
-
-      const groupMatches = matches.filter(m => m.groupId);
-      const userGroupPreds = allPredictions.filter(p => p.userId === user.email && groupMatches.some(m => m.id === p.matchId));
-
-      const qualifiesForSubsBonus = userGroupPreds.length < groupMatches.length * 0.5;
-
-      const simulated = simulateFullTournament(matches, teamsData, user.favorites || [], 'GROUPS', 50);
-      const toSave = simulated
-          .filter(m => m.groupId && m.homeScore !== null && m.awayScore !== null
-              && !m.isLocked
-              && (m.status === 'UPCOMING' || m.status === 'NS')
-              && !userGroupPreds.some(p => p.matchId === m.id))
-          .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
-
-      if (toSave.length === 0) return;
-
-      supabase.from('predictions').upsert(toSave, { onConflict: 'user_id,match_id' }).then(({ error }) => {
-          if (!error) {
-              bustPredictionsCache();
-              localStorage.setItem(STORAGE_KEYS.AUTO_FILLED_PREFIX + user.email, '1');
-              setAllPredictions(prev => {
-                  const others = prev.filter(p => p.userId !== user.email);
-                  const kept = prev.filter(p => p.userId === user.email && !toSave.some(s => s.match_id === p.matchId));
-                  return [...others, ...kept, ...toSave.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away, homeTeamId: p.home_team_id, awayTeamId: p.away_team_id }))];
-              });
-              if (qualifiesForSubsBonus) {
-                  const newSubCount = (user.substitutions ?? 5) + 3;
-                  setUser(prev => prev ? { ...prev, substitutions: newSubCount } : prev);
-                  supabase.from('profiles').update({ substitutions: newSubCount } as any).eq('email', user.email).then(() => {});
-              }
-              addToast(
-                  'success',
-                  "You're in the game!",
-                  qualifiesForSubsBonus
-                      ? `We filled ${toSave.length} predictions and gave you 3 bonus subs.`
-                      : `We filled ${toSave.length} predictions so you can still compete.`
-              );
-          }
-      });
-  }, [user?.email, tournamentPhase, matches.length, Object.keys(teamsData).length, allPredictions.length]);
 
   const groupStageMatches = useMemo(() => matches.filter(m => m.groupId), [matches]);
   const userGroupPredictionsCount = useMemo(() => user ? allPredictions.filter(p => p.userId === user.email && groupStageMatches.some(gm => gm.id === p.matchId)).length : 0, [allPredictions, user, groupStageMatches]);
@@ -1534,32 +1431,6 @@ export const App = () => {
           </div>
         )}
 
-        {isInLateWindow && (() => {
-          const totalSec = Math.floor(lateWindowRemaining / 1000);
-          const h = Math.floor(totalSec / 3600);
-          const m = Math.floor((totalSec % 3600) / 60);
-          const s = totalSec % 60;
-          const timeStr = h > 0
-            ? `${h}h ${m.toString().padStart(2, '0')}m`
-            : `${m}m ${s.toString().padStart(2, '0')}s`;
-          return (
-            <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-2 min-w-0">
-                <Clock size={16} className="text-amber-600 shrink-0" />
-                <span className="text-sm font-bold text-amber-800 truncate">
-                  Setup window closes in <span className="font-black tabular-nums">{timeStr}</span>
-                </span>
-              </div>
-              <button
-                onClick={handleGoLive}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
-              >
-                <Zap size={12} />
-                Go Live
-              </button>
-            </div>
-          );
-        })()}
         {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={leagueRivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
         
@@ -1626,7 +1497,6 @@ export const App = () => {
                                       currentUser={user}
                                       allPredictions={allPredictions}
                                       isAdminMode={isAdminMode}
-                                      isLateJoiner={isInLateWindow}
                                       onTeamClick={(id) => setViewingTeamId(id)}
                                     />
                                 ))}
@@ -1685,7 +1555,7 @@ export const App = () => {
                         onSecondChance={handlePledgeSecondChance} rivals={rivalsList} allPredictions={allPredictions} phase={tournamentPhase}
                         isLeaguePhaseComplete={isLeaguePhaseComplete}
                         onTeamClick={setViewingTeamId} onSpy={handleSpy} revealedRivals={user?.spiedMatches || []} activeRound={activeKnockoutRound}
-                        matchEvents={matchEvents} isLateJoiner={isInLateWindow}
+                        matchEvents={matchEvents}
                     />
                 )}
                 <div className="mt-8 flex justify-center pb-8">
@@ -1845,42 +1715,9 @@ export const App = () => {
 
       <DebugTools
         isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)}
-        onAutoFillAllUsers={async () => {
-          if (!supabase) return { filled: 0, users: 0 };
-          const groupMatches = matches.filter(m => m.groupId);
-          const allUpserts: { user_id: string; match_id: string; home: number; away: number; home_team_id?: string; away_team_id?: string }[] = [];
-          for (const [email, profile] of Object.entries(usersDb)) {
-            const userPreds = allPredictions.filter(p => p.userId === email);
-            const simulated = simulateFullTournament(matches, teamsData, profile.favorites || [], 'GROUPS', 50);
-            const toSave = simulated.filter(m =>
-              m.groupId && m.homeScore !== null && m.awayScore !== null &&
-              !m.isLocked && (m.status === 'UPCOMING' || m.status === 'NS') &&
-              groupMatches.some(gm => gm.id === m.id) &&
-              !userPreds.some(p => p.matchId === m.id)
-            ).map(m => ({ user_id: email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
-            allUpserts.push(...toSave);
-          }
-          if (allUpserts.length === 0) return { filled: 0, users: 0 };
-          const { error } = await supabase.from('predictions').upsert(allUpserts as any, { onConflict: 'user_id,match_id', ignoreDuplicates: true });
-          if (error) throw error;
-          bustPredictionsCache();
-          setAllPredictions(prev => {
-            const newPreds = allUpserts.map(p => ({ userId: p.user_id, matchId: p.match_id, home: p.home, away: p.away, homeTeamId: p.home_team_id, awayTeamId: p.away_team_id }));
-            const kept = prev.filter(p => !allUpserts.some(u => u.user_id === p.userId && u.match_id === p.matchId));
-            return [...kept, ...newPreds];
-          });
-          return { filled: allUpserts.length, users: new Set(allUpserts.map(u => u.user_id)).size };
-        }}
-        onClear={() => { localStorage.clear(); window.location.reload(); }}
         onRevealRealResults={handleRevealRealResults}
         onResetToFuture={handleResetToFuture}
-        lang={t} users={Object.values(usersDb) as UserProfile[]} predictions={allPredictions} matches={matches}
-        leagueLangs={leagueLangs}
-        onUpdateLeagueLang={async (slug, lang) => {
-          const updated = { ...leagueLangs, [slug]: lang };
-          setLeagueLangs(updated);
-          if (supabase) await supabase.from('settings').upsert({ key: 'league_langs', value: updated });
-        }}
+        users={Object.values(usersDb) as UserProfile[]}
         onToggleAdmin={async (email, isAdmin) => {
           if (!supabase) return;
           await supabase.from('profiles').update({ is_admin: isAdmin } as any).eq('email', email);
@@ -1905,81 +1742,17 @@ export const App = () => {
           setUsersDb(prev => ({ ...prev, [email]: { ...prev[email], leagues } }));
           if (user?.email === email) setUser(prev => prev ? { ...prev, leagues } : null);
         }}
-        onUpdateMatchChannels={async (matchId, channels) => {
-          if (!supabase) return;
-          await supabase.from('matches').update({ channels } as any).eq('id', matchId);
-          setMatches(prev => prev.map(m => m.id === matchId ? { ...m, channels } : m));
-        }}
-        onBulkUpdateChannels={async (locale, scope, channel) => {
-          if (!supabase) return;
-          const targets = matches.filter(m =>
-            scope === 'all' ? true : scope === 'groups' ? !!m.groupId : !!m.round
-          );
-          await Promise.all(targets.map(m => {
-            const updated = { ...(m.channels || {}), [locale]: channel };
-            return supabase.from('matches').update({ channels: updated } as any).eq('id', m.id);
-          }));
-          setMatches(prev => prev.map(m =>
-            targets.some(t => t.id === m.id)
-              ? { ...m, channels: { ...(m.channels || {}), [locale]: channel } }
-              : m
-          ));
-        }}
-        lateJoinerCutoff={lateJoinerCutoff}
-        onSetLateJoinerCutoff={async (cutoff) => {
-          if (!supabase) return;
-          if (cutoff) {
-            await supabase.from('settings').upsert({ key: 'late_joiner_cutoff', value: cutoff });
-          } else {
-            await supabase.from('settings').delete().eq('key', 'late_joiner_cutoff');
-          }
-          setLateJoinerCutoff(cutoff);
-        }}
-        onPreviewLateInvites={async () => {
-          const usersWithPreds = new Set(allPredictions.map(p => p.userId));
-          const recipients = Object.values(usersDb as Record<string, any>)
-            .filter(u => !usersWithPreds.has(u.email))
-            .map(u => {
-              const league = u.leagues?.[0] ?? null;
-              const lang = league ? (LEAGUE_DEFAULT_LANGS[league] ?? 'EN') : 'EN';
-              return {
-                name: u.name || '',
-                email: u.email,
-                league,
-                lang,
-                url: league
-                  ? `${window.location.origin}?invite=${league}&late=1`
-                  : `${window.location.origin}?late=1`,
-              };
-            });
-          return { recipients, cutoff: lateJoinerCutoff };
-        }}
-        onSendLateInvites={async () => {
-          if (!supabase) return { sent: 0, failed: 0 };
-          const { data, error } = await supabase.functions.invoke('send-late-invites', { body: { dry_run: false } });
-          if (error) throw error;
-          return data;
-        }}
-        onSyncNow={async () => {
-          try {
-            const { error } = await supabase.functions.invoke('sync-scores');
-            if (error) return { ok: false, message: error.message };
-            return { ok: true };
-          } catch (e: any) {
-            return { ok: false, message: e?.message ?? 'Unknown error' };
-          }
-        }}
         onTestNotification={(type) => {
           const id = Date.now();
           if (type === 'kit') {
             setKitQueue(prev => [...prev, {
               id: `kit_test_${id}`,
               matchId: 'TEST',
-              homeTeamId: 'BRA',
-              awayTeamId: 'SCO',
-              homeKitBg: '#F7E016',
-              homeKitText: '#033A75',
-              awayKitBg: '#003380',
+              homeTeamId: 'RM',
+              awayTeamId: 'BM',
+              homeKitBg: '#FFFFFF',
+              homeKitText: '#00529F',
+              awayKitBg: '#DC052D',
               awayKitText: '#FFFFFF',
             }]);
           } else {
@@ -1987,19 +1760,19 @@ export const App = () => {
               eventId: id,
               matchId: 'TEST',
               eventType: type === 'var' ? 'Var' : 'Goal',
-              teamId: type === 'og' ? 'SCO' : 'BRA',
-              player: type === 'var' ? 'G. Jesus' : type === 'og' ? 'A. Robertson' : type === 'pen' ? 'Vinícius Jr.' : 'R. Firmino',
+              teamId: type === 'og' ? 'BM' : 'RM',
+              player: type === 'var' ? 'J. Bellingham' : type === 'og' ? 'D. Upamecano' : type === 'pen' ? 'Vinícius Jr.' : 'K. Mbappé',
               playerId: type === 'var' ? 47281 : type === 'og' ? 19220 : type === 'pen' ? 47232 : 47189,
               detail: type === 'var' ? 'Goal Disallowed' : type === 'og' ? 'Own Goal' : type === 'pen' ? 'Penalty' : 'Normal Goal',
               minute: 67,
               minuteExtra: null,
-              homeTeamId: 'BRA',
-              awayTeamId: 'SCO',
+              homeTeamId: 'RM',
+              awayTeamId: 'BM',
               homeScore: type === 'og' ? 1 : 2,
               awayScore: 1,
-              homeKitBg:   '#F7E016',
-              homeKitText: '#033A75',
-              awayKitBg:   '#003380',
+              homeKitBg:   '#FFFFFF',
+              homeKitText: '#00529F',
+              awayKitBg:   '#DC052D',
               awayKitText: '#FFFFFF',
             }]);
           }
@@ -2064,12 +1837,8 @@ export const App = () => {
                 const relevantMatches = simulatedMatches.filter(m => { if (safeScope === 'GROUPS') return !m.round; if (safeScope === 'KNOCKOUT') return !!m.round; return true; });
 
                 if (user && supabase) {
-                    const predictionsToSave = relevantMatches.filter(m => {
-                        if (m.homeScore === null || m.awayScore === null) return false;
-                        // Late joiners: only predict future matches — no retroactive picks on played matches
-                        if (isInLateWindow && m.status !== 'NS' && m.status !== 'UPCOMING') return false;
-                        return true;
-                    }).map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
+                    const predictionsToSave = relevantMatches.filter(m => m.homeScore !== null && m.awayScore !== null)
+                        .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
                     if (predictionsToSave.length > 0) {
                         const { error } = await supabase.from('predictions').upsert(predictionsToSave, { onConflict: 'user_id,match_id' });
                         if (!error) {

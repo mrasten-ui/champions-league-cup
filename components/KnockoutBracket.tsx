@@ -21,11 +21,10 @@ interface KnockoutBracketProps {
   activeRound: Round;
   matchEvents?: MatchEvent[];
   allMatches?: Match[];
-  isLateJoiner?: boolean;
 }
 
 export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
-  matches, teams, onUpdate, lang, user, rivals, allPredictions, phase, isLeaguePhaseComplete, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = [], allMatches, isLateJoiner = false
+  matches, teams, onUpdate, lang, user, rivals, allPredictions, phase, isLeaguePhaseComplete, onTeamClick, onSpy, revealedRivals, activeRound, matchEvents = [], allMatches
 }) => {
 
   // Locked State Logic (Knockout Phase unlocks only once the League Phase — real-world, not
@@ -73,7 +72,6 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
             events={matchEvents.filter(e => String(e.matchId) === String(match.id))}
             allMatches={allMatches ?? matches}
             allTeams={teams}
-            isLateJoiner={isLateJoiner}
         />
     );
   };
