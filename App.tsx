@@ -20,7 +20,6 @@ import { StarField } from './components/StarField';
 import { MagicWand } from './components/MagicWand';
 import { HelpingHandModal } from './components/HelpingHandModal';
 import { Leaderboard } from './components/Leaderboard';
-import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { RulesPage } from './components/RulesPage';
 import { PredictionNudge } from './components/PredictionNudge';
 import { AvatarGenerator } from './components/AvatarGenerator';
@@ -52,7 +51,7 @@ export const App = () => {
     lockTimePassed, matchEvents, matchLineups, matchStats, playerMatchStats,
   } = useAppData();
 
-  const [activeTab, setActiveTab] = useState<'groups' | 'leaderboard' | 'tournament' | 'analysis' | 'rules'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'leaderboard' | 'tournament' | 'rules'>('groups');
   const [tournamentSubTab, setTournamentSubTab] = useState<'rounds' | 'tables'>('rounds');
   const [scheduleJumpMatchId, setScheduleJumpMatchId] = useState<string | undefined>(undefined);
 
@@ -334,7 +333,7 @@ export const App = () => {
   // Always the same tabs — predicting, live tracking, and standings all coexist
   // throughout the season instead of the app switching to a different nav set
   // once the first match kicks off.
-  const navTabs = useMemo(() => ['groups', 'tournament', 'leaderboard', 'analysis', 'rules'], []);
+  const navTabs = useMemo(() => ['groups', 'tournament', 'leaderboard', 'rules'], []);
 
   const handleNextTab = useCallback(() => {
       const idx = navTabs.indexOf(activeTab);
@@ -684,7 +683,6 @@ export const App = () => {
           />
         )}
 
-        {activeTab === 'analysis' && <AnalysisDashboard currentUser={user} rivals={leagueRivalsList} matches={matches} allPredictions={allPredictions} teams={teamsData} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} />}
         {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
         
         {/* TOURNAMENT HUB */}

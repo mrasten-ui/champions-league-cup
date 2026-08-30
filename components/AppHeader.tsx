@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Lock, Trophy, Calendar, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES } from '../constants';
@@ -96,7 +96,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       switch (tab) {
           case 'leaderboard': return <Trophy size={20} />;
           case 'tournament':  return <Calendar size={20} />;
-          case 'analysis':    return <TrendingUp size={20} />;
           case 'groups':      return <LayoutGrid size={20} />;
           case 'scouting':    return <Users size={20} />;
           case 'rules':       return <BookOpen size={20} />;
@@ -106,7 +105,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   // --- HELPER: Tab label (shared between bottom nav and desktop tabs) ---
   const getTabLabel = (tab: string): string => {
-      if (tab === 'analysis')    return props.t.analysisTab as string;
       if (tab === 'scouting')    return props.t.scoutingTab as string;
       if (tab === 'tournament')  return props.t.tabTournament as string;
       if (tab === 'leaderboard') return props.t.leaderboard as string;
@@ -127,7 +125,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
              if (tab === 'groups') tabId = isDesktop ? 'nav-groups-desk' : 'nav-groups'; // Distinct IDs helps Tour Guide find correct element
              else if (tab === 'leaderboard') tabId = isDesktop ? 'nav-leaderboard-desk' : 'nav-leaderboard';
              else if (tab === 'tournament') tabId = isDesktop ? 'nav-tournament-desk' : 'nav-tournament';
-             else if (tab === 'analysis')   tabId = isDesktop ? 'nav-analysis-desk'   : 'nav-analysis';
              else if (tab === 'rules')      tabId = isDesktop ? 'nav-rules-desk'      : 'nav-rules';
 
              return (
@@ -430,7 +427,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             let tabId: string | undefined;
             if (tab === 'leaderboard') tabId = 'nav-leaderboard';
             else if (tab === 'tournament') tabId = 'nav-tournament';
-            else if (tab === 'analysis')  tabId = 'nav-analysis';
             else if (tab === 'rules')     tabId = 'nav-rules';
             else if (tab === 'groups')    tabId = 'nav-groups';
 
