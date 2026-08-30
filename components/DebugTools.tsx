@@ -67,7 +67,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                             className="flex-1 px-4 py-2 border border-white/15 rounded-lg text-sm font-mono font-bold text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 bg-white/5 w-full md:w-auto"
                         >
                             {[1, 2, 3, 4, 5, 6, 7, 8].map(md => (
-                                <option key={md} value={md} className="bg-slate-900">Through Matchday {md}</option>
+                                <option key={md} value={md} className="bg-slate-900">Through Round {md}</option>
                             ))}
                         </select>
                         <button

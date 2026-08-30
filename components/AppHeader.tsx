@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Lock, Trophy, Calendar, Smartphone, Share2, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Trophy, Calendar, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES } from '../constants';
-import { LanguageCode, TournamentPhase, UserProfile, Translation, Match } from '../types';
+import { LanguageCode, TournamentPhase, UserProfile, Translation } from '../types';
 
 interface AppHeaderProps {
   user: UserProfile;
@@ -25,71 +25,12 @@ interface AppHeaderProps {
   onLinkCopied?: () => void;
   navTabs: string[];
   t: Translation;
-  matches: Match[];
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = (props) => {
-  const { user, t, matches } = props;
+  const { user, t } = props;
 
-  // --- DEADLINE COUNTDOWN --- counts down to the next match that hasn't kicked off yet,
-  // so it stays relevant all season instead of only before the very first match.
-  const deadline = useMemo(() => {
-    const valid = matches.filter(m => m.date && m.date !== 'TBD' && (m.status === 'NS' || m.status === 'UPCOMING'));
-    if (!valid.length) return null;
-    const earliest = valid.reduce((a, b) => new Date(a.date) < new Date(b.date) ? a : b);
-    return new Date(earliest.date).getTime();
-  }, [matches]);
-
-  const [remaining, setRemaining] = useState(() => deadline ? deadline - Date.now() : 0);
-  useEffect(() => {
-    if (!deadline) return;
-    setRemaining(deadline - Date.now());
-    const id = setInterval(() => setRemaining(deadline - Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [deadline]);
-
-  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
-
-  const deadlineFormatted = useMemo(() => {
-    if (!deadline) return '';
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: 'long', year: 'numeric', month: 'long',
-      day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-    }).format(new Date(deadline));
-  }, [deadline]);
-
-  const countdownUnits = useMemo(() => {
-    if (!deadline || remaining <= 0) return null;
-    const total = Math.floor(remaining / 1000);
-    const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
-    const isCritical = remaining < 3600 * 1000;
-    const isUrgent   = remaining < 24 * 3600 * 1000;
-    const numClass = isCritical ? 'text-red-400 animate-pulse' : isUrgent ? 'text-amber-400' : 'text-slate-300';
-    const labelClass = isCritical ? 'text-red-500/60' : isUrgent ? 'text-amber-500/60' : 'text-slate-500';
-
-    const d  = pad(Math.floor(total / 86400));
-    const h  = pad(Math.floor((total % 86400) / 3600));
-    const m  = pad(Math.floor((total % 3600) / 60));
-    const s  = pad(total % 60);
-
-    // Header: D/H/M normally; H/M/S when urgent; M/S when critical
-    const headerUnits = isCritical
-      ? [{ val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }, { val: s, label: t.seconds || 'Sec' }]
-      : isUrgent
-      ? [{ val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }, { val: s, label: t.seconds || 'Sec' }]
-      : [{ val: d, label: t.days || 'Days' }, { val: h, label: t.hours || 'Hrs' }, { val: m, label: t.minutes || 'Min' }];
-
-    // Modal: always all four
-    const modalUnits = [
-      { val: d, label: t.days    || 'Days' },
-      { val: h, label: t.hours   || 'Hrs'  },
-      { val: m, label: t.minutes || 'Min'  },
-      { val: s, label: t.seconds || 'Sec'  },
-    ];
-
-    return { headerUnits, modalUnits, numClass, labelClass, isCritical, isUrgent };
-  }, [remaining, deadline, t]);
 
   // --- HELPER: Tab icon for bottom nav ---
   const getTabIcon = (tab: string) => {
@@ -157,11 +98,14 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       <div className="bg-slate-950/80 backdrop-blur-lg text-white border-b border-white/10 shadow-lg relative z-20">
 
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-              {/* LEFT: Logo */}
+              {/* LEFT: Logo — brand accent: soft glow behind the crest, gradient wordmark */}
               <div className="flex items-center gap-3 shrink-0">
-                 <Logo className="w-12 h-12" variant="theme" />
+                 <div className="relative">
+                    <div className="absolute inset-0 rounded-xl bg-cyan-400/40 blur-lg pointer-events-none"></div>
+                    <Logo className="w-12 h-12 relative" variant="theme" />
+                 </div>
                  <div className="hidden md:block">
-                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">CL Predictor</h1>
+                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">CL Predictor</h1>
                  </div>
               </div>
 
@@ -174,28 +118,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
               {/* RIGHT: Controls & Profile */}
               <div className="flex items-center gap-3 shrink-0">
-                  {/* COUNTDOWN — LED blocks native to the dark header */}
-                  {countdownUnits && (
-                    <button
-                      onClick={() => setShowDeadlineModal(true)}
-                      className="flex items-center gap-0.5 border-r border-white/10 pr-3 mr-1 hover:brightness-125 transition-all cursor-pointer"
-                      title={t.deadlineLabel || 'Predictions Lock In'}
-                    >
-                      {countdownUnits.headerUnits.map(({ val, label }, i) => (
-                        <React.Fragment key={label}>
-                          <div className="flex flex-col items-center">
-                            <span className={`text-[7px] font-black uppercase tracking-wide mb-0.5 ${countdownUnits.labelClass}`}>{label}</span>
-                            <div className={`bg-black/40 border border-white/5 rounded px-1.5 py-0.5 font-mono font-black text-sm leading-none min-w-[1.8rem] text-center ${countdownUnits.numClass}`}>
-                              {val}
-                            </div>
-                          </div>
-                          {i < countdownUnits.headerUnits.length - 1 && (
-                            <span className={`text-xs font-bold mt-3 mx-0.5 ${countdownUnits.labelClass}`}>:</span>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </button>
-                  )}
                   <div className="flex items-center gap-1.5 mr-2">
                       {LANGUAGES.map(l => (
                         <button key={l.code} onClick={() => props.setLanguage(l.code)} className={`w-6 h-4 sm:w-8 sm:h-5 rounded overflow-hidden transition-all duration-200 transform ${props.language === l.code ? 'ring-2 ring-yellow-400 scale-110 z-10 shadow-md grayscale-0' : 'opacity-60 grayscale hover:opacity-100 hover:scale-105'}`} title={l.name}>
@@ -267,78 +189,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           </div>
       </div>
 
-      {/* DEADLINE MODAL */}
-      {showDeadlineModal && countdownUnits && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowDeadlineModal(false)} />
-          <div className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-
-            {/* Glowing top accent bar */}
-            <div className={`h-1.5 w-full ${countdownUnits.isCritical ? 'bg-gradient-to-r from-red-600 via-red-400 to-red-600' : countdownUnits.isUrgent ? 'bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600' : 'bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-600'}`} />
-
-            {/* Header banner */}
-            <div className={`px-6 pt-5 pb-4 text-center ${countdownUnits.isCritical ? 'bg-gradient-to-b from-red-950 to-[#0f2545]' : countdownUnits.isUrgent ? 'bg-gradient-to-b from-amber-950 to-[#0f2545]' : 'bg-gradient-to-b from-[#071a2e] to-[#0f2545]'}`}>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Lock size={12} className={countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'} />
-                <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'}`}>
-                  {t.deadlineLabel || 'Predictions Lock In'}
-                </span>
-                <Lock size={12} className={countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-blue-400'} />
-              </div>
-
-              {/* Scoreboard blocks — label on top, big number below */}
-              <div className="flex justify-center items-end gap-2 mt-4">
-                {countdownUnits.modalUnits.map(({ val, label }, i) => (
-                  <React.Fragment key={label}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className={`text-[8px] font-black uppercase tracking-widest ${countdownUnits.labelClass}`}>{label}</span>
-                      <div className={`
-                        relative bg-black/60 border rounded-xl font-mono font-black text-4xl leading-none
-                        min-w-[3.5rem] py-3 text-center shadow-inner
-                        ${countdownUnits.isCritical
-                          ? 'border-red-500/30 text-red-400 shadow-red-900/40 animate-pulse'
-                          : countdownUnits.isUrgent
-                          ? 'border-amber-500/30 text-amber-400 shadow-amber-900/40'
-                          : 'border-white/8 text-white shadow-blue-900/20'}
-                      `}>
-                        {/* Subtle scan-line effect */}
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-                        {val}
-                      </div>
-                    </div>
-                    {i < countdownUnits.modalUnits.length - 1 && (
-                      <span className={`text-2xl font-black mb-3 ${countdownUnits.labelClass} opacity-60`}>:</span>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-
-            {/* Date/info section */}
-            <div className="bg-[#0f2545] border-t border-white/5 px-6 py-4 text-center">
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">{t.deadlineBodyPre || 'All predictions lock permanently at'}</p>
-              <p className={`font-black text-base ${countdownUnits.isCritical ? 'text-red-400' : countdownUnits.isUrgent ? 'text-amber-400' : 'text-white'}`}>{deadlineFormatted}</p>
-              <p className="text-[9px] text-slate-600 mt-2 font-medium italic">Opening kick-off</p>
-            </div>
-
-            {/* CTA */}
-            <div className={`px-6 pb-6 pt-3 ${countdownUnits.isCritical ? 'bg-gradient-to-b from-[#0f2545] to-red-950/30' : countdownUnits.isUrgent ? 'bg-gradient-to-b from-[#0f2545] to-amber-950/20' : 'bg-[#0f2545]'}`}>
-              <button
-                onClick={() => setShowDeadlineModal(false)}
-                className={`w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 ${
-                  countdownUnits.isCritical
-                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50'
-                    : countdownUnits.isUrgent
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-900/50'
-                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-900/50'
-                }`}
-              >
-                {t.gotIt || 'Got It'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
 
     {/* INSTALL GUIDE MODAL */}

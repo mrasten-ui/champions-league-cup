@@ -280,7 +280,7 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
 }) => {
   const leagueRounds: RoundInfo[] = useMemo(() => {
     const mds = [...new Set(matches.filter(m => !m.round && m.matchday != null).map(m => m.matchday as number))].sort((a, b) => a - b);
-    return mds.map(md => ({ key: `MD${md}`, short: `MD ${md}`, label: `${lang.matchday || 'Matchday'} ${md}`, matchday: md }));
+    return mds.map(md => ({ key: `MD${md}`, short: `R${md}`, label: `${lang.roundLabel || 'Round'} ${md}`, matchday: md }));
   }, [matches, lang]);
 
   // Always shown, even with zero real matches yet — the whole point is to see

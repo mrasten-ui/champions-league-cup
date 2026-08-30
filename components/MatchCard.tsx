@@ -230,7 +230,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             return rounds[match.round] || match.round;
         }
         if (match.groupId) return `${lang.group || 'GROUP'} ${match.groupId}`;
-        if (match.matchday) return `${(lang as any).leaguePhase || 'League Phase'} - ${(lang as any).matchday || 'Matchday'} ${match.matchday}`;
+        if (match.matchday) return `${(lang as any).leaguePhase || 'League Phase'} - ${(lang as any).roundLabel || 'Round'} ${match.matchday}`;
         return match.venue || 'FRIENDLY';
     };
 

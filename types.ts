@@ -19,6 +19,7 @@ export interface Translation {
   secondChanceConfirm: string;
   
   // --- Navigation & UI ---
+  roundLabel: string;
   prevGroup: string;
   nextGroup: string;
   bracketBtn: string;

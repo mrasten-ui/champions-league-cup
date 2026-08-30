@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, CalendarDays, ListOrdered, X } from 'lucide-react';
+import { RefreshCw, CalendarDays, ListOrdered, Timer, Star, X } from 'lucide-react';
 import { TRANSLATIONS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
 import { LanguageCode, UserProfile, TournamentPhase, Match } from './types';
 import {
@@ -12,7 +12,7 @@ import {
   buildFutureReset,
 } from './services/engine';
 import REAL_CL_2024_RESULTS from './data/real-cl-2024-results.json';
-import { isMatchLocked } from './utils/date';
+import { isMatchLocked, msUntilLock } from './utils/date';
 import { MatchRow } from './components/MatchRow';
 import { StandingsTable } from './components/StandingsTable';
 import { StandingsStrip } from './components/StandingsStrip';
@@ -271,7 +271,7 @@ export const App = () => {
       if (rows.length === 0) return;
       const { error } = await supabase.from('matches').upsert(rows as any, { onConflict: 'id' });
       if (error) { console.error('Reveal real results failed:', error.message); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
-      addToast('success', 'Time Travel', `Revealed real results through Matchday ${upToMatchday} (${rows.length} matches).`);
+      addToast('success', 'Time Travel', `Revealed real results through Round ${upToMatchday} (${rows.length} matches).`);
   };
 
   const handleResetToFuture = async () => {
@@ -508,14 +508,20 @@ export const App = () => {
     return mdNumbers[mdNumbers.length - 1] ?? 1;
   }, [matches]);
 
+  // Set of match ids the current user has already predicted — reused by the
+  // missing-predictions nudge count and the star progress row alike.
+  const userPredMatchIds = useMemo(() => {
+    if (!user) return new Set<string>();
+    return new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
+  }, [user?.email, allPredictions]);
+
   // Scoped to the round the user is currently viewing, not the whole season —
   // there's no single "everyone predicts everything now" moment to nag about.
   const missingGroupPredictions = useMemo(() => {
     if (!user) return 0;
     const roundMatchIds = matches.filter(m => !m.round && m.matchday === currentMatchday).map(m => m.id);
-    const userPredMatchIds = new Set(allPredictions.filter(p => p.userId === user.email).map(p => p.matchId));
     return roundMatchIds.filter(id => !userPredMatchIds.has(id)).length;
-  }, [user?.email, matches, allPredictions, currentMatchday]);
+  }, [user, matches, currentMatchday, userPredMatchIds]);
 
   // --- DAILY BRIEF: Pre-generate on login, cache per user per day ---
   const runBriefGeneration = async () => {
@@ -582,6 +588,32 @@ export const App = () => {
       return groups;
   }, [currentMatchdayMatches, currentLocale]);
 
+  // Countdown to the soonest lock time still ahead in the current round — "you can no
+  // longer enter a score for X once this hits zero." Ticks every 30s, matching the
+  // granularity already used for per-match lock countdowns elsewhere in the app.
+  const [roundLockTick, setRoundLockTick] = useState(() => Date.now());
+  useEffect(() => {
+      const id = setInterval(() => setRoundLockTick(Date.now()), 30000);
+      return () => clearInterval(id);
+  }, []);
+  const roundLockCountdownMs = useMemo(() => {
+      const soonest = currentMatchdayMatches
+          .filter(m => !isMatchLocked(m, roundLockTick))
+          .map(m => msUntilLock(m, roundLockTick))
+          .filter((ms): ms is number => ms !== null && ms > 0)
+          .sort((a, b) => a - b)[0];
+      return soonest ?? null;
+  }, [currentMatchdayMatches, roundLockTick]);
+  const formatRoundCountdown = (ms: number) => {
+      const totalMin = Math.floor(ms / 60000);
+      const d = Math.floor(totalMin / 1440);
+      const h = Math.floor((totalMin % 1440) / 60);
+      const m = totalMin % 60;
+      if (d > 0) return `${d}d ${h}h`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+  };
+
   const showClearTrash = useMemo(() => {
     if (!user) return false;
     if (activeTab === 'groups') return allPredictions.some(p => p.userId === user.email);
@@ -642,7 +674,7 @@ export const App = () => {
         unassignedCount={unassignedCount}
         onInstallApp={installAction ?? undefined}
         onLinkCopied={() => addToast('success', 'Link copied!', 'Paste it anywhere to invite someone.')}
-        navTabs={navTabs} t={t} matches={matches}
+        navTabs={navTabs} t={t}
       />
       <InstallPrompt isLoggedIn={!!user} onRegisterTrigger={setInstallAction} />
 
@@ -735,13 +767,36 @@ export const App = () => {
                 <div className="flex items-end justify-between mb-4 px-1 pb-3 border-b border-white/10">
                     <div className="flex items-center gap-3">
                         <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></span>
-                        <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">Matchday {currentMatchday}</h1>
+                        <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white/10 border border-white/10 rounded-full px-2.5 py-1">{currentMatchdayMatches.length} {currentMatchdayMatches.length === 1 ? 'match' : 'matches'}</span>
+                    {roundLockCountdownMs !== null && (
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white/10 border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-1.5 shrink-0">
+                            <Timer size={11} className="text-amber-400" />
+                            {formatRoundCountdown(roundLockCountdownMs)}
+                        </span>
+                    )}
                 </div>
+                {currentMatchdayMatches.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                        {currentMatchdayMatches
+                            .slice()
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                            .map(m => {
+                                const filled = userPredMatchIds.has(m.id);
+                                return (
+                                    <Star
+                                        key={m.id}
+                                        size={16}
+                                        strokeWidth={filled ? 1 : 1.5}
+                                        className={filled ? 'text-slate-300 fill-slate-300 drop-shadow-[0_0_3px_rgba(203,213,225,0.6)]' : 'text-slate-700'}
+                                    />
+                                );
+                            })}
+                    </div>
+                )}
                 {currentMatchdayMatches.length === 0 && (
                     <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md shadow-sm py-16 text-center mb-6">
-                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No fixtures for this matchday yet</p>
+                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No fixtures for this round yet</p>
                     </div>
                 )}
                 <div className="space-y-4">

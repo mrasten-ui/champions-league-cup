@@ -52,6 +52,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
 // --- TRANSLATIONS ---
 
 const EN_TRANSLATION: Translation = {
+    roundLabel: "Round",
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
     group: "Group", groups: "Groups", leaguePhase: "Predictor", lineups: "Line-up", startingXi: "Starting XI", benchLabel: "Bench", knockout: "Knockout", myPredictions: "My Picks",
     
@@ -230,6 +231,7 @@ const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     isScotland: true,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
+    roundLabel: "Roond",
     group: "Group", groups: "The Groups", leaguePhase: "The Predictin'", lineups: "Team Sheet", startingXi: "The Startin' XI", benchLabel: "The Bench", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
     competition: "The Opposition",
