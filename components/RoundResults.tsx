@@ -9,6 +9,14 @@ const UPCOMING_STATUSES = new Set(['UPCOMING', 'NS']);
 
 const KO_ORDER: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
 
+// Real UEFA 2024/25+ format: Playoff Round and R16 are 8 two-legged ties each
+// (winners/runners-up of League Phase play the Playoff Round; the top 8 get a
+// bye straight to R16), QF/SF are 4/2 ties, and the Final is a single match at
+// a neutral venue. Used to pad the tie grid with TBD placeholders before the
+// real draw happens and matches get seeded.
+const EXPECTED_TIES: Partial<Record<Round, number>> = { PO: 8, R16: 8, QF: 4, SF: 2, FIN: 1 };
+const SINGLE_LEG_ROUNDS = new Set<Round>(['FIN']);
+
 type RoundStatus = 'upcoming' | 'inprogress' | 'live' | 'finished';
 
 interface RoundInfo {
@@ -17,6 +25,60 @@ interface RoundInfo {
   label: string;
   matchday?: number;
   round?: Round;
+}
+
+interface Tie {
+  key: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  legs: Match[];
+  aggHome: number | null;
+  aggAway: number | null;
+  isDecided: boolean;
+  isLive: boolean;
+}
+
+// Groups a knockout round's matches into two-legged ties (or single-match for
+// the Final) by unordered team pair, computes the aggregate score, then pads
+// with TBD placeholder ties up to the round's expected bracket size so the
+// grid always shows its full shape even before the draw is made.
+function buildTies(roundMatches: Match[], expectedCount: number, singleLeg: boolean): Tie[] {
+  const groups = new Map<string, Match[]>();
+  for (const m of roundMatches) {
+    const pairKey = [m.homeTeamId, m.awayTeamId].sort().join('_');
+    if (!groups.has(pairKey)) groups.set(pairKey, []);
+    groups.get(pairKey)!.push(m);
+  }
+
+  const ties: Tie[] = [...groups.entries()].map(([key, legs]) => {
+    const sorted = [...legs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const anchorHome = sorted[0].homeTeamId;
+    const anchorAway = sorted[0].awayTeamId;
+
+    let aggHome = 0, aggAway = 0, anyScore = false;
+    for (const leg of sorted) {
+      if (leg.homeScore == null || leg.awayScore == null) continue;
+      anyScore = true;
+      if (leg.homeTeamId === anchorHome) { aggHome += leg.homeScore; aggAway += leg.awayScore; }
+      else { aggHome += leg.awayScore; aggAway += leg.homeScore; }
+    }
+
+    const isDecided = singleLeg
+      ? sorted.length >= 1 && DONE_STATUSES.has(sorted[0].status)
+      : sorted.length >= 2 && sorted.every(l => DONE_STATUSES.has(l.status));
+    const isLive = sorted.some(l => LIVE_STATUSES.has(l.status));
+
+    return {
+      key, homeTeamId: anchorHome, awayTeamId: anchorAway, legs: sorted,
+      aggHome: anyScore ? aggHome : null, aggAway: anyScore ? aggAway : null,
+      isDecided, isLive,
+    };
+  });
+
+  while (ties.length < expectedCount) {
+    ties.push({ key: `TBD_${ties.length}`, legs: [], aggHome: null, aggAway: null, isDecided: false, isLive: false });
+  }
+  return ties;
 }
 
 interface RoundResultsProps {
@@ -65,10 +127,10 @@ const StatusDot: React.FC<{ status: RoundStatus }> = ({ status }) => {
   return <span className="w-1.5 h-1.5 rounded-full bg-white/20" />;
 };
 
-const RowCrest: React.FC<{ team?: Team; tbd: boolean; onClick?: () => void }> = ({ team, tbd, onClick }) => (
+const RowCrest: React.FC<{ team?: Team; tbd: boolean; onClick?: () => void; size?: 'md' | 'sm' }> = ({ team, tbd, onClick, size = 'md' }) => (
   <div
     onClick={(e) => { if (onClick && !tbd) { e.stopPropagation(); onClick(); } }}
-    className={`w-7 h-7 shrink-0 rounded-md overflow-hidden flex items-center justify-center ${
+    className={`${size === 'sm' ? 'w-6 h-6' : 'w-7 h-7'} shrink-0 rounded-md overflow-hidden flex items-center justify-center ${
       tbd ? 'border border-dashed border-white/20 bg-white/5' : 'border border-white/10 bg-white/5'
     } ${onClick && !tbd ? 'cursor-pointer' : ''}`}
   >
@@ -79,6 +141,70 @@ const RowCrest: React.FC<{ team?: Team; tbd: boolean; onClick?: () => void }> = 
         : <span className="text-[9px] font-black text-white/30">{getInitials(team?.name || '')}</span>}
   </div>
 );
+
+const TieRow: React.FC<{ team?: Team; tbd: boolean; score: number | null; isWinner: boolean }> = ({ team, tbd, score, isWinner }) => {
+  const name = tbd ? 'TBD' : (team?.name || '');
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <RowCrest team={team} tbd={tbd} size="sm" />
+      <span className={`flex-1 min-w-0 text-[12px] font-bold truncate ${tbd ? 'text-slate-600 italic' : isWinner ? 'text-emerald-400' : 'text-white'}`}>{name}</span>
+      {score !== null && <span className="text-[13px] font-black text-white tabular-nums">{score}</span>}
+    </div>
+  );
+};
+
+/**
+ * A two-legged tie rendered as a compact matchup card — crest/name/aggregate
+ * per side, leg-by-leg breakdown and a status pill underneath. Reads like a
+ * TV "Round of 16" overview graphic rather than the flat results list used
+ * for League Phase rounds. TBD cards (draw not made yet) fade into the
+ * background; tapping a decided/live tie opens its most recent leg.
+ */
+const TieCard: React.FC<{
+  tie: Tie;
+  teams: Record<string, Team>;
+  singleLeg: boolean;
+  onOpen: (m: Match) => void;
+}> = ({ tie, teams, singleLeg, onOpen }) => {
+  const homeTeam = tie.homeTeamId ? teams[tie.homeTeamId] : undefined;
+  const awayTeam = tie.awayTeamId ? teams[tie.awayTeamId] : undefined;
+  const winnerId = tie.isDecided && tie.aggHome !== null && tie.aggAway !== null && tie.aggHome !== tie.aggAway
+    ? (tie.aggHome > tie.aggAway ? tie.homeTeamId : tie.awayTeamId)
+    : null;
+
+  const legsLabel = tie.legs.length === 0
+    ? '—'
+    : singleLeg
+      ? (tie.legs[0].homeScore != null ? 'FT' : '—')
+      : tie.legs.map((l, i) => `L${i + 1} ${l.homeScore != null ? `${l.homeScore}-${l.awayScore}` : '—'}`).join(' · ');
+
+  const statusLabel = (!tie.homeTeamId || !tie.awayTeamId) ? 'Draw pending'
+    : tie.isLive ? 'Live'
+    : tie.isDecided ? 'Through'
+    : tie.legs.length > 0 ? 'In progress'
+    : 'Upcoming';
+  const statusClass = tie.isLive ? 'text-fuchsia-400' : tie.isDecided ? 'text-emerald-400' : 'text-slate-600';
+
+  const openable = tie.legs.length > 0;
+  const mostRecentLeg = tie.legs[tie.legs.length - 1];
+
+  return (
+    <button
+      onClick={() => openable && onOpen(mostRecentLeg)}
+      disabled={!openable}
+      className={`text-left bg-blue-950/40 backdrop-blur-md border rounded-2xl p-3 shadow-sm transition-colors ${
+        tie.isDecided ? 'border-emerald-500/30' : 'border-white/15'
+      } ${openable ? 'hover:bg-white/5 cursor-pointer' : 'cursor-default'}`}
+    >
+      <TieRow team={homeTeam} tbd={!tie.homeTeamId} score={tie.aggHome} isWinner={winnerId === tie.homeTeamId} />
+      <TieRow team={awayTeam} tbd={!tie.awayTeamId} score={tie.aggAway} isWinner={winnerId === tie.awayTeamId} />
+      <div className="mt-2 pt-2 border-t border-dashed border-white/10 flex items-center justify-between gap-2">
+        <span className="text-[9px] font-bold text-slate-500 tabular-nums truncate">{legsLabel}</span>
+        <span className={`text-[8.5px] font-black uppercase tracking-wide shrink-0 ${statusClass}`}>{statusLabel}</span>
+      </div>
+    </button>
+  );
+};
 
 /**
  * One line per fixture — crest, name, score/kickoff, crest, name — a classic
@@ -157,10 +283,12 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
     return mds.map(md => ({ key: `MD${md}`, short: `MD ${md}`, label: `${lang.matchday || 'Matchday'} ${md}`, matchday: md }));
   }, [matches, lang]);
 
-  const koRounds: RoundInfo[] = useMemo(() => {
-    const present = new Set(matches.filter(m => !!m.round).map(m => m.round as Round));
-    return KO_ORDER.filter(r => present.has(r)).map(r => ({ key: r, short: r, label: koLabel(r, lang), round: r }));
-  }, [matches, lang]);
+  // Always shown, even with zero real matches yet — the whole point is to see
+  // the bracket shape as TBD ahead of the actual knockout draw.
+  const koRounds: RoundInfo[] = useMemo(
+    () => KO_ORDER.map(r => ({ key: r, short: r, label: koLabel(r, lang), round: r })),
+    [lang]
+  );
 
   const allRounds = useMemo(() => [...leagueRounds, ...koRounds], [leagueRounds, koRounds]);
 
@@ -224,6 +352,16 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
     return groups;
   }, [activeMatches, locale]);
 
+  const isKnockoutRound = activeRound?.round !== undefined;
+  const singleLeg = activeRound?.round ? SINGLE_LEG_ROUNDS.has(activeRound.round) : false;
+  const activeTies = useMemo(() => {
+    if (!isKnockoutRound || !activeRound?.round) return [];
+    return buildTies(activeMatches, EXPECTED_TIES[activeRound.round] ?? 0, singleLeg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKnockoutRound, activeRound, activeMatches, singleLeg]);
+  const decidedTies = activeTies.filter(t => t.isDecided).length;
+  const tbdTies = activeTies.filter(t => !t.homeTeamId || !t.awayTeamId).length;
+
   if (allRounds.length === 0) {
     return (
       <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md shadow-sm py-16 text-center">
@@ -269,36 +407,52 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
       {/* Round headline */}
       <div className="flex items-center justify-between px-1 mb-2">
         <h3 className="text-sm font-black text-white uppercase tracking-widest">{activeRound?.label}</h3>
-        <span className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-          {activeMatches.length} {activeMatches.length === 1 ? (lang.match || 'Match') : (lang.matches || 'Matches')}
-        </span>
-      </div>
-
-      {/* Results list, grouped by day */}
-      <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md overflow-hidden shadow-sm">
-        {groupedByDay.length > 0 ? groupedByDay.map(({ day, matches: dayMatches }) => (
-          <div key={day}>
-            <div className="px-3 py-1.5 bg-white/5 border-b border-white/10">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
-            </div>
-            {dayMatches.map(m => (
-              <ResultRow
-                key={m.id}
-                match={m}
-                homeTeam={teams[m.homeTeamId]}
-                awayTeam={teams[m.awayTeamId]}
-                locale={locale}
-                onTeamClick={onTeamClick}
-                onOpen={() => setDetailMatch(m)}
-              />
-            ))}
-          </div>
-        )) : (
-          <div className="py-16 text-center">
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{lang.noMatches || 'No matches scheduled'}</p>
-          </div>
+        {isKnockoutRound ? (
+          <span className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+            {decidedTies} {lang.decided || 'decided'} · {tbdTies} TBD
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+            {activeMatches.length} {activeMatches.length === 1 ? (lang.match || 'Match') : (lang.matches || 'Matches')}
+          </span>
         )}
       </div>
+
+      {isKnockoutRound ? (
+        /* Tie card grid — two-legged aggregate ties (single match for the Final),
+           padded with TBD placeholders up to the round's real bracket size. */
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {activeTies.map(tie => (
+            <TieCard key={tie.key} tie={tie} teams={teams} singleLeg={singleLeg} onOpen={m => setDetailMatch(m)} />
+          ))}
+        </div>
+      ) : (
+        /* Results list, grouped by day */
+        <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md overflow-hidden shadow-sm">
+          {groupedByDay.length > 0 ? groupedByDay.map(({ day, matches: dayMatches }) => (
+            <div key={day}>
+              <div className="px-3 py-1.5 bg-white/5 border-b border-white/10">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
+              </div>
+              {dayMatches.map(m => (
+                <ResultRow
+                  key={m.id}
+                  match={m}
+                  homeTeam={teams[m.homeTeamId]}
+                  awayTeam={teams[m.awayTeamId]}
+                  locale={locale}
+                  onTeamClick={onTeamClick}
+                  onOpen={() => setDetailMatch(m)}
+                />
+              ))}
+            </div>
+          )) : (
+            <div className="py-16 text-center">
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{lang.noMatches || 'No matches scheduled'}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Read-only match detail */}
       {detailMatch && (
