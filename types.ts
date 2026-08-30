@@ -34,6 +34,7 @@ export interface Translation {
   substitutions: string;
   subSuccess: string;
   subnavSchedule: string;
+  subnavRounds: string;
   subnavTables: string;
   subnavBracket: string;
   lockInConfirm: string;

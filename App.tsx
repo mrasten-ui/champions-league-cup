@@ -29,7 +29,7 @@ import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { DebugTools } from './components/DebugTools';
-import { TournamentSchedule } from './components/TournamentSchedule';
+import { RoundResults } from './components/RoundResults';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
@@ -53,7 +53,7 @@ export const App = () => {
   } = useAppData();
 
   const [activeTab, setActiveTab] = useState<'groups' | 'leaderboard' | 'tournament' | 'analysis' | 'rules'>('groups');
-  const [tournamentSubTab, setTournamentSubTab] = useState<'schedule' | 'tables'>('schedule');
+  const [tournamentSubTab, setTournamentSubTab] = useState<'rounds' | 'tables'>('rounds');
   const [scheduleJumpMatchId, setScheduleJumpMatchId] = useState<string | undefined>(undefined);
 
   const [language, setLanguage] = useState<LanguageCode>('EN');
@@ -158,17 +158,6 @@ export const App = () => {
     setToasts(prev => [...prev, { id, type, title, message, action }]);
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
-
-  // --- ACTIONS: NAVIGATION JUMPS ---
-  const handleJumpToTable = (groupId: string, teamId: string) => {
-      setTournamentSubTab('tables');
-      setHighlightedTeamId(teamId);
-      setTimeout(() => {
-          const element = document.getElementById(`group-card-${groupId}`);
-          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-      setTimeout(() => setHighlightedTeamId(null), 2000);
-  };
 
   // Real results stay put for locked/finished matches; the user's own predictions overlay
   // onto not-yet-locked matches, so standings reflect "actual so far + my guesses for the rest."
@@ -358,14 +347,14 @@ export const App = () => {
   }, [navTabs, activeTab]);
 
   const handleNextTournamentSub = useCallback(() => {
-      const subs = ['schedule', 'tables'] as const;
+      const subs = ['rounds', 'tables'] as const;
       const idx = subs.indexOf(tournamentSubTab);
       if (idx < subs.length - 1) setTournamentSubTab(subs[idx + 1]);
       else handleNextTab();
   }, [tournamentSubTab, handleNextTab]);
 
   const handlePrevTournamentSub = useCallback(() => {
-      const subs = ['schedule', 'tables'] as const;
+      const subs = ['rounds', 'tables'] as const;
       const idx = subs.indexOf(tournamentSubTab);
       if (idx > 0) setTournamentSubTab(subs[idx - 1]);
       else handlePrevTab();
@@ -380,7 +369,7 @@ export const App = () => {
   // ticker click always means "show me this live match" — no phase branching needed.
   const handleTickerMatchClick = (match: Match) => {
     setActiveTab('tournament');
-    setTournamentSubTab('schedule');
+    setTournamentSubTab('rounds');
     setScheduleJumpMatchId(match.id);
   };
 
@@ -703,14 +692,32 @@ export const App = () => {
             <div className="flex flex-col h-full animate-fade-in">
                 <div className="flex justify-center mb-6">
                    <div className="bg-slate-900/60 p-1 rounded-xl flex gap-1 shadow-inner border border-white/10">
-                      {(['schedule', 'tables'] as const).map(sub => (
+                      {(['rounds', 'tables'] as const).map(sub => (
                          <button key={sub} id={`tour-subnav-${sub}`} onClick={() => setTournamentSubTab(sub)} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${tournamentSubTab === sub ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
-                            {sub === 'schedule' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'schedule' ? t.subnavSchedule : t.subnavTables}
+                            {sub === 'rounds' && <CalendarDays size={14} />}{sub === 'tables' && <ListOrdered size={14} />}{sub === 'rounds' ? (t.subnavRounds || 'Rounds') : t.subnavTables}
                          </button>
                       ))}
                    </div>
                 </div>
-                {tournamentSubTab === 'schedule' && <TournamentSchedule matches={matches} teams={teamsData} userPredictions={allPredictions.filter(p => p.userId === user?.email)} user={user} lang={t} currentLang={language} onTeamClick={(id) => setViewingTeamId(id)} onJumpToTable={handleJumpToTable} jumpToMatchId={scheduleJumpMatchId} matchEvents={matchEvents} matchLineups={matchLineups} matchStats={matchStats} playerMatchStats={playerMatchStats} onUpdate={handleScoreUpdate} onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })} onStadiumClick={v => setStadiumVenue(v)} />}
+                {tournamentSubTab === 'rounds' && (
+                    <RoundResults
+                        matches={matches}
+                        teams={teamsData}
+                        lang={t}
+                        locale={currentLocale}
+                        currentUser={user}
+                        userPredictions={allPredictions.filter(p => p.userId === user?.email)}
+                        onTeamClick={(id) => setViewingTeamId(id)}
+                        predictingMatchday={currentMatchday}
+                        jumpToMatchId={scheduleJumpMatchId}
+                        matchEvents={matchEvents}
+                        matchLineups={matchLineups}
+                        matchStats={matchStats}
+                        playerMatchStats={playerMatchStats}
+                        onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
+                        onStadiumClick={v => setStadiumVenue(v)}
+                    />
+                )}
                 {tournamentSubTab === 'tables' && (
                     <div className="pb-20 max-w-3xl mx-auto">
                         <div className="bg-blue-950/40 backdrop-blur-md rounded-xl shadow-md border border-white/15 overflow-hidden">
