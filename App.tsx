@@ -995,7 +995,9 @@ export const App = () => {
             onGenerate={async (favs, scope, riskLevel) => {
                 if (user && supabase) { await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email); setUser({ ...user, favorites: favs }); }
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, scope, riskLevel);
-                const relevantMatches = simulatedMatches.filter(m => !m.round);
+                // Only the round currently open for predictions — same restriction as the
+                // League Phase tab itself, so the wand can't fill in future or already-locked rounds.
+                const relevantMatches = simulatedMatches.filter(m => !m.round && m.matchday === currentMatchday && !isMatchLocked(m));
 
                 if (user && supabase) {
                     const predictionsToSave = relevantMatches.filter(m => m.homeScore !== null && m.awayScore !== null)
