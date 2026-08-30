@@ -91,39 +91,6 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
   }
 };
 
-// --- REALISTIC 2026 TEAM LIST ---
-const BASE_TEAM_NAMES: Record<string, string> = {
-  MEX: "Mexico", RSA: "South Africa", KOR: "Korea Republic", CZE: "Czechia",
-  CAN: "Canada", BIH: "Bosnia & Herz.", QAT: "Qatar", SUI: "Switzerland",
-  BRA: "Brazil", MAR: "Morocco", HAI: "Haiti", SCO: "Scotland",
-  USA: "USA", PAR: "Paraguay", AUS: "Australia", TUR: "Türkiye",
-  GER: "Germany", CUW: "Curaçao", CIV: "Ivory Coast", ECU: "Ecuador",
-  NED: "Netherlands", JPN: "Japan", SWE: "Sweden", TUN: "Tunisia",
-  BEL: "Belgium", EGY: "Egypt", IRN: "IR Iran", NZL: "New Zealand",
-  ESP: "Spain", CPV: "Cabo Verde", KSA: "Saudi Arabia", URU: "Uruguay",
-  FRA: "France", SEN: "Senegal", IRQ: "Iraq", NOR: "Norway",
-  ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
-  POR: "Portugal", COD: "DR Congo", UZB: "Uzbekistan", COL: "Colombia",
-  ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
-  TBD: "TBD"
-};
-
-const TEAM_NAMES_NO: Record<string, string> = {
-  MEX: "Mexico", RSA: "Sør-Afrika", KOR: "Sør-Korea", CZE: "Tsjekkia",
-  CAN: "Canada", BIH: "Bosnia & Herz.", QAT: "Qatar", SUI: "Sveits",
-  BRA: "Brasil", MAR: "Marokko", HAI: "Haiti", SCO: "Skottland",
-  USA: "USA", PAR: "Paraguay", AUS: "Australia", TUR: "Tyrkia",
-  GER: "Tyskland", CUW: "Curaçao", CIV: "Elfenbenskysten", ECU: "Ecuador",
-  NED: "Nederland", JPN: "Japan", SWE: "Sverige", TUN: "Tunisia",
-  BEL: "Belgia", EGY: "Egypt", IRN: "Iran", NZL: "New Zealand",
-  ESP: "Spania", CPV: "Kapp Verde", KSA: "Saudi-Arabia", URU: "Uruguay",
-  FRA: "Frankrike", SEN: "Senegal", IRQ: "Irak", NOR: "Norge",
-  ARG: "Argentina", ALG: "Algerie", AUT: "Østerrike", JOR: "Jordan",
-  POR: "Portugal", COD: "DR Kongo", UZB: "Usbekistan", COL: "Colombia",
-  ENG: "England", CRO: "Kroatia", GHA: "Ghana", PAN: "Panama",
-  TBD: "TBD"
-};
-
 // --- TRANSLATIONS ---
 
 const EN_TRANSLATION: Translation = {
@@ -298,7 +265,6 @@ const EN_TRANSLATION: Translation = {
     psoPreMatchPens: "match penalties scored before shootout",
     psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Off Target", psoPost: "Post",
 
-    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -444,7 +410,6 @@ const SCO_TRANSLATION: Translation = {
     psoPreMatchPens: "penalties afore the shootout",
     psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Wide", psoPost: "Post",
 
-    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -582,7 +547,6 @@ const US_TRANSLATION: Translation = {
     psoPreMatchPens: "PKs scored in regulation time",
     psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Wide", psoPost: "Post",
 
-    teamNames: BASE_TEAM_NAMES,
     teamOverviews: {}
 };
 
@@ -747,7 +711,6 @@ const NO_TRANSLATION: Translation = {
     psoPreMatchPens: "straffespark fra ordinær tid",
     psoMissed: "Bom", psoSaved: "Reddet", psoOffTarget: "Utenfor", psoPost: "Stang",
 
-    teamNames: TEAM_NAMES_NO,
     teamOverviews: {}
 };
 
@@ -786,123 +749,11 @@ export const TRANSLATIONS: Record<LanguageCode, Translation> = {
   US: US_TRANSLATION
 };
 
-const FLAG_MAP: Record<string, string> = {
-  MEX: "mx", RSA: "za", KOR: "kr", CZE: "cz",
-  CAN: "ca", BIH: "ba", QAT: "qa", SUI: "ch",
-  BRA: "br", MAR: "ma", HAI: "ht", SCO: "gb-sct",
-  USA: "us", PAR: "py", AUS: "au", TUR: "tr",
-  GER: "de", CUW: "cw", CIV: "ci", ECU: "ec",
-  NED: "nl", JPN: "jp", SWE: "se", TUN: "tn",
-  BEL: "be", EGY: "eg", IRN: "ir", NZL: "nz",
-  ESP: "es", CPV: "cv", KSA: "sa", URU: "uy",
-  FRA: "fr", SEN: "sn", IRQ: "iq", NOR: "no",
-  ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
-  POR: "pt", COD: "cd", UZB: "uz", COL: "co",
-  ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
-  TBD: ""
-};
-
-// REAL STATS LOOKUP TABLE (Projected 2026 Rankings)
-const TEAM_STATS: Record<string, { rank: number, att: number, mid: number, def: number }> = {
-  MEX: { rank: 15, att: 79, mid: 78, def: 77 },
-  RSA: { rank: 60, att: 73, mid: 72, def: 70 },
-  KOR: { rank: 25, att: 81, mid: 79, def: 76 },
-  CZE: { rank: 38, att: 76, mid: 77, def: 75 },
-  CAN: { rank: 30, att: 79, mid: 77, def: 75 },
-  BIH: { rank: 65, att: 75, mid: 76, def: 74 },
-  QAT: { rank: 53, att: 72, mid: 73, def: 71 },
-  SUI: { rank: 19, att: 78, mid: 81, def: 83 },
-  BRA: { rank: 6, att: 89, mid: 87, def: 84 },
-  MAR: { rank: 8, att: 81, mid: 84, def: 87 },
-  HAI: { rank: 82, att: 71, mid: 69, def: 68 },
-  SCO: { rank: 43, att: 75, mid: 79, def: 78 },
-  USA: { rank: 16, att: 80, mid: 81, def: 78 },
-  PAR: { rank: 41, att: 74, mid: 75, def: 76 },
-  AUS: { rank: 27, att: 75, mid: 76, def: 77 },
-  TUR: { rank: 22, att: 78, mid: 80, def: 77 },
-  GER: { rank: 10, att: 85, mid: 87, def: 84 },
-  CUW: { rank: 81, att: 70, mid: 71, def: 69 },
-  CIV: { rank: 34, att: 79, mid: 78, def: 76 },
-  ECU: { rank: 23, att: 77, mid: 79, def: 78 },
-  NED: { rank: 7, att: 84, mid: 86, def: 87 },
-  JPN: { rank: 18, att: 80, mid: 82, def: 78 },
-  SWE: { rank: 37, att: 79, mid: 78, def: 77 },
-  TUN: { rank: 44, att: 72, mid: 74, def: 75 },
-  BEL: { rank: 9, att: 84, mid: 87, def: 80 },
-  EGY: { rank: 29, att: 80, mid: 75, def: 73 },
-  IRN: { rank: 20, att: 78, mid: 76, def: 77 },
-  NZL: { rank: 85, att: 69, mid: 68, def: 69 },
-  ESP: { rank: 2, att: 86, mid: 90, def: 86 },
-  CPV: { rank: 67, att: 73, mid: 71, def: 70 },
-  KSA: { rank: 61, att: 74, mid: 73, def: 71 },
-  URU: { rank: 17, att: 83, mid: 84, def: 83 },
-  FRA: { rank: 1, att: 92, mid: 89, def: 88 },
-  SEN: { rank: 13, att: 82, mid: 80, def: 83 },
-  IRQ: { rank: 55, att: 72, mid: 70, def: 69 },
-  NOR: { rank: 31, att: 87, mid: 79, def: 75 },
-  ARG: { rank: 3, att: 91, mid: 88, def: 85 },
-  ALG: { rank: 28, att: 78, mid: 77, def: 75 },
-  AUT: { rank: 24, att: 77, mid: 80, def: 78 },
-  JOR: { rank: 70, att: 71, mid: 70, def: 69 },
-  POR: { rank: 5, att: 88, mid: 89, def: 84 },
-  COD: { rank: 46, att: 75, mid: 73, def: 72 },
-  UZB: { rank: 49, att: 71, mid: 72, def: 70 },
-  COL: { rank: 12, att: 83, mid: 80, def: 79 },
-  ENG: { rank: 4, att: 89, mid: 90, def: 85 },
-  CRO: { rank: 11, att: 78, mid: 85, def: 82 },
-  GHA: { rank: 58, att: 76, mid: 75, def: 73 },
-  PAN: { rank: 33, att: 72, mid: 71, def: 71 },
-  TBD: { rank: 99, att: 50, mid: 50, def: 50 }
-};
-
-const TEAM_JERSEYS: Record<string, { bg: string; text: string }> = {
-  MEX: { bg: '#006847', text: '#FFFFFF' }, RSA: { bg: '#FFB81C', text: '#007749' },
-  KOR: { bg: '#E03A3E', text: '#FFFFFF' }, CZE: { bg: '#ED1B24', text: '#FFFFFF' },
-  CAN: { bg: '#C5281C', text: '#FFFFFF' }, BIH: { bg: '#002F6C', text: '#FFFFFF' },
-  QAT: { bg: '#8A1538', text: '#FFFFFF' }, SUI: { bg: '#D52B1E', text: '#FFFFFF' },
-  BRA: { bg: '#FEE123', text: '#009B3A' }, MAR: { bg: '#C1272D', text: '#FFFFFF' },
-  HAI: { bg: '#00205B', text: '#FFFFFF' }, SCO: { bg: '#001B49', text: '#FFFFFF' },
-  USA: { bg: '#FFFFFF', text: '#002868' }, PAR: { bg: '#D52B1E', text: '#FFFFFF' },
-  AUS: { bg: '#FFCD00', text: '#008751' }, TUR: { bg: '#E30A17', text: '#FFFFFF' },
-  GER: { bg: '#FFFFFF', text: '#000000' }, CUW: { bg: '#002868', text: '#FFFFFF' },
-  CIV: { bg: '#F77F00', text: '#FFFFFF' }, ECU: { bg: '#FFD100', text: '#00205B' },
-  NED: { bg: '#F36C21', text: '#FFFFFF' }, JPN: { bg: '#000555', text: '#FFFFFF' },
-  SWE: { bg: '#FFF200', text: '#006AA7' }, TUN: { bg: '#FFFFFF', text: '#E70013' },
-  BEL: { bg: '#E30613', text: '#FDDA24' }, EGY: { bg: '#CE1126', text: '#FFFFFF' },
-  IRN: { bg: '#FFFFFF', text: '#DA0000' }, NZL: { bg: '#FFFFFF', text: '#000000' },
-  ESP: { bg: '#AA151B', text: '#F1BF00' }, CPV: { bg: '#003893', text: '#FFFFFF' },
-  KSA: { bg: '#006C35', text: '#FFFFFF' }, URU: { bg: '#55B5E5', text: '#000000' },
-  FRA: { bg: '#002654', text: '#FFFFFF' }, SEN: { bg: '#FFFFFF', text: '#00853F' },
-  IRQ: { bg: '#007A3D', text: '#FFFFFF' }, NOR: { bg: '#C8102E', text: '#FFFFFF' },
-  ARG: { bg: '#43A1D5', text: '#000000' }, ALG: { bg: '#FFFFFF', text: '#006233' },
-  AUT: { bg: '#ED2939', text: '#FFFFFF' }, JOR: { bg: '#FFFFFF', text: '#E30A17' },
-  POR: { bg: '#E42518', text: '#FFFFFF' }, COD: { bg: '#007FFF', text: '#FFFFFF' },
-  UZB: { bg: '#005EAB', text: '#FFFFFF' }, COL: { bg: '#FCD116', text: '#003893' },
-  ENG: { bg: '#FFFFFF', text: '#000040' }, CRO: { bg: '#ED1C24', text: '#FFFFFF' },
-  GHA: { bg: '#FFFFFF', text: '#000000' }, PAN: { bg: '#DA291C', text: '#FFFFFF' },
-  TBD: { bg: '#E2E8F0', text: '#64748B' },
-};
-
+// Intentionally empty — this app is now a club competition (Champions League), and all
+// team data (name, crest, form, jersey colors reported live per-match) comes from
+// Supabase's `teams` table and the live match feed, not a static roster. Kept as a
+// typed lookup so KitImage/GoalBanner's `TEAMS[id]` fallback reads stay valid.
 export const TEAMS: Record<string, Team> = {};
-Object.keys(BASE_TEAM_NAMES).forEach(id => {
-  const stats = TEAM_STATS[id] || { rank: 50, att: 75, mid: 75, def: 75 };
-  const jersey = TEAM_JERSEYS[id] || { bg: '#E2E8F0', text: '#64748B' };
-  TEAMS[id] = {
-    id,
-    name: BASE_TEAM_NAMES[id],
-    flag: FLAG_MAP[id] ? `https://flagcdn.com/w320/${FLAG_MAP[id]}.png` : '',
-    rank: stats.rank,
-    rating: Math.round((stats.att + stats.mid + stats.def) / 3),
-    att: stats.att,
-    mid: stats.mid,
-    def: stats.def,
-    overview: "Team overview unavailable.",
-    starPlayer: "Star Player",
-    form: ['D', 'D', 'D', 'D', 'D'],
-    jerseyBg: jersey.bg,
-    jerseyText: jersey.text,
-  };
-});
 
 // --- UPDATED GROUPS WITH REALISTIC TEAMS ---
 export const GROUP_CONFIG = [

@@ -111,11 +111,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
   const [extendedStats, setExtendedStats] = useState<TeamFormData | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Helper to get translated name
-  const getTeamName = (team: Team | null) => {
-      if (!team) return '';
-      return (lang.teamNames && lang.teamNames[team.id]) ? lang.teamNames[team.id] : team.name;
-  };
+  const getTeamName = (team: Team | null) => team?.name ?? '';
 
   // --- VS TOOL EFFECTS ---
   useEffect(() => {
@@ -498,7 +494,7 @@ export const ScoutingCenter: React.FC<ScoutingCenterProps> = ({ teams, lang, cur
                              
                              <div className="space-y-2">
                                 {(parsedMatches || []).slice(0, 5).map((m, idx) => {
-                                    const oppName = (lang.teamNames && lang.teamNames[m.opponent]) || m.opponent;
+                                    const oppName = m.opponent;
                                     return (
                                         <div key={idx} className="bg-white border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm">
                                             <div className="font-bold text-slate-700 uppercase tracking-tight">{oppName.replace(/^vs\s+/i, '')}</div>

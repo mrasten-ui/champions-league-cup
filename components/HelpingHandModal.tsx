@@ -114,7 +114,7 @@ export const HelpingHandModal: React.FC<HelpingHandModalProps> = ({
         <div className="flex-1 overflow-y-auto p-3 bg-slate-50">
           <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
             {validTeams.map((team) => {
-              const teamName = lang.teamNames[team.id] || team.name;
+              const teamName = team.name;
               const isSelected = selectedTeams.includes(team.id);
               const isDisabled = !isSelected && selectedTeams.length >= 3;
 

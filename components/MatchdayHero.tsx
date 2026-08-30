@@ -382,7 +382,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isHomeTBD && (
                     <div className="flex flex-col items-center gap-1">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[home.id] || home.name}</span>
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{home.name}</span>
                         {isKnockout && isFinished && actualWinnerId === match.homeTeamId && (
                             <span className="px-2 py-0.5 rounded-full bg-green-400/20 text-green-300 border border-green-400/30 text-[9px] font-black uppercase tracking-wider">
                                 {(lang as any).goingThrough || 'Going Through'}
@@ -447,7 +447,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
                 )}
                 {!isAwayTBD && (
                     <div className="flex flex-col items-center gap-1">
-                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{lang.teamNames[away.id] || away.name}</span>
+                        <span className="text-sm sm:text-lg font-black text-white uppercase tracking-tight text-center leading-none">{away.name}</span>
                         {isKnockout && isFinished && actualWinnerId === match.awayTeamId && (
                             <span className="px-2 py-0.5 rounded-full bg-green-400/20 text-green-300 border border-green-400/30 text-[9px] font-black uppercase tracking-wider">
                                 {(lang as any).goingThrough || 'Going Through'}
@@ -797,7 +797,7 @@ export const MatchdayHero: React.FC<MatchdayHeroProps> = ({ match, teams, groupS
             <div className="w-1/3 flex justify-center">
                 {isKnockout && predictedWinnerId && (predictedWinnerId === match.homeTeamId || predictedWinnerId === match.awayTeamId) && !isFinished ? (
                     <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">
-                        {lang.myPick || "Pick"}: {lang.teamNames?.[predictedWinnerId] || teams[predictedWinnerId]?.name || predictedWinnerId}
+                        {lang.myPick || "Pick"}: {teams[predictedWinnerId]?.name || predictedWinnerId}
                     </span>
                 ) : !isKnockout && userPrediction ? (
                     <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest animate-in zoom-in">

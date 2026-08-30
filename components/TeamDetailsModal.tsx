@@ -146,7 +146,7 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
   })();
 
   const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || team.rank || '-';
-  const displayName = (lang.teamNames && lang.teamNames[team.id]) || scoutingData?.team_name || team.name;
+  const displayName = scoutingData?.team_name || team.name;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

@@ -188,8 +188,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
         : null;
 
-    const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
-    const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
+    const homeName = homeTeam?.name || 'TBD';
+    const awayName = awayTeam?.name || 'TBD';
 
     // Crest-image fallback: show team initials rather than a blank box when no flag/crest is set.
     const getInitials = (name: string) => {

@@ -107,8 +107,8 @@ export const MatchRow: React.FC<MatchRowProps> = ({
     if (userTokens > 0) setPendingSpy(true);
   };
 
-  const homeName = lang.teamNames[homeTeam?.id] || homeTeam?.name || 'TBD';
-  const awayName = lang.teamNames[awayTeam?.id] || awayTeam?.name || 'TBD';
+  const homeName = homeTeam?.name || 'TBD';
+  const awayName = awayTeam?.name || 'TBD';
   const homeInitials = getInitials(homeName);
   const awayInitials = getInitials(awayName);
 

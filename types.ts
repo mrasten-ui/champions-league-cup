@@ -2,7 +2,6 @@ export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
 
 export interface Translation {
   [key: string]: string | any;
-  teamNames: Record<string, string>;
 
   // --- Alerts & Toasts ---
   noSubsTitle: string;

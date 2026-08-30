@@ -10,7 +10,7 @@ import { fetchAllTeamTactics } from '../services/analyst';
 // underneath the app (team/match reseeds, schema changes) so every client
 // picks up fresh data on next load instead of serving stale cached rows for
 // up to an hour. Old-versioned keys are simply orphaned, not read.
-const RC_VERSION = 2;
+const RC_VERSION = 3;
 const RC_TTL = {
   predictions: 3 * 60 * 1000,
   profiles:    5 * 60 * 1000,
