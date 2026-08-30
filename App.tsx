@@ -616,25 +616,28 @@ export const App = () => {
 
   const showClearTrash = useMemo(() => {
     if (!user) return false;
-    if (activeTab === 'groups') return allPredictions.some(p => p.userId === user.email);
+    if (activeTab === 'groups') return currentMatchdayMatches.some(m => userPredMatchIds.has(m.id));
     return false;
-  }, [activeTab, allPredictions, user]);
+  }, [activeTab, currentMatchdayMatches, userPredMatchIds, user]);
 
   const handleClearPredictions = useCallback(async () => {
     if (!user || !supabase) return;
     const query = supabase.from('predictions').delete().eq('user_id', user.email);
     if (activeTab === 'groups') {
-       const groupIds = matches.filter(m => m.groupId).map(m => m.id);
-       if (groupIds.length > 0) {
-           setAllPredictions(prev => prev.filter(p => p.userId !== user.email || !groupIds.includes(p.matchId)));
-           await query.in('match_id', groupIds);
+       // Only the current round's matches — matches.groupId is a World Cup-era
+       // field that's never populated for real League Phase data, so filtering
+       // on it here silently cleared nothing while still showing a success toast.
+       const roundIds = matches.filter(m => !m.round && m.matchday === currentMatchday).map(m => m.id);
+       if (roundIds.length > 0) {
+           setAllPredictions(prev => prev.filter(p => p.userId !== user.email || !roundIds.includes(p.matchId)));
+           await query.in('match_id', roundIds);
        }
     } else {
         setAllPredictions(prev => prev.filter(p => p.userId !== user.email));
         await query;
     }
     addToast('info', t.predictionsCleared, t.predictionsClearedMsg);
-  }, [user, activeTab, matches]);
+  }, [user, activeTab, matches, currentMatchday]);
 
   // Auto-fill is relevant wherever there are group predictions left to make.
   const showMagicWand = activeTab === 'groups';
@@ -752,7 +755,7 @@ export const App = () => {
                     <div className="pb-20 max-w-3xl mx-auto">
                         <div className="bg-blue-950/40 backdrop-blur-md rounded-xl shadow-md border border-white/15 overflow-hidden">
                             <div className="bg-cyan-600 p-3 text-white flex justify-between items-center"><h3 className="font-black uppercase tracking-widest text-sm">{t.groups || 'League Phase'}</h3></div>
-                            <StandingsTable standings={calculateLeagueStandings(matches, teamsData)} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} />
+                            <StandingsTable standings={calculateLeagueStandings(userMatches, teamsData)} teams={teamsData} lang={t} onTeamClick={(id) => setViewingTeamId(id)} highlightedTeamId={highlightedTeamId} />
                         </div>
                     </div>
                 )}
