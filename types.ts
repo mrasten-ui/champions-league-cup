@@ -88,11 +88,12 @@ export interface Translation {
   rulesLiveAnalysisDesc: string;
 }
 
-// 'R32'/'3RD' are World Cup leftovers with no CL equivalent — kept only so the
-// still-unmigrated peripheral display files (Leaderboard, KnockoutTreeView,
-// SecondChanceView, etc — see Phase A refactor plan) keep compiling. Nothing
-// produces an 'R32' or '3RD' match going forward. 'PO' is the new Swiss-format
-// Playoff Round (replaces R32 as the first knockout round).
+// 'R32'/'3RD' are World Cup leftovers with no CL equivalent — kept only so
+// still-unmigrated peripheral files (Leaderboard, engine.ts scoring helpers)
+// keep compiling. Nothing produces an 'R32' or '3RD' match going forward.
+// 'PO' is the new Swiss-format Playoff Round (replaces R32 as the first
+// knockout round). The Knockout tab itself was removed; a real UEFA-shaped
+// knockout predictor (playoff round + R16/QF/SF/Final) is a future rebuild.
 export type Round = 'PO' | 'R16' | 'QF' | 'SF' | 'FIN' | 'R32' | '3RD';
 
 export interface Match {

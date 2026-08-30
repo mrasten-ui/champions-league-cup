@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Shield, Columns, Crown, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Lock, Trophy, Calendar, User, TrendingUp, Smartphone, Share2, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES } from '../constants';
-import { LanguageCode, TournamentPhase, Round, UserProfile, Translation, Match, Team, Prediction } from '../types';
+import { LanguageCode, TournamentPhase, UserProfile, Translation, Match } from '../types';
 
 interface AppHeaderProps {
   user: UserProfile;
@@ -19,7 +19,6 @@ interface AppHeaderProps {
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
   handleLogout: () => void;
-  showSecondChanceBadge?: boolean;
   isAdminMode?: boolean;
   unassignedCount?: number;
   onInstallApp?: () => void;
@@ -27,70 +26,10 @@ interface AppHeaderProps {
   navTabs: string[];
   t: Translation;
   matches: Match[];
-  teamsData: Record<string, Team>;
-  allPredictions: Prediction[];
-  activeKnockoutRound?: Round;
-  setActiveKnockoutRound?: (r: Round) => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = (props) => {
-  const { user, t, matches, teamsData, allPredictions } = props;
-
-  const getRoundIcon = (r: Round) => {
-      switch(r) {
-          case 'PO': return <Users size={48} className="text-white/20" />;
-          case 'R16': return <Shield size={42} className="text-white/20" />;
-          case 'QF': return <LayoutGrid size={42} className="text-white/20" />;
-          case 'SF': return <Columns size={42} className="text-white/20" />;
-          case 'FIN': return <Crown size={48} className="text-cyan-400/30" />;
-          default: return null;
-      }
-  };
-
-  const isScUser = user?.secondChanceStatus === 'PENDING' || user?.secondChanceStatus === 'ACTIVE';
-  const displayRounds: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
-
-  const DONE_KO = ['FT', 'AET', 'PEN', 'FINISHED'];
-  const KO_ROUNDS: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
-
-  // For PENDING SC users, knockout picks live in scDraft not allPredictions
-  const effectivePredictions = useMemo(() => {
-      if (user?.secondChanceStatus !== 'PENDING' || !user.scDraft) return allPredictions;
-      const draftPreds = Object.entries(user.scDraft).map(([matchId, { home, away }]) => ({
-          userId: user.email, matchId, home, away,
-      }));
-      const draftIds = new Set(draftPreds.map(p => p.matchId));
-      return [
-          ...allPredictions.filter(p => p.userId !== user.email || !draftIds.has(p.matchId)),
-          ...draftPreds,
-      ];
-  }, [allPredictions, user?.secondChanceStatus, user?.scDraft, user?.email]);
-
-  const knockoutTracking = useMemo(() => {
-      const myPreds = new Map(
-          effectivePredictions.filter(p => p.userId === user.email).map(p => [p.matchId, p])
-      );
-      return KO_ROUNDS.map(round => {
-          const roundMatches = matches.filter(m => m.round === round);
-          if (roundMatches.length === 0) return null;
-          let matched = 0, wrong = 0, pending = 0;
-          for (const m of roundMatches) {
-              const pred = myPreds.get(m.id);
-              if (!pred) continue; // skip matches the user hasn't predicted
-              if (DONE_KO.includes(m.status) && m.homeScore !== null && m.awayScore !== null
-                  && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD') {
-                  const predHome = pred.home > pred.away;
-                  const actualHome = m.homeScore > m.awayScore;
-                  if (predHome === actualHome) matched++; else wrong++;
-              } else {
-                  pending++;
-              }
-          }
-          const total = matched + wrong + pending;
-          if (total === 0) return null; // hide rounds with no user predictions
-          return { round, matched, wrong, pending, total };
-      }).filter(Boolean) as { round: Round; matched: number; wrong: number; pending: number; total: number }[];
-  }, [matches, effectivePredictions, user.email]);
+  const { user, t, matches } = props;
 
   // --- DEADLINE COUNTDOWN --- counts down to the next match that hasn't kicked off yet,
   // so it stays relevant all season instead of only before the very first match.
@@ -157,10 +96,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       switch (tab) {
           case 'leaderboard': return <Trophy size={20} />;
           case 'tournament':  return <Calendar size={20} />;
-          case 'manager':     return <User size={20} />;
           case 'analysis':    return <TrendingUp size={20} />;
           case 'groups':      return <LayoutGrid size={20} />;
-          case 'knockout':    return <Shield size={20} />;
           case 'scouting':    return <Users size={20} />;
           case 'rules':       return <BookOpen size={20} />;
           default:            return <LayoutGrid size={20} />;
@@ -169,7 +106,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
 
   // --- HELPER: Tab label (shared between bottom nav and desktop tabs) ---
   const getTabLabel = (tab: string): string => {
-      if (tab === 'manager')     return props.t.tabManager as string;
       if (tab === 'analysis')    return props.t.analysisTab as string;
       if (tab === 'scouting')    return props.t.scoutingTab as string;
       if (tab === 'tournament')  return props.t.tabTournament as string;
@@ -186,13 +122,11 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
           {props.navTabs.map((tab) => {
              const isActive = props.activeTab === tab;
              const label = getTabLabel(tab);
-             
+
              let tabId = undefined;
              if (tab === 'groups') tabId = isDesktop ? 'nav-groups-desk' : 'nav-groups'; // Distinct IDs helps Tour Guide find correct element
-             else if (tab === 'knockout') tabId = isDesktop ? 'nav-knockout-desk' : 'nav-knockout'; 
              else if (tab === 'leaderboard') tabId = isDesktop ? 'nav-leaderboard-desk' : 'nav-leaderboard';
              else if (tab === 'tournament') tabId = isDesktop ? 'nav-tournament-desk' : 'nav-tournament';
-             else if (tab === 'manager')    tabId = isDesktop ? 'nav-manager-desk'    : 'nav-manager';
              else if (tab === 'analysis')   tabId = isDesktop ? 'nav-analysis-desk'   : 'nav-analysis';
              else if (tab === 'rules')      tabId = isDesktop ? 'nav-rules-desk'      : 'nav-rules';
 
@@ -210,9 +144,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     `}
                 >
                    {label}
-                   {tab === 'manager' && props.showSecondChanceBadge && (
-                     <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
-                   )}
                    {/* Active underline — same treatment on both mobile and desktop */}
                    {isActive && <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-cyan-400 rounded-t-full shadow-[0_0_10px_rgba(34,211,238,0.7)]" />}
                 </button>
@@ -227,29 +158,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
       
       {/* 1. MAIN HEADER BAR (Combines Logo, Desktop Nav, Profile) */}
       <div className="bg-slate-950/80 backdrop-blur-lg text-white border-b border-white/10 shadow-lg relative z-20">
-
-          {/* Knockout bracket tracker strip — shown whenever the user has knockout picks in, regardless of League Phase status */}
-          {knockoutTracking.length > 0 && (
-            <div
-                className="bg-[#0a1a2f] border-b border-white/5 py-1.5 px-4 overflow-x-auto cursor-pointer hover:bg-[#0d1f38] active:bg-[#0a1a2f] transition-colors"
-                onClick={() => props.setActiveTab('manager' as any)}
-            >
-                <div className="max-w-7xl mx-auto flex items-center gap-1 min-w-max">
-                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider shrink-0 mr-2">Bracket</span>
-                    {knockoutTracking.map(({ round, matched, wrong, pending }, i) => (
-                        <React.Fragment key={round}>
-                            {i > 0 && <span className="text-white/15 text-[9px] mx-1">·</span>}
-                            <div className="flex items-center gap-1">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-white/35">{round}</span>
-                                {matched > 0 && <span className="text-[9px] font-black text-emerald-400">●{matched}</span>}
-                                {wrong > 0 && <span className="text-[9px] font-black text-red-400">●{wrong}</span>}
-                                {pending > 0 && <span className="text-[9px] font-bold text-slate-600">●{pending}</span>}
-                            </div>
-                        </React.Fragment>
-                    ))}
-                </div>
-            </div>
-          )}
 
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
               {/* LEFT: Logo */}
@@ -326,7 +234,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                   <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
                                   <div className="flex gap-2 mt-1">
                                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{user?.tokens} Intel</div>
-                                      <div className="text-[9px] font-bold text-amber-500 uppercase tracking-wide">{user?.substitutions} Subs</div>
                                   </div>
                               </div>
                               <div className="p-1">
@@ -362,53 +269,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
               </div>
           </div>
       </div>
-
-      {/* 4. KNOCKOUT NAV (Strictly for 'knockout' tab only) */}
-      {props.activeTab === 'knockout' && props.setActiveKnockoutRound && (
-          <div id="subnav-knockout" className="bg-slate-950/60 backdrop-blur-md border-b border-white/5 py-6 shadow-inner overflow-x-auto no-scrollbar">
-              <div className="flex gap-3 px-4 justify-start sm:justify-center min-w-max">
-                  {displayRounds.map(r => {
-                      const isActive = props.activeKnockoutRound === r;
-                      const roundMatches = matches.filter(m => m.round === r);
-                      const userPredictions = effectivePredictions.filter(p => p.userId === user?.email);
-                      const predsCount = userPredictions.filter(p => roundMatches.some(m => m.id === p.matchId)).length;
-                      const isComplete = roundMatches.length > 0 && predsCount === roundMatches.length;
-                      const inProgress = predsCount > 0 && !isComplete;
-
-                      return (
-                          <button
-                              key={r}
-                              onClick={() => props.setActiveKnockoutRound?.(r)}
-                              className={`
-                                  relative min-w-[72px] h-16 rounded-xl overflow-hidden transition-all duration-300 transform active:scale-95 border-2
-                                  ${isActive
-                                    ? 'scale-110 border-cyan-400 z-10 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                                    : 'border-white/10 hover:border-white/30 bg-white/5 opacity-80 hover:opacity-100'
-                                  }
-                              `}
-                          >
-                              <div className="absolute inset-0 flex items-center justify-center opacity-40 scale-125 transform group-hover:scale-110 transition-transform duration-700">
-                                  {getRoundIcon(r)}
-                              </div>
-                              <div className="absolute inset-0 bg-black/30"></div>
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className={`text-xl font-black italic tracking-tighter ${isActive ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-300'}`}>
-                                      {r === 'FIN' ? 'FINAL' : r}
-                                  </span>
-                              </div>
-                              <div className={`
-                                  absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-black/50 shadow-sm
-                                  ${isComplete ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]'
-                                    : inProgress ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.8)]'
-                                    : 'bg-slate-600'}
-                              `}></div>
-                          </button>
-                      );
-                  })}
-              </div>
-          </div>
-      )}
-
 
       {/* DEADLINE MODAL */}
       {showDeadlineModal && countdownUnits && (
@@ -570,11 +430,9 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
             let tabId: string | undefined;
             if (tab === 'leaderboard') tabId = 'nav-leaderboard';
             else if (tab === 'tournament') tabId = 'nav-tournament';
-            else if (tab === 'manager')   tabId = 'nav-manager';
             else if (tab === 'analysis')  tabId = 'nav-analysis';
             else if (tab === 'rules')     tabId = 'nav-rules';
             else if (tab === 'groups')    tabId = 'nav-groups';
-            else if (tab === 'knockout')  tabId = 'nav-knockout';
 
             return (
                 <button
@@ -592,9 +450,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     <span className="text-[8px] font-black uppercase tracking-wide leading-none">
                         {label}
                     </span>
-                    {tab === 'manager' && props.showSecondChanceBadge && (
-                        <span className="absolute top-1.5 right-[calc(50%-10px)] w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
-                    )}
                 </button>
             );
         })}
