@@ -52,7 +52,7 @@ export const StandingsStrip: React.FC<StandingsStripProps> = ({ standings, teams
           return (
             <div key={row.teamId} className="flex items-center gap-3 px-4 py-2 border-l-2 border-cyan-400">
               <span className="w-4 text-[10px] font-bold text-slate-400 tabular-nums">{index + 1}</span>
-              {team?.flag && <img src={team.flag} alt={team.name} className="w-5 h-3.5 object-cover rounded-sm border border-white/10" />}
+              {team?.flag && <img src={team.flag} alt={team.name} className="w-6 h-6 shrink-0 object-cover rounded-md bg-white/5 border border-white/10" />}
               <span className="flex-1 min-w-0 truncate font-bold text-sm text-slate-300">{team?.name || row.teamId}</span>
               <span className="text-sm font-black text-white tabular-nums">{row.pts}</span>
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest w-6 text-right">{lang.pts || 'PTS'}</span>

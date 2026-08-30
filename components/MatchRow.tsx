@@ -130,7 +130,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   );
 
   return (
-    <div className="border-b border-white/5 last:border-b-0">
+    <div className="border-b border-white/5 last:border-b-0 md:border-b-0 md:last:border-b-0 md:rounded-xl md:border md:border-white/10 md:bg-white/[0.03] md:hover:border-white/20 md:transition-colors">
       <div className="flex flex-col gap-2 px-3 py-3">
         {/* Meta line: kickoff time / live / FT / lock state on the left, scout/rivals on the right */}
         <div className="flex items-center justify-between">

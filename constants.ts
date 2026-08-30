@@ -2,9 +2,7 @@ import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } fro
 
 export const LANGUAGES = [
   { code: 'EN' as LanguageCode, name: 'English', flag: 'https://flagcdn.com/w160/gb.png' },
-  { code: 'NO' as LanguageCode, name: 'Norsk', flag: 'https://flagcdn.com/w160/no.png' },
   { code: 'SCO' as LanguageCode, name: 'Scots', flag: 'https://flagcdn.com/w160/gb-sct.png' },
-  { code: 'US' as LanguageCode, name: 'English (US)', flag: 'https://flagcdn.com/w160/us.png' }
 ];
 
 // --- BROADCAST TEAMS (LORE) ---
@@ -29,26 +27,6 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       image: '/pundit/pundit-en.png'
     }
   },
-  'US': {
-    id: 'US',
-    region: 'USA',
-    host: {
-      name: 'Jessica',
-      role: 'Host',
-      style: 'High-Energy Anchor',
-      backstory: 'Professional radio anchor who keeps the pacing fast and constantly apologizes for Chuck\'s outbursts.',
-      quote: "We're live and the energy is electric!",
-      image: '/pundit/host-us.png'
-    },
-    pundit: {
-      name: 'Chuck',
-      role: 'Pundit',
-      style: 'Shock Jock, Ex-NFL',
-      backstory: 'Former American Football player who thinks soccer needs more timeouts. He hates draws and guarantees wins that never happen.',
-      quote: "Are you kidding me?! I GUARANTEE it!",
-      image: '/pundit/pundit-us.png'
-    }
-  },
   'SCO': {
     id: 'SCO',
     region: 'Scotland',
@@ -68,26 +46,6 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
       quote: "That's absolute mince.",
       image: '/pundit/pundit-sco.png'
     }
-  },
-  'NO': {
-    id: 'NO',
-    region: 'Norway',
-    host: {
-      name: 'Silje',
-      role: 'Host',
-      style: 'Friendly, Efficient',
-      backstory: 'The bridge between the casual viewer and the tactical philosopher sitting next to her.',
-      quote: "La oss se på tallene.",
-      image: '/pundit/host-no.png'
-    },
-    pundit: {
-      name: 'Nils Arne',
-      role: 'Pundit',
-      style: 'Enthusiastic, Philosophical',
-      backstory: 'Legendary tactical philosopher. Believes in "Godfoten" (making others good) and uses metaphors about salmon fishing.',
-      quote: "Det handler om samhandling!",
-      image: '/pundit/pundit-no.png'
-    }
   }
 };
 
@@ -95,7 +53,7 @@ export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
 
 const EN_TRANSLATION: Translation = {
     genderMan: "Man", genderWoman: "Woman", genPlaceholder: "Describe appearance (e.g. beard, glasses, scarf)...", credits: "Credits",
-    group: "Group", groups: "Groups", leaguePhase: "League Phase", lineups: "Line-up", startingXi: "Starting XI", benchLabel: "Bench", knockout: "Knockout", myPredictions: "My Picks",
+    group: "Group", groups: "Groups", leaguePhase: "Predictor", lineups: "Line-up", startingXi: "Starting XI", benchLabel: "Bench", knockout: "Knockout", myPredictions: "My Picks",
     
     competition: "The Competition", 
     leaderboard: "Leaderboard",     
@@ -272,7 +230,7 @@ const SCO_TRANSLATION: Translation = {
     ...EN_TRANSLATION,
     isScotland: true,
     genderMan: "Lad", genderWoman: "Lass", genPlaceholder: "Whit dae ye look like? (e.g. ginger beard, kilt, scar)...", credits: "Goes",
-    group: "Group", groups: "The Groups", leaguePhase: "The League Phase", lineups: "Team Sheet", startingXi: "The Startin' XI", benchLabel: "The Bench", knockout: "The Knockoots", myPredictions: "Ma Guesses",
+    group: "Group", groups: "The Groups", leaguePhase: "The Predictin'", lineups: "Team Sheet", startingXi: "The Startin' XI", benchLabel: "The Bench", knockout: "The Knockoots", myPredictions: "Ma Guesses",
     
     competition: "The Opposition",
     leaderboard: "Big Table",
@@ -413,307 +371,6 @@ const SCO_TRANSLATION: Translation = {
     teamOverviews: {}
 };
 
-const US_TRANSLATION: Translation = {
-    ...EN_TRANSLATION,
-    genderMan: "Male Coach", genderWoman: "Female Coach", genPlaceholder: "Describe the swagger (e.g. shades, headset, championship ring)...", credits: "Tokens",
-    group: "Group", groups: "Group Play", leaguePhase: "League Phase", lineups: "Lineup", startingXi: "Starting XI", benchLabel: "Bench", knockout: "The Playoffs", myPredictions: "My Picks",
-    
-    competition: "The Field",
-    leaderboard: "Power Rankings",
-    managersTab: "Roster",
-
-    match: "Game", standings: "Standings", points: "Pts", goalDiff: "Diff", goalsFor: "GF",
-    magicWand: "Auto-Pick", revealRival: "Peek Picks", qualified: "Clinched", draw: "Tie Game",
-    welcome: "What's up, Coach", loginMode: "Log In", signupMode: "Register", emailLabel: "Email",
-    passwordLabel: "Password", nameLabel: "Coach Name", enterBtn: "Let's Go!", subTitle: "The World Series of Soccer",
-    selectAvatar: "Build Your Avatar", treeView: "Bracket", listView: "List", createIdentity: "Build Your Identity",
-    genAvatarBtn: "AI Generator", genAvatarTitle: "Avatar Lab", genAvatarDesc: "Describe your look.", genAvatarPlaceholder: "e.g. Wearing a USMNT jersey, rally cap, face paint...", generate: "Create", useAvatar: "Select", orChoosePreset: "Or pick a preset",
-    secondChanceTab: "Reset", secondChanceTitle: "Bracket Reset", secondChanceDesc: "Busted bracket? Buy back in for the playoffs.", secondChanceBtn: "Buy Back In (-50% Pts)", secondChanceUnlockWarn: "Warning: This costs 50% of future points. High risk!",
-    refreshTeams: "Update Bracket", refreshTeamsDesc: "Load the real qualified teams.",
-    deadline: "Kickoff in:", deadlinePassed: "Deadline Passed", lockedState: "Locked", secondChanceActive: "Reset Active", pointsReduced: "50% Point Reduction",
-    progressGroups: "Regular Season", progressKnockout: "Post Season", managerReady: "Locked In", managerIncomplete: "Pending",
-    profile: "Coach Profile", logout: "Sign Out", rulesBtn: "Rulebook", rulesTitle: "Official Rules", tabHowToPlay: "Basics", tabScoring: "Scoring",
-    riskTitle: "How wild should the results get?", riskBanker: "Safe Pick", riskBalanced: "Balanced", riskWildcard: "Chaos", riskBankerDesc: "Favorites take it", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Upsets everywhere",
-    scoringTitle: "How high-scoring should games be?", scoringCagey: "Defensive", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, low-scoring games", scoringBalancedDesc: "A normal spread of goals", scoringGoalFestDesc: "Goals galore",
-    bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks were cleared — bracket shifted.", undo: "Undo",
-    nudgeTitle: "Missing predictions", nudgeMsg: "You're missing {n} predictions — fill them in before kickoff!", nudgeCta: "Fill them in",
-    rulesPreSubtitle: "Build your bracket. Score points. Win the cup.",
-    rulesLiveSubtitle: "Tournament is live. Time to play smart.",
-    rulesLiveScoringSection: "Live Scoring",
-    rulesLiveToolsSection: "Available Tools",
-    rulesLiveAnalysisTitle: "Analysis — Find Your Advantage",
-    rulesLiveAnalysisDesc: "The Analysis tab shows swing games where standings can move. Use it to make smart substitutions and gain ground on rivals.",
-    rule1Title: "1. Predict the Group Stage", rule1Desc: "Set exact score predictions for every group game. Standings and the wild card race update automatically as you build out your board.",
-    rule2Title: "2. Auto-Pick Wand", rule2Desc: "Pressed for time? Use the wand to auto-fill your predictions based on global rankings. A solid starting point you can dial in from there.",
-    rule3Title: "3. Fill Out Your Bracket", rule3Desc: "Your group picks generate the playoff bracket. Select the advancing team in every matchup from the Round of 32 to the Championship. No scores needed — just pick winners.",
-    deadlineTitle: "🚨 The Deadline", deadlineBodyPre: "Your entire board — Group Stage scores and Bracket picks — must be locked in before the tournament starts. Everything freezes at", deadlineBodyPost: ", at opening kick-off.",
-    rule4Title: "4. Scout the Competition", rule4Desc: "You get 5 Scout Tokens for the whole tournament. Spend one to see exactly what a rival picked for a specific game. Once they're gone, you're flying blind.",
-    rule5Title: "5. Live & Substitutions", rule5Desc: "Follow games live. You have 5 Substitutions to swap out a group stage pick before that game kicks off. They don't roll over.",
-    rule6Title: "6. Bracket Reset", rule6Desc: "Bracket busted after the group stage? Activate the reset for a clean slate with the real teams — but all playoff points from that point are cut by 50%.",
-    scoreExact: "Perfect Pick (e.g. 2-1)", scoreResult: "Correct Winner", scorePenalty: "Reset Penalty",
-    scoreQualTitle: "Round of 32 Qualifiers", scoreQualDesc: "3 pts per team correctly predicted to reach the Round of 32 from the regular season — up to 96 pts.",
-    scoreKnockoutTitle: "Playoff Points", scoreKnockoutDesc: "Halves all playoff points from Round of 16 to the Final. Round of 32 is unaffected.",
-    specialConditions: "Details", gotIt: "Understood", analysisTab: "Analysis", analysisTitle: "Matchup Analysis", selectRival: "Compare vs",
-    maxPotential: "Ceiling", swingMatches: "Key Matchups", pathVictory: "Path to Victory", noSwings: "No differential picks found.",
-    me: "Me", vs: "VS", risk: "Spread", proTip: "Pro Tip:", aiInsight: "AI Analyst:",
-    swingExplainerTitle: "What is Swing?", swingExplainerDesc: "Points you can gain over your opponent when you pick correctly and they miss.",
-    simulationTitle: "Simulation", projectedStandings: "Projected Standings", resetBtn: "Reset", punditSays: "The Analyst Says:",
-    tacticalAnalysisTitle: "Tactical Analysis", tacticalAnalysisDesc: "Adjust the results below to see how it affects the standings.",
-    criticalGames: "Critical Games", vsTool: "Matchup Tool", closeTool: "Close Tool", selectTeam: "Select Team", winChance: "Win Probability",
-    tier1: "Elite (1-10)", tier2: "Contenders (11-25)", tier3: "Sleepers (26-50)", tier4: "Underdogs (50+)", tierView: "Power Tiers",
-    allNations: "All Rosters", compareBtn: "Compare", compareActive: "Versus", addToCompare: "Add to VS", simulatedRank: "Simulated Rank",
-    rivalWatch: "Opponent Watch", whoAdvances: "Who Advances?", filterNext48: "48 Hrs", resetSim: "Reset Sim",
-    analysisOpportunity: "Upside", analysisOpportunityDesc: "Ceiling", analysisPitfall: "Downside", analysisPitfallDesc: "Floor",
-    analysisRealistic: "Projection", analysisRealisticDesc: "The Spread", analysisRoast: "Hot Take", analysisRoastDesc: "Roast Me",
-    analysisCorrectWinner: "Boom! Money in the bank.", analysisIncorrectWinner: "Oof. Total brick.", analysisExact: "Bullseye! Perfect score.",
-    analysisResult: "Solid. Correct outcome.", analysisWaiting: "Pregame...", scoutingTab: "Scouting", scoutReport: "Scouting Report",
-    attack: "OFF", midfield: "MID", defense: "DEF", overall: "OVR", starPlayer: "MVP", formGuide: "Last 5", searchNation: "Find team...",
-    fifaRank: "Rank", tacticalAnalysis: "Game Plan", closeReport: "Close", strengthsLabel: "Strengths", weaknessesLabel: "Weaknesses",
-    trendLabel: "Momentum", trendUp: "Hot Streak", trendDown: "Ice Cold", trendFlat: "Choppy", lastMatches: "Recent Games",
-    backToGroup: "Back to Groups", backTo: "Back to", goToBracket: "Go to Bracket", prevGroup: "Prev", nextGroup: "Next",
-    overviewBtn: "Overview", bracketBtn: "The Bracket", allBtn: "All", tablesBtn: "Standings", confirmClear: "Clear all picks?",
-    finishGroupBtn: "Finish Group {0}", revealBtn: "Reveal", tokensLeft: "Intel", spyCost: "1 Intel", rivalLive: "Opponent Status",
-    rivalIntel: "Intel", scenarioAnalysis: "Scenarios", now: "Now", noPick: "No Pick", myPick: "My Pick", advanced: "Advanced",
-    live: "LIVE", ft: "FINAL", substitutions: "Subs", makeSub: "Make Sub", subConfirm: "Use 1 Sub?", spyConfirm: "Send out the scouts?", sendScouts: "Send out the scouts", subSuccess: "Match Unlocked!", unlocked: "OPEN", saving: "Saving", saved: "Saved", pledgeLocked: "Pledge Locked", pledgeLockedDesc: "The group stage is still in play. Come back when the timer hits zero to set your knockout picks.", knockoutNotYet: "Knockout Stage Not Predicted", knockoutUnlockHint: "Finish your group stage picks first to unlock the bracket.", draftingWindowOpen: "Drafting Window Open", timeTolockIn: "Time to lock-in",
-    tabTournament: "Tournament", tabManager: "Coach", subnavSchedule: "Schedule", subnavRounds: "Rounds", subnavTables: "Standings", subnavBracket: "Bracket", mgrHint: "Your predictions hub. Toggle between groups and bracket picks, and spend a Sub token to edit a locked-in pick before kick-off.",
-    rank: "Rank", manager: "Coach", status: "Status", total: "Tot", liveStandings: "Live Rankings", bankedOnly: "Banked", scoringRulesInfo: "Scoring:",
-    lbBreakdown: "Stats", lbAccuracy: "Accuracy", lbExact: "Perfect", lbCorrect: "Winners", lbGroupPts: "Reg. Season", lbKoPts: "Playoffs",
-    lbGlobal: "Global", lbLeague: "League", liveToggle: "LIVE", bankedToggle: "BANKED", lbQualified: "Advanced", lbQualifiedDesc: "Playoff Winners",
-    lbGroupRes: "Group Results", journeyTitle: "Season Progress", journeyDesc: "Track your stats.", picksMade: "Picks", completion: "Complete",
-    searchPlaceholder: "Search...", noMatches: "No games found", noMatchesHint: "Check filters.", groupStagePoints: "Group Pts",
-    filterAll: "All", filterConfirmed: "Confirmed", filterUpcoming: "Upcoming", filterLive: "Live", filterFinished: "Final", today: "Today", simKnockoutTitle: "Sim Playoffs",
-    simGroupTitle: "Sim Groups", simKnockoutDesc: "Pick up to 3 favorites — they get a boost in the bracket. Close games break their way.", simGroupDesc: "Pick up to 3 favorites — they get a boost in the draw. Close games break their way.", simBoostNote: "Your picks get a statistical boost — in close games they're more likely to win. In blowouts it barely matters. Not a guarantee, just weighted in their favor.",
-    runSim: "Run Sim", simulating: "Running...", selected: "Active", clearAll: "Clear", openHand: "Auto-Fill",
-    champion: "Champ", grandFinal: "Championship", thirdPlacePlayoff: "Bronze Game", scrollHint: "Scroll ->",
-    nextRound: "Next", prevRound: "Prev", lockedBracketTitle: "Bracket Locked", lockedBracketDesc: "Finish your regular season picks first.",
-    allGroupTables: "All Standings", bestThirdPlace: "Wild Card Race", top8Advance: "Top 8 Advance", eliminationLine: "Eliminated",
-    teamCol: "Team", grpCol: "Grp", days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Until lock-in",
-
-    // --- NEW KEYS ---
-    nameTaken: "Name already taken — try a different one.",
-    noSubsTitle: "Out of Subs",
-    noSubsMsg: "You used all your moves.",
-    loggedOutTitle: "Signed Out",
-    loggedOutMsg: "Catch you at kickoff.",
-    profileUpdated: "Roster Updated",
-    profileMsg: "Looking sharp, coach.",
-    predSaved: "Pick Locked",
-    predLocked: "Prediction submitted.",
-    rivalRevealed: "Intel Gathered",
-    intelUsed: "-1 Intel Token.",
-    subRefunded: "Sub Returned",
-    subRefundedMsg: "Game started. Token returned.",
-    secondChanceConfirm: "Unlock Second Chance? This cuts your playoff points by 50%.",
-    lockInConfirm: "Lock in this bracket? The 50% penalty is now permanent.",
-    pledgeToastMsg: "Head to the Playoffs tab when groups end to set your bracket.",
-    bracketLockedIn: "Bracket Locked In",
-    bracketLockedInMsg: "Your reset is active. Time to climb.",
-    leagueJoined: "League Joined",
-    predictionsCleared: "Reset",
-    predictionsClearedMsg: "Your picks have been cleared.",
-    saveFailed: "Save Error",
-    saveFailedMsg: "Could not save your changes. Try again.",
-    tooLate: "Too Late",
-    tooLateMsg: "The game has already started.",
-    magicApplied: "Auto-Pick Done",
-    noIntel: "Out of Intel",
-    noIntelMsg: "You need tokens to scout opponents.",
-    scoutBtn: "Scout Teams",
-    saveBtn: "Submit",
-    stadiumTbd: "Venue TBD",
-    liveTag: "LIVE",
-    ftTag: "FINAL",
-    changeIdentity: "Edit Persona",
-    cancelBtn: "Cancel",
-    noMatchesDate: "No matchups today.",
-
-    // --- ROUND NAMES ---
-    roundOf32: "Round of 32",
-    roundOf16: "Round of 16",
-    quarterFinal: "Quarterfinals",
-    semiFinal: "Semifinals",
-    thirdPlace: "Bronze Medal Match",
-    final: "Championship",
-
-    stadiumWCMatches: "World Cup Games",
-    playerApps: "Games",
-    playerNoStats: "Stats coming soon — check back after their next match.",
-
-    // --- PSO & MATCH DISPLAY ---
-    goingThrough: "Advancing",
-    psoLabel: "PKs", pensTab: "PKs 🥅", statsTab: "Stats", aetLabel: "AET",
-    psoLive: "Live — PK Shootout", psoNoData: "No PK data yet",
-    psoPreMatchPen: "PK scored in regulation time",
-    psoPreMatchPens: "PKs scored in regulation time",
-    psoMissed: "Missed", psoSaved: "Saved", psoOffTarget: "Wide", psoPost: "Post",
-
-    teamOverviews: {}
-};
-
-const NO_TRANSLATION: Translation = {
-    ...EN_TRANSLATION,
-    genderMan: "Mann", genderWoman: "Kvinne", genPlaceholder: "Beskriv utseende (f.eks. skjegg, briller, skjerf)...", credits: "Sjanser",
-    group: "Gruppe", groups: "Gruppene", leaguePhase: "Ligafasen", lineups: "Lagoppstilling", startingXi: "Startoppstilling", benchLabel: "Benken", knockout: "Sluttspill", myPredictions: "Mine Tips",
-    
-    competition: "Konkurrentene",
-    leaderboard: "Resultatliste",
-    managersTab: "Managere",
-
-    match: "Kamp", standings: "Tabell", points: "P", goalDiff: "MF", goalsFor: "M+",
-    magicWand: "Tryllestav", revealRival: "Se Tips", qualified: "Kvalifisert", draw: "Uavgjort",
-    welcome: "Velkommen tilbake", loginMode: "Logg Inn", signupMode: "Ny Konto", emailLabel: "E-postadresse",
-    passwordLabel: "Passord", nameLabel: "Manager Navn", enterBtn: "Gå til Stadion", subTitle: "Den Ultimate Turneringen",
-    selectAvatar: "Velg Identitet", treeView: "Tre", listView: "Runder", createIdentity: "Opprett Din Identitet",
-    genAvatarBtn: "Lag AI Persona", genAvatarTitle: "AI Studio", genAvatarDesc: "Beskriv din managerstil. Vår AI maler den.", genAvatarPlaceholder: "f.eks. Iført norsk drakt, ansiktsmaling, skjerf...", generate: "Generer", useAvatar: "Bruk Persona", orChoosePreset: "Eller velg en ferdig stil",
-    secondChanceTab: "Ny Sjanse", secondChanceTitle: "Ny Sjanse Modus", secondChanceDesc: "Stemte ikke gruppetipsene dine? Lås opp de ekte lagene for sluttspillet.", secondChanceBtn: "Lås opp ekte oppsett (-50% poeng)", secondChanceUnlockWarn: "Advarsel: Aktivering av Ny Sjanse halverer alle fremtidige poeng. Dette kan ikke angres.",
-    refreshTeams: "Oppdater Lag", refreshTeamsDesc: "Oppdater sluttspillet med de nyeste kvalifiserte lagene.",
-    deadline: "Frist:", deadlinePassed: "Frist Ute", lockedState: "Låst", secondChanceActive: "Ny Sjanse Aktiv", pointsReduced: "Poeng redusert med 50%",
-    progressGroups: "Gruppespill", progressKnockout: "Sluttspill", managerReady: "Klar til kamp", managerIncomplete: "Forbereder seg",
-    profile: "Manager Profil", logout: "Logg Ut", rulesBtn: "Spilleregler", rulesTitle: "Turneringsregler", tabHowToPlay: "Slik Spiller Du", tabScoring: "Poengsystem",
-    riskTitle: "Hvor uforutsigbare skal resultatene være?", riskBanker: "Sikker", riskBalanced: "Balansert", riskWildcard: "Kaos", riskBankerDesc: "Favorittene vinner", riskBalancedDesc: "Den vakre sporten", riskWildcardDesc: "Overraskelsenes tur",
-    scoringTitle: "Hvor målrike skal kampene være?", scoringCagey: "Forsiktig", scoringBalanced: "Balansert", scoringGoalFest: "Målfest", scoringCageyDesc: "Tette, målfattige kamper", scoringBalancedDesc: "Et normalt antall mål", scoringGoalFestDesc: "Mål i bøtter og spann",
-    bracketAdjusted: "Bracket oppdatert", bracketAdjustedMsg: "Noen knockout-tips ble fjernet — bracket er oppdatert.", undo: "Angre",
-    nudgeTitle: "Tips mangler", nudgeMsg: "Du mangler {n} tips — legg dem inn før kampstart!", nudgeCta: "Legg inn nå",
-    rulesPreSubtitle: "Bygg dine tips. Samle poeng. Kjemp om æren.",
-    rulesLiveSubtitle: "Turneringen er i gang. Her er det som teller nå.",
-    rulesLiveScoringSection: "Poeng Nå",
-    rulesLiveToolsSection: "Dine Verktøy",
-    rulesLiveAnalysisTitle: "Analyse — Finn Din Fordel",
-    rulesLiveAnalysisDesc: "Analyse-fanen viser swing-kamper der poengtabellen kan bevege seg. Bruk den til å prioritere bytter og ta igjen rivaler.",
-    rule1Title: "1. Tipp Gruppene", rule1Desc: "Sett inn eksakte resultater for alle gruppekamper. Tabellene og beste 3. plass-rangeringen beregnes automatisk mens du bygger dine scenarioer.",
-    rule2Title: "2. Tryllestaven", rule2Desc: "Har du ikke tid eller inspirasjon? Bruk Tryllestaven til å auto-generere tips basert på verdensrangeringen. Fyll ut raskt og juster etterpå.",
-    rule3Title: "3. Velg Sluttspillet", rule3Desc: "Ut fra dine grupperesultater genereres sluttspillbraketten. Velg hvem som går videre i hver kamp fra 16-delsfinalen til finalen. Ingen eksakte resultater — bare velg vinneren.",
-    deadlineTitle: "🚨 Fristen", deadlineBodyPre: "Hele brettet ditt — både gruppespillresultater og sluttspillvalg — må leveres før turneringen begynner. Alle tips låses permanent kl.", deadlineBodyPost: ", ved åpningskampen.",
-    rule4Title: "4. Spioner på Rivaler", rule4Desc: "Du har nøyaktig 5 Speider-tokens for hele turneringen. Bruk ett token for å se nøyaktig hva en rival har tippet på en bestemt kamp. Bruk dem klokt — når de er borte, flyr du blindt.",
-    rule5Title: "5. Live & Bytter", rule5Desc: "Følg kampene live. Du har 5 Bytter til å endre et gruppetips, så lenge den aktuelle kampen ikke har startet ennå.",
-    rule6Title: "6. Ny Sjanse", rule6Desc: "Røk sluttspillbraketten etter gruppespillet? Aktiver din Andre Sjanse for en ren brakettmed de virkelige lagene — men alle sluttspillpoeng heretter halveres.",
-    scoreExact: "Eksakt Resultat (f.eks 2-1)", scoreResult: "Riktig Utfall (Seier/Uavgjort)", scorePenalty: "Straff for Ny Sjanse",
-    scoreQualTitle: "R32-kvalifiseringer", scoreQualDesc: "3 poeng per lag du riktig forutså ville nå 16-delsfinalen fra gruppespillet — opptil 96 poeng.",
-    scoreKnockoutTitle: "Sluttspillpoeng", scoreKnockoutDesc: "Halverer alle sluttspillpoeng fra runde 16 til finalen. R32 er ikke berørt.",
-    specialConditions: "Spesielle Betingelser", gotIt: "Skjønner", analysisTab: "Analyse", analysisTitle: "Hva Hvis?", selectRival: "Sammenlign med",
-    maxPotential: "Maks Potensial", swingMatches: "Vippekamper", pathVictory: "Veien til Seier", noSwings: "Ingen forskjeller funnet i kommende kamper.",
-    me: "Meg", vs: "MOT", risk: "Gevinst/Tap", proTip: "Profft Tips:", aiInsight: "AI Innsikt:",
-    swingExplainerTitle: "Hva er Gevinst/Tap?", swingExplainerDesc: "Poeng du kan tjene i forhold til rivalene dine. Hvis du tipper rett og de bommer, 'vipper' du resultatet i din favør.",
-    simulationTitle: "Simulering", projectedStandings: "Prognose", resetBtn: "Nullstill", punditSays: "Eksperten Sier:",
-    tacticalAnalysisTitle: "Taktisk Analyse", tacticalAnalysisDesc: "Juster resultatene under for å se hvordan det påvirker tabellen.",
-    criticalGames: "Nøkkelkamper", vsTool: "Duell Verktøy", closeTool: "Lukk Verktøy", selectTeam: "Velg Lag", winChance: "Vinnersjanse",
-    tier1: "Verdensklasse (1-10)", tier2: "Utfordrere (11-25)", tier3: "Outsidere (26-50)", tier4: "Underdogs (50+)", tierView: "Nivåer",
-    allNations: "Alle Nasjoner", compareBtn: "Sammenlign", compareActive: "Sammenligner", addToCompare: "Legg til Duell", simulatedRank: "Simulert Rank",
-    rivalWatch: "Rivalene", whoAdvances: "Hvem går videre?", filterNext48: "48 Timer", resetSim: "Nullstill",
-    analysisOpportunity: "Mulighet", analysisOpportunityDesc: "Beste Utfall", analysisPitfall: "Felle", analysisPitfallDesc: "Verste Utfall",
-    analysisRealistic: "Realistisk", analysisRealisticDesc: "AI Tips", analysisRoast: "Eksperten", analysisRoastDesc: "Slakt Meg",
-    analysisCorrectWinner: "🔥 Riktig Vinner! Poeng sikret.", analysisIncorrectWinner: "⚠️ Feil Vinner. Opphenting trengs.", analysisExact: "🎯 Bullseye! Eksakt resultat.",
-    analysisResult: "🛡️ Riktig Utfall. Poeng sikret.", analysisWaiting: "Venter på avspark...", scoutingTab: "Speiding", scoutReport: "Speiderrapport",
-    attack: "ANG", midfield: "MID", defense: "FOR", overall: "TOT", starPlayer: "Nøkkelspiller", formGuide: "Formkurve", searchNation: "Søk nasjon...",
-    fifaRank: "FIFA Ranking", tacticalAnalysis: "Taktisk Analyse", closeReport: "Lukk Rapport", strengthsLabel: "Styrker", weaknessesLabel: "Svakheter",
-    trendLabel: "Trend", trendUp: "I Form", trendDown: "Sliter", trendFlat: "Varierende", lastMatches: "Siste Kamper",
-    backToGroup: "Tilbake til Gruppe", backTo: "Tilbake til", goToBracket: "Gå til Sluttspill", prevGroup: "Forrige Gruppe", nextGroup: "Neste Gruppe",
-    overviewBtn: "Oversikt", bracketBtn: "Knockout-fasen", allBtn: "Alle", tablesBtn: "Tabeller", confirmClear: "Er du sikker på at du vil slette tipsene dine?",
-    finishGroupBtn: "Fullfør Gruppe {0}", revealBtn: "Avslør", tokensLeft: "Intel", spyCost: "1 Intel", rivalLive: "Rival Live Status",
-    rivalIntel: "Rival Etterretning", scenarioAnalysis: "Scenarioanalyse", now: "Now", noPick: "Ingen Tips", myPick: "Mitt Tips", advanced: "Videre",
-    live: "LIVE", ft: "SLUTT", substitutions: "Bytter", makeSub: "Gjør Bytte", subConfirm: "Bruk 1 bytte for å åpne?", spyConfirm: "Sende ut speideren?", sendScouts: "Sende ut speideren", subSuccess: "Kamp Åpnet!", unlocked: "ÅPEN", saving: "Lagrer", saved: "Lagret", pledgeLocked: "Løfte Låst", pledgeLockedDesc: "Gruppespillet pågår fortsatt. Kom tilbake når nedtellingen når null for å sette opp sluttspillbraketten.", knockoutNotYet: "Sluttspillet er ikke tippet ennå", knockoutUnlockHint: "Fullfør gruppetipsene dine for å låse opp sluttspillet.", draftingWindowOpen: "Drafteringsvindu Åpent", timeTolockIn: "Tid igjen til låsing",
-    tabTournament: "Turneringen", tabManager: "Manager", subnavSchedule: "Terminliste", subnavRounds: "Runder", subnavTables: "Tabeller", subnavBracket: "Treet", mgrHint: "Her finner du alle dine tips. Bytt mellom gruppespill og sluttspill, og bruk et byttetoken for å endre et tips før kampstart.",
-    rank: "Plass", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Tabell", bankedOnly: "Kun Bankede", scoringRulesInfo: "Poengregler:",
-    lbBreakdown: "Poengfordeling", lbAccuracy: "Treffsikkerhet", lbExact: "Eksakte Tips", lbCorrect: "Riktig Utfall", lbGroupPts: "Gruppespill", lbKoPts: "Sluttspill",
-    lbGlobal: "Globalt", lbLeague: "Liga", liveToggle: "LIVE", bankedToggle: "BANKET", lbQualified: "Videre", lbQualifiedDesc: "Riktig Avansement",
-    lbGroupRes: "Grupperesultat", journeyTitle: "Din Turneringsreise", journeyDesc: "Følg din fremgang i tippingen.", picksMade: "Tips Levert",
-    completion: "Ferdig", searchPlaceholder: "Søk lag...", noMatches: "Ingen kamper funnet", noMatchesHint: "Prøv å endre filter eller søkeord.",
-    groupStagePoints: "Gruppespill Poeng", filterAll: "Alle", filterConfirmed: "Bekreftet", filterUpcoming: "Kommende", filterLive: "Live", filterFinished: "Ferdig", today: "I dag",
-    simKnockoutTitle: "Simuler Sluttspill", simGroupTitle: "Simuler Gruppespill", simKnockoutDesc: "Velg opptil 3 favoritter — de får en bias i sluttspillet. Jevne kamper tippes til deres fordel.",
-    simGroupDesc: "Velg opptil 3 favoritter — de får en bias i trekningen. Jevne kamper tippes til deres fordel.", simBoostNote: "Lagene du velger får en statistisk bias — i jevne kamper vinner de oftere. I store mismatcher betyr det lite. Ingen garanti, bare vektet i deres favør.", runSim: "Kjør Simulering", simulating: "Simulerer...", selected: "Valgt",
-    clearAll: "Slett Alt", openHand: "Åpne Hjelper", champion: "Mester", grandFinal: "Finale", thirdPlacePlayoff: "Bronsefinale",
-    scrollHint: "Scroll horisontalt for å se hele treet →", nextRound: "Neste Runde", prevRound: "Forrige Runde", lockedBracketTitle: "Sluttspill Låst",
-    lockedBracketDesc: "Du må tippe alle gruppekampene før du får tilgang til sluttspillet.", allGroupTables: "Alle Gruppetabeller", bestThirdPlace: "Beste 3. Plasser",
-    top8Advance: "Topp 8 går til R32", eliminationLine: "Eliminasjonslinje", teamCol: "Team", grpCol: "Grp", headToHead: "Innbyrdes oppgjør", wins: "Seire", draws: "Uavgjort", totalMeetings: "møter", firstMeeting: "Første møte noensinne!",
-    firstMeetingDesc: "Vi fant ingen tidligere kamper mellom disse lagene. Historien starter nå!", showingLast5: "Viser siste 5 av {0} møter",
-    noHistory: "Ingen historikk funnet.", loadingHistory: "Laster historikk...", days: "Dager", hours: "Timer", minutes: "Min", seconds: "Sek", deadlineLabel: "Til tipsen låses",
-    myPickShort: "Tips", watchOn: "Se på",
-
-    // --- NEW KEYS ---
-    nameTaken: "Navnet er allerede tatt — prøv et annet.",
-    noSubsTitle: "Tomt for Bytter",
-    noSubsMsg: "Alle bytter er brukt opp.",
-    loggedOutTitle: "Logget ut",
-    loggedOutMsg: "Vi sees ved avspark.",
-    profileUpdated: "Profil Oppdatert",
-    profileMsg: "Ny look på plass!",
-    predSaved: "Tips Lagret",
-    predLocked: "Kampen er låst igjen.",
-    rivalRevealed: "Rival Avslørt",
-    intelUsed: "-1 Intel brukt.",
-    subRefunded: "Bytte Refundert",
-    subRefundedMsg: "Kampen startet før lagring.",
-    secondChanceConfirm: "Aktiver Ny Sjanse? Dette halverer poengene dine i sluttspillet.",
-    lockInConfirm: "Lås inn denne braketten? 50% poengstraff er nå permanent.",
-    pledgeToastMsg: "Gå til Sluttspill-fanen når gruppespillet slutter for å sette opp braketten.",
-    bracketLockedIn: "Brakett Låst Inn",
-    bracketLockedInMsg: "Ny Sjanse er nå aktiv. Lykke til!",
-    leagueJoined: "Liga Tilkoblet",
-    predictionsCleared: "Slettet",
-    predictionsClearedMsg: "Tipsene dine er nullstilt.",
-    saveFailed: "Lagring Feilet",
-    saveFailedMsg: "Kunne ikke lagre. Prøv igjen.",
-    tooLate: "For Sent",
-    tooLateMsg: "Kampen er allerede i gang.",
-    magicApplied: "Magi Brukt",
-    noIntel: "Ingen Intel",
-    noIntelMsg: "Du trenger tokens for å spionere på rivaler.",
-    scoutBtn: "Start Speiding",
-    saveBtn: "Lagre",
-    stadiumTbd: "Stadion TBD",
-    liveTag: "LIVE",
-    ftTag: "SLUTT",
-    changeIdentity: "Endre Identitet",
-    cancelBtn: "Avbryt",
-    noMatchesDate: "Ingen kamper på denne datoen.",
-
-    // --- ROUND NAMES ---
-    roundOf32: "16-delsfinale",
-    roundOf16: "8-delsfinale",
-    quarterFinal: "Kvartfinale",
-    semiFinal: "Semifinale",
-    thirdPlace: "Bronsefinale",
-    final: "Finale",
-
-    openingMatch: "Åpningskamp",
-    stadiumFifaName: "FIFA-navn",
-    stadiumLocalName: "Lokalt navn",
-    stadiumCity: "By",
-    stadiumCapacity: "Kapasitet",
-    stadiumOpened: "Åpnet",
-    stadiumSurface: "Underlag",
-    stadiumRoof: "Tak",
-    stadiumWCMatches: "VM-kamper",
-    stadiumKeyMatches: "Nøkkelkamper",
-    roofOpen: "Åpent",
-    roofRetractable: "Innfellbart tak",
-    roofFixed: "Fast tak",
-
-    playerClose: "Lukk",
-    playerRating: "Karakter",
-    playerAvgRating: "Snittkarakter · VM 2026",
-    playerMatchRatings: "Kampkarakterer",
-    playerTournamentLabel: "VM 2026",
-    playerGoals: "Mål",
-    playerAssists: "Assist",
-    playerApps: "Kamper",
-    playerYellow: "Gult",
-    playerRed: "Rødt",
-    playerOwnGoal: "EM",
-    playerRatedSuffix: "vurdert",
-    playerNoStats: "Statistikk ikke tilgjengelig ennå — sjekk igjen etter neste kamp.",
-
-    // --- PSO & MATCH DISPLAY ---
-    goingThrough: "Går videre",
-    psoLabel: "STRAFF", pensTab: "Straffer 🥅", statsTab: "Statistikk", aetLabel: "ET",
-    psoLive: "Direkte — Straffespark", psoNoData: "Ingen straffesparkdata ennå",
-    psoPreMatchPen: "straffespark fra ordinær tid",
-    psoPreMatchPens: "straffespark fra ordinær tid",
-    psoMissed: "Bom", psoSaved: "Reddet", psoOffTarget: "Utenfor", psoPost: "Stang",
-
-    teamOverviews: {}
-};
-
 // --- GAME CONFIG CONSTANTS ---
 export const MAX_SUBSTITUTIONS = 5;  // Max subs per manager (also used for scout tokens)
 
@@ -736,7 +393,7 @@ export const LEAGUES: Record<string, string> = {
 export const LEAGUE_DEFAULT_LANGS: Record<string, LanguageCode> = {
   armchair_gaffers:   'SCO',
   beeline:            'EN',
-  sofa_ekspertene:    'NO',
+  sofa_ekspertene:    'EN',
   infantinos_hustle:  'SCO',
 };
 
@@ -744,9 +401,7 @@ export const LEAGUE_DEFAULT_LANGS: Record<string, LanguageCode> = {
 
 export const TRANSLATIONS: Record<LanguageCode, Translation> = {
   EN: EN_TRANSLATION,
-  NO: NO_TRANSLATION,
   SCO: SCO_TRANSLATION,
-  US: US_TRANSLATION
 };
 
 // Intentionally empty — this app is now a club competition (Champions League), and all

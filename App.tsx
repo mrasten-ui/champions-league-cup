@@ -107,7 +107,7 @@ export const App = () => {
   const [briefRefreshing, setBriefRefreshing] = useState(false);
 
   const t = TRANSLATIONS[language];
-  const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', US: 'en-US', NO: 'no-NO', SCO: 'en-GB' };
+  const localeMap: Record<LanguageCode, string> = { EN: 'en-GB', SCO: 'en-GB' };
   const currentLocale = localeMap[language];
 
   // --- INVITE LINK HANDLER ---
@@ -750,7 +750,7 @@ export const App = () => {
                             <div className="px-3 py-1.5 bg-white/5 border-b border-white/10">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
                             </div>
-                            <div>
+                            <div className="md:grid md:grid-cols-2 md:gap-3 md:p-3">
                                 {dayMatches.map(match => (
                                     <MatchRow
                                       key={match.id}

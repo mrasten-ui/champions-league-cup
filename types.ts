@@ -1,4 +1,4 @@
-export type LanguageCode = 'EN' | 'NO' | 'SCO' | 'US';
+export type LanguageCode = 'EN' | 'SCO';
 
 export interface Translation {
   [key: string]: string | any;

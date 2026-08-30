@@ -62,9 +62,7 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
       const loadData = async () => {
         const personaMap: Record<LanguageCode, string> = {
             EN: 'neutral',
-            NO: 'neutral',
             SCO: 'scottish_pundit',
-            US: 'brutally_honest',
         };
         const persona = personaMap[currentLang] ?? 'neutral';
 

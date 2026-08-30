@@ -66,9 +66,7 @@ const PERSONAS: Record<string, any> = {
 };
 
 const resolveLanguage = (code: string): string => {
-    if (code === 'NO') return 'no';
     if (code === 'SCO') return 'sco';
-    if (code === 'US') return 'en-US';
     return 'en';
 };
 

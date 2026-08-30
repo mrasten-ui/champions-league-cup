@@ -87,7 +87,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                     <td className="py-3">
                         <div className="flex items-center gap-3">
                             {team?.flag && (
-                                <img src={team.flag} alt={team.name} className="w-6 h-4 object-cover rounded shadow-sm border border-white/10" />
+                                <img src={team.flag} alt={team.name} className="w-7 h-7 shrink-0 object-cover rounded-md bg-white/5 shadow-sm border border-white/10" />
                             )}
                             <span className={`font-bold ${isHighlighted ? 'text-white' : 'text-slate-300'} ${isEliminated ? 'line-through decoration-slate-500/50' : ''}`}>
                                 {team?.name || row.teamId}
