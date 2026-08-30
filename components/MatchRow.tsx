@@ -121,89 +121,93 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   const Crest: React.FC<{ team: Team; initials: string; align: 'left' | 'right' }> = ({ team, initials }) => (
     <div
       onClick={(e) => { if (onTeamClick && team?.id && !team.id.startsWith('TBD')) { e.stopPropagation(); onTeamClick(team.id); } }}
-      className={`w-6 h-6 shrink-0 rounded-md overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center ${onTeamClick ? 'cursor-pointer' : ''}`}
+      className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center ${onTeamClick ? 'cursor-pointer' : ''}`}
     >
       {team?.flag
         ? <img src={team.flag} alt={team.name} className="w-full h-full object-cover" />
-        : <span className="text-[8px] font-black text-white/30">{initials}</span>}
+        : <span className="text-[10px] font-black text-white/30">{initials}</span>}
     </div>
   );
 
   return (
     <div className="border-b border-white/5 last:border-b-0">
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        {/* Kickoff time / live / FT / lock state */}
-        <div className="w-9 shrink-0 flex flex-col items-start">
-          {isLive ? (
-            <span className="text-[9px] font-black tabular-nums text-rose-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-              {match.minute ? `${match.minute}'` : 'LIVE'}
-            </span>
-          ) : isFinished ? (
-            <span className="text-[9px] font-black tabular-nums text-slate-400">FT</span>
-          ) : isLocked ? (
-            <LockIcon size={11} className="text-slate-500" />
-          ) : (
-            <span className={`text-[9px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
-          )}
-        </div>
-
-        {/* Home team */}
-        <div className="flex-1 min-w-0 flex items-center justify-end gap-1.5">
-          <span className="text-[11px] font-bold text-white text-right leading-tight line-clamp-2 min-w-0">{homeName}</span>
-          <Crest team={homeTeam} initials={homeInitials} align="left" />
-        </div>
-
-        {/* Score entry, or the real result once the match has kicked off */}
-        {hasResult ? (
-          <div className="flex flex-col items-center shrink-0 min-w-[52px]">
-            <span className="text-sm font-black text-white tabular-nums tracking-tight">{match.homeScore}&nbsp;-&nbsp;{match.awayScore}</span>
-            {prediction && (
-              <span className={`text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : 'text-slate-600'}`}>
-                {lang.myPick || 'Pick'}: {prediction.home}-{prediction.away}
+      <div className="flex flex-col gap-2 px-3 py-3">
+        {/* Meta line: kickoff time / live / FT / lock state on the left, scout/rivals on the right */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {isLive ? (
+              <span className="text-[10px] font-black tabular-nums text-rose-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                {match.minute ? `${match.minute}'` : 'LIVE'}
               </span>
+            ) : isFinished ? (
+              <span className="text-[10px] font-black tabular-nums text-slate-400">FT</span>
+            ) : isLocked ? (
+              <span className="flex items-center gap-1 text-slate-500">
+                <LockIcon size={11} />
+                <span className="text-[10px] font-bold uppercase tracking-wide">{lang.lockedState || 'Locked'}</span>
+              </span>
+            ) : (
+              <span className={`text-[10px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
             )}
           </div>
-        ) : (
-          <div className="flex items-center gap-1 shrink-0">
-            <ScoreStepper
-              size="compact"
-              value={localHome}
-              onChange={(v) => handleScoreChange('home', v)}
-              isLocked={isLocked}
-              onActivate={handleActivate}
-              saveState={saveState}
-            />
-            <span className="text-slate-600 text-xs font-black">-</span>
-            <ScoreStepper
-              size="compact"
-              value={localAway}
-              onChange={(v) => handleScoreChange('away', v)}
-              isLocked={isLocked}
-              onActivate={handleActivate}
-              saveState={saveState}
-            />
+          <div className="flex items-center gap-1">
+            {canSpy && !pendingSpy && (
+              <button onClick={handleSpyClick} className={`p-1 rounded-full transition-colors ${userTokens > 0 ? 'text-amber-400 hover:bg-amber-500/10' : 'text-slate-700 cursor-not-allowed'}`} title={lang.sendScouts || 'Send out the scouts'}>
+                <Search size={13} />
+              </button>
+            )}
+            {showRivals && rivals.length > 0 && (
+              <button onClick={(e) => { e.stopPropagation(); setRivalsOpen(o => !o); }} className="p-1 rounded-full text-yellow-400 hover:bg-yellow-500/10 transition-colors">
+                {rivalsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Away team */}
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <Crest team={awayTeam} initials={awayInitials} align="right" />
-          <span className="text-[11px] font-bold text-white leading-tight line-clamp-2 min-w-0">{awayName}</span>
         </div>
 
-        {/* Scout / rivals toggle */}
-        <div className="w-6 shrink-0 flex items-center justify-center">
-          {canSpy && !pendingSpy && (
-            <button onClick={handleSpyClick} className={`p-1 rounded-full transition-colors ${userTokens > 0 ? 'text-amber-400 hover:bg-amber-500/10' : 'text-slate-700 cursor-not-allowed'}`} title={lang.sendScouts || 'Send out the scouts'}>
-              <Search size={13} />
-            </button>
+        {/* Main line: home team, score, away team — one row per match */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0 flex items-center justify-end gap-2">
+            <span className="text-sm font-bold text-white text-right leading-tight line-clamp-2 min-w-0">{homeName}</span>
+            <Crest team={homeTeam} initials={homeInitials} align="left" />
+          </div>
+
+          {/* Score entry, or the real result once the match has kicked off */}
+          {hasResult ? (
+            <div className="flex flex-col items-center shrink-0 min-w-[64px]">
+              <span className="text-lg font-black text-white tabular-nums tracking-tight">{match.homeScore}&nbsp;-&nbsp;{match.awayScore}</span>
+              {prediction && (
+                <span className={`text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : 'text-slate-600'}`}>
+                  {lang.myPick || 'Pick'}: {prediction.home}-{prediction.away}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <ScoreStepper
+                size="medium"
+                value={localHome}
+                onChange={(v) => handleScoreChange('home', v)}
+                isLocked={isLocked}
+                onActivate={handleActivate}
+                saveState={saveState}
+              />
+              <span className="text-slate-600 text-sm font-black">-</span>
+              <ScoreStepper
+                size="medium"
+                value={localAway}
+                onChange={(v) => handleScoreChange('away', v)}
+                isLocked={isLocked}
+                onActivate={handleActivate}
+                saveState={saveState}
+              />
+            </div>
           )}
-          {showRivals && rivals.length > 0 && (
-            <button onClick={(e) => { e.stopPropagation(); setRivalsOpen(o => !o); }} className="p-1 rounded-full text-yellow-400 hover:bg-yellow-500/10 transition-colors">
-              {rivalsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </button>
-          )}
+
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <Crest team={awayTeam} initials={awayInitials} align="right" />
+            <span className="text-sm font-bold text-white leading-tight line-clamp-2 min-w-0">{awayName}</span>
+          </div>
         </div>
       </div>
 
