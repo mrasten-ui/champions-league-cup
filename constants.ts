@@ -180,6 +180,7 @@ const EN_TRANSLATION: Translation = {
     noIntelMsg: "You need tokens to spy on rivals.",
     autoFilledState: "Auto-filled",
     autoFilledDesc: "You missed the deadline — filled in for you based on your risk profile",
+    riskProfileSection: "Risk Profile",
 
     // --- ROUND NAMES ---
     playoffRound: "Playoff Round",
@@ -341,6 +342,7 @@ const SCO_TRANSLATION: Translation = {
     noIntelMsg: "Ye need tokens tae spy on yer pals.",
     autoFilledState: "Robot Did It",
     autoFilledDesc: "Ye missed the deadline — the computer filled it in fur ye based on yer risk profile",
+    riskProfileSection: "Risk Profile",
     scoutBtn: "Spying Mission",
     saveBtn: "Lock In",
     stadiumTbd: "Park TBD",

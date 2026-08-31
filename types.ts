@@ -54,6 +54,7 @@ export interface Translation {
   noIntelMsg: string;
   autoFilledState: string;
   autoFilledDesc: string;
+  riskProfileSection: string;
 
   // --- Magic Wand risk slider ---
   riskTitle: string;

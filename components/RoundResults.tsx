@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, X, Bot } from 'lucide-react';
 import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat, Round } from '../types';
 import { MatchCard } from './MatchCard';
 
@@ -216,9 +216,11 @@ const ResultRow: React.FC<{
   homeTeam?: Team;
   awayTeam?: Team;
   locale: string;
+  prediction?: Prediction | null;
+  lang: Translation;
   onTeamClick: (teamId: string) => void;
   onOpen: () => void;
-}> = ({ match, homeTeam, awayTeam, locale, onTeamClick, onOpen }) => {
+}> = ({ match, homeTeam, awayTeam, locale, prediction, lang, onTeamClick, onOpen }) => {
   const isLive = LIVE_STATUSES.has(match.status);
   const isFinished = DONE_STATUSES.has(match.status);
   const hasResult = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null;
@@ -226,6 +228,10 @@ const ResultRow: React.FC<{
   const isAwayTbd = isTbdId(match.awayTeamId);
   const homeName = isHomeTbd ? 'TBD' : (homeTeam?.name || match.homeTeamId);
   const awayName = isAwayTbd ? 'TBD' : (awayTeam?.name || match.awayTeamId);
+
+  const isExact = hasResult && !!prediction && prediction.home === match.homeScore && prediction.away === match.awayScore;
+  const isCorrectOutcome = hasResult && !!prediction && !isExact &&
+    Math.sign(prediction.home - prediction.away) === Math.sign(match.homeScore! - match.awayScore!);
 
   const kickoffTime = match.date && match.date !== 'TBD' && !isNaN(new Date(match.date).getTime())
     ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -254,13 +260,19 @@ const ResultRow: React.FC<{
         <RowCrest team={homeTeam} tbd={isHomeTbd} onClick={() => onTeamClick(match.homeTeamId)} />
       </div>
 
-      <div className="w-14 shrink-0 flex items-center justify-center">
+      <div className="w-16 shrink-0 flex flex-col items-center justify-center gap-0.5">
         {hasResult ? (
           <span className="text-[15px] font-black text-white tabular-nums tracking-tight">{match.homeScore}&nbsp;-&nbsp;{match.awayScore}</span>
         ) : (isHomeTbd || isAwayTbd) ? (
           <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide">TBD</span>
         ) : (
           <span className="text-slate-600 text-[10px] font-black uppercase tracking-wide">vs</span>
+        )}
+        {prediction && (
+          <span className={`flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : hasResult ? 'text-slate-600' : 'text-slate-500'}`}>
+            {prediction.autoFilled && <Bot size={8} className="text-amber-400" aria-label={lang.autoFilledDesc} />}
+            {lang.myPick || 'Pick'}: {prediction.home}-{prediction.away}
+          </span>
         )}
       </div>
 
@@ -441,6 +453,8 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
                   homeTeam={teams[m.homeTeamId]}
                   awayTeam={teams[m.awayTeamId]}
                   locale={locale}
+                  prediction={userPredictions.find(p => p.matchId === m.id)}
+                  lang={lang}
                   onTeamClick={onTeamClick}
                   onOpen={() => setDetailMatch(m)}
                 />

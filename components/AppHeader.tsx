@@ -27,6 +27,17 @@ interface AppHeaderProps {
   t: Translation;
 }
 
+// Same low/mid/high split RiskSlider uses internally, so the badge always
+// agrees with the zone label shown inside the editor.
+const riskZoneLabel = (value: number | undefined, lowLabel: string, midLabel: string, highLabel: string): string => {
+  const pct = (value ?? 0.5) * 100;
+  return pct <= 33 ? lowLabel : pct <= 66 ? midLabel : highLabel;
+};
+const riskZoneIcon = (value: number | undefined): string => {
+  const pct = (value ?? 0.5) * 100;
+  return pct <= 33 ? '🛡️' : pct <= 66 ? '⚖️' : '⚡';
+};
+
 export const AppHeader: React.FC<AppHeaderProps> = (props) => {
   const { user, t } = props;
 
@@ -151,6 +162,14 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                       <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 size={20} className="text-white drop-shadow-md" /></div>
                                   </div>
                                   <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
+                                  <button
+                                    onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }}
+                                    className="mt-2 flex items-center gap-1 bg-white border border-slate-200 hover:border-purple-300 hover:bg-purple-50 px-2.5 py-1 rounded-full text-[9px] font-black text-slate-500 hover:text-purple-600 uppercase tracking-wide transition-colors"
+                                    title={t.riskProfileSection}
+                                  >
+                                    <span>{riskZoneIcon(user?.riskResult)}</span>
+                                    {riskZoneLabel(user?.riskResult, t.riskBanker, t.riskBalanced, t.riskWildcard)}
+                                  </button>
                               </div>
                               <div className="p-1">
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>

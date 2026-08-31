@@ -24,6 +24,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { RulesPage } from './components/RulesPage';
 import { PredictionNudge } from './components/PredictionNudge';
 import { AvatarGenerator } from './components/AvatarGenerator';
+import { RiskSlider } from './components/RiskSlider';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
@@ -66,6 +67,9 @@ export const App = () => {
   const [pendingName, setPendingName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSaving, setNameSaving] = useState(false);
+  const [pendingRiskResult, setPendingRiskResult] = useState(50);
+  const [pendingRiskScoring, setPendingRiskScoring] = useState(50);
+  const [riskSaveState, setRiskSaveState] = useState<'idle' | 'syncing' | 'saved'>('idle');
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminBanner, setShowAdminBanner] = useState(false);
@@ -179,8 +183,32 @@ export const App = () => {
     if (showAvatarEditor && user) {
       setPendingName(user.name);
       setNameError(null);
+      setPendingRiskResult((user.riskResult ?? 0.5) * 100);
+      setPendingRiskScoring((user.riskScoring ?? 0.5) * 100);
+      setRiskSaveState('idle');
     }
   }, [showAvatarEditor]);
+
+  // Debounced autosave for the risk profile sliders — mirrors MatchRow's
+  // drag-then-settle pattern so dragging doesn't hammer the DB with writes.
+  useEffect(() => {
+    if (!showAvatarEditor || !user || !supabase) return;
+    const unchanged = Math.round((user.riskResult ?? 0.5) * 100) === Math.round(pendingRiskResult)
+      && Math.round((user.riskScoring ?? 0.5) * 100) === Math.round(pendingRiskScoring);
+    if (unchanged) return;
+
+    setRiskSaveState('syncing');
+    const timer = setTimeout(async () => {
+      const riskResult = pendingRiskResult / 100;
+      const riskScoring = pendingRiskScoring / 100;
+      const { error } = await supabase.from('profiles').update({ risk_result: riskResult, risk_scoring: riskScoring } as any).eq('email', user.email);
+      if (error) { console.error('Risk profile save failed:', error); setRiskSaveState('idle'); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
+      setUser({ ...user, riskResult, riskScoring });
+      setUsersDb(prev => ({ ...prev, [user.email]: { ...prev[user.email], riskResult, riskScoring } }));
+      setRiskSaveState('saved');
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [pendingRiskResult, pendingRiskScoring, showAvatarEditor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveNewName = async () => {
     if (!user || !supabase) return;
@@ -935,6 +963,40 @@ export const App = () => {
                     </div>
                     {nameError && <p className="text-[10px] text-red-400 mt-1.5 font-semibold">{nameError}</p>}
                 </div>
+
+                {/* Risk Profile — same sliders as signup, editable any time. Drives the
+                    Magic Wand and the missed-deadline auto-fill for the rest of the season. */}
+                <div className="border-t border-white/10 pt-5 mb-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.riskProfileSection}</p>
+                        <span className={`text-[9px] font-bold uppercase tracking-wide transition-opacity ${riskSaveState === 'idle' ? 'opacity-0' : 'opacity-100'} ${riskSaveState === 'saved' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {riskSaveState === 'syncing' ? t.saving : riskSaveState === 'saved' ? t.saved : ''}
+                        </span>
+                    </div>
+                    <div className="space-y-3">
+                        <RiskSlider
+                            idSuffix="profile-result"
+                            value={pendingRiskResult}
+                            onChange={setPendingRiskResult}
+                            title={t.riskTitle}
+                            lowLabel={t.riskBanker} lowIcon="🛡️"
+                            midLabel={t.riskBalanced}
+                            highLabel={t.riskWildcard} highIcon="⚡"
+                            lowDesc={t.riskBankerDesc} midDesc={t.riskBalancedDesc} highDesc={t.riskWildcardDesc}
+                        />
+                        <RiskSlider
+                            idSuffix="profile-scoring"
+                            value={pendingRiskScoring}
+                            onChange={setPendingRiskScoring}
+                            title={t.scoringTitle}
+                            lowLabel={t.scoringCagey} lowIcon="🧤"
+                            midLabel={t.scoringBalanced}
+                            highLabel={t.scoringGoalFest} highIcon="⚽"
+                            lowDesc={t.scoringCageyDesc} midDesc={t.scoringBalancedDesc} highDesc={t.scoringGoalFestDesc}
+                        />
+                    </div>
+                </div>
+
                 <div className="border-t border-white/10 pt-5">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.selectAvatar}</p>
                     <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
