@@ -28,12 +28,14 @@ interface AppHeaderProps {
 }
 
 // Same low/mid/high split RiskSlider uses internally, so the badge always
-// agrees with the zone label shown inside the editor.
-const riskZoneLabel = (value: number | undefined, lowLabel: string, midLabel: string, highLabel: string): string => {
+// agrees with the zone label shown inside the editor. Exported so any other
+// "show the user's risk level at a glance" spot (e.g. the Predictor headline)
+// stays in sync with this one instead of re-deriving its own thresholds.
+export const riskZoneLabel = (value: number | undefined, lowLabel: string, midLabel: string, highLabel: string): string => {
   const pct = (value ?? 0.5) * 100;
   return pct <= 33 ? lowLabel : pct <= 66 ? midLabel : highLabel;
 };
-const riskZoneIcon = (value: number | undefined): string => {
+export const riskZoneIcon = (value: number | undefined): string => {
   const pct = (value ?? 0.5) * 100;
   return pct <= 33 ? '🛡️' : pct <= 66 ? '⚖️' : '⚡';
 };

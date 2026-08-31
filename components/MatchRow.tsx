@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction } from '../types';
-import { Search, Lock as LockIcon, ChevronDown, ChevronUp, Bot } from 'lucide-react';
+import { Users, Lock as LockIcon, ChevronDown, ChevronUp, Bot } from 'lucide-react';
 import { ScoreStepper } from './ScoreStepper';
 import { AvatarDisplay } from './AvatarDisplay';
 import { isMatchLocked, msUntilLock } from '../utils/date';
@@ -162,7 +162,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
           <div className="flex items-center gap-1">
             {canSpy && !pendingSpy && (
               <button onClick={handleSpyClick} className="p-1 rounded-full text-amber-400 hover:bg-amber-500/10 transition-colors" title={lang.sendScouts || 'Send out the scouts'}>
-                <Search size={13} />
+                <Users size={13} />
               </button>
             )}
             {showRivals && rivals.length > 0 && (

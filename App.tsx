@@ -34,7 +34,7 @@ import { RoundResults } from './components/RoundResults';
 import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
-import { AppHeader } from './components/AppHeader';
+import { AppHeader, riskZoneIcon, riskZoneLabel } from './components/AppHeader';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
 import { PlayerModal } from './components/PlayerModal';
@@ -647,6 +647,14 @@ export const App = () => {
       if (h > 0) return `${h}h ${m}m`;
       return `${m}m`;
   };
+  // Calm while there's plenty of time, warns as the round's lock approaches,
+  // urgent (pulsing) inside the last hour — same "last hour" threshold
+  // MatchRow/MatchCard already use for their own urgent-lock styling.
+  const countdownColorClass = (ms: number) => {
+      if (ms < 60 * 60 * 1000) return 'text-red-400 animate-pulse';
+      if (ms < 24 * 60 * 60 * 1000) return 'text-amber-400';
+      return 'text-cyan-300';
+  };
 
   const showClearTrash = useMemo(() => {
     if (!user) return false;
@@ -801,16 +809,29 @@ export const App = () => {
             historical and further-future rounds get their own view later. */}
         {activeTab === 'groups' && (
             <div className="animate-fade-in">
-                <div className="flex items-end justify-between mb-4 px-1 pb-3 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                        <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></span>
-                        <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
+                <div className="flex items-end justify-between mb-4 px-1 pb-4 border-b border-white/10 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)] shrink-0"></span>
+                        <div className="flex flex-col gap-1 min-w-0">
+                            <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
+                            <button
+                                onClick={() => setShowAvatarEditor(true)}
+                                className="self-start flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors"
+                                title={t.riskProfileSection}
+                            >
+                                <span>{riskZoneIcon(user?.riskResult)}</span>
+                                {riskZoneLabel(user?.riskResult, t.riskBanker, t.riskBalanced, t.riskWildcard)} Risk
+                            </button>
+                        </div>
                     </div>
                     {roundLockCountdownMs !== null && (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white/10 border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-1.5 shrink-0">
-                            <Timer size={11} className="text-amber-400" />
-                            {formatRoundCountdown(roundLockCountdownMs)}
-                        </span>
+                        <div className="flex flex-col items-end gap-0.5 shrink-0">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
+                            <span className={`text-xl sm:text-3xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
+                                <Timer size={16} className="shrink-0" />
+                                {formatRoundCountdown(roundLockCountdownMs)}
+                            </span>
+                        </div>
                     )}
                 </div>
                 {currentMatchdayMatches.length > 0 && (
