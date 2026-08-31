@@ -115,8 +115,8 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     <div className="absolute inset-0 rounded-xl bg-cyan-400/40 blur-lg pointer-events-none"></div>
                     <Logo className="w-12 h-12 relative" variant="theme" />
                  </div>
-                 <div className="hidden md:block">
-                    <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">CL Predictor</h1>
+                 <div>
+                    <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">CL Predictor</h1>
                  </div>
               </div>
 
