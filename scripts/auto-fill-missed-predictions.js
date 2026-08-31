@@ -2,9 +2,11 @@
  * auto-fill-missed-predictions.js
  *
  * Safety net for the League Phase: for any user who set a risk profile at
- * signup, auto-generates a plausible score for any League Phase match whose
- * 1-hour prediction lock has already passed with no prediction from them.
- * Never touches a match the user actually predicted — only fills a true gap.
+ * signup, auto-generates a plausible score for any League Phase match in a
+ * round whose lock has already passed (the whole round locks together at its
+ * earliest kickoff — see utils/date.ts's getRoundLockTime) with no prediction
+ * from them. Never touches a match the user actually predicted — only fills
+ * a true gap.
  *
  * Mirrors send-reminders.js's shape. Reimplements a simplified, two-axis
  * version of services/engine.ts's generateMagicScores in plain JS rather than
@@ -32,8 +34,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL         ?? process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const LOCK_WINDOW_MS = 60 * 60 * 1000; // same rolling window as utils/date.ts's isMatchLocked
 
 // Adapted from services/engine.ts's generateMagicScores, split into two
 // independent axes: riskResult drives the existing favorite-bias/luck-range
@@ -81,18 +81,31 @@ async function main() {
   // Only League Phase matches (round is null) — Knockout Phase auto-fill is deferred.
   const { data: matches, error: matchErr } = await supabase
     .from('matches')
-    .select('id, date, home_team_id, away_team_id, round, status')
+    .select('id, date, home_team_id, away_team_id, round, matchday, status')
     .is('round', null);
   if (matchErr) { console.error('Matches fetch failed:', matchErr.message); process.exit(1); }
 
   const now = Date.now();
+
+  // Each round (matchday) locks together at its earliest kickoff — not on a
+  // rolling per-match basis — so every match in a round stays open right up
+  // until that shared moment, mirroring utils/date.ts's getRoundLockTime.
+  const roundLockTimeByMatchday = new Map();
+  for (const m of matches ?? []) {
+    if (m.matchday == null || !m.date || m.date === 'TBD') continue;
+    const kickoff = new Date(m.date).getTime();
+    if (isNaN(kickoff)) continue;
+    const current = roundLockTimeByMatchday.get(m.matchday);
+    if (current === undefined || kickoff < current) roundLockTimeByMatchday.set(m.matchday, kickoff);
+  }
+
   const lockedMatches = (matches ?? []).filter(m => {
-    if (!m.date || m.date === 'TBD') return false;
     if (!m.home_team_id || !m.away_team_id) return false;
     if (m.home_team_id === 'TBD' || m.away_team_id === 'TBD') return false;
-    const kickoff = new Date(m.date).getTime();
-    if (isNaN(kickoff)) return false;
-    return now >= kickoff - LOCK_WINDOW_MS;
+    if (m.matchday == null) return false;
+    const roundLockTime = roundLockTimeByMatchday.get(m.matchday);
+    if (roundLockTime === undefined) return false;
+    return now >= roundLockTime;
   });
   console.log(`   League Phase matches: ${matches?.length ?? 0}, locked: ${lockedMatches.length}`);
 

@@ -13,7 +13,7 @@ import {
   buildFutureReset,
 } from './services/engine';
 import REAL_CL_2024_RESULTS from './data/real-cl-2024-results.json';
-import { isMatchLocked, msUntilLock } from './utils/date';
+import { isMatchLocked, msUntilLock, getRoundLockTime, sameRound } from './utils/date';
 import { MatchRow } from './components/MatchRow';
 import { StandingsTable } from './components/StandingsTable';
 import { StandingsStrip } from './components/StandingsStrip';
@@ -257,7 +257,9 @@ export const App = () => {
   const handleScoreUpdate = async (matchId: string, h: number, a: number) => {
     if (!user || !supabase) return;
     const match = matches.find(m => m.id === matchId);
-    if (!match || isMatchLocked(match)) return;
+    if (!match) return;
+    const roundLockTime = getRoundLockTime(matches.filter(m => sameRound(m, match)));
+    if (isMatchLocked(match, roundLockTime)) return;
 
     const newPred = { userId: user.email, matchId, home: Number(h), away: Number(a), homeTeamId: match.homeTeamId, awayTeamId: match.awayTeamId };
 
@@ -536,7 +538,8 @@ export const App = () => {
     const mdNumbers = [...new Set(leagueOnly.map(m => m.matchday as number))].sort((a, b) => a - b);
     for (const md of mdNumbers) {
         const mdMatches = leagueOnly.filter(m => m.matchday === md);
-        if (mdMatches.some(m => !isMatchLocked(m))) return md;
+        const roundLockTime = getRoundLockTime(mdMatches);
+        if (mdMatches.some(m => !isMatchLocked(m, roundLockTime))) return md;
     }
     return mdNumbers[mdNumbers.length - 1] ?? 1;
   }, [matches]);
@@ -622,22 +625,19 @@ export const App = () => {
       return groups;
   }, [currentMatchdayMatches, currentLocale]);
 
-  // Countdown to the soonest lock time still ahead in the current round — "you can no
-  // longer enter a score for X once this hits zero." Ticks every 30s, matching the
-  // granularity already used for per-match lock countdowns elsewhere in the app.
+  // The whole round locks together at its earliest kickoff — "you can no longer
+  // enter any score in this round once this hits zero." Ticks every 30s, matching
+  // the granularity used for the per-match countdowns elsewhere in the app.
+  const currentRoundLockTime = useMemo(() => getRoundLockTime(currentMatchdayMatches), [currentMatchdayMatches]);
   const [roundLockTick, setRoundLockTick] = useState(() => Date.now());
   useEffect(() => {
       const id = setInterval(() => setRoundLockTick(Date.now()), 30000);
       return () => clearInterval(id);
   }, []);
   const roundLockCountdownMs = useMemo(() => {
-      const soonest = currentMatchdayMatches
-          .filter(m => !isMatchLocked(m, roundLockTick))
-          .map(m => msUntilLock(m, roundLockTick))
-          .filter((ms): ms is number => ms !== null && ms > 0)
-          .sort((a, b) => a - b)[0];
-      return soonest ?? null;
-  }, [currentMatchdayMatches, roundLockTick]);
+      const ms = msUntilLock(currentRoundLockTime, roundLockTick);
+      return ms !== null && ms > 0 ? ms : null;
+  }, [currentRoundLockTime, roundLockTick]);
   const formatRoundCountdown = (ms: number) => {
       const totalMin = Math.floor(ms / 60000);
       const d = Math.floor(totalMin / 1440);
@@ -858,6 +858,7 @@ export const App = () => {
                                       allPredictions={allPredictions}
                                       isAdminMode={isAdminMode}
                                       onTeamClick={(id) => setViewingTeamId(id)}
+                                      roundLockTime={currentRoundLockTime}
                                     />
                                 ))}
                             </div>
@@ -1127,7 +1128,7 @@ export const App = () => {
                 const simulatedMatches = simulateFullTournament(userMatches, teamsData, favs, scope, riskLevel);
                 // Only the round currently open for predictions — same restriction as the
                 // League Phase tab itself, so the wand can't fill in future or already-locked rounds.
-                const relevantMatches = simulatedMatches.filter(m => !m.round && m.matchday === currentMatchday && !isMatchLocked(m));
+                const relevantMatches = simulatedMatches.filter(m => !m.round && m.matchday === currentMatchday && !isMatchLocked(m, currentRoundLockTime));
 
                 if (user && supabase) {
                     const predictionsToSave = relevantMatches.filter(m => m.homeScore !== null && m.awayScore !== null)

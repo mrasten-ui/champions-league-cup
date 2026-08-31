@@ -12,7 +12,7 @@ import { resolveKitFallback, lookupKitDesignation } from '../kitDesignations';
 import { namesMatch, abbreviateName } from '../utils/nameMatch';
 import { StatsPanel } from './StatsPanel';
 import { PenaltyShootout } from './PenaltyShootout';
-import { isMatchLocked, msUntilLock } from '../utils/date';
+import { isMatchLocked, msUntilLock, getRoundLockTime, sameRound } from '../utils/date';
 
 interface MatchCardProps {
   match: Match;
@@ -125,19 +125,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isFinished = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
     const isStarted = isLive || isFinished;
 
-    // isMatchLocked folds in the admin hard-lock, live/finished state, and the rolling
-    // 1-hour-before-kickoff window.
-    const isRealLifeLocked = isMatchLocked(match);
+    // isMatchLocked folds in the admin hard-lock, live/finished state, and the round's
+    // shared lock time (the whole round locks together at its earliest kickoff).
+    const roundLockTime = getRoundLockTime((allMatches ?? [match]).filter(m => sameRound(m, match)));
+    const isRealLifeLocked = isMatchLocked(match, roundLockTime);
     const isLocked = isRealLifeLocked && !isAdminMode;
 
-    // Live-updating "Locks in Xh Ym" countdown, shown once inside 24h of the rolling lock.
+    // Live-updating "Locks in Xh Ym" countdown, shown once inside 24h of the round lock.
     const [lockTick, setLockTick] = useState(() => Date.now());
     useEffect(() => {
         if (isLocked) return;
         const id = setInterval(() => setLockTick(Date.now()), 30000);
         return () => clearInterval(id);
     }, [isLocked]);
-    const msToLock = isLocked ? null : msUntilLock(match, lockTick);
+    const msToLock = isLocked ? null : msUntilLock(roundLockTime, lockTick);
     const showLockCountdown = msToLock !== null && msToLock > 0 && msToLock < 24 * 60 * 60 * 1000;
     const isUrgentLock = msToLock !== null && msToLock > 0 && msToLock < 60 * 60 * 1000;
     

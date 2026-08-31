@@ -21,6 +21,8 @@ interface MatchRowProps {
   allPredictions: Prediction[];
   isAdminMode: boolean;
   onTeamClick?: (teamId: string) => void;
+  /** The shared moment this match's whole round locks (its earliest kickoff) — see utils/date.ts's getRoundLockTime. */
+  roundLockTime: number | null;
 }
 
 const getInitials = (name: string) => {
@@ -38,7 +40,7 @@ const getInitials = (name: string) => {
  * card used for knockout/detail views.
  */
 export const MatchRow: React.FC<MatchRowProps> = ({
-  match, homeTeam, awayTeam, onUpdate, lang, locale, rivals, onSpy, currentUser, allPredictions, isAdminMode, onTeamClick,
+  match, homeTeam, awayTeam, onUpdate, lang, locale, rivals, onSpy, currentUser, allPredictions, isAdminMode, onTeamClick, roundLockTime,
 }) => {
   const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
 
@@ -74,7 +76,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
     }
   }, [localHome, localAway, isDirty, match.id, onUpdate]);
 
-  const isRealLifeLocked = isMatchLocked(match);
+  const isRealLifeLocked = isMatchLocked(match, roundLockTime);
   const isLocked = isRealLifeLocked && !isAdminMode;
   const isLive = LIVE_STATUSES.includes(match.status);
   const isFinished = FINISHED_STATUSES.includes(match.status);
@@ -89,7 +91,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
     const id = setInterval(() => setLockTick(Date.now()), 30000);
     return () => clearInterval(id);
   }, [isLocked]);
-  const msToLock = isLocked ? null : msUntilLock(match, lockTick);
+  const msToLock = isLocked ? null : msUntilLock(roundLockTime, lockTick);
   const isUrgentLock = msToLock !== null && msToLock > 0 && msToLock < 60 * 60 * 1000;
 
   const isSpied = currentUser?.spiedMatches?.includes(match.id);

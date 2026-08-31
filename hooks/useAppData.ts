@@ -129,11 +129,11 @@ export const useAppData = () => {
                 if (Date.now() < lockTime) {
                     if (kickoffTimerRef.current) clearTimeout(kickoffTimerRef.current);
                     const delay = Math.min(lockTime - Date.now(), 2_147_483_647);
-                    // Only flips the tournamentPhase signal (lockTimePassed) once the first match
-                    // kicks off — does NOT mass-lock every match. Per-match locking is a rolling
-                    // 1-hour-before-kickoff window now (see utils/date.ts's isMatchLocked), computed
-                    // live wherever a match is rendered, not baked into stored state here. Mass-locking
-                    // every match the moment the first one starts would defeat that entirely.
+                    // Only flips the tournamentPhase signal (lockTimePassed) once the very first
+                    // match of the whole tournament kicks off — a separate concept from each
+                    // round's own lock (every match in a round locks together at that round's
+                    // first kickoff, see utils/date.ts's getRoundLockTime), which is computed
+                    // live wherever a match is rendered, not baked into stored state here.
                     kickoffTimerRef.current = setTimeout(() => {
                         setLockTimePassed(true);
                     }, delay);

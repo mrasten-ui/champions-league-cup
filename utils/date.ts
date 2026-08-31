@@ -4,38 +4,57 @@ import { Match } from '../types';
 export const utcDay = (d: string | Date): string =>
   (typeof d === 'string' ? new Date(d) : d).toISOString().slice(0, 10);
 
-/** Predictions lock this long before kickoff. */
-export const LOCK_WINDOW_MS = 60 * 60 * 1000;
+/**
+ * Whether two matches belong to the same round: matchday number for the
+ * League Phase (round undefined), round code for knockout ties.
+ */
+export const sameRound = (
+  a: Pick<Match, 'round' | 'matchday'>,
+  b: Pick<Match, 'round' | 'matchday'>
+): boolean => (a.round ? a.round === b.round : !b.round && a.matchday === b.matchday);
 
 /**
- * Single source of truth for "can this match still be predicted".
- * Order matters: an admin hard-lock (postponements, corrections) always wins,
- * then real-world match state, then the rolling 1-hour-before-kickoff window.
+ * The single moment an entire round locks: the earliest kickoff among the
+ * matches passed in. Predictions for every match in a round stay open right
+ * up until this moment — no earlier, no per-match buffer — then the whole
+ * round locks together. Pass in just the matches belonging to one round
+ * (e.g. via `sameRound`); returns null if none have a real kickoff time yet.
+ */
+export const getRoundLockTime = (roundMatches: Pick<Match, 'date'>[]): number | null => {
+  const kickoffs = roundMatches
+    .map(m => (m.date && m.date !== 'TBD' ? new Date(m.date).getTime() : NaN))
+    .filter(t => !isNaN(t));
+  return kickoffs.length ? Math.min(...kickoffs) : null;
+};
+
+/**
+ * Single source of truth for "can this match still be predicted". Order
+ * matters: an admin hard-lock (postponements, corrections) always wins, then
+ * real-world match state, then the round's shared lock time (see
+ * getRoundLockTime) — every match in a round locks together at the round's
+ * first kickoff, not on its own individual kickoff.
  */
 export const isMatchLocked = (
-  match: Pick<Match, 'date' | 'isLocked' | 'status'>,
+  match: Pick<Match, 'isLocked' | 'status'>,
+  roundLockTime: number | null,
   now: number = Date.now()
 ): boolean => {
   if (match.isLocked) return true;
   if (!['UPCOMING', 'NS'].includes(match.status)) return true;
-  if (!match.date || match.date === 'TBD') return false;
-  const kickoff = new Date(match.date).getTime();
-  if (isNaN(kickoff)) return false;
-  return now >= kickoff - LOCK_WINDOW_MS;
+  if (roundLockTime === null) return false;
+  return now >= roundLockTime;
 };
 
 /**
- * Milliseconds until this match's rolling lock takes effect.
- * Returns null when there's no kickoff time to count down to, or the match
- * is already locked by something other than the rolling window (admin lock /
- * live / finished) — callers should check isMatchLocked first for those.
+ * Milliseconds until the round locks. Returns null when there's no round
+ * lock time to count down to, or the match is already locked by something
+ * other than the round clock (admin lock / live / finished) — callers should
+ * check isMatchLocked first for those.
  */
 export const msUntilLock = (
-  match: Pick<Match, 'date'>,
+  roundLockTime: number | null,
   now: number = Date.now()
 ): number | null => {
-  if (!match.date || match.date === 'TBD') return null;
-  const kickoff = new Date(match.date).getTime();
-  if (isNaN(kickoff)) return null;
-  return kickoff - LOCK_WINDOW_MS - now;
+  if (roundLockTime === null) return null;
+  return roundLockTime - now;
 };
