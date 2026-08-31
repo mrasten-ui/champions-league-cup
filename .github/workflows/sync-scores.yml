@@ -1,11 +1,10 @@
 name: Sync Live Scores
 
 on:
-  # Automatic schedule disabled — was pointed at the old World Cup sync script
-  # (scripts/sync-scores.js) and needs re-adding once you're ready to go live
-  # for the 2026/27 League Phase (kicks off 2026-09-08). Re-add e.g.
-  # `schedule: - cron: '*/5 * * * *'` here; sync-scores-uefa.mjs self-throttles
-  # (live/window/skip tiers based on kickoff proximity) so a tight cron is safe.
+  # sync-scores-uefa.mjs self-throttles (live/window/skip tiers based on
+  # kickoff proximity) so a tight cron is safe to run year-round.
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Manual trigger from the GitHub Actions UI
 
 jobs:

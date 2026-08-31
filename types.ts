@@ -244,22 +244,6 @@ export interface MatchEvent {
   createdAt?: string; // ISO timestamp from DB — used for notification staleness check
 }
 
-// --- NEW: Broadcast & Lore Types ---
-export interface CastMember {
-  name: string;
-  role: 'Host' | 'Pundit';
-  style: string;
-  backstory: string;
-  quote: string;
-  image: string;
-}
-
-export interface BroadcastTeam {
-  id: LanguageCode;
-  region: string;
-  host: CastMember;
-  pundit: CastMember;
-}
 
 export interface MatchLineup {
   id: number;

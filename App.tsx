@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { RefreshCw, CalendarDays, ListOrdered, Timer, Star, X } from 'lucide-react';
 import { TRANSLATIONS, LEAGUES, LEAGUE_DEFAULT_LANGS } from './constants';
 import { LanguageCode, UserProfile, TournamentPhase, Match } from './types';
@@ -19,28 +19,31 @@ import { StandingsTable } from './components/StandingsTable';
 import { StandingsStrip } from './components/StandingsStrip';
 import { StarField } from './components/StarField';
 import { MagicWand } from './components/MagicWand';
-import { HelpingHandModal } from './components/HelpingHandModal';
 import { Leaderboard } from './components/Leaderboard';
-import { RulesPage } from './components/RulesPage';
 import { PredictionNudge } from './components/PredictionNudge';
-import { AvatarGenerator } from './components/AvatarGenerator';
 import { RiskSlider } from './components/RiskSlider';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useSwipe } from './hooks/useSwipe';
 import { supabase } from './supabase';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
-import { DebugTools } from './components/DebugTools';
 import { RoundResults } from './components/RoundResults';
-import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader, riskZoneIcon, riskZoneLabel } from './components/AppHeader';
-import { QuickGuideModal } from './components/QuickGuideModal';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
-import { PlayerModal } from './components/PlayerModal';
-import { StadiumModal } from './components/StadiumModal';
 import { LiveTicker } from './components/LiveTicker';
+
+// Lazily loaded — modal/tab content never needed on first paint, so keeping
+// these out of the main bundle shrinks the initial download.
+const HelpingHandModal = lazy(() => import('./components/HelpingHandModal').then(m => ({ default: m.HelpingHandModal })));
+const RulesPage = lazy(() => import('./components/RulesPage').then(m => ({ default: m.RulesPage })));
+const AvatarGenerator = lazy(() => import('./components/AvatarGenerator').then(m => ({ default: m.AvatarGenerator })));
+const DebugTools = lazy(() => import('./components/DebugTools').then(m => ({ default: m.DebugTools })));
+const TeamDetailsModal = lazy(() => import('./components/TeamDetailsModal').then(m => ({ default: m.TeamDetailsModal })));
+const QuickGuideModal = lazy(() => import('./components/QuickGuideModal').then(m => ({ default: m.QuickGuideModal })));
+const PlayerModal = lazy(() => import('./components/PlayerModal').then(m => ({ default: m.PlayerModal })));
+const StadiumModal = lazy(() => import('./components/StadiumModal').then(m => ({ default: m.StadiumModal })));
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
@@ -735,13 +738,17 @@ export const App = () => {
       />
       <InstallPrompt isLoggedIn={!!user} onRegisterTrigger={setInstallAction} />
 
-      <QuickGuideModal
-        isOpen={showQuickGuide}
-        onClose={() => setShowQuickGuide(false)}
-        lang={t}
-        matches={matches}
-        currentLocale={currentLocale}
-      />
+      {showQuickGuide && (
+        <Suspense fallback={null}>
+          <QuickGuideModal
+            isOpen={showQuickGuide}
+            onClose={() => setShowQuickGuide(false)}
+            lang={t}
+            matches={matches}
+            currentLocale={currentLocale}
+          />
+        </Suspense>
+      )}
 
       {/* Admin: unassigned players banner */}
       {showAdminBanner && unassignedCount > 0 && (
@@ -780,7 +787,7 @@ export const App = () => {
           />
         )}
 
-        {activeTab === 'rules' && <RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} />}
+        {activeTab === 'rules' && <Suspense fallback={null}><RulesPage lang={t} matches={matches} currentLocale={currentLocale} tournamentPhase={tournamentPhase} onAdminTrigger={() => setShowAdminLogin(true)} /></Suspense>}
         
         {/* TOURNAMENT HUB */}
         {activeTab === 'tournament' && (
@@ -957,24 +964,28 @@ export const App = () => {
         } : undefined}
       />
       {playerModal && (
-        <PlayerModal
-          playerId={playerModal.playerId}
-          playerName={playerModal.playerName}
-          teamId={playerModal.teamId}
-          matchEvents={matchEvents}
-          matchLineups={matchLineups}
-          playerMatchStats={playerModal.playerId != null ? playerMatchStats.filter(s => s.playerId === playerModal.playerId) : []}
-          teams={teamsData}
-          lang={t}
-          onClose={() => setPlayerModal(null)}
-        />
+        <Suspense fallback={null}>
+          <PlayerModal
+            playerId={playerModal.playerId}
+            playerName={playerModal.playerName}
+            teamId={playerModal.teamId}
+            matchEvents={matchEvents}
+            matchLineups={matchLineups}
+            playerMatchStats={playerModal.playerId != null ? playerMatchStats.filter(s => s.playerId === playerModal.playerId) : []}
+            teams={teamsData}
+            lang={t}
+            onClose={() => setPlayerModal(null)}
+          />
+        </Suspense>
       )}
       {stadiumVenue && (
-        <StadiumModal
-          venue={stadiumVenue}
-          lang={t}
-          onClose={() => setStadiumVenue(null)}
-        />
+        <Suspense fallback={null}>
+          <StadiumModal
+            venue={stadiumVenue}
+            lang={t}
+            onClose={() => setStadiumVenue(null)}
+          />
+        </Suspense>
       )}
 
       {showAvatarEditor && (
@@ -1040,13 +1051,17 @@ export const App = () => {
 
                 <div className="border-t border-white/10 pt-5">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.selectAvatar}</p>
-                    <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
+                    <Suspense fallback={null}>
+                      <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
+                    </Suspense>
                 </div>
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
             </div>
         </div>
       )}
 
+      {isDebugOpen && (
+      <Suspense fallback={null}>
       <DebugTools
         isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)}
         onRevealRealResults={handleRevealRealResults}
@@ -1112,6 +1127,8 @@ export const App = () => {
           }
         }}
       />
+      </Suspense>
+      )}
 
       {/* Admin Password Modal */}
       {showAdminLogin && (
@@ -1162,7 +1179,8 @@ export const App = () => {
         </div>
       )}
       {isHelpingHandOpen && user && (
-        <HelpingHandModal 
+        <Suspense fallback={null}>
+        <HelpingHandModal
             isOpen={isHelpingHandOpen} onClose={() => setIsHelpingHandOpen(false)} teams={Object.fromEntries(Object.entries(teamsData).filter(([id]) => matches.some(m => m.homeTeamId === id || m.awayTeamId === id)))} initialFavorites={user.favorites} mode="groups" lang={t}
             onGenerate={async (favs, scope, riskLevel) => {
                 if (user && supabase) { await supabase.from('profiles').update({ favorites: favs } as any).eq('email', user.email); setUser({ ...user, favorites: favs }); }
@@ -1188,12 +1206,17 @@ export const App = () => {
                     }
                 }
                 setIsHelpingHandOpen(false);
-            }} 
+            }}
         />
+        </Suspense>
       )}
 
       {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />}
-      {viewingTeamId && teamsData[viewingTeamId] && <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />}
+      {viewingTeamId && teamsData[viewingTeamId] && (
+        <Suspense fallback={null}>
+          <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />
+        </Suspense>
+      )}
 
 
     </div>

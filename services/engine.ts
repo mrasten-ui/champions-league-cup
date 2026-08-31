@@ -829,7 +829,7 @@ export const fetchScoutingOverview = async (teamId: string, lang: LanguageCode):
             return {
                 id: overviewData?.id ?? 0,
                 team_id: overviewData?.team_id || reportData?.team_id || safeId,
-                team_name: overviewData?.team_name || safeId,
+                team_name: overviewData?.team_name || '',
                 confederation: overviewData?.confederation || 'FIFA',
                 fifa_rank: overviewData?.fifa_rank ?? 0,
                 star_player: reportData?.star_player || overviewData?.star_player || '',

@@ -1,53 +1,9 @@
-import { Team, Match, Translation, LanguageCode, Prediction, BroadcastTeam } from './types';
+import { Team, Match, Translation, LanguageCode, Prediction } from './types';
 
 export const LANGUAGES = [
   { code: 'EN' as LanguageCode, name: 'English', flag: 'https://flagcdn.com/w160/gb.png' },
   { code: 'SCO' as LanguageCode, name: 'Scots', flag: 'https://flagcdn.com/w160/gb-sct.png' },
 ];
-
-// --- BROADCAST TEAMS (LORE) ---
-export const BROADCAST_TEAMS: Record<string, BroadcastTeam> = {
-  'EN': {
-    id: 'EN',
-    region: 'United Kingdom',
-    host: {
-      name: 'Sarah',
-      role: 'Host',
-      style: 'Professional, Posh, Composed',
-      backstory: 'A veteran sports presenter who tries desperately to keep the broadcast standard high despite her co-host.',
-      quote: "Well, you heard it here first.",
-      image: '/pundit/host-en.png'
-    },
-    pundit: {
-      name: 'Gaz',
-      role: 'Pundit',
-      style: 'Scouse, Aggressive, Passionate',
-      backstory: 'Ex-Premier League midfielder known for hard tackles, zero goals, and hating "fancy" tactics like false nines.',
-      quote: "What are you on about?! Get stuck in!",
-      image: '/pundit/pundit-en.png'
-    }
-  },
-  'SCO': {
-    id: 'SCO',
-    region: 'Scotland',
-    host: {
-      name: 'Shona',
-      role: 'Host',
-      style: 'Professional but Grounded',
-      backstory: 'The only sensible person in the studio. She manages Rab like a toddler.',
-      quote: "Right, let's get back to the football.",
-      image: '/pundit/host-sco.png'
-    },
-    pundit: {
-      name: 'Rab',
-      role: 'Pundit',
-      style: 'Gritty, Blunt, Dialect-Heavy',
-      backstory: 'Played in the lower leagues for 20 years. Hates favorites, loves a 0-0 draw on a rainy Tuesday.',
-      quote: "That's absolute mince.",
-      image: '/pundit/pundit-sco.png'
-    }
-  }
-};
 
 // --- TRANSLATIONS ---
 

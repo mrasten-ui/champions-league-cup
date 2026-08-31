@@ -1,0 +1,218 @@
+[
+  {
+    "team_id": "ARS",
+    "strengths": ["Highly structured positional attacking play built on patient build-up and inverted full-back rotations.", "Elite set-piece organisation that has become a genuine institutional weapon at both ends of the pitch.", "A settled, well-drilled defensive block that consistently ranks among Europe's stingiest."],
+    "weaknesses": ["A historic tendency to lack a ruthless edge in decisive knockout moments despite territorial dominance.", "Squad depth in attacking positions has repeatedly thinned at the business end of long seasons.", "Can be over-reliant on rehearsed patterns, struggling when opponents disrupt the first phase of build-up."],
+    "scout_notes": "Arsenal are a control-oriented side that suffocates opponents through structure, set pieces and defensive discipline rather than chaos. Their institutional ceiling has long been questioned in Europe, where domestic dominance of games has not always converted into knockout ruthlessness. Expect them to dictate most league-phase matches but face scrutiny when fine margins decide ties."
+  },
+  {
+    "team_id": "BAY",
+    "strengths": ["An aggressive high press and vertical attacking game that overwhelms opponents in wide areas.", "Unmatched institutional winning culture and big-game experience accumulated over decades of European campaigns.", "Financial and squad-building stability that guarantees elite depth across almost every position."],
+    "weaknesses": ["The high defensive line leaves habitual space in behind for quick counter-attacking opponents.", "Periodic internal boardroom turbulence has historically bled into on-pitch consistency.", "An ageing-core cycle problem recurs, with transitions between squad generations often turbulent."],
+    "scout_notes": "Bayern remain the archetypal front-foot German superclub: relentless pressing, wing overloads and a deep-rooted expectation of winning every competition entered. Their vulnerability is almost always self-inflicted — space behind the high line and institutional noise — rather than any lack of quality. Few sides in the draw combine their pedigree with their firepower."
+  },
+  {
+    "team_id": "MCI",
+    "strengths": ["The most refined positional-play system in Europe, controlling games through overloads and relentless possession.", "Exceptional tactical flexibility, capable of shifting shape mid-match to solve specific opponents.", "Institutional resources and recruitment that keep the squad stocked with elite specialists in every role."],
+    "weaknesses": ["Vulnerable to fast transitions when their high line and heavy possession commitment are bypassed.", "A long institutional history of underperforming in Europe relative to domestic dominance.", "Rotational tinkering in big matches has occasionally cost them against well-prepared knockout opponents."],
+    "scout_notes": "Manchester City are the benchmark for controlled, possession-based dominance, strangling opponents with territorial pressure and structured counter-pressing. Their European record has historically lagged their domestic supremacy, with rare tactical over-complications and transition vulnerability the recurring flaws. On paper the most complete side in any draw; in practice, beatable by teams who survive the siege and strike quickly."
+  },
+  {
+    "team_id": "PSG",
+    "strengths": ["Explosive attacking talent density and one-on-one quality few clubs in Europe can match.", "A high-intensity collective pressing identity built around young, athletic profiles.", "Financial muscle allowing constant squad regeneration without selling key assets."],
+    "weaknesses": ["A well-documented institutional fragility in European knockout football, with repeated collapses from winning positions.", "Domestic league dominance leaves them under-tested week to week, dulling competitive sharpness.", "Historic difficulty balancing star individualism with collective defensive responsibility."],
+    "scout_notes": "PSG blend elite individual attackers with an increasingly coherent pressing collective, making them dangerous against anyone. Yet the club's European history is defined by psychological fragility in decisive moments, and their untaxing domestic schedule can leave them undercooked for elite intensity. A genuine contender whose ceiling and floor remain unusually far apart."
+  },
+  {
+    "team_id": "BAR",
+    "strengths": ["A deeply ingrained possession identity and academy pipeline that continuously produces technically elite footballers.", "La Masia-schooled positional play makes them dangerous in tight spaces against any defensive block.", "Enormous institutional prestige and big-stage experience that lifts the squad in marquee European nights."],
+    "weaknesses": ["Financial constraints have limited squad depth and forced reliance on very young players.", "An aggressive high line is repeatedly exploited by direct balls in behind.", "Institutional instability off the pitch periodically disrupts sporting planning and continuity."],
+    "scout_notes": "Barcelona remain wedded to expansive, high-line possession football executed by a blend of academy graduates and marquee names. The style produces both breathtaking dominance and alarming vulnerability, as the space behind their defence is a standing invitation to fast opponents. Their pedigree makes them a threat to anyone, but structural and financial fragility caps their reliability."
+  },
+  {
+    "team_id": "RMA",
+    "strengths": ["Unrivalled institutional pedigree in this competition, with a proven ability to win ties they do not dominate.", "Devastating transitional attacking speed that punishes any opponent who over-commits.", "A squad culture of big-game composure that consistently delivers in decisive knockout moments."],
+    "weaknesses": ["Less committed to structured pressing than rivals, they can be territorially dominated for long spells.", "Midfield generational transition has periodically left them open between the lines.", "A reliance on individual moments and mystique can mask stretches of collective passivity."],
+    "scout_notes": "Real Madrid are the competition's ultimate knockout animal: comfortable ceding control, lethal in transition, and psychologically unbreakable on European nights. They will lose the territorial battle in many matches and win the tie anyway, a pattern repeated across eras. No draw outcome is worse for an opponent than Madrid with something to prove."
+  },
+  {
+    "team_id": "AVL",
+    "strengths": ["A bold high-line, offside-trap defensive scheme that compresses the pitch and disrupts elite attacks.", "Strong home fortress identity at Villa Park with an intense, front-foot pressing game.", "Astute recruitment that has assembled a squad of undervalued, tactically intelligent profiles."],
+    "weaknesses": ["Limited institutional experience at the elite European level compared to the field's aristocrats.", "The extreme high line is high-variance and can be dismantled by precise runs in behind.", "Squad depth strains when European and domestic schedules stack up."],
+    "scout_notes": "Aston Villa are a modern, aggressive project side defined by their daring defensive line and intense home atmosphere. Their tactical identity produces both stifling performances and occasional heavy defeats, reflecting its inherent risk. As a relative newcomer to this level, their ceiling is real but their margin for error is thin."
+  },
+  {
+    "team_id": "MUN",
+    "strengths": ["Immense institutional prestige and one of Europe's richest histories in this competition.", "Financial power that sustains a squad of individually elite, match-winning talents.", "A club culture historically built on attacking football and late-game resilience."],
+    "weaknesses": ["A decade of structural incoherence between recruitment, coaching and identity has undermined consistency.", "Defensive organisation in transition has been a recurring, well-documented weakness.", "Enormous external pressure and scrutiny amplify every dip in form."],
+    "scout_notes": "Manchester United carry heavyweight pedigree and individual talent, but the modern institution has struggled to convert resources into a coherent tactical identity. They remain capable of beating anyone on a given night while losing matches they should control. Scouts should treat them as talented, volatile and structurally unresolved."
+  },
+  {
+    "team_id": "LIV",
+    "strengths": ["A ferocious pressing and counter-pressing identity that turns opposition mistakes into immediate chances.", "Anfield's European atmosphere is a genuine institutional weapon, historically fuelling famous comebacks.", "Elite recruitment discipline that consistently identifies undervalued players who fit the system."],
+    "weaknesses": ["The intensity-based model risks physical fatigue across congested fixture periods.", "When the press is bypassed with quick, precise circulation, the defensive structure can be exposed.", "Historic squad-depth gaps in specific positions have surfaced at critical moments."],
+    "scout_notes": "Liverpool are Europe's great intensity merchants, defined by pressing, verticality and an emotionally overwhelming home ground. Their identity has repeatedly turned improbable European ties, though it exacts a physical toll that shows in congested seasons. Opponents who keep composure under the storm can find space, but few manage it for ninety minutes."
+  },
+  {
+    "team_id": "INT",
+    "strengths": ["A masterclass back-three defensive structure combining Italian organisational rigour with modern build-up play.", "Devastating wing-back play that provides both width in attack and a compact five-man defensive base.", "Deep institutional experience in European finals and knockout football."],
+    "weaknesses": ["Financial constraints periodically force sales of key players and limit squad refreshment.", "An ageing-core pattern recurs, raising athleticism concerns against high-tempo pressing sides.", "Can retreat too deep protecting leads, inviting sustained late pressure."],
+    "scout_notes": "Inter are the modern standard-bearers of the sophisticated Italian back three: defensively formidable, tactically cohesive and ruthlessly efficient in structured attacks. Their limitations are institutional more than tactical, as finances and squad age cycles constrain long-term ceiling. In a single tie they are among the hardest opponents in the draw to break down."
+  },
+  {
+    "team_id": "SPO",
+    "strengths": ["One of Europe's finest talent-development academies, continuously producing elite technical players.", "A flexible back-three system with aggressive pressing that has repeatedly troubled bigger European clubs.", "Strong institutional identity and an intimidating home atmosphere in Lisbon."],
+    "weaknesses": ["A selling-club economic model means the best players routinely depart at peak value.", "Squad depth falls away sharply against the elite tier's resources.", "Historic tendency to fade in Europe's later rounds once key individuals are neutralised."],
+    "scout_notes": "Sporting CP are the archetypal high-functioning development club: tactically modern, academy-fed and consistently competitive above their financial weight. Their ceiling in this competition is capped by the annual sale of their standouts, but their structure means the collective rarely collapses. A dangerous mid-tier opponent nobody wants in a tight tie."
+  },
+  {
+    "team_id": "BVB",
+    "strengths": ["The Yellow Wall provides arguably Europe's most intimidating home atmosphere on continental nights.", "A club identity built on rapid vertical transitions and fearless deployment of young talent.", "Proven institutional record of runs deep into this competition despite financial disadvantages."],
+    "weaknesses": ["Chronic defensive lapses in concentration have undermined countless strong positions.", "The player-trading model constantly strips the squad of its best-developed assets.", "A long-standing reputation for inconsistency, mixing elite performances with inexplicable collapses."],
+    "scout_notes": "Dortmund remain European football's great volatility play: electric in transition, roared on by the Yellow Wall, and perennially capable of a deep run. The same institution, however, produces baffling lapses and rebuilds itself every few seasons through player sales. Scouts should rate their peak very highly and their floor very low."
+  },
+  {
+    "team_id": "ATM",
+    "strengths": ["A legendary low-block defensive identity that makes them among the hardest teams in Europe to score against.", "Elite game-management and dark-arts streetwiseness in tight knockout ties.", "The Metropolitano crowd and institutional siege mentality create a hostile European venue."],
+    "weaknesses": ["Chronic difficulty creating chances against opponents who cede possession and sit deep themselves.", "The reactive identity can leave them passive for long stretches, gambling on fine margins.", "Historic underperformance away from home in Europe relative to their fortress record."],
+    "scout_notes": "Atlético are the competition's great disruptors: compact, cynical, superbly organised and psychologically hardened for one-goal ties. Their identity struggles most when forced to take the initiative, and their away form in Europe has never matched their home menace. A nightmare draw for possession-dominant sides, a manageable one for fellow pragmatists."
+  },
+  {
+    "team_id": "POR",
+    "strengths": ["Decades of institutional European know-how, including improbable triumphs over wealthier opposition.", "A world-class scouting network, particularly in South America, that keeps the squad talent-rich.", "The Dragão is a historically difficult venue where Porto raise their level on European nights."],
+    "weaknesses": ["The sell-to-survive economic model guarantees constant squad turnover.", "Depth and wage structure cannot compete once ties reach the elite financial tier.", "Occasional over-reliance on physicality and gamesmanship draws cards and suspensions at costly moments."],
+    "scout_notes": "Porto are serial European competitors whose recruitment machine and knockout cunning consistently outstrip their budget. They punch above their weight almost annually, but the same trading model prevents sustained challenges deep into the competition. Expect a streetwise, awkward opponent that no seed wants in a two-legged scenario."
+  },
+  {
+    "team_id": "ROM",
+    "strengths": ["A passionate, intimidating home environment at the Olimpico that lifts performances on big nights.", "Strong institutional tradition of defensive organisation and counter-attacking pragmatism in Europe.", "A club identity that binds emotionally driven squads into more than the sum of their parts."],
+    "weaknesses": ["Decades of near-misses have entrenched a reputation for faltering at the final hurdle.", "Financial constraints and FFP pressures repeatedly limit squad investment.", "Emotional volatility cuts both ways, producing collapses as readily as heroics."],
+    "scout_notes": "Roma are a mood team of genuine emotional force: capable of famous European nights when the Olimpico ignites, and equally capable of self-sabotage. Their tactical tradition is pragmatic and counter-oriented rather than dominant. Rate them as a dangerous floating threat whose output depends heavily on momentum and occasion."
+  },
+  {
+    "team_id": "NAP",
+    "strengths": ["A fierce, technically gifted attacking tradition built on quick combinations and wide creativity.", "The Maradona stadium generates one of Europe's most hostile and emotionally charged atmospheres.", "Smart Mediterranean and market-inefficiency scouting has repeatedly built elite squads cheaply."],
+    "weaknesses": ["Institutional volatility, with frequent managerial turnover disrupting tactical continuity.", "Historic inconsistency between dominant domestic campaigns and flat European showings.", "Squads have tended to cycle sharply, with title-winning cores dismantled quickly."],
+    "scout_notes": "Napoli combine southern Italian intensity with genuinely progressive attacking football when their cycle is on the upswing. The institution's boom-and-bust rhythm — brilliant peaks followed by disruptive resets — makes their European output hard to predict. At their best they can beat anyone; the question is always which Napoli arrives."
+  },
+  {
+    "team_id": "LEN",
+    "strengths": ["A cohesive, high-energy collective pressing identity that compensates for modest star power.", "Bollaert-Delelis is one of France's most atmospheric grounds, a real factor on European nights.", "A strong institutional culture of unity and overachievement relative to budget."],
+    "weaknesses": ["Very limited elite European experience across the squad and institution.", "The economic model forces sales of any standout performer almost immediately.", "Squad depth is thin for the demands of simultaneous European and domestic campaigns."],
+    "scout_notes": "Lens are a classic overachieving collective: intense, unified and carried by a raucous home support that neutralises talent gaps. Their inexperience and shallow depth at this level are the obvious vulnerabilities. Treat them as a hostile away trip and a beatable opponent over sustained quality."
+  },
+  {
+    "team_id": "STU",
+    "strengths": ["A bold, high-pressing attacking identity typical of the modern German school.", "Strong youth development tradition that keeps feeding athletic, hungry profiles into the first team.", "An emotionally committed home support that turns the Neckarstadion into a demanding venue."],
+    "weaknesses": ["Institutional volatility, with historic swings between European qualification and relegation battles.", "Aggressive pressing leaves exploitable space in behind for composed elite opponents.", "Limited recent pedigree at Champions League level relative to the field."],
+    "scout_notes": "Stuttgart embody the front-foot German pressing tradition, dangerous through intensity and vertical speed rather than control. The club's boom-bust history and limited elite European mileage make sustained consistency the central doubt. A side that will trouble anyone in a single match but may lack the depth of know-how for a long campaign."
+  },
+  {
+    "team_id": "RBL",
+    "strengths": ["A purpose-built institutional model producing consistent Champions League qualification and modern pressing football.", "One of Europe's most effective young-talent identification and development pipelines.", "Tactical identity based on rapid vertical transitions that punishes disorganised opponents severely."],
+    "weaknesses": ["The trading model routinely sells its best players to wealthier rivals, capping continuity.", "A young institution lacking the deep knockout pedigree of Europe's established elite.", "A recurring reputation for shrinking in the biggest European matches."],
+    "scout_notes": "Leipzig are the laboratory club of the Red Bull system: fast, aggressive, ruthlessly modern and endlessly regenerating through youth. What they lack is scar tissue — the institutional weight that carries teams through decisive knockout moments, and their best players tend to leave before the project matures. Strong league-phase performers whose ceiling remains unproven."
+  },
+  {
+    "team_id": "COM",
+    "strengths": ["An ambitious, possession-oriented project identity unusual for a club of their recent stature.", "Significant ownership investment enabling recruitment beyond their historic level.", "The underdog freedom of a club with no European baggage and nothing to lose."],
+    "weaknesses": ["Essentially no institutional experience of elite European competition.", "A newly assembled squad lacks the ingrained cohesion of established continental sides.", "Defensive resilience at this level is entirely unproven."],
+    "scout_notes": "Como are the draw's romantic wildcard: a lakeside club propelled upward by investment and a deliberately modern, front-foot footballing project. Every element of elite European competition — travel, pressure, tactical variety — is new to this institution. Expect fearlessness, expect naivety, and expect volatility in both directions."
+  },
+  {
+    "team_id": "VIL",
+    "strengths": ["A remarkable institutional record of European overachievement for a small-town club.", "A tradition of technically refined, positionally intelligent football rooted in patient build-up.", "Consistently shrewd recruitment and player development relative to modest resources."],
+    "weaknesses": ["One of the smallest fanbases and stadiums in the competition limits big-night atmosphere and revenue.", "Squad depth cannot sustain injuries to key creative players.", "Lacks the athletic ceiling to match Europe's most physical pressing sides."],
+    "scout_notes": "Villarreal are Spain's great small-town overachievers, marrying technical, thoughtful football with a European pedigree far beyond their size. Their vulnerabilities are structural — depth, physicality, resources — rather than tactical. A cultured opponent capable of eliminating a giant, as their history repeatedly shows."
+  },
+  {
+    "team_id": "PSV",
+    "strengths": ["A proud institutional history in this competition and one of the Netherlands' great talent academies.", "A committed attacking identity built on wing play, high tempo and positional rotation.", "The Philips Stadion provides a compact, loud and genuinely difficult European venue."],
+    "weaknesses": ["The Eredivisie's competitive level leaves them under-prepared for elite defensive intensity.", "Best players are sold annually to the top five leagues, resetting cohesion.", "Defensive transitions are repeatedly exposed against faster, stronger opposition."],
+    "scout_notes": "PSV carry the classic Dutch profile: attacking conviction, academy technique and a knowledgeable home crowd, tempered by the gulf between their domestic league and elite European intensity. They will outplay similar-tier opponents and threaten bigger ones at home. Away against the elite, their open identity becomes a liability."
+  },
+  {
+    "team_id": "BRU",
+    "strengths": ["Belgium's most consistent European institution, with regular Champions League campaigns building real know-how.", "A well-run development-and-trading model that keeps producing competitive squads.", "The Jan Breydel atmosphere and Flemish intensity make home matches genuinely awkward for visitors."],
+    "weaknesses": ["The domestic league's level provides limited weekly preparation for elite opposition.", "Star performers are sold each summer, forcing perpetual rebuilds.", "Historic tendency to compete well at home while struggling badly on elite away trips."],
+    "scout_notes": "Club Brugge are the reliable Belgian standard-bearer: organised, competently coached and increasingly comfortable in league-phase football. Their profile is that of a scalp-taker at home and a points-donor away against the elite. Sustainable overachievers, but with a clearly bounded ceiling."
+  },
+  {
+    "team_id": "BET",
+    "strengths": ["A flair-driven Andalusian footballing identity that prizes technique and attacking imagination.", "The Benito Villamarín houses one of Spain's most passionate and vocal supports.", "A knack for attracting technically gifted players drawn to the club's style and culture."],
+    "weaknesses": ["Chronic inconsistency is practically an institutional trademark.", "Financial limitations restrict depth and force creative but fragile squad-building.", "Defensive solidity has rarely matched the quality of their attacking play."],
+    "scout_notes": "Betis are Spanish football's great romantics: capable of sublime attacking displays powered by an extraordinary support, and equally capable of unexplained no-shows. Their limited elite European pedigree and soft defensive underbelly are the standing concerns. A neutral's delight and a bettor's headache."
+  },
+  {
+    "team_id": "LIL",
+    "strengths": ["An elite scouting and development operation that has produced a stream of world-class talents.", "A tactical tradition of compact, disciplined defensive blocks and rapid counter-attacks.", "Institutional experience of upsetting far wealthier sides in both France and Europe."],
+    "weaknesses": ["The trading model sells its stars quickly, preventing squad continuity.", "Resources and depth fall clearly short of the competition's upper tier.", "Attacking output can dry up when the counter-attacking game is denied space."],
+    "scout_notes": "Lille are France's premier talent factory outside Paris, pairing shrewd recruitment with a pragmatic, well-organised tactical identity. They are built to frustrate and counter, making them awkward for dominant sides but limited against deep blocks. A classic dangerous-but-capped European mid-seed."
+  },
+  {
+    "team_id": "BOD",
+    "strengths": ["A distinctive, fearless 4-3-3 attacking identity executed with remarkable collective cohesion.", "The Aspmyra's Arctic conditions and artificial surface create one of Europe's most alien away trips.", "An institutional culture of togetherness that has produced famous results against continental giants."],
+    "weaknesses": ["The Norwegian league's level and calendar leave them mismatched against elite squads over two legs.", "Away from their unique home environment, results historically decline sharply.", "Limited resources mean any sustained injury run cuts deep."],
+    "scout_notes": "Bodø/Glimt are the competition's great curiosity: a small Arctic club playing brave, synchronised attacking football on plastic under the northern lights. At home they are a genuine threat to anyone, as several famous scalps attest; on the road against the elite, the gap usually shows. Environmental advantage is their superpower and their limitation."
+  },
+  {
+    "team_id": "GAL",
+    "strengths": ["One of world football's most hostile home atmospheres, historically dubbed 'Hell' by visiting teams.", "The institutional pedigree of a UEFA Cup winner with deep European history.", "Financial and pulling power to attract established international stars to Istanbul."],
+    "weaknesses": ["A long-standing pattern of formidable home form collapsing into poor away results in Europe.", "Squad-building has often prioritised big names over tactical coherence.", "Institutional volatility, with frequent managerial and boardroom churn."],
+    "scout_notes": "Galatasaray remain defined by the furnace of their home support and a squad-building model that stockpiles recognisable stars. The historic home-away split is the key analytical point: near-untouchable in Istanbul, exposed on the road. Any opponent's tie plan starts with surviving the atmosphere."
+  },
+  {
+    "team_id": "FEN",
+    "strengths": ["Enormous fanbase and home intensity that make the Şükrü Saracoğlu a daunting European venue.", "Financial capacity to assemble squads laden with international experience.", "A proud institutional identity that fuels relentless ambition and pressure to succeed."],
+    "weaknesses": ["A striking historic underachievement in the Champions League relative to their domestic stature.", "Perpetual internal turbulence and impatience undermine long-term tactical projects.", "Star-heavy squads have repeatedly lacked collective defensive balance."],
+    "scout_notes": "Fenerbahçe pair one of Europe's great supports with a squad model built on accumulated star names, yet the institution's Champions League history is thin for a club of its size. Impatience is the recurring flaw: managers, systems and squads are churned before cohesion forms. Dangerous at home, structurally unreliable across a campaign."
+  },
+  {
+    "team_id": "SLA",
+    "strengths": ["A ferocious, physically dominant pressing identity that ranks among the most intense in Europe.", "The Eden Arena crowd and Czech footballing pride create a genuinely hostile home setting.", "A consistent institutional record of competitive European performances against bigger budgets."],
+    "weaknesses": ["Technical quality in the final third lags behind their physical and organisational level.", "The Czech league offers limited weekly preparation for elite opposition.", "Key players are regularly sold westward, disrupting continuity."],
+    "scout_notes": "Slavia Prague are Central Europe's intensity specialists: physical, aggressive, superbly conditioned and tactically disciplined. They make every match a battle and have embarrassed wealthier sides who arrived unprepared. The gap appears in the final third, where craft doesn't always match commitment."
+  },
+  {
+    "team_id": "AEK",
+    "strengths": ["The Agia Sophia arena delivers a ferocious Athens atmosphere that unsettles visiting teams.", "A proud institutional history as one of Greece's traditional powers with European pedigree.", "A pragmatic, hard-running identity well suited to compact knockout defending."],
+    "weaknesses": ["Limited recent Champions League experience leaves the institution short of elite-level rhythm.", "The Greek league's competitive standard restricts preparation for top opposition.", "Financial resources sit near the bottom of the competition's range."],
+    "scout_notes": "AEK bring classic Greek European qualities: hostility at home, organised pragmatism, and a support that treats every continental night as an event. The talent and resource gap to the field's upper tiers is substantial and shows most in away matches. A points threat at home, a likely points source elsewhere."
+  },
+  {
+    "team_id": "VFK",
+    "strengths": ["A committed attacking, front-foot playing identity unusual among minnows at this level.", "Strong local roots and a tight-knit squad culture typical of Norwegian club football.", "The unfamiliarity of Norwegian conditions and surfaces complicates visits for continental sides."],
+    "weaknesses": ["Virtually no institutional experience of Champions League football.", "The squad's overall quality and depth sit at the very bottom of the field.", "An open playing style risks heavy defeats against clinical elite attacks."],
+    "scout_notes": "Viking arrive as one of the tournament's rank outsiders, carrying an admirably brave attacking identity into a field far above their weight class. Their unfamiliar home environment offers occasional upset potential, but the structural gap in quality, depth and experience is the defining fact. Expect entertainment and expect them to pay for their openness."
+  },
+  {
+    "team_id": "FEY",
+    "strengths": ["De Kuip is one of Europe's most storied and intimidating stadiums on continental nights.", "A proud European pedigree including a European Cup, embedding real institutional belief.", "A tradition of intense, hard-pressing, emotionally driven football that overwhelms unprepared visitors."],
+    "weaknesses": ["Financial disadvantages even within the Netherlands force constant squad trading.", "The Eredivisie gap to elite leagues shows in defensive transitions against top sides.", "Emotional intensity tips into indiscipline at costly moments."],
+    "scout_notes": "Feyenoord marry a genuinely great European history with the raw emotional force of De Kuip, making Rotterdam a fixture no elite side enjoys. Their model produces committed, aggressive teams that periodically overachieve before being sold apart. Home menace is high; away consistency against the elite is the historic weakness."
+  },
+  {
+    "team_id": "LASK",
+    "strengths": ["A well-established high-pressing, man-oriented tactical identity in the Austrian school.", "A modern stadium and organised club structure supporting consistent European qualification.", "Collective work-rate and cohesion that compensate for limited individual star quality."],
+    "weaknesses": ["Minimal institutional experience at Champions League level proper.", "The Austrian Bundesliga's standard leaves them undercooked for elite intensity.", "A shallow squad with little margin for injuries or suspensions."],
+    "scout_notes": "LASK are a well-drilled Austrian pressing side whose system, rather than its individuals, is the asset. Against similar-tier opponents their intensity travels well; against the elite, the athletic and technical gap widens quickly. A competently run outsider whose realistic ambitions are scalps at home."
+  },
+  {
+    "team_id": "SLB",
+    "strengths": ["Slovakia's dominant club institution with deep domestic winning culture and European regularity.", "The Tehelné pole crowd provides a passionate, hostile Central European atmosphere.", "A pragmatic, physically committed style suited to frustrating stronger opponents."],
+    "weaknesses": ["The gulf between the Slovak league and Champions League level is among the widest in the field.", "Squad quality and depth rank near the bottom of the competition.", "Historic elite-level campaigns have yielded heavy defeats away from home."],
+    "scout_notes": "Slovan Bratislava arrive as domestic royalty facing continental reality: dominant at home in Slovakia, heavily outgunned against the European elite. Their pragmatism and home support offer isolated upset potential. Across a full league phase, they profile as one of the field's likeliest points sources."
+  },
+  {
+    "team_id": "SAB",
+    "strengths": ["The freedom of a total outsider, with zero pressure and everything to gain.", "An ambitious, comparatively well-resourced project within Azerbaijani football.", "Unfamiliar travel to Baku adds logistical difficulty for visiting European sides."],
+    "weaknesses": ["Essentially no institutional Champions League pedigree of any kind.", "The Azerbaijani league's standard leaves an enormous preparation gap to this level.", "Squad quality, depth and elite experience all sit at the very bottom of the field."],
+    "scout_notes": "Sabah are the draw's most extreme outsider: a young Azerbaijani project club stepping into a competition orders of magnitude above its habitat. The long trip to Baku and underdog liberation are the only meaningful assets. Analytically, they profile as the field's clearest points donor, with any single positive result constituting a famous night."
+  },
+  {
+    "team_id": "SHK",
+    "strengths": ["A remarkable institutional resilience, sustaining elite European competition for years despite displacement by war.", "A long tradition of technically gifted, Brazilian-influenced attacking football.", "Deep Champions League experience, including historic results against Europe's biggest clubs."],
+    "weaknesses": ["Playing home matches in exile strips away any genuine home advantage.", "Wartime circumstances have drained the squad of the international stars of past eras.", "Constant upheaval makes continuity of preparation and squad-building extraordinarily difficult."],
+    "scout_notes": "Shakhtar remain one of European football's most admirable institutions, preserving a technical, attack-minded identity through years of exile and upheaval. Their accumulated Champions League know-how keeps them competitive beyond their current resources. The absence of a true home fortress and the drain of circumstance cap what this proud club can realistically achieve."
+  }
+]
