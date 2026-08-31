@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, Match, Prediction, Translation, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, calculatePenaltyBonus, resolvePenaltySide, getManagerStats } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronRight, PieChart, Users, Medal, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronRight, PieChart, Users, Medal, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LEAGUES } from '../constants';
 
@@ -523,9 +523,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                 <div className="flex flex-col min-w-0">
                                     <div className={`flex items-center gap-1.5 truncate transition-all ${isExpanded ? 'text-lg font-black text-white' : 'text-sm font-bold text-slate-200'}`}>
                                         {user.name}
-                                        {user.hasTakenSecondChance && (
-                                            <Shield size={10} className="text-purple-500 shrink-0" fill="currentColor" />
-                                        )}
                                         {user.streak > 2 && (
                                             <Flame size={10} className="text-orange-500 animate-pulse shrink-0" fill="currentColor" />
                                         )}

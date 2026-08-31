@@ -149,16 +149,9 @@ export const generateDailyBrief = async (
         return `- ${hTeam} vs ${aTeam}${roundLabel}: ${cleanName}'s pick is ${pick}${rivalry ? `, ${rivalry}` : ''}`;
     }).join('\n');
 
-    const scStatus = currentUser.secondChanceStatus;
-    const scInfo = scStatus === 'ACTIVE'
-        ? ' Second Chance is ACTIVE (already used).'
-        : scStatus === 'PENDING'
-        ? ' Second Chance is available but unused.'
+    const stageContext = upcoming.some(m => m.round)
+        ? `\nSTAGE: Knockout rounds — single elimination. Players predict exact scores one round in advance, same as the League Phase; points scale up each round.\n`
         : '';
-
-    const stageContext = upcoming.some(m => m.round && !m.groupId)
-        ? `\nSTAGE: Knockout rounds — single elimination, winner advances. Players pick who advances, not scores.${scInfo}\n`
-        : scInfo ? `\nNOTE:${scInfo}\n` : '';
 
     const prompt = `${t.systemPrompt}
 

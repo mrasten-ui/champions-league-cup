@@ -486,7 +486,6 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
               onUpdate={() => {}}
               lang={lang}
               locale={locale}
-              userTokens={0}
               rivals={[]}
               onSpy={() => {}}
               currentUser={currentUser}

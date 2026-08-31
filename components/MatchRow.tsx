@@ -15,7 +15,6 @@ interface MatchRowProps {
   onUpdate: (id: string, h: number, a: number) => void;
   lang: Translation;
   locale: string;
-  userTokens: number;
   rivals: UserProfile[];
   onSpy: (id: string) => void;
   currentUser: UserProfile | null;
@@ -39,7 +38,7 @@ const getInitials = (name: string) => {
  * card used for knockout/detail views.
  */
 export const MatchRow: React.FC<MatchRowProps> = ({
-  match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, isAdminMode, onTeamClick,
+  match, homeTeam, awayTeam, onUpdate, lang, locale, rivals, onSpy, currentUser, allPredictions, isAdminMode, onTeamClick,
 }) => {
   const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
 

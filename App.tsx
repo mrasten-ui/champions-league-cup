@@ -852,7 +852,6 @@ export const App = () => {
                                       onUpdate={handleScoreUpdate}
                                       lang={t}
                                       locale={currentLocale}
-                                      userTokens={user?.tokens || 0}
                                       rivals={rivalsList}
                                       onSpy={handleSpy}
                                       currentUser={user}

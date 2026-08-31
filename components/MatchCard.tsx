@@ -21,7 +21,6 @@ interface MatchCardProps {
   onUpdate: (id: string, h: number, a: number) => void;
   lang: Translation;
   locale: string;
-  userTokens: number;
   rivals: UserProfile[];
   onSpy: (id: string) => void;
   revealedRivals?: string[];
@@ -29,9 +28,6 @@ interface MatchCardProps {
   allPredictions: Prediction[];
   phase: TournamentPhase;
   isAdminMode: boolean;
-  onSubstitute?: () => void;
-  substitutionsLeft?: number;
-  isUnlockedBySub?: boolean;
   onTeamClick?: (teamId: string) => void;
   showStatusBadge?: boolean;
   homeTeamPoints?: number;
@@ -49,8 +45,6 @@ interface MatchCardProps {
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
   onStadiumClick?: (venue: string) => void;
   onCardClick?: () => void;
-  predictedAdvancingTeams?: Set<string>;
-  predictedKnockoutWinners?: Map<string, string>;
 }
 
 
@@ -83,16 +77,15 @@ const formatLockCountdown = (ms: number): string => {
 // --- MAIN COMPONENT ---
 
 export const MatchCard: React.FC<MatchCardProps> = ({
-    match, homeTeam, awayTeam, onUpdate, lang, locale, userTokens, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onSubstitute, substitutionsLeft = 0, isUnlockedBySub = false, onTeamClick, showStatusBadge = false,
-    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick, predictedAdvancingTeams, predictedKnockoutWinners
+    match, homeTeam, awayTeam, onUpdate, lang, locale, rivals, onSpy, currentUser, allPredictions, phase, isAdminMode, onTeamClick, showStatusBadge = false,
+    homeTeamPoints, awayTeamPoints, allMatches, allTeams, variant = 'prediction', context, cardId, events = [], lineups = [], stats = null, hideHeader = false, playerMatchStats = [], onPlayerClick, onStadiumClick, onCardClick
 }) => {
     const prediction = allPredictions.find(p => p.userId === currentUser?.email && p.matchId === match.id);
-    
+
     const [localHome, setLocalHome] = useState<number | null>(prediction ? prediction.home : null);
     const [localAway, setLocalAway] = useState<number | null>(prediction ? prediction.away : null);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [pendingSub, setPendingSub] = useState(false);
     const [pendingSpy, setPendingSpy] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [rivalsOpen, setRivalsOpen] = useState(true);
@@ -110,7 +103,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     // AUTO-SAVE MECHANISM
     useEffect(() => {
-        if (isDirty && localHome !== null && localAway !== null && !isUnlockedBySub) {
+        if (isDirty && localHome !== null && localAway !== null) {
             const timer = setTimeout(() => {
                 setIsSaving(true);
                 setIsSaved(false);
@@ -124,7 +117,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             }, 800);
             return () => clearTimeout(timer);
         }
-    }, [localHome, localAway, isDirty, isUnlockedBySub, match.id, onUpdate]);
+    }, [localHome, localAway, isDirty, match.id, onUpdate]);
 
 
     // --- STATUS HELPERS ---
@@ -135,7 +128,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     // isMatchLocked folds in the admin hard-lock, live/finished state, and the rolling
     // 1-hour-before-kickoff window.
     const isRealLifeLocked = isMatchLocked(match);
-    const isLocked = (isRealLifeLocked && !isUnlockedBySub) && !isAdminMode;
+    const isLocked = isRealLifeLocked && !isAdminMode;
 
     // Live-updating "Locks in Xh Ym" countdown, shown once inside 24h of the rolling lock.
     const [lockTick, setLockTick] = useState(() => Date.now());
@@ -148,9 +141,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const showLockCountdown = msToLock !== null && msToLock > 0 && msToLock < 24 * 60 * 60 * 1000;
     const isUrgentLock = msToLock !== null && msToLock > 0 && msToLock < 60 * 60 * 1000;
     
-    const canSubstitute = isRealLifeLocked && !isLive && !isFinished && !isUnlockedBySub && onSubstitute && !isKnockout;
     const isSpied = currentUser?.spiedMatches?.includes(match.id);
-    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !canSubstitute && !isKnockout;
+    const canSpy = !isLocked && !isSpied && !isStarted && !!onSpy && rivals.length > 0 && !isKnockout;
 
     // Auto-open events panel once when match goes live/finished and has events
     useEffect(() => {
@@ -172,12 +164,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
     const handleSave = () => {
         if (localHome !== null && localAway !== null) { onUpdate(match.id, localHome, localAway); setIsDirty(false); }
-    };
-    const handleSubClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (substitutionsLeft !== undefined && substitutionsLeft > 0 && onSubstitute) {
-            setPendingSub(true);
-        }
     };
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -390,28 +376,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         );
     };
 
-    const renderControlButtons = () => {
-        if (canSubstitute && variant !== 'official') {
-            if (pendingSub) {
-                return (
-                    <div className="flex items-center gap-2 w-full animate-in fade-in duration-150">
-                        <span className="flex-1 text-[10px] text-slate-500 font-medium">{lang.subConfirm}</span>
-                        <button onClick={() => { onSubstitute!(); setPendingSub(false); }} className="px-3 py-2 rounded-lg border bg-amber-500 text-white border-amber-600 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">✓</button>
-                        <button onClick={() => setPendingSub(false)} className="px-3 py-2 rounded-lg border bg-white/5 text-slate-400 border-white/10 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">✗</button>
-                    </div>
-                );
-            }
-            return <button onClick={handleSubClick} disabled={!substitutionsLeft || substitutionsLeft <= 0} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all active:scale-95 w-full justify-center ${substitutionsLeft && substitutionsLeft > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-500/30' : 'bg-white/5 text-slate-500 border-white/10 cursor-not-allowed'}`}><RefreshCw size={14} className={substitutionsLeft && substitutionsLeft > 0 ? "" : "opacity-50"} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.makeSub}</span></button>;
-        }
-        if (isUnlockedBySub && isDirty) {
-            return <button onClick={(e) => { e.stopPropagation(); handleSave(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border shadow-sm transition-all hover:scale-105 active:scale-95 w-full justify-center bg-green-500 hover:bg-green-600 text-white border-green-600 shadow-green-500/30"><Save size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.saveBtn}</span></button>;
-        }
-        if (isUnlockedBySub && !isDirty) {
-            return <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-400 w-full"><Unlock size={14} /><span className="text-[10px] font-black uppercase tracking-widest">{lang.unlocked}</span></div>;
-        }
-        return null;
-    };
-
     const isHomeTBD = match.homeTeamId === 'TBD' || !homeTeam;
     const isAwayTBD = match.awayTeamId === 'TBD' || !awayTeam;
     const isHomeClickable = (isKnockout && !isLocked) || (!isKnockout && onTeamClick && !match.homeTeamId.startsWith('TBD'));
@@ -420,9 +384,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     // For knockout: use the bracket-simulated winner (team-identity-based, not home/away-slot-based).
     // For group stage: derive from local scores (used only by footer, not by badges).
     let predictedWinnerId: string | null = null;
-    if (isKnockout) {
-        predictedWinnerId = predictedKnockoutWinners?.get(match.id) ?? null;
-    } else if (localHome !== null && localAway !== null) {
+    if (!isKnockout && localHome !== null && localAway !== null) {
         if (localHome > localAway) predictedWinnerId = match.homeTeamId;
         else if (localAway > localHome) predictedWinnerId = match.awayTeamId;
     }
@@ -511,11 +473,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {lang.myPick || 'My Pick'}
                             </span>
                         )}
-                        {!isKnockout && predictedAdvancingTeams?.has(match.homeTeamId) && (
-                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-400 border border-fuchsia-500/30 text-[8px] font-black uppercase tracking-wider">
-                                {lang.myPick || 'My Pick'}
-                            </span>
-                        )}
                     </div>
                 </div>
 
@@ -556,7 +513,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             ) : (
                                 <div className="text-2xl font-black text-slate-500">VS</div>
                             )}
-                            <div className="mt-1 w-full">{renderControlButtons()}</div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2 w-full">
@@ -587,7 +543,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
                                         />
                                     </div>
-                                    {isUnlockedBySub && <div className="w-full">{renderControlButtons()}</div>}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-300 w-full">
@@ -625,19 +580,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                                 <LockIcon size={11} />
                                                 <span className="text-[9px] font-bold uppercase tracking-wide">{lang.lockedState || 'Locked'}</span>
                                              </div>
-                                             {/* Sub Button Lives Here */}
-                                             <div className="w-full">{renderControlButtons()}</div>
                                         </div>
                                     )}
                                 </div>
                             )}
-                        </div>
-                    )}
-                    
-                    {/* --- ADMIN ALERT --- */}
-                    {isAdminMode && !canSubstitute && phase === 'LIVE' && !isStarted && !isUnlockedBySub && (
-                        <div className="mt-2 text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded flex gap-1 items-center">
-                            <AlertCircle size={10} /> Sub status: {onSubstitute ? 'Available' : 'Not wired'}
                         </div>
                     )}
                 </div>
@@ -661,11 +607,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             </span>
                         )}
                         {isKnockout && !isFinished && predictedWinnerId === match.awayTeamId && (
-                            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-400 border border-fuchsia-500/30 text-[8px] font-black uppercase tracking-wider">
-                                {lang.myPick || 'My Pick'}
-                            </span>
-                        )}
-                        {!isKnockout && predictedAdvancingTeams?.has(match.awayTeamId) && (
                             <span className="mt-1 px-1.5 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-400 border border-fuchsia-500/30 text-[8px] font-black uppercase tracking-wider">
                                 {lang.myPick || 'My Pick'}
                             </span>
@@ -1152,30 +1093,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 </div>
                             );
                         })()}
-                        {canSubstitute ? (
-                            pendingSub ? (
-                                <div className="flex items-center gap-1 animate-in fade-in duration-150">
-                                    <span className="text-[9px] text-white/60">{lang.subConfirm || 'Use a sub?'}</span>
-                                    <button onClick={() => { onSubstitute!(); setPendingSub(false); }} className="px-1.5 py-0.5 rounded border bg-amber-500/30 border-amber-400/60 text-amber-300 text-[9px] font-black active:scale-95 transition-all">✓</button>
-                                    <button onClick={() => setPendingSub(false)} className="px-1.5 py-0.5 rounded border bg-white/5 border-white/20 text-white/50 text-[9px] font-black active:scale-95 transition-all">✗</button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={handleSubClick}
-                                    disabled={!substitutionsLeft || substitutionsLeft <= 0}
-                                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wide transition-all active:scale-95 ${
-                                        substitutionsLeft && substitutionsLeft > 0
-                                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30'
-                                            : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
-                                    }`}
-                                >
-                                    <RefreshCw size={8} />
-                                    <span>{lang.makeSub || 'SUB'}{substitutionsLeft !== undefined ? ` (${substitutionsLeft})` : ''}</span>
-                                </button>
-                            )
-                        ) : (
-                            match.isLocked && !isLive && !isFinished && <LockIcon size={10} className="text-slate-400" />
-                        )}
+                        {match.isLocked && !isLive && !isFinished && <LockIcon size={10} className="text-slate-400" />}
                     </div>
                 </div>
              )}

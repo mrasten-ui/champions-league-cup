@@ -74,7 +74,6 @@ const EN_TRANSLATION: Translation = {
     tabHowToPlay: "How to Play", tabScoring: "Points System",
     riskTitle: "How chaotic should the results be?", riskBanker: "Banker", riskBalanced: "Balanced", riskWildcard: "Wildcard", riskBankerDesc: "Top teams dominate", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Giant killers 🌪️",
     scoringTitle: "How high-scoring should matches be?", scoringCagey: "Cagey", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, low-scoring games", scoringBalancedDesc: "A normal spread of goals", scoringGoalFestDesc: "Goals galore ⚽🔥",
-    bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks were cleared — bracket shifted.", undo: "Undo",
     nudgeTitle: "Missing predictions", nudgeMsg: "You're missing {n} predictions — fill them in before kickoff!", nudgeCta: "Fill them in",
     rulesPreSubtitle: "Build your predictions. Collect points. Compete for glory.",
     rulesLiveSubtitle: "The tournament is live. Here's what matters now.",
@@ -87,7 +86,7 @@ const EN_TRANSLATION: Translation = {
     rule3Title: "3. Real Draws, One Round Ahead", rule3Desc: "There's no bracket to fill in advance. Once the League Phase ends, the real Playoff Round, Round of 16, Quarter-Finals, Semi-Finals and Final pairings are revealed as they're drawn — you only ever predict the round that's actually open.",
     deadlineTitle: "🚨 The Deadline", deadlineBodyPre: "Round 1 opens as soon as the League Phase draw is out. Its first match locks at", deadlineBodyPost: " — after that, every match locks its own prediction 1 hour before kickoff, round by round, all the way to the Final.",
     rule4Title: "4. Scout Your Rivals", rule4Desc: "Curious what a rival predicted? Reveal any pick for 1 point, docked from your total. No limit — just weigh the cost.",
-    rule5Title: "5. Live Management & Substitutions", rule5Desc: "Track matches in real time as the round unfolds. You have 5 Substitutions to unlock and change a prediction, provided that match hasn't kicked off yet.",
+    rule5Title: "5. Live Match Tracking", rule5Desc: "Once a round locks, follow it live — goals, cards, VAR reviews and lineups update in real time as the round unfolds.",
     rule6Title: "6. Miss a Deadline? The Computer's Got You", rule6Desc: "Every account sets a Risk Profile at signup (Banker, Balanced or Wildcard). If a deadline passes before you get your pick in, we auto-fill it for you from that profile — you'll never score a blank. Auto-filled picks are marked with a 🤖.",
     scoreExact: "Exact Score (e.g. 2-1)", scoreResult: "Correct Outcome (Win/Draw)",
     scoreKnockoutTitle: "Knockout Scoring — Rises Every Round", scoreKnockoutDesc: "Outcome / exact-score points shown per round. Nailing the score is always +2 over just calling the winner.",
@@ -114,12 +113,11 @@ const EN_TRANSLATION: Translation = {
     tacticalAnalysis: "Tactical Analysis", closeReport: "Close Report", strengthsLabel: "Strengths", weaknessesLabel: "Weaknesses",
     trendLabel: "Trend", trendUp: "Heating Up", trendDown: "Cooling Off", trendFlat: "Inconsistent",
     lastMatches: "Match History", backToGroup: "Back to Group", backTo: "Back to", goToBracket: "Go to Knockouts",
-    overviewBtn: "Overview", bracketBtn: "Knockout Stage", allBtn: "All",
-    tablesBtn: "Tables", confirmClear: "Are you sure you want to clear your predictions?", finishGroupBtn: "Finish Group {0}",
+    confirmClear: "Are you sure you want to clear your predictions?", finishGroupBtn: "Finish Group {0}",
     revealBtn: "Reveal", tokensLeft: "Intel", spyCost: "1 Intel", rivalLive: "Rival Live Status", rivalIntel: "Rival Intelligence",
     scenarioAnalysis: "Scenario Analysis", now: "Now", noPick: "No Pick", myPick: "My Pick", advanced: "Advanced",
-    live: "LIVE", ft: "FT", substitutions: "Subs", makeSub: "Make Sub", subConfirm: "Use 1 Substitution to unlock?", spyConfirm: "Costs 1 point — reveal their pick?", sendScouts: "Send out the scouts", subSuccess: "Match Unlocked!", unlocked: "UNLOCKED", saving: "Saving", saved: "Saved", pledgeLocked: "Pledge Locked", pledgeLockedDesc: "The group stage is still ongoing. Return when the timer hits zero to draft your knockout bracket.", knockoutNotYet: "Knockout Stage Not Yet Predicted", knockoutUnlockHint: "Predict all group stage matches first to unlock the bracket.", draftingWindowOpen: "Drafting Window Open", timeTolockIn: "Time to lock-in",
-    tabTournament: "Tournament", tabManager: "Manager", subnavSchedule: "Schedule", subnavRounds: "Rounds", subnavTables: "Tables", subnavBracket: "Bracket", mgrHint: "Here you can review all your predictions. Switch between Group Stage and Knockouts, or use a Substitution token to change a pick before a match kicks off.",
+    live: "LIVE", ft: "FT", spyConfirm: "Costs 1 point — reveal their pick?", sendScouts: "Send out the scouts", saving: "Saving", saved: "Saved",
+    tabTournament: "Tournament", tabManager: "Manager", subnavRounds: "Rounds", subnavTables: "Tables",
     rank: "Rank", manager: "Manager", status: "Status", total: "Total", liveStandings: "Live Standings", bankedOnly: "Banked", scoringRulesInfo: "Scoring Rules:",
     lbBreakdown: "Point Breakdown", lbAccuracy: "Accuracy", lbExact: "Exact Scores", lbCorrect: "Correct Outcomes", lbGroupPts: "Group Stage", lbKoPts: "Knockout",
     lbGlobal: "Global", lbLeague: "League", liveToggle: "LIVE", bankedToggle: "BANKED", lbQualified: "Qualified", lbQualifiedDesc: "Knockout Correct", lbGroupRes: "Group Results",
@@ -141,8 +139,6 @@ const EN_TRANSLATION: Translation = {
 
     // --- NEW KEYS ---
     nameTaken: "Name already taken — try something else.",
-    noSubsTitle: "No Subs Left",
-    noSubsMsg: "All substitutions used.",
     loggedOutTitle: "Logged Out",
     loggedOutMsg: "See you next match day.",
     profileUpdated: "Profile Updated",
@@ -151,12 +147,6 @@ const EN_TRANSLATION: Translation = {
     predLocked: "Match re-locked.",
     rivalRevealed: "Rival Revealed",
     intelUsed: "-1 point spent.",
-    subRefunded: "Sub Refunded",
-    subRefundedMsg: "Match started before save.",
-    secondChanceConfirm: "Unlock Second Chance? This reduces future points by 50%.",
-    prevGroup: "Prev Group",
-    nextGroup: "Next Group",
-    scoutBtn: "Start Scouting",
     saveBtn: "Save",
     stadiumTbd: "Stadium TBD",
     liveTag: "LIVE",
@@ -164,10 +154,6 @@ const EN_TRANSLATION: Translation = {
     changeIdentity: "Change Identity",
     cancelBtn: "Cancel",
     noMatchesDate: "No matches on this date.",
-    lockInConfirm: "Lock in this bracket? Your 50% points penalty is now permanent.",
-    pledgeToastMsg: "Check the Knockout tab when the group stage ends to draft your bracket.",
-    bracketLockedIn: "Bracket Locked In",
-    bracketLockedInMsg: "Second Chance is now active. Good luck!",
     leagueJoined: "League Joined",
     predictionsCleared: "Cleared",
     predictionsClearedMsg: "Your predictions have been reset.",
@@ -176,8 +162,6 @@ const EN_TRANSLATION: Translation = {
     tooLate: "Too Late",
     tooLateMsg: "This match has already started.",
     magicApplied: "Magic Applied",
-    noIntel: "No Intel",
-    noIntelMsg: "You need tokens to spy on rivals.",
     autoFilledState: "Auto-filled",
     autoFilledDesc: "You missed the deadline — filled in for you based on your risk profile",
     riskProfileSection: "Risk Profile",
@@ -256,7 +240,6 @@ const SCO_TRANSLATION: Translation = {
     profile: "Ma Profile", logout: "Cheerio", rulesBtn: "The Rules", rulesTitle: "Hoo tae Play", tabHowToPlay: "The Basics", tabScoring: "Points",
     riskTitle: "How daft dae ye want the results tae be?", riskBanker: "Banker", riskBalanced: "Balanced", riskWildcard: "Dafty", riskBankerDesc: "The big teams win", riskBalancedDesc: "The beautiful game", riskWildcardDesc: "Giant killers ahoy",
     scoringTitle: "How many goals dae ye want tae see?", scoringCagey: "Canny", scoringBalanced: "Balanced", scoringGoalFest: "Goal Fest", scoringCageyDesc: "Tight, nae many goals", scoringBalancedDesc: "A normal spread o' goals", scoringGoalFestDesc: "Goals galore",
-    bracketAdjusted: "Bracket Updated", bracketAdjustedMsg: "Some knockout picks cleared — bracket shifted.", undo: "Undo",
     nudgeTitle: "Missing predictions", nudgeMsg: "Ye're missing {n} picks — get them in before the whistle!", nudgeCta: "Fill them in",
     rulesPreSubtitle: "Build yer picks. Score points. Take the glory.",
     rulesLiveSubtitle: "We're live. Here's whit matters noo.",
@@ -269,7 +252,7 @@ const SCO_TRANSLATION: Translation = {
     rule3Title: "3. Real Draws, Yin Roond Ahead", rule3Desc: "There's nae bracket tae fill in early. Efter the League Phase, the real Playoff Roond, R16, Quarters, Semis and Final get drawn fur real — ye only ever tip the roond that's actually open.",
     deadlineTitle: "🚨 The Cutoff", deadlineBodyPre: "Roond 1 opens as soon as the League Phase draw's oot. Its first game locks at", deadlineBodyPost: " — efter that, every game locks its ain pick an oor afore kick-aff, roond by roond, aw the way tae the Final.",
     rule4Title: "4. Spy On Yer Pals", rule4Desc: "Wantin' tae ken whit a rival tipped? See ony pick fur 1 point, taken aff yer total. Nae limit — just mind the cost.",
-    rule5Title: "5. Live & Substitutions", rule5Desc: "Watch it live as the roond unfolds. Ye get 5 Substitutions tae unlock and change a pick, so long as that game hasnae kicked aff yet.",
+    rule5Title: "5. Live Match Trackin'", rule5Desc: "Once a roond locks, follow it live — goals, cards, VAR keeks and lineups update in real time as the roond unfolds.",
     rule6Title: "6. Missed the Cutoff? The Computer's Got Ye", rule6Desc: "Every profile sets a Risk Level when ye sign up (Banker, Balanced or Dafty). Miss a deadline and we'll fill it in fur ye based oan that — ye'll never score a big fat zero. Auto-filled picks get a wee 🤖 tag.",
     scoreExact: "Bang On (e.g. 2-1)", scoreResult: "Right Winner",
     scoreKnockoutTitle: "Big Points — Grows Every Roond", scoreKnockoutDesc: "Winner / bang-on points shown per roond. Gettin' the score bang on is aye +2 ower just cawin' the winner.",
@@ -292,11 +275,10 @@ const SCO_TRANSLATION: Translation = {
     starPlayer: "Big Man", formGuide: "Form", searchNation: "Find a team...", fifaRank: "Rank", tacticalAnalysis: "The Tactics", closeReport: "Shut It",
     strengthsLabel: "Top Class", weaknessesLabel: "Pure Mince", trendLabel: "The Patter", trendUp: "On Fire", trendDown: "Boggin'", trendFlat: "Meh",
     lastMatches: "Last Scraps", backToGroup: "Back tae Groups", backTo: "Back tae", goToBracket: "Tae the Knockoots",
-    prevGroup: "Prev", nextGroup: "Next", overviewBtn: "Overview", bracketBtn: "Knockout Stage", allBtn: "Aw", tablesBtn: "Tables",
     confirmClear: "Ye sure ye want tae bin yer picks?", finishGroupBtn: "Sort Group {0}", revealBtn: "Keek", tokensLeft: "Intel", spyCost: "1 Intel",
     rivalLive: "Pal's Picks", rivalIntel: "Intel", scenarioAnalysis: "Scenarios", now: "Noo", noPick: "Nae Pick", myPick: "Ma Pick", advanced: "Through",
-    live: "LIVE", ft: "FT", substitutions: "Subs", makeSub: "Mak Sub", subConfirm: "Use 1 Sub?", spyConfirm: "Costs ye a point — keek at their pick?", sendScouts: "Send the scouts oot", subSuccess: "Sorted!", unlocked: "OPEN", saving: "Savin'", saved: "Sorted", pledgeLocked: "Pledge Locked In", pledgeLockedDesc: "The groups are still goin'. Come back when the clock hits zero tae pick yer knockouts.", knockoutNotYet: "Knockouts No' Predicted Yet", knockoutUnlockHint: "Finish yer group picks first tae unlock the tree.", draftingWindowOpen: "Drafting Window Open", timeTolockIn: "Time tae lock in",
-    tabTournament: "The Cup", tabManager: "Manager", subnavSchedule: "Fixtures", subnavRounds: "Rounds", subnavTables: "Leagues", subnavBracket: "Tree", mgrHint: "Here's aw yer picks. Swap between groups an' knockouts, an' use a sub token tae change a pick before the whistle.",
+    live: "LIVE", ft: "FT", spyConfirm: "Costs ye a point — keek at their pick?", sendScouts: "Send the scouts oot", saving: "Savin'", saved: "Sorted",
+    tabTournament: "The Cup", tabManager: "Manager", subnavRounds: "Rounds", subnavTables: "Leagues",
     rank: "No.", manager: "Lad/Lass", status: "Status", total: "Tot", liveStandings: "Live Table", bankedOnly: "Banked", scoringRulesInfo: "Rules:",
     lbBreakdown: "Breakdoon", lbAccuracy: "Accuracy", lbExact: "Bang On", lbCorrect: "Right Winner", lbGroupPts: "Groups", lbKoPts: "Knockoots",
     lbGlobal: "World", lbLeague: "League", liveToggle: "LIVE", bankedToggle: "BANKED", lbQualified: "Went Through", lbQualifiedDesc: "Right Winners", lbGroupRes: "Group Results",
@@ -313,8 +295,6 @@ const SCO_TRANSLATION: Translation = {
 
     // --- NEW KEYS ---
     nameTaken: "That name's taken — try somethin' else, pal.",
-    noSubsTitle: "Nae Subs Left",
-    noSubsMsg: "Yer bench is empty, lad.",
     loggedOutTitle: "Away Ye Go",
     loggedOutMsg: "Haste ye back!",
     profileUpdated: "Lookin' Braw",
@@ -323,13 +303,6 @@ const SCO_TRANSLATION: Translation = {
     predLocked: "Locked in. Good luck.",
     rivalRevealed: "Rival Clocked",
     intelUsed: "-1 point. Dinnae waste it.",
-    subRefunded: "Sub Back",
-    subRefundedMsg: "Ye were too slow! Token returned.",
-    secondChanceConfirm: "Ye sure? This slashes yer points by 50%.",
-    lockInConfirm: "Lock in yer bracket? Half points fae here on. Nae goin' back.",
-    pledgeToastMsg: "Check the Knockoots tab when groups end tae pick yer bracket.",
-    bracketLockedIn: "Bracket Locked In",
-    bracketLockedInMsg: "Yer second go is on! Pure gallus.",
     leagueJoined: "Joined a League",
     predictionsCleared: "Binned",
     predictionsClearedMsg: "Yer picks are gone.",
@@ -338,8 +311,6 @@ const SCO_TRANSLATION: Translation = {
     tooLate: "Too Late Pal",
     tooLateMsg: "That game's already kicked off.",
     magicApplied: "Done It",
-    noIntel: "Nae Intel",
-    noIntelMsg: "Ye need tokens tae spy on yer pals.",
     autoFilledState: "Robot Did It",
     autoFilledDesc: "Ye missed the deadline — the computer filled it in fur ye based on yer risk profile",
     riskProfileSection: "Risk Profile",
@@ -383,9 +354,6 @@ const SCO_TRANSLATION: Translation = {
     teamOverviews: {}
 };
 
-// --- GAME CONFIG CONSTANTS ---
-export const MAX_SUBSTITUTIONS = 5;  // Max subs per manager (also used for scout tokens)
-
 // --- BROADCAST DEFAULTS ---
 // Default TV channels per locale when no match-specific override is set.
 // Update individual matches in Management → Channel Editor when assignments are announced.
@@ -421,99 +389,5 @@ export const TRANSLATIONS: Record<LanguageCode, Translation> = {
 // Supabase's `teams` table and the live match feed, not a static roster. Kept as a
 // typed lookup so KitImage/GoalBanner's `TEAMS[id]` fallback reads stay valid.
 export const TEAMS: Record<string, Team> = {};
-
-// --- UPDATED GROUPS WITH REALISTIC TEAMS ---
-export const GROUP_CONFIG = [
-  { id: 'A', teams: ['MEX', 'RSA', 'KOR', 'CZE'] },
-  { id: 'B', teams: ['CAN', 'BIH', 'QAT', 'SUI'] },
-  { id: 'C', teams: ['BRA', 'MAR', 'HAI', 'SCO'] },
-  { id: 'D', teams: ['USA', 'PAR', 'AUS', 'TUR'] },
-  { id: 'E', teams: ['GER', 'CUW', 'CIV', 'ECU'] },
-  { id: 'F', teams: ['NED', 'JPN', 'SWE', 'TUN'] },
-  { id: 'G', teams: ['BEL', 'EGY', 'IRN', 'NZL'] },
-  { id: 'H', teams: ['ESP', 'CPV', 'KSA', 'URU'] },
-  { id: 'I', teams: ['FRA', 'SEN', 'IRQ', 'NOR'] },
-  { id: 'J', teams: ['ARG', 'ALG', 'AUT', 'JOR'] },
-  { id: 'K', teams: ['POR', 'COD', 'UZB', 'COL'] },
-  { id: 'L', teams: ['ENG', 'CRO', 'GHA', 'PAN'] }
-];
-
-// Helper to assign mock channels
-const assignChannels = (matchIndex: number) => ({
-  EN: matchIndex % 2 === 0 ? 'BBC One' : 'ITV1',
-  SCO: matchIndex % 2 === 0 ? 'BBC Scotland' : 'STV',
-  NO: matchIndex % 2 === 0 ? 'NRK 1' : 'TV2',
-  US: 'FOX'
-});
-
-export const INITIAL_MATCHES: Match[] = [];
-let matchCounter = 0;
-
-// Generate Group Matches
-GROUP_CONFIG.forEach(group => {
-  const [t1, t2, t3, t4] = group.teams;
-  // Round 1
-  INITIAL_MATCHES.push({ id: `${group.id}1`, groupId: group.id, homeTeamId: t1, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-  INITIAL_MATCHES.push({ id: `${group.id}2`, groupId: group.id, homeTeamId: t3, awayTeamId: t4, homeScore: null, awayScore: null, date: 'June 11, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-  // Round 2
-  INITIAL_MATCHES.push({ id: `${group.id}3`, groupId: group.id, homeTeamId: t1, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-  INITIAL_MATCHES.push({ id: `${group.id}4`, groupId: group.id, homeTeamId: t4, awayTeamId: t2, homeScore: null, awayScore: null, date: 'June 15, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-  // Round 3
-  INITIAL_MATCHES.push({ id: `${group.id}5`, groupId: group.id, homeTeamId: t4, awayTeamId: t1, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-  INITIAL_MATCHES.push({ id: `${group.id}6`, groupId: group.id, homeTeamId: t2, awayTeamId: t3, homeScore: null, awayScore: null, date: 'June 19, 2026', venue: 'Stadium', status: 'UPCOMING', isLocked: false, channels: assignChannels(matchCounter++) });
-});
-
-// Generate Knockout placeholders
-const rounds = ['R32', 'R16', 'QF', 'SF', '3RD', 'FIN'];
-const counts = [16, 8, 4, 2, 1, 1];
-rounds.forEach((round, idx) => {
-  const count = counts[idx];
-  for(let i=1; i<=count; i++) {
-    let nextMatchId: string | undefined = undefined;
-    
-    // Official FIFA Mapping for Next Matches
-    if (round === 'R32') {
-        if (i === 1 || i === 4) nextMatchId = 'R16_1';        // RSA/CAN + NED/MAR
-        else if (i === 2 || i === 5) nextMatchId = 'R16_2';   // BRA/JPN + CIV/NOR
-        else if (i === 3 || i === 6) nextMatchId = 'R16_3';   // GER/PAR + FRA/SWE
-        else if (i === 7 || i === 8) nextMatchId = 'R16_4';   // MEX/ECU + ENG/COD
-        else if (i === 11 || i === 12) nextMatchId = 'R16_5'; // POR/CRO + ESP/AUT
-        else if (i === 9 || i === 10) nextMatchId = 'R16_6';  // USA/BIH + BEL/SEN
-        else if (i === 14 || i === 16) nextMatchId = 'R16_7'; // ARG/CPV + AUS/EGY
-        else if (i === 13 || i === 15) nextMatchId = 'R16_8'; // SUI/ALG + COL/GHA
-    }
-    else if (round === 'R16') {
-        if (i === 1 || i === 3) nextMatchId = 'QF_1';
-        else if (i === 5 || i === 6) nextMatchId = 'QF_2';
-        else if (i === 2 || i === 4) nextMatchId = 'QF_3';
-        else if (i === 7 || i === 8) nextMatchId = 'QF_4';
-    }
-    else if (round === 'QF') {
-        if (i === 1 || i === 2) nextMatchId = 'SF_1';
-        else if (i === 3 || i === 4) nextMatchId = 'SF_2';
-    }
-    else if (round === 'SF') {
-        nextMatchId = 'FIN_1';
-    }
-
-    const matchId = `${round}_${i}`;
-
-    INITIAL_MATCHES.push({
-      id: matchId,
-      round: round as any,
-      homeTeamId: 'TBD',
-      awayTeamId: 'TBD',
-      homeScore: null,
-      awayScore: null,
-      date: 'TBD',
-      venue: 'TBD',
-      status: 'UPCOMING',
-      isLocked: false,
-      nextMatchId: nextMatchId,
-      channels: assignChannels(matchCounter++)
-    });
-  }
-});
-
 
 export const MOCK_PREDICTIONS: Prediction[] = [];

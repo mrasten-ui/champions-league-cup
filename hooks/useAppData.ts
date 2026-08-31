@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { INITIAL_MATCHES, MOCK_PREDICTIONS, TEAMS, MAX_SUBSTITUTIONS } from '../constants';
+import { MOCK_PREDICTIONS, TEAMS } from '../constants';
 import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
@@ -53,14 +53,9 @@ const DEV_MOCK_USER: UserProfile = {
   email: 'dev@local.test',
   name: 'Dev Tester',
   avatar: '',
-  tokens: 5,
-  substitutions: 5,
   leagues: [],
   favorites: [],
   spiedMatches: [],
-  unlockedMatches: [],
-  hasTakenSecondChance: false,
-  secondChanceStatus: 'NONE',
 };
 
 export const useAppData = () => {
@@ -68,7 +63,7 @@ export const useAppData = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [teamsData, setTeamsData] = useState<Record<string, Team>>({});
   const [allPredictions, setAllPredictions] = useState<Prediction[]>(MOCK_PREDICTIONS);
   const [usersDb, setUsersDb] = useState<Record<string, UserProfile>>({});
@@ -82,10 +77,6 @@ export const useAppData = () => {
 
   const fetchingProfileRef = useRef(false);
 
-  // --- SECOND CHANCE TIMERS ---
-  const [groupStageEndTime, setGroupStageEndTime] = useState<number>(0);
-  const [knockoutStartTime, setKnockoutStartTime] = useState<number>(0);
-  const [firstMatchTime, setFirstMatchTime] = useState<number>(0);
   const [lockTimePassed, setLockTimePassed] = useState<boolean>(false);
   const kickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -125,30 +116,15 @@ export const useAppData = () => {
               penaltyWinnerId: m.penalty_winner_id ?? undefined
             }));
 
-            // --- CALCULATE TIMERS ---
+            // First League Phase match kickoff — drives automatic PRE_LIVE→LIVE
+            // transition. The lock time equals kickoff exactly, so the phase flips
+            // at the moment the first match starts.
             const validMatches = mappedMatches.filter(m => m.date && m.date !== 'TBD');
-            
-            const groupMatches = validMatches.filter(m => m.groupId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            if (groupMatches.length > 0) {
-                setGroupStageEndTime(new Date(groupMatches[0].date).getTime() + (120 * 60 * 1000));
-            }
-
-            const koMatches = validMatches.filter(m => m.round === 'R32').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            if (koMatches.length > 0) {
-                const deadlineMatch = koMatches.length > 1 ? koMatches[1] : koMatches[0];
-                setKnockoutStartTime(new Date(deadlineMatch.date).getTime());
-            }
-
-            // First group match kickoff — drives automatic PRE_LIVE→LIVE transition.
-            // The lock time equals kickoff exactly, so the phase flips at the moment
-            // the first match starts.
-            const firstGroupMatch = [...validMatches]
-                .filter(m => m.groupId)
+            const firstLeaguePhaseMatch = [...validMatches]
+                .filter(m => !m.round)
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-            if (firstGroupMatch) {
-                const t0 = new Date(firstGroupMatch.date).getTime();
-                const lockTime = t0;
-                setFirstMatchTime(t0);
+            if (firstLeaguePhaseMatch) {
+                const lockTime = new Date(firstLeaguePhaseMatch.date).getTime();
                 setLockTimePassed(Date.now() >= lockTime);
                 if (Date.now() < lockTime) {
                     if (kickoffTimerRef.current) clearTimeout(kickoffTimerRef.current);
@@ -310,11 +286,9 @@ export const useAppData = () => {
                   const pMap: Record<string, UserProfile> = {};
                   profiles.forEach(p => {
                       pMap[p.email] = {
-                          name: p.name || '', email: p.email, tokens: p.tokens ?? 0, substitutions: p.substitutions ?? 0,
-                          avatar: p.avatar || '', hasTakenSecondChance: !!p.has_taken_second_chance, secondChanceStatus: (p.second_chance_status as any) || 'NONE',
-                          leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [], unlockedMatches: p.unlocked_matches || [],
-                          bracketPredictions: (p as any).bracket_predictions ?? undefined,
-                          scDraft: (p as any).sc_draft ?? undefined,
+                          name: p.name || '', email: p.email,
+                          avatar: p.avatar || '',
+                          leagues: p.leagues || [], favorites: p.favorites || [], spiedMatches: p.spied_matches || [],
                       };
                   });
                   rcSet('profiles', pMap);
@@ -393,13 +367,10 @@ export const useAppData = () => {
           const { data } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
           if (data) {
               setUser({
-                  name: data.name || '', email: data.email, tokens: data.tokens ?? 0, substitutions: data.substitutions ?? 0,
-                  unlockedMatches: data.unlocked_matches || [], hasTakenSecondChance: !!data.has_taken_second_chance, secondChanceStatus: (data.second_chance_status as any) || 'NONE',
+                  name: data.name || '', email: data.email,
                   spiedMatches: data.spied_matches || [], favorites: data.favorites || [], avatar: data.avatar || '', leagues: data.leagues || [],
                   toursCompleted: data.tours_completed || { preSeason: false, liveSeason: false },
                   isAdmin: !!data.is_admin,
-                  bracketPredictions: (data as any).bracket_predictions ?? undefined,
-                  scDraft: (data as any).sc_draft ?? undefined,
                   riskResult: data.risk_result ?? undefined,
                   riskScoring: data.risk_scoring ?? undefined,
               });
@@ -425,20 +396,15 @@ export const useAppData = () => {
                   // Clear stale localStorage tour flags so the tour always fires for a fresh profile
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}`);
                   localStorage.removeItem(`rasten_cup_tour_done_v1_${email}_live`);
-                  const dbRow = { id: authUser.id, email, name: authUser.user_metadata?.full_name || email.split('@')[0], avatar: pendingAvatar, tokens: MAX_SUBSTITUTIONS, substitutions: MAX_SUBSTITUTIONS, second_chance_status: 'NONE', risk_result: pendingRiskResult, risk_scoring: pendingRiskScoring };
+                  const dbRow = { id: authUser.id, email, name: authUser.user_metadata?.full_name || email.split('@')[0], avatar: pendingAvatar, risk_result: pendingRiskResult, risk_scoring: pendingRiskScoring };
                   await supabase.from('profiles').upsert(dbRow);
                   setUser({
                       email,
                       name: dbRow.name,
                       avatar: pendingAvatar,
-                      tokens: MAX_SUBSTITUTIONS,
-                      substitutions: MAX_SUBSTITUTIONS,
                       leagues: [],
                       favorites: [],
                       spiedMatches: [],
-                      unlockedMatches: [],
-                      hasTakenSecondChance: false,
-                      secondChanceStatus: 'NONE',
                       riskResult: pendingRiskResult,
                       riskScoring: pendingRiskScoring,
                   });
@@ -563,7 +529,7 @@ export const useAppData = () => {
   return {
     session, user, setUser, loading, matches, setMatches, teamsData, setTeamsData,
     allPredictions, setAllPredictions, usersDb, setUsersDb, menPresets, womenPresets,
-    groupStageEndTime, knockoutStartTime, firstMatchTime, lockTimePassed,
+    lockTimePassed,
     matchEvents, matchLineups, matchStats, playerMatchStats,
   };
 };

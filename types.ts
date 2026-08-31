@@ -4,8 +4,6 @@ export interface Translation {
   [key: string]: string | any;
 
   // --- Alerts & Toasts ---
-  noSubsTitle: string;
-  noSubsMsg: string;
   loggedOutTitle: string;
   loggedOutMsg: string;
   profileUpdated: string;
@@ -14,16 +12,9 @@ export interface Translation {
   predLocked: string;
   rivalRevealed: string;
   intelUsed: string;
-  subRefunded: string;
-  subRefundedMsg: string;
-  secondChanceConfirm: string;
-  
+
   // --- Navigation & UI ---
   roundLabel: string;
-  prevGroup: string;
-  nextGroup: string;
-  bracketBtn: string;
-  scoutBtn: string;
   saveBtn: string;
   watchOn: string;
   stadiumTbd: string;
@@ -32,16 +23,8 @@ export interface Translation {
   changeIdentity: string;
   cancelBtn: string;
   noMatchesDate: string;
-  substitutions: string;
-  subSuccess: string;
-  subnavSchedule: string;
   subnavRounds: string;
   subnavTables: string;
-  subnavBracket: string;
-  lockInConfirm: string;
-  pledgeToastMsg: string;
-  bracketLockedIn: string;
-  bracketLockedInMsg: string;
   leagueJoined: string;
   predictionsCleared: string;
   predictionsClearedMsg: string;
@@ -50,8 +33,6 @@ export interface Translation {
   tooLate: string;
   tooLateMsg: string;
   magicApplied: string;
-  noIntel: string;
-  noIntelMsg: string;
   autoFilledState: string;
   autoFilledDesc: string;
   riskProfileSection: string;
@@ -73,11 +54,6 @@ export interface Translation {
   scoringCageyDesc: string;
   scoringBalancedDesc: string;
   scoringGoalFestDesc: string;
-
-  // --- Bracket cascade ---
-  bracketAdjusted: string;
-  bracketAdjustedMsg: string;
-  undo: string;
 
   // --- Prediction nudge banner ---
   nudgeTitle: string;
@@ -167,23 +143,16 @@ export interface UserProfile {
   email: string;
   name: string;
   avatar: string;
-  tokens: number;
-  substitutions: number;
   leagues: string[];
   favorites: string[];
   spiedMatches: string[];
-  unlockedMatches: string[];
-  hasTakenSecondChance: boolean;
-  secondChanceStatus?: 'NONE' | 'PENDING' | 'ACTIVE'; // <--- NEW ADDITION
-  
+
   // --- Tour Tracking ---
   toursCompleted?: {
     preSeason: boolean;
     liveSeason: boolean;
   };
   isAdmin?: boolean;
-  bracketPredictions?: Record<string, { home: number; away: number }>;
-  scDraft?: Record<string, { home: number; away: number }>;
 
   // --- Risk profile (set at signup) — drives missed-deadline auto-fill.
   // Undefined for pre-feature accounts that never set one; auto-fill skips them.
