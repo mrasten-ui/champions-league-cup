@@ -28,17 +28,6 @@ export interface GoalNotification {
   awayKitText?: string | null;
 }
 
-export interface KitNotification {
-  id: string;
-  matchId: string;
-  homeTeamId: string;
-  awayTeamId: string;
-  homeKitBg: string;
-  homeKitText: string;
-  awayKitBg: string;
-  awayKitText: string;
-}
-
 export interface PsoNotification {
   id: string;
   matchId: string;
@@ -300,160 +289,6 @@ function GoalCard({ notification, homeTeam, awayTeam, onDismiss, onShowLive, onN
   );
 }
 
-// ── Kit Card ──────────────────────────────────────────────────────────────────
-
-function kitLabel(kitType: 'home' | 'away' | 'third'): string {
-  return kitType === 'home' ? 'Home Kit' : kitType === 'away' ? 'Away Kit' : 'Third Kit';
-}
-
-interface KitCardProps {
-  notification: KitNotification;
-  onDismiss: () => void;
-  onDetails?: () => void;
-  onNavigate?: () => void;
-}
-
-const KIT_DISPLAY_MS = 12000;
-
-function KitCard({ notification, onDismiss, onDetails, onNavigate }: KitCardProps) {
-  const [visible, setVisible] = useState(false);
-  const [barW, setBarW] = useState(100);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setVisible(true), 20);
-    const t2 = setTimeout(() => setBarW(0), 80);
-    timerRef.current = setTimeout(() => {
-      setVisible(false);
-      setTimeout(onDismiss, 320);
-    }, KIT_DISPLAY_MS);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const dismiss = () => {
-    setVisible(false);
-    setTimeout(onDismiss, 320);
-  };
-
-  const homeStatic = TEAMS[notification.homeTeamId];
-  const awayStatic = TEAMS[notification.awayTeamId];
-  const homeName   = homeStatic?.name ?? notification.homeTeamId;
-  const awayName   = awayStatic?.name ?? notification.awayTeamId;
-  const homeKitType = lookupKitDesignation(notification.homeTeamId, notification.awayTeamId, notification.homeTeamId)
-    ?? resolveKitType(notification.homeTeamId, notification.homeKitBg);
-  const awayKitType = lookupKitDesignation(notification.homeTeamId, notification.awayTeamId, notification.awayTeamId)
-    ?? resolveKitType(notification.awayTeamId, notification.awayKitBg);
-  const homeKit    = kitLabel(homeKitType);
-  const awayKit    = kitLabel(awayKitType);
-
-  return (
-    <div
-      className={`transition-all duration-300 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-      }`}
-    >
-      <div className="relative rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
-           style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060e1a 100%)' }}>
-
-        {/* Gold border */}
-        <div className="absolute inset-0 rounded-2xl border border-[#C9A84C]/25 pointer-events-none" />
-
-        {/* Progress bar */}
-        <div
-          className="absolute top-0 left-0 h-[2px] bg-[#C9A84C] transition-all ease-linear"
-          style={{ width: `${barW}%`, transitionDuration: `${KIT_DISPLAY_MS}ms` }}
-        />
-
-        {/* Header strip */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/8">
-          <span className="text-[11px] font-black uppercase tracking-widest text-[#C9A84C]">
-            🎽 Kits Locked In!
-          </span>
-          <button onClick={(e) => { e.stopPropagation(); dismiss(); }} className="p-1 text-white/25 hover:text-white/55 transition-colors">
-            <X size={11} />
-          </button>
-        </div>
-
-        {/* Two-column kit reveal — clickable to navigate to match */}
-        <div className={`flex ${onNavigate ? 'cursor-pointer' : ''}`} onClick={onNavigate}>
-
-          {/* Home team column */}
-          <div className="flex-1 flex flex-col items-center py-4 px-3 relative">
-            {/* Subtle kit color tint */}
-            <div
-              className="absolute inset-0"
-              style={{ background: `radial-gradient(ellipse at center top, ${notification.homeKitBg}20 0%, transparent 70%)` }}
-            />
-            <KitImage
-              teamId={notification.homeTeamId}
-              kitBg={notification.homeKitBg}
-              kitText={notification.homeKitText}
-              kitType={homeKitType}
-              size="md"
-              className="relative drop-shadow-xl mb-2"
-            />
-            <div className="flex items-center gap-1.5 relative">
-              {homeStatic?.flag && (
-                <img src={homeStatic.flag} alt="" className="w-5 h-[14px] object-cover rounded-sm border border-white/15 shrink-0" />
-              )}
-              <span className="text-white text-[10px] font-black uppercase tracking-wide truncate">{homeName}</span>
-            </div>
-            <span
-              className="text-[8px] font-bold uppercase tracking-widest mt-0.5 relative"
-              style={{ color: `${notification.homeKitBg}cc` === notification.homeKitBg ? '#94a3b8' : notification.homeKitBg }}
-            >
-              {homeKit}
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="w-px bg-white/8 my-3" />
-
-          {/* Away team column */}
-          <div className="flex-1 flex flex-col items-center py-4 px-3 relative">
-            {/* Subtle kit color tint */}
-            <div
-              className="absolute inset-0"
-              style={{ background: `radial-gradient(ellipse at center top, ${notification.awayKitBg}20 0%, transparent 70%)` }}
-            />
-            <KitImage
-              teamId={notification.awayTeamId}
-              kitBg={notification.awayKitBg}
-              kitText={notification.awayKitText}
-              kitType={awayKitType}
-              size="md"
-              className="relative drop-shadow-xl mb-2"
-            />
-            <div className="flex items-center gap-1.5 relative">
-              {awayStatic?.flag && (
-                <img src={awayStatic.flag} alt="" className="w-5 h-[14px] object-cover rounded-sm border border-white/15 shrink-0" />
-              )}
-              <span className="text-white text-[10px] font-black uppercase tracking-wide truncate">{awayName}</span>
-            </div>
-            <span
-              className="text-[8px] font-bold uppercase tracking-widest mt-0.5 relative"
-              style={{ color: notification.awayKitBg }}
-            >
-              {awayKit}
-            </span>
-          </div>
-        </div>
-
-        {/* Footer */}
-        {(onDetails || onNavigate) && (
-          <div className="flex items-center px-4 pb-3" onClick={(e) => e.stopPropagation()}>
-            <PillButton onClick={onDetails ?? onNavigate} gold>Details</PillButton>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── PSO Card ─────────────────────────────────────────────────────────────────
 
 const PSO_DISPLAY_MS = 12000;
@@ -559,9 +394,6 @@ interface GoalBannerProps {
   onShowLive?: () => void;
   onNavigate?: () => void;
   onPlayerClick?: (playerId: number | null, playerName: string, teamId: string) => void;
-  kitNotification?: KitNotification | null;
-  onKitDismiss?: () => void;
-  onKitNavigate?: () => void;
   psoNotification?: PsoNotification | null;
   onPsoDismiss?: () => void;
   onPsoNavigate?: () => void;
@@ -577,16 +409,13 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
   onShowLive,
   onNavigate,
   onPlayerClick,
-  kitNotification,
-  onKitDismiss,
-  onKitNavigate,
   psoNotification,
   onPsoDismiss,
   onPsoNavigate,
   psohomeTeam,
   psoAwayTeam,
 }) => {
-  if (!notification && !kitNotification && !psoNotification) return null;
+  if (!notification && !psoNotification) return null;
 
   return createPortal(
     <div
@@ -611,14 +440,6 @@ export const GoalBanner: React.FC<GoalBannerProps> = ({
             onShowLive={onShowLive}
             onNavigate={onNavigate}
             onPlayerClick={onPlayerClick}
-          />
-        )}
-        {kitNotification && (
-          <KitCard
-            key={kitNotification.id}
-            notification={kitNotification}
-            onDismiss={onKitDismiss ?? (() => {})}
-            onNavigate={onKitNavigate}
           />
         )}
         {psoNotification && (

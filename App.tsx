@@ -31,7 +31,7 @@ import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader, riskZoneIcon, riskZoneLabel, riskZoneBadgeCls } from './components/AppHeader';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
-import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
+import { GoalBanner, GoalNotification, PsoNotification } from './components/GoalBanner';
 import { LiveTicker } from './components/LiveTicker';
 
 // Lazily loaded — modal/tab content never needed on first paint, so keeping
@@ -103,16 +103,12 @@ export const App = () => {
   const [goalQueue, setGoalQueue] = useState<GoalNotification[]>([]);
   const seenEventIdsRef = useRef<Set<number>>(new Set());
   const goalNotification = goalQueue[0] ?? null;
-  const [kitQueue, setKitQueue] = useState<KitNotification[]>([]);
-  const kitNotification = kitQueue[0] ?? null;
   const [psoQueue, setPsoQueue] = useState<PsoNotification[]>([]);
   const psoNotification = psoQueue[0] ?? null;
   const psoInitializedRef = useRef(false);
   const prevMatchStatusRef = useRef<Map<string, string>>(new Map());
   const [playerModal, setPlayerModal] = useState<{ playerId: number | null; playerName: string; teamId: string } | null>(null);
   const [stadiumVenue, setStadiumVenue] = useState<string | null>(null);
-  const kitNotifiedMatchesRef = useRef<Set<string>>(new Set());
-  const kitInitializedRef = useRef(false);
   const [installAction, setInstallAction] = useState<(() => void) | null>(null);
   const [dailyBrief, setDailyBrief] = useState<string | null>(null);
   const [briefRefreshing, setBriefRefreshing] = useState(false);
@@ -496,45 +492,6 @@ export const App = () => {
     });
     if (newPso.length) setPsoQueue(prev => [...prev, ...newPso]);
   }, [matches]);
-
-  // --- KIT NOTIFICATION ---
-  // Fires when lineups arrive with kit colors for a live/upcoming match.
-  // On first run: silently marks all already-loaded matches as seen.
-  // On subsequent runs: only fires for genuinely new lineup arrivals.
-  useEffect(() => {
-    const LIVE_STATUSES = new Set(['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
-    const byMatch = new Map<string, typeof matchLineups>();
-    matchLineups.forEach(l => {
-      if (!byMatch.has(l.matchId)) byMatch.set(l.matchId, []);
-      byMatch.get(l.matchId)!.push(l);
-    });
-
-    const newKits: KitNotification[] = [];
-    byMatch.forEach((lineups, matchId) => {
-      if (kitNotifiedMatchesRef.current.has(matchId)) return;
-      const match = matches.find(m => m.id === matchId);
-      if (!match) return;
-      const homeRow = lineups.find(l => l.teamId === match.homeTeamId && l.kitBg);
-      const awayRow = lineups.find(l => l.teamId === match.awayTeamId && l.kitBg);
-      kitNotifiedMatchesRef.current.add(matchId);
-      if (!homeRow?.kitBg || !awayRow?.kitBg) return;
-      if (!kitInitializedRef.current) return; // suppress on initial page load
-      if (!LIVE_STATUSES.has(match.status ?? '')) return;
-      newKits.push({
-        id: `kit_${matchId}_${Date.now()}`,
-        matchId,
-        homeTeamId: match.homeTeamId,
-        awayTeamId: match.awayTeamId,
-        homeKitBg: homeRow.kitBg!,
-        homeKitText: homeRow.kitText ?? '#FFFFFF',
-        awayKitBg: awayRow.kitBg!,
-        awayKitText: awayRow.kitText ?? '#FFFFFF',
-      });
-    });
-
-    kitInitializedRef.current = true;
-    if (newKits.length) setKitQueue(prev => [...prev, ...newKits]);
-  }, [matchLineups, matches]);
 
   const rivalsList = useMemo(() => (Object.values(usersDb) as UserProfile[]).filter(u => u.email !== user?.email), [usersDb, user]);
   const leagueRivalsList = useMemo(() => {
@@ -949,13 +906,6 @@ export const App = () => {
           setGoalQueue(prev => prev.slice(1));
         } : undefined}
         onPlayerClick={(playerId, playerName, teamId) => setPlayerModal({ playerId, playerName, teamId })}
-        kitNotification={kitNotification}
-        onKitDismiss={() => setKitQueue(prev => prev.slice(1))}
-        onKitNavigate={kitNotification ? () => {
-          const m = matches.find(m => m.id === kitNotification.matchId);
-          if (m) handleTickerMatchClick(m);
-          setKitQueue(prev => prev.slice(1));
-        } : undefined}
         psoNotification={psoNotification}
         psohomeTeam={psoNotification ? teamsData[psoNotification.homeTeamId] : undefined}
         psoAwayTeam={psoNotification ? teamsData[psoNotification.awayTeamId] : undefined}
@@ -1096,38 +1046,25 @@ export const App = () => {
         }}
         onTestNotification={(type) => {
           const id = Date.now();
-          if (type === 'kit') {
-            setKitQueue(prev => [...prev, {
-              id: `kit_test_${id}`,
-              matchId: 'TEST',
-              homeTeamId: 'RM',
-              awayTeamId: 'BM',
-              homeKitBg: '#FFFFFF',
-              homeKitText: '#00529F',
-              awayKitBg: '#DC052D',
-              awayKitText: '#FFFFFF',
-            }]);
-          } else {
-            setGoalQueue(prev => [...prev, {
-              eventId: id,
-              matchId: 'TEST',
-              eventType: type === 'var' ? 'Var' : 'Goal',
-              teamId: type === 'og' ? 'BM' : 'RM',
-              player: type === 'var' ? 'J. Bellingham' : type === 'og' ? 'D. Upamecano' : type === 'pen' ? 'Vinícius Jr.' : 'K. Mbappé',
-              playerId: type === 'var' ? 47281 : type === 'og' ? 19220 : type === 'pen' ? 47232 : 47189,
-              detail: type === 'var' ? 'Goal Disallowed' : type === 'og' ? 'Own Goal' : type === 'pen' ? 'Penalty' : 'Normal Goal',
-              minute: 67,
-              minuteExtra: null,
-              homeTeamId: 'RM',
-              awayTeamId: 'BM',
-              homeScore: type === 'og' ? 1 : 2,
-              awayScore: 1,
-              homeKitBg:   '#FFFFFF',
-              homeKitText: '#00529F',
-              awayKitBg:   '#DC052D',
-              awayKitText: '#FFFFFF',
-            }]);
-          }
+          setGoalQueue(prev => [...prev, {
+            eventId: id,
+            matchId: 'TEST',
+            eventType: type === 'var' ? 'Var' : 'Goal',
+            teamId: type === 'og' ? 'BM' : 'RM',
+            player: type === 'var' ? 'J. Bellingham' : type === 'og' ? 'D. Upamecano' : type === 'pen' ? 'Vinícius Jr.' : 'K. Mbappé',
+            playerId: type === 'var' ? 47281 : type === 'og' ? 19220 : type === 'pen' ? 47232 : 47189,
+            detail: type === 'var' ? 'Goal Disallowed' : type === 'og' ? 'Own Goal' : type === 'pen' ? 'Penalty' : 'Normal Goal',
+            minute: 67,
+            minuteExtra: null,
+            homeTeamId: 'RM',
+            awayTeamId: 'BM',
+            homeScore: type === 'og' ? 1 : 2,
+            awayScore: 1,
+            homeKitBg:   '#FFFFFF',
+            homeKitText: '#00529F',
+            awayKitBg:   '#DC052D',
+            awayKitText: '#FFFFFF',
+          }]);
         }}
       />
       </Suspense>

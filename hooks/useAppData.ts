@@ -332,6 +332,7 @@ export const useAppData = () => {
                               weaknesses: '',
                               form: [],
                               eloRating: t.elo_rating || undefined,
+                              region: t.region || undefined,
                           };
                       }
                   });

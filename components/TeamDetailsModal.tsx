@@ -91,7 +91,10 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                 team_name: dbScouting?.team_name || team.name,
                 confederation: dbScouting?.confederation || 'FIFA',
                 fifa_rank: dbScouting?.fifa_rank || team.rank || 99,
-                star_player: contentData?.star_player || dbScouting?.star_player || team.starPlayer || '',
+                // Deliberately no team.starPlayer fallback here — that field is a
+                // hardcoded 'TBD' placeholder from the default team row shape (see
+                // useAppData.ts), never real data.
+                star_player: contentData?.star_player || dbScouting?.star_player || '',
                 strengths: contentData?.strengths || dbScouting?.strengths || '',
                 weaknesses: contentData?.weaknesses || dbScouting?.weaknesses || '',
                 scout_notes: contentData?.overview || dbScouting?.scout_notes || '',
@@ -143,24 +146,29 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
       return { label: lang.trendDown || 'Cooling Off', color: 'text-red-500', bg: 'bg-red-50', icon: TrendingDown };
   })();
 
-  const displayRank = extendedStats?.fifaRank || scoutingData?.fifa_rank || team.rank || '-';
   const displayName = scoutingData?.team_name || team.name;
+  // team.starPlayer defaults to the literal string 'TBD' as a DB-row
+  // placeholder (see useAppData.ts) — treat that the same as genuinely
+  // missing data, not a real value to display.
+  const starPlayer = cleanText(scoutingData?.star_player) || (team.starPlayer && team.starPlayer !== 'TBD' ? team.starPlayer : '');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" onClick={onClose}></div>
-        
+
         <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
             {/* HEADER */}
             <div className="relative h-32 bg-[#0f2545] shrink-0">
                 <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-5"></div>
-                <div className="absolute -bottom-8 left-6 w-24 h-16 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2">
-                    <img src={team.flag} alt={displayName} className="w-full h-full object-cover" />
+                <div className="absolute -bottom-8 left-6 w-20 h-20 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2 flex items-center justify-center">
+                    <img src={team.flag} alt={displayName} className="w-full h-full object-contain p-1" />
                 </div>
-                <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                    <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">{lang.fifaRank}</span>
-                    <div className="text-3xl font-black text-white italic tracking-tighter drop-shadow-md">#{displayRank}</div>
-                </div>
+                {team.region && (
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-1 max-w-[55%]">
+                        <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">Country</span>
+                        <div className="text-lg font-black text-white italic tracking-tight drop-shadow-md text-right leading-tight">{team.region}</div>
+                    </div>
+                )}
                 <button onClick={onClose} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors backdrop-blur-sm">
                     <X size={20} />
                 </button>
@@ -172,9 +180,6 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                     <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{displayName}</h2>
                     <div className="flex items-center gap-2">
                         <span className="bg-slate-900 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">{team.id}</span>
-                        {scoutingData?.confederation && (
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border border-blue-200">{scoutingData.confederation}</span>
-                        )}
                     </div>
                 </div>
 
@@ -186,8 +191,8 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                     </div>
                     <div className="relative z-10">
                         <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang.starPlayer}</div>
-                        <div className="text-xl font-black text-slate-900 leading-none">
-                            {cleanText(scoutingData?.star_player) || team.starPlayer}
+                        <div className={`font-black leading-none ${starPlayer ? 'text-xl text-slate-900' : 'text-sm text-slate-400 italic font-semibold'}`}>
+                            {starPlayer || 'Not available yet'}
                         </div>
                     </div>
                 </div>

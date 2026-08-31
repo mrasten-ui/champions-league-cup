@@ -121,6 +121,7 @@ export interface Team {
   eloRating?: number;
   jerseyBg?: string;
   jerseyText?: string;
+  region?: string;
 }
 
 export interface Prediction {

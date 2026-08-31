@@ -12,7 +12,7 @@ interface DebugToolsProps {
   onToggleAdmin: (email: string, isAdmin: boolean) => Promise<void>;
   onRenameUser: (email: string, newName: string) => Promise<void>;
   onDeleteUser: (email: string) => Promise<void>;
-  onTestNotification: (type: 'goal' | 'var' | 'og' | 'pen' | 'kit') => void;
+  onTestNotification: (type: 'goal' | 'var' | 'og' | 'pen') => void;
   users: UserProfile[];
 }
 
@@ -244,8 +244,7 @@ export const DebugTools: React.FC<DebugToolsProps> = ({
                             { type: 'pen',  label: '⚽ Penalty Goal',    color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' },
                             { type: 'og',   label: '⚽ Own Goal',        color: 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:bg-orange-500/20' },
                             { type: 'var',  label: '🚫 VAR Disallowed', color: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30 hover:bg-fuchsia-500/20' },
-                            { type: 'kit',  label: '🎽 Kits Locked In', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20', wide: true },
-                        ] as Array<{ type: 'goal'|'var'|'og'|'pen'|'kit'; label: string; color: string; wide?: boolean }>).map(({ type, label, color, wide }) => (
+                        ] as Array<{ type: 'goal'|'var'|'og'|'pen'; label: string; color: string; wide?: boolean }>).map(({ type, label, color, wide }) => (
                             <button
                                 key={type}
                                 onClick={() => {

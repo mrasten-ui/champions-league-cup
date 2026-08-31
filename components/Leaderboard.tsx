@@ -495,6 +495,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       {isExpanded && (
                           <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-white/5">
                               <td colSpan={4} className="px-4 pb-6 pt-2">
+                              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
 
                                   {/* Avatar + Last 3 / Next 3 — hidden once all group games are done */}
                                   {!allGroupsDone && (
@@ -549,6 +550,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                           <Trophy size={32} className="absolute -bottom-1 -right-1 text-purple-200 opacity-50 rotate-12 group-hover/kopt:scale-110 transition-transform" />
                                       </div>
                                   </div>
+                              </div>
                               </td>
                           </tr>
                       )}
