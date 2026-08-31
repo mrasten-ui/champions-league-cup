@@ -36,6 +36,14 @@ export const riskZoneLabel = (value: number | undefined, lowLabel: string, midLa
   const pct = (value ?? 0.5) * 100;
   return pct <= 33 ? lowLabel : pct <= 66 ? midLabel : highLabel;
 };
+// Same blue/amber/red zone colours RiskSlider's thumb uses, as a static
+// badge palette (bg/border/text) instead of an interpolated RGB thumb.
+export const riskZoneBadgeCls = (value: number | undefined): string => {
+  const pct = (value ?? 0.5) * 100;
+  if (pct <= 33) return 'bg-blue-500/15 border-blue-500/40 text-blue-300';
+  if (pct <= 66) return 'bg-amber-500/15 border-amber-500/40 text-amber-300';
+  return 'bg-red-500/15 border-red-500/40 text-red-300';
+};
 export const riskZoneIcon = (value: number | undefined): string => {
   const pct = (value ?? 0.5) * 100;
   return pct <= 33 ? '🛡️' : pct <= 66 ? '⚖️' : '⚡';
@@ -119,7 +127,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                     <Logo className="w-12 h-12 relative" variant="theme" />
                  </div>
                  <div>
-                    <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">CL Predictor</h1>
+                    <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent pr-1">CL Predictor</h1>
                  </div>
               </div>
 

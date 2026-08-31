@@ -29,7 +29,7 @@ import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { RoundResults } from './components/RoundResults';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
-import { AppHeader, riskZoneIcon, riskZoneLabel } from './components/AppHeader';
+import { AppHeader, riskZoneIcon, riskZoneLabel, riskZoneBadgeCls } from './components/AppHeader';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
 import { LiveTicker } from './components/LiveTicker';
@@ -843,10 +843,10 @@ export const App = () => {
                             <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
                             <button
                                 onClick={() => setShowAvatarEditor(true)}
-                                className="self-start flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors"
+                                className={`self-start flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full border text-[11px] font-black uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 ${riskZoneBadgeCls(user?.riskResult)}`}
                                 title={t.riskProfileSection}
                             >
-                                <span>{riskZoneIcon(user?.riskResult)}</span>
+                                <span className="text-xs">{riskZoneIcon(user?.riskResult)}</span>
                                 {riskZoneLabel(user?.riskResult, t.riskBanker, t.riskBalanced, t.riskWildcard)} Risk
                             </button>
                         </div>

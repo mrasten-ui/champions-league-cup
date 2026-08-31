@@ -146,7 +146,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="relative inline-block mb-4">
                 <Logo className="w-52 h-52 transition-transform duration-700 hover:scale-110" variant="theme" />
               </div>
-              <h1 className="text-4xl font-black italic tracking-tighter uppercase bg-gradient-to-br from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent">CL Predictor</h1>
+              <h1 className="text-4xl font-black italic tracking-tighter uppercase bg-gradient-to-br from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent pr-2">CL Predictor</h1>
               <p className="text-cyan-400 font-bold text-xs tracking-[0.2em] uppercase opacity-90">{t.subTitle}</p>
           </div>
           <div className="w-full bg-blue-950/40 backdrop-blur-md rounded-3xl p-8 shadow-2xl text-slate-300 border border-white/10 ring-1 ring-white/5">
