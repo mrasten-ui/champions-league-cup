@@ -13,62 +13,30 @@ export interface AIAnalystProps {
     userName?: string;
 }
 
-// --- PERSONA CONFIGURATION ---
-const PERSONAS: Record<string, any> = {
+// Generic, no-persona copy — a personal stats brief, not a fictional named
+// pundit. Kept deliberately plain so a different presentation (avatar,
+// mascot, whatever) can be layered on later without touching the generation
+// logic below.
+const COPY: Record<'en' | 'sco', any> = {
     en: {
-        title: "Coach's Report",
-        coachName: "Thomas Tuchel",
-        coachShort: "Tuchel",
-        coachImage: "/pundit/ass-uk.png",
-        loading: "Reviewing game tape...",
+        title: "Your Brief",
+        loading: "Crunching the numbers...",
         error: "Connection lost. Showing cached brief.",
-        noGames: "No confirmed fixtures yet. We are waiting for the bracket to populate.",
-        refreshLabel: "New Brief",
-        lastUpdated: "Updated",
-        systemPrompt: `You are Thomas Tuchel, the England national team manager, delivering a personal briefing to one of your analysts. Precise, intense, tactically obsessive. Speak directly to the user by name. Reference the real numbers — standings, gaps, specific picks. Never generic.`,
-    },
-    'en-US': {
-        title: "Coach's Intel",
-        coachName: "Mauricio Pochettino",
-        coachShort: "Pochettino",
-        coachImage: "/pundit/ass-us.png",
-        loading: "Crunching numbers...",
-        error: "Server timeout. Showing cached intel.",
-        noGames: "No active matchups. Waiting for the playoffs to fill.",
-        refreshLabel: "New Intel",
-        lastUpdated: "Updated",
-        systemPrompt: `You are Mauricio Pochettino, the USA national team manager, giving a personal briefing. Passionate, direct, emotionally invested. Speak to the user by name. Use the actual numbers — standings, rival gaps, picks. No generic advice.`,
+        noGames: "No confirmed fixtures yet.",
+        refreshLabel: "Refresh",
+        systemPrompt: `You are a sharp football data analyst writing a short personal briefing for a player in a Champions League prediction game. Precise, direct, focused on real numbers. Speak directly to the user by name. Reference the real numbers — standings, gaps, specific picks. Never generic.`,
     },
     sco: {
-        title: "The Gaffer's Word",
-        coachName: "Steve Clarke",
-        coachShort: "Clarke",
-        coachImage: "/pundit/ass-sc.png",
-        loading: "Checkin' the tactics...",
-        error: "The machine's gubbed. Showing last brief.",
-        noGames: "Nae games yet, lad. Waitin' on the draw.",
-        refreshLabel: "New Word",
-        lastUpdated: "Updated",
-        systemPrompt: `You are Steve Clarke, the Scotland national team manager, giving a personal briefing. Straight-talking, dry, occasionally sardonic. Speak to the user by name. Use actual standings and picks. Light Scottish tone — blunt but knowledgeable. Never sugarcoat. Never generic.`,
+        title: "Yer Brief",
+        loading: "Crunchin' the numbers...",
+        error: "Connection's gubbed. Showin' the last brief.",
+        noGames: "Nae games confirmed yet.",
+        refreshLabel: "Refresh",
+        systemPrompt: `You are a sharp football data analyst writing a short personal briefing for a player in a Champions League prediction game. Blunt, dry, occasionally sardonic Scottish tone — but never twee, never generic. Speak directly to the user by name. Reference the real numbers — standings, gaps, specific picks.`,
     },
-    no: {
-        title: "Trenerens Rapport",
-        coachName: "Ståle Solbakken",
-        coachShort: "Solbakken",
-        coachImage: "/pundit/ass-no.png",
-        loading: "Kobler til studio...",
-        error: "Teknisk feil. Viser siste rapport.",
-        noGames: "Ingen kamper klare. Vi venter på at sluttspillet skal settes.",
-        refreshLabel: "Ny Rapport",
-        lastUpdated: "Oppdatert",
-        systemPrompt: `Du er Ståle Solbakken, Norges landslagssjef, og gir en personlig rapport. Rolig, taktisk og gjennomtenkt. Bruk de faktiske tallene — plassering, gap til rivaler, tips. Snakk direkte til brukeren med navn. Skriv på norsk. Aldri generisk.`,
-    }
 };
 
-const resolveLanguage = (code: string): string => {
-    if (code === 'SCO') return 'sco';
-    return 'en';
-};
+const resolveLanguage = (code: string): 'en' | 'sco' => (code === 'SCO' ? 'sco' : 'en');
 
 // ── Exported helper: build and fire the AI call. Used both here (refresh) and in App.tsx (pre-generate).
 export const generateDailyBrief = async (
@@ -80,8 +48,7 @@ export const generateDailyBrief = async (
     langCode: LanguageCode,
     supabaseClient: any,
 ): Promise<string> => {
-    const langKey = resolveLanguage(langCode);
-    const t = PERSONAS[langKey];
+    const t = COPY[resolveLanguage(langCode)];
 
     const cleanName = (() => {
         const n = currentUser?.name || 'Manager';
@@ -125,7 +92,7 @@ export const generateDailyBrief = async (
     const matchLines = upcoming.map(m => {
         const hTeam = teams[m.homeTeamId]?.name ?? m.homeTeamId;
         const aTeam = teams[m.awayTeamId]?.name ?? m.awayTeamId;
-        const isKnockout = !!(m.round && !m.groupId);
+        const isKnockout = !!m.round;
         const myPred = allPredictions.find(p => p.userId === currentUser.email && p.matchId === m.id);
         const pick = (() => {
             if (!myPred) return 'no pick yet';
@@ -145,7 +112,7 @@ export const generateDailyBrief = async (
             else if (pct < 35) rivalry = `rivals back ${aTeam} (${100 - pct}%)`;
             else rivalry = 'rivals are split';
         }
-        const roundLabel = m.round && !m.groupId ? ` [${m.round}]` : '';
+        const roundLabel = m.round ? ` [${m.round}]` : '';
         return `- ${hTeam} vs ${aTeam}${roundLabel}: ${cleanName}'s pick is ${pick}${rivalry ? `, ${rivalry}` : ''}`;
     }).join('\n');
 
@@ -164,115 +131,82 @@ ${matchLines}
 
 Write 2–3 punchy sentences. Reference their actual rank battle and name the rival they're chasing or defending against. Mention at least one of their specific picks and whether the crowd agrees or not. No bullet points, no headers. Plain paragraph only. Max 100 words.`;
 
-    const { data, error } = await supabaseClient.rpc('generate_daily_brief', { prompt });
+    const { data, error } = await supabaseClient.functions.invoke('daily-brief', { body: { prompt } });
     if (error) throw error;
-    return data || t.noGames;
+    return data?.text || t.noGames;
 };
 
 // ── Widget (display only — no self-triggering) ───────────────────────────────
 export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
     currentLang, preloadedAnalysis, onRefresh, isRefreshing, compact, userName,
 }) => {
-    const langKey = resolveLanguage(currentLang || 'EN');
-    const t = PERSONAS[langKey];
+    const t = COPY[resolveLanguage(currentLang || 'EN')];
 
-    const [portraitOpen, setPortraitOpen] = useState(false);
+    const [expanded, setExpanded] = useState(false);
 
     const loading = isRefreshing || (!preloadedAnalysis && preloadedAnalysis !== '');
 
     const inner = (
-        <div className="flex gap-3 items-stretch">
-            {/* LEFT: header + commentary text */}
-            <div className="flex-1 min-w-0 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2">
-                        <Sparkles size={13} className="text-indigo-300 shrink-0" />
-                        <div className="min-w-0">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none">
-                                {userName ? `${userName}'s Brief` : t.title}
-                            </div>
-                            <div className="text-[8px] text-indigo-400/60 font-semibold tracking-wide mt-0.5">
-                                {t.coachShort} · Assistant Coach
-                            </div>
-                        </div>
-                    </div>
-                    {onRefresh && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-                            disabled={loading}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40"
-                        >
-                            <RefreshCw size={11} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
-                            <span className="text-[9px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
-                        </button>
-                    )}
-                </div>
-
-                {/* Content — clickable to expand modal */}
-                <div className="flex-1 cursor-pointer" onClick={() => setPortraitOpen(true)}>
-                    {loading ? (
-                        <div className="space-y-2 animate-pulse">
-                            <div className="text-center text-[10px] text-white/40">{t.loading}</div>
-                            <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
-                            <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
-                            <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
-                        </div>
-                    ) : preloadedAnalysis ? (
-                        <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
-                            {preloadedAnalysis}
-                        </p>
-                    ) : (
-                        <div className="flex items-center gap-2 text-white/40 text-xs">
-                            <WifiOff size={13} />
-                            <span>{t.error}</span>
-                        </div>
-                    )}
-                    <div className="flex justify-end mt-1.5">
-                        <ZoomIn size={11} className="text-indigo-300/40" />
+        <div className="flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles size={13} className="text-indigo-300 shrink-0" />
+                    <div className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none truncate">
+                        {userName ? `${userName}'s Brief` : t.title}
                     </div>
                 </div>
+                {onRefresh && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+                        disabled={loading}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all disabled:opacity-40 shrink-0"
+                    >
+                        <RefreshCw size={11} className={`text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+                        <span className="text-[9px] font-black text-indigo-200 uppercase tracking-wide">{t.refreshLabel}</span>
+                    </button>
+                )}
             </div>
 
-            {/* RIGHT: pundit portrait — click to expand */}
-            {t.coachImage && (
-                <div
-                    className="shrink-0 w-16 sm:w-20 min-h-[80px] relative overflow-hidden rounded-xl self-stretch cursor-pointer"
-                    onClick={() => setPortraitOpen(true)}
-                >
-                    <img
-                        src={t.coachImage}
-                        alt={t.coachName}
-                        className="absolute inset-0 w-full h-full object-cover object-top"
-                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                    />
-                    <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-[#1e1b4b] to-transparent pointer-events-none" />
-                    {/* name + role overlay at bottom */}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1 px-1 text-center">
-                        <div className="text-[7px] font-black uppercase tracking-widest text-white leading-none">{t.coachShort}</div>
-                        <div className="text-[6px] text-white/60 font-semibold tracking-wide mt-0.5">Asst. Coach</div>
+            {/* Content — clickable to expand modal */}
+            <div className="flex-1 cursor-pointer" onClick={() => setExpanded(true)}>
+                {loading ? (
+                    <div className="space-y-2 animate-pulse">
+                        <div className="text-center text-[10px] text-white/40">{t.loading}</div>
+                        <div className="h-1.5 bg-white/10 rounded w-3/4 mx-auto" />
+                        <div className="h-1.5 bg-white/10 rounded w-5/6 mx-auto" />
+                        <div className="h-1.5 bg-white/10 rounded w-1/2 mx-auto" />
                     </div>
+                ) : preloadedAnalysis ? (
+                    <p className="text-xs text-white/85 leading-relaxed animate-in fade-in duration-500">
+                        {preloadedAnalysis}
+                    </p>
+                ) : (
+                    <div className="flex items-center gap-2 text-white/40 text-xs">
+                        <WifiOff size={13} />
+                        <span>{t.error}</span>
+                    </div>
+                )}
+                <div className="flex justify-end mt-1.5">
+                    <ZoomIn size={11} className="text-indigo-300/40" />
                 </div>
-            )}
+            </div>
         </div>
     );
 
-    const portraitModal = portraitOpen ? (
+    const expandedModal = expanded ? (
         <div
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-            onClick={() => setPortraitOpen(false)}
+            onClick={() => setExpanded(false)}
         >
             <div
                 className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#0f172a]"
                 onClick={(e) => e.stopPropagation()}
             >
-                <img
-                    src={t.coachImage}
-                    alt={t.coachName}
-                    className="w-full object-cover object-top max-h-56"
-                />
-                <div className="px-5 pt-4 pb-2 border-b border-white/10 text-center">
-                    <div className="text-base font-black uppercase tracking-widest text-white">{t.coachName}</div>
-                    <div className="text-xs text-indigo-400/70 font-semibold tracking-wide mt-0.5">Assistant Coach</div>
+                <div className="px-5 pt-5 pb-3 border-b border-white/10 flex items-center gap-2">
+                    <Sparkles size={14} className="text-indigo-300" />
+                    <div className="text-sm font-black uppercase tracking-widest text-white">
+                        {userName ? `${userName}'s Brief` : t.title}
+                    </div>
                 </div>
                 <div className="px-5 py-4">
                     {loading ? (
@@ -304,7 +238,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                     </div>
                 )}
                 <button
-                    onClick={() => setPortraitOpen(false)}
+                    onClick={() => setExpanded(false)}
                     className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white/70 hover:text-white transition-colors"
                 >
                     <X size={14} strokeWidth={3} />
@@ -316,7 +250,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
     if (compact) return (
         <>
             <div className="relative z-10">{inner}</div>
-            {portraitModal}
+            {expandedModal}
         </>
     );
 
@@ -326,7 +260,7 @@ export const AIAnalystWidget: React.FC<AIAnalystProps> = ({
                 <BrainCircuit size={80} />
             </div>
             <div className="relative z-10">{inner}</div>
-            {portraitModal}
+            {expandedModal}
         </div>
     );
 };
