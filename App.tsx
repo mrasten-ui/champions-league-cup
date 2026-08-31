@@ -809,6 +809,9 @@ export const App = () => {
                         locale={currentLocale}
                         currentUser={user}
                         userPredictions={allPredictions.filter(p => p.userId === user?.email)}
+                        allPredictions={allPredictions}
+                        leagueRivals={leagueRivalsList}
+                        onSpy={handleSpy}
                         onTeamClick={(id) => setViewingTeamId(id)}
                         predictingMatchday={currentMatchday}
                         jumpToMatchId={scheduleJumpMatchId}
@@ -900,7 +903,7 @@ export const App = () => {
                                       onUpdate={handleScoreUpdate}
                                       lang={t}
                                       locale={currentLocale}
-                                      rivals={rivalsList}
+                                      rivals={leagueRivalsList}
                                       onSpy={handleSpy}
                                       currentUser={user}
                                       allPredictions={allPredictions}

@@ -107,12 +107,9 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
 };
 
 
-type PredictionPillProps =
-  | { mode: 'result'; match: Match; pred: Prediction; pts: number; teams: Record<string, Team> }
-  | { mode: 'prediction'; match: Match; pred: Prediction | null; teams: Record<string, Team> };
+interface PredictionPillProps { match: Match; pred: Prediction; pts: number; teams: Record<string, Team> }
 
-const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
-    const { match, pred, teams } = props;
+const MatchPredictionPill: React.FC<PredictionPillProps> = ({ match, pred, pts, teams }) => {
     const home = teams[match.homeTeamId];
     const away = teams[match.awayTeamId];
     const renderFlag = (f?: string) => f?.startsWith('http')
@@ -122,20 +119,12 @@ const MatchPredictionPill: React.FC<PredictionPillProps> = (props) => {
     return (
         <div className="inline-flex items-center gap-1 bg-white/10 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-300 whitespace-nowrap">
             {renderFlag(home?.flag)}
-            {props.mode === 'result' ? (
-                <>
-                    <span className="font-black text-white">{match.homeScore}-{match.awayScore}</span>
-                    <span className="text-slate-400 font-medium">({pred.home}-{pred.away})</span>
-                </>
-            ) : (
-                <span className="font-black text-white">{pred ? `${pred.home}-${pred.away}` : '?-?'}</span>
-            )}
+            <span className="font-black text-white">{match.homeScore}-{match.awayScore}</span>
+            <span className="text-slate-400 font-medium">({pred.home}-{pred.away})</span>
             {renderFlag(away?.flag)}
-            {props.mode === 'result' && (
-                <span className={`ml-0.5 w-4 h-4 rounded-full flex items-center justify-center font-black text-[8px] ${props.pts > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'}`}>
-                    {props.pts}
-                </span>
-            )}
+            <span className={`ml-0.5 w-4 h-4 rounded-full flex items-center justify-center font-black text-[8px] ${pts > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'}`}>
+                {pts}
+            </span>
         </div>
     );
 };
@@ -243,13 +232,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       setExpandedUser(expandedUser === email ? null : email);
   };
 
-  // Last 3 finished + next 3 upcoming predictions for the currently expanded user
+  // Last 3 finished predictions for the currently expanded user. (Upcoming
+  // predictions used to show here too, but that leaked a rival's exact pick
+  // for free on matches that hadn't even locked yet — removed; use Scout for
+  // that, or the round history browser once a round actually locks.)
   const expandedUserDetail = useMemo(() => {
       if (!expandedUser) return null;
       const userPreds = allPredictions.filter(p => p.userId === expandedUser);
-      const u = finalDisplayData.find(d => d.email === expandedUser);
       const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
-      const now = Date.now();
 
       const last3 = matches
           .filter(m => !m.round && finishedStatuses.includes(m.status) && userPreds.some(p => p.matchId === m.id))
@@ -261,14 +251,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
               return { match: m, pred, pts };
           });
 
-      const next3 = matches
-          .filter(m => !m.round && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .slice(0, 3)
-          .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === m.id) ?? null }));
-
-      return { last3, next3 };
-  }, [expandedUser, allPredictions, matches, finalDisplayData]);
+      return { last3 };
+  }, [expandedUser, allPredictions, matches]);
 
   const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
   const allGroupsDone = matches
@@ -534,22 +518,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                               <div className="flex flex-wrap gap-1.5">
                                                   {expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
                                                       expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
-                                                          <MatchPredictionPill key={m.id} mode="result" match={m} pred={pred} pts={pts} teams={teams} />
+                                                          <MatchPredictionPill key={m.id} match={m} pred={pred} pts={pts} teams={teams} />
                                                       ))
                                                   ) : (
                                                       <span className="text-[10px] text-slate-400 italic">No finished predictions yet</span>
-                                                  )}
-                                              </div>
-                                          </div>
-                                          <div>
-                                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Next 3</div>
-                                              <div className="flex flex-wrap gap-1.5">
-                                                  {expandedUserDetail && expandedUserDetail.next3.length > 0 ? (
-                                                      expandedUserDetail.next3.map(({ match: m, pred }) => (
-                                                          <MatchPredictionPill key={m.id} mode="prediction" match={m} pred={pred} teams={teams} />
-                                                      ))
-                                                  ) : (
-                                                      <span className="text-[10px] text-slate-400 italic">No upcoming predictions</span>
                                                   )}
                                               </div>
                                           </div>
@@ -632,15 +604,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       {lbProfileModal && (() => {
         const u = lbProfileModal;
         const totalUsers = finalDisplayData.length;
-        const userPreds = allPredictions.filter(p => p.userId === u.email);
-
-        const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
-        const now = Date.now();
-        const next3 = matches
-          .filter(m => !m.round && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .slice(0, 3)
-          .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLbProfileModal(null)}>
@@ -660,41 +623,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                   </div>
                 )}
               </div>
-
-              {next3.length > 0 && (
-                <div className="w-full">
-                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Next Predictions</div>
-                  <div className="flex flex-col gap-2">
-                    {next3.map(({ match: m, pred }) => {
-                      const homeFlag = teams[m.homeTeamId]?.flag ?? '';
-                      const awayFlag = teams[m.awayTeamId]?.flag ?? '';
-                      const renderFlag = (f: string) => f.startsWith('http')
-                        ? <img src={f} alt="" className="w-5 h-4 object-cover rounded-sm shrink-0" />
-                        : <span className="shrink-0">{f || '🏳'}</span>;
-                      const matchDate = new Date(m.date);
-                      const dateLabel = matchDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + matchDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                      return (
-                        <div key={m.id} className="bg-white/5 rounded-xl px-3 py-2 text-xs font-bold text-slate-300">
-                          <div className="flex items-center justify-between gap-1">
-                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                              {renderFlag(homeFlag)}
-                              <span className="truncate">{teams[m.homeTeamId]?.name ?? m.homeTeamId}</span>
-                            </div>
-                            <div className="text-sm font-black text-white mx-2 shrink-0">
-                              {pred ? `${pred.home}–${pred.away}` : '?–?'}
-                            </div>
-                            <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
-                              <span className="truncate">{teams[m.awayTeamId]?.name ?? m.awayTeamId}</span>
-                              {renderFlag(awayFlag)}
-                            </div>
-                          </div>
-                          <div className="text-[9px] text-slate-400 font-medium mt-1 text-center">{dateLabel}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         );

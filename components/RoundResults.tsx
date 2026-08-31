@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ChevronRight, X, Bot } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, Users, X, Bot } from 'lucide-react';
 import { Match, Team, Translation, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat, Round } from '../types';
 import { MatchCard } from './MatchCard';
+import { AvatarDisplay } from './AvatarDisplay';
+import { getRoundLockTime, isMatchLocked } from '../utils/date';
 
 const DONE_STATUSES = new Set(['FT', 'AET', 'PEN', 'FINISHED']);
 const LIVE_STATUSES = new Set(['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT']);
@@ -88,6 +90,11 @@ interface RoundResultsProps {
   locale: string;
   currentUser: UserProfile | null;
   userPredictions: Prediction[];
+  /** Every league-mate's prediction — used only to reveal picks for matches whose round has actually locked (see isMatchLocked). */
+  allPredictions: Prediction[];
+  /** Same-league players, for the "who picked what" reveal panel. */
+  leagueRivals: UserProfile[];
+  onSpy?: (matchId: string) => void;
   onTeamClick: (teamId: string) => void;
   /** The matchday currently open for predictions in the League Phase tab — flagged on its chip. */
   predictingMatchday?: number;
@@ -185,8 +192,11 @@ const TieCard: React.FC<{
     : 'Upcoming';
   const statusClass = tie.isLive ? 'text-fuchsia-400' : tie.isDecided ? 'text-emerald-400' : 'text-slate-600';
 
-  const openable = tie.legs.length > 0;
   const mostRecentLeg = tie.legs[tie.legs.length - 1];
+  // Same reasoning as ResultRow: nothing to show for a leg that hasn't kicked
+  // off yet, and MatchCard's detail view isn't editable from this read-only
+  // browser, so don't open into a still-upcoming leg's live score steppers.
+  const openable = !!mostRecentLeg && (LIVE_STATUSES.has(mostRecentLeg.status) || DONE_STATUSES.has(mostRecentLeg.status));
 
   return (
     <button
@@ -209,7 +219,12 @@ const TieCard: React.FC<{
 /**
  * One line per fixture — crest, name, score/kickoff, crest, name — a classic
  * sports-results row rather than the prediction picker's editable steppers.
- * Tapping a row opens the full read-only match detail (events/lineups/stats).
+ * Tapping the row opens the full read-only match detail (events/lineups/stats).
+ *
+ * Once the match's round has actually locked, a separate chevron reveals
+ * every league-mate's pick for that specific match right inline — never
+ * before lock (see isMatchLocked), so browsing an upcoming round never shows
+ * anyone's prediction, including your own rivals'.
  */
 const ResultRow: React.FC<{
   match: Match;
@@ -220,7 +235,10 @@ const ResultRow: React.FC<{
   lang: Translation;
   onTeamClick: (teamId: string) => void;
   onOpen: () => void;
-}> = ({ match, homeTeam, awayTeam, locale, prediction, lang, onTeamClick, onOpen }) => {
+  roundLockTime: number | null;
+  leagueRivals: UserProfile[];
+  allPredictions: Prediction[];
+}> = ({ match, homeTeam, awayTeam, locale, prediction, lang, onTeamClick, onOpen, roundLockTime, leagueRivals, allPredictions }) => {
   const isLive = LIVE_STATUSES.has(match.status);
   const isFinished = DONE_STATUSES.has(match.status);
   const hasResult = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null;
@@ -237,10 +255,19 @@ const ResultRow: React.FC<{
     ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
     : 'TBD';
 
+  const [picksOpen, setPicksOpen] = useState(false);
+  const canRevealPicks = isMatchLocked(match, roundLockTime) && leagueRivals.length > 0;
+  // Nothing to show yet for a match that hasn't kicked off (no result, no
+  // events/lineups) — and MatchCard's detail view is read-only-by-status, not
+  // by a locked override here, so an unstarted match would otherwise render
+  // live (but non-functional) score steppers. Keep the row inert until then.
+  const canOpenDetail = isLive || isFinished;
+
   return (
-    <button
-      onClick={onOpen}
-      className="w-full flex items-center gap-2 px-3 py-2.5 border-b border-white/5 last:border-b-0 hover:bg-white/5 active:bg-white/10 transition-colors text-left"
+    <div className="border-b border-white/5 last:border-b-0">
+    <div
+      onClick={canOpenDetail ? onOpen : undefined}
+      className={`w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left ${canOpenDetail ? 'hover:bg-white/5 active:bg-white/10 cursor-pointer' : 'cursor-default'}`}
     >
       <div className="w-10 shrink-0">
         {isLive ? (
@@ -281,13 +308,40 @@ const ResultRow: React.FC<{
         <span className="text-[13px] font-bold text-white truncate">{awayName}</span>
       </div>
 
-      <ChevronRight size={14} className="text-slate-600 shrink-0" />
-    </button>
+      {canRevealPicks && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setPicksOpen(o => !o); }}
+          className="p-1 rounded-full text-amber-400 hover:bg-amber-500/10 transition-colors shrink-0"
+          title={lang.rivalIntel || 'All predictions'}
+        >
+          {picksOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      )}
+      {canOpenDetail && <ChevronRight size={14} className="text-slate-600 shrink-0" />}
+    </div>
+
+    {canRevealPicks && picksOpen && (
+      <div className="bg-slate-800/60 border-t border-amber-500/20 px-3 py-2 flex flex-col gap-1">
+        {leagueRivals.map(rival => {
+          const rivalPred = allPredictions.find(p => p.userId === rival.email && p.matchId === match.id);
+          return (
+            <div key={rival.email} className="flex items-center justify-between bg-white/5 px-2 py-1 rounded">
+              <div className="flex items-center gap-2 min-w-0">
+                <AvatarDisplay avatar={rival.avatar} size="xs" className="w-5 h-5 text-[9px]" />
+                <span className="text-[10px] font-bold text-white truncate max-w-[140px]">{rival.name}</span>
+              </div>
+              <span className="text-[10px] font-mono font-black text-amber-400 tracking-wider">{rivalPred ? `${rivalPred.home} - ${rivalPred.away}` : '—'}</span>
+            </div>
+          );
+        })}
+      </div>
+    )}
+    </div>
   );
 };
 
 export const RoundResults: React.FC<RoundResultsProps> = ({
-  matches, teams, lang, locale, currentUser, userPredictions, onTeamClick, predictingMatchday,
+  matches, teams, lang, locale, currentUser, userPredictions, allPredictions, leagueRivals, onSpy, onTeamClick, predictingMatchday,
   jumpToMatchId, matchEvents = [], matchLineups = [], matchStats = [], playerMatchStats = [], onPlayerClick, onStadiumClick,
 }) => {
   const leagueRounds: RoundInfo[] = useMemo(() => {
@@ -350,6 +404,10 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
     return matchesForRound(activeRound).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRound, matches]);
+
+  // The whole round locks together at its earliest kickoff (see utils/date.ts) —
+  // used to gate the "reveal everyone's picks" panel per match below.
+  const activeRoundLockTime = useMemo(() => getRoundLockTime(activeMatches), [activeMatches]);
 
   const groupedByDay = useMemo(() => {
     const groups: { day: string; matches: Match[] }[] = [];
@@ -457,6 +515,9 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
                   lang={lang}
                   onTeamClick={onTeamClick}
                   onOpen={() => setDetailMatch(m)}
+                  roundLockTime={activeRoundLockTime}
+                  leagueRivals={leagueRivals}
+                  allPredictions={allPredictions}
                 />
               ))}
             </div>
@@ -480,16 +541,16 @@ export const RoundResults: React.FC<RoundResultsProps> = ({
               <X size={16} />
             </button>
             <MatchCard
-              match={{ ...detailMatch, isLocked: true }}
+              match={detailMatch}
               homeTeam={teams[detailMatch.homeTeamId]}
               awayTeam={teams[detailMatch.awayTeamId]}
               onUpdate={() => {}}
               lang={lang}
               locale={locale}
-              rivals={[]}
-              onSpy={() => {}}
+              rivals={leagueRivals}
+              onSpy={onSpy ?? (() => {})}
               currentUser={currentUser}
-              allPredictions={userPredictions}
+              allPredictions={allPredictions}
               phase={'LIVE'}
               isAdminMode={false}
               onTeamClick={onTeamClick}
