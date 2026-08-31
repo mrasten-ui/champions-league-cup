@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Trophy, Calendar, Smartphone, Share2, X } from 'lucide-react';
+import { Edit3, UserCircle2, BookOpen, Bot, LogOut, LayoutGrid, Users, Trophy, Calendar, Smartphone, Share2, X, Compass } from 'lucide-react';
 import { Logo } from './Logo';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LANGUAGES } from '../constants';
@@ -16,6 +16,7 @@ interface AppHeaderProps {
   isProfileMenuOpen: boolean;
   setIsProfileMenuOpen: (b: boolean) => void;
   setShowAvatarEditor: (b: boolean) => void;
+  setShowQuickGuide: (b: boolean) => void;
   setIsDebugOpen: (b: boolean) => void;
   setShowAdminLogin: (b: boolean) => void;
   handleLogout: () => void;
@@ -191,6 +192,7 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                     ><Share2 size={16} /> Share League</button>
                                   )}
                                   <button onClick={() => { props.setActiveTab('rules' as any); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-2 transition-colors"><BookOpen size={16} /> {t.rulesBtn}</button>
+                                  <button onClick={() => { props.setShowQuickGuide(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-cyan-50 hover:text-cyan-600 rounded-lg flex items-center gap-2 transition-colors"><Compass size={16} /> {t.quickGuideBtn}</button>
                                   {props.isAdminMode && (
                                       <div className="border-t border-slate-100 mt-1 pt-1">
                                           <button onClick={() => { props.setIsDebugOpen(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 transition-colors"><Bot size={16} /> Management</button>

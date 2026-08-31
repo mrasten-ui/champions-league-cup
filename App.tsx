@@ -35,6 +35,7 @@ import { TeamDetailsModal } from './components/TeamDetailsModal';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader, riskZoneIcon, riskZoneLabel } from './components/AppHeader';
+import { QuickGuideModal } from './components/QuickGuideModal';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, KitNotification, PsoNotification } from './components/GoalBanner';
 import { PlayerModal } from './components/PlayerModal';
@@ -44,6 +45,7 @@ import { LiveTicker } from './components/LiveTicker';
 const STORAGE_KEYS = {
   CURRENT_USER: 'rasten_cup_active_user_v2',
   NUDGE_DISMISSED_PREFIX: 'rasten_nudge_dismissed_v1_',
+  QUICK_GUIDE_SEEN_PREFIX: 'cl_predictor_quick_guide_seen_v1_',
 };
 
 export const App = () => {
@@ -64,6 +66,7 @@ export const App = () => {
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [showQuickGuide, setShowQuickGuide] = useState(false);
   const [pendingName, setPendingName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSaving, setNameSaving] = useState(false);
@@ -178,6 +181,15 @@ export const App = () => {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       addToast('info', t.loggedOutTitle, t.loggedOutMsg);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    const key = STORAGE_KEYS.QUICK_GUIDE_SEEN_PREFIX + user.email;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, 'true');
+      setShowQuickGuide(true);
+    }
+  }, [user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (showAvatarEditor && user) {
@@ -713,7 +725,7 @@ export const App = () => {
         user={user} language={language} setLanguage={handleLanguageSwitch} tournamentPhase={tournamentPhase} setTournamentPhase={setTournamentPhase}
         activeTab={activeTab} setActiveTab={setActiveTab}
         isProfileMenuOpen={isProfileMenuOpen} setIsProfileMenuOpen={setIsProfileMenuOpen}
-        setShowAvatarEditor={setShowAvatarEditor} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
+        setShowAvatarEditor={setShowAvatarEditor} setShowQuickGuide={setShowQuickGuide} setIsDebugOpen={setIsDebugOpen} setShowAdminLogin={setShowAdminLogin}
         handleLogout={handleLogout}
         isAdminMode={isAdminMode}
         unassignedCount={unassignedCount}
@@ -722,6 +734,14 @@ export const App = () => {
         navTabs={navTabs} t={t}
       />
       <InstallPrompt isLoggedIn={!!user} onRegisterTrigger={setInstallAction} />
+
+      <QuickGuideModal
+        isOpen={showQuickGuide}
+        onClose={() => setShowQuickGuide(false)}
+        lang={t}
+        matches={matches}
+        currentLocale={currentLocale}
+      />
 
       {/* Admin: unassigned players banner */}
       {showAdminBanner && unassignedCount > 0 && (
