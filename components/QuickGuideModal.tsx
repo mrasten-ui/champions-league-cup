@@ -178,27 +178,28 @@ export const QuickGuideModal: React.FC<QuickGuideModalProps> = ({ isOpen, onClos
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm bg-[#0f2545] rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
-        {/* Progress — segmented story-style bar in the brand gradient */}
-        <div className="flex gap-1 px-5 pt-4">
-          {steps.map((_, i) => (
-            <div key={i} className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500 transition-all duration-300"
-                style={{ width: i <= step ? '100%' : '0%' }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Header — brand mark as a kicker, not competing for attention with the progress bar */}
-        <div className="flex items-center justify-between px-5 pt-2.5 pb-1">
-          <div className="flex items-center gap-1.5 opacity-70">
-            <Logo className="w-5 h-5" variant="theme" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{lang.quickGuideBtn || 'Quick Guide'}</span>
-          </div>
-          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0">
+        {/* Brand header — big logo up top as the anchor, progress bar underneath it */}
+        <div className="relative pt-5 px-5 pb-3.5">
+          <button onClick={onClose} className="absolute top-4 right-4 p-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors z-10">
             <X size={14} />
           </button>
+          <div className="flex flex-col items-center gap-2 mb-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-cyan-400/30 blur-xl" />
+              <Logo className="w-16 h-16 relative" variant="theme" />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{lang.quickGuideBtn || 'Quick Guide'}</span>
+          </div>
+          <div className="flex gap-1">
+            {steps.map((_, i) => (
+              <div key={i} className="flex-1 h-[3px] rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500 transition-all duration-300"
+                  style={{ width: i <= step ? '100%' : '0%' }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Body */}
