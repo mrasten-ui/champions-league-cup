@@ -1,9 +1,10 @@
 
 import React, { useMemo, useRef } from 'react';
-import { Translation, Match, TournamentPhase } from '../types';
+import { Translation, Match, TournamentPhase, Round } from '../types';
+import { outcomePointsForRound, exactPointsForRound } from '../services/engine';
 import {
   Target, Wand2, Trophy, ShieldAlert, Eye, RefreshCw,
-  Unlock, Crown, Medal, BookOpen, TrendingUp,
+  Unlock, Crown, BookOpen, TrendingUp, Bot,
 } from 'lucide-react';
 
 interface RulesPageProps {
@@ -16,75 +17,73 @@ interface RulesPageProps {
 
 const stripNum = (s: string) => s.replace(/^\d+\.\s*/, '');
 
+const KNOCKOUT_ROUNDS: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
+const knockoutLabel = (lang: Translation, round: Round): string =>
+  ({ PO: lang.playoffRound, R16: lang.roundOf16, QF: lang.quarterFinal, SF: lang.semiFinal, FIN: lang.final }[round]) || round;
+
 // ─── Shared: full scoring breakdown ─────────────────────────────────────────
 const ScoringSection: React.FC<{ lang: Translation }> = ({ lang }) => (
   <div id="rules-scoring-section" className="space-y-3">
-    {/* Group stage — 2 big side-by-side cards */}
+    {/* League Phase — 2 big side-by-side cards */}
     <div className="grid grid-cols-2 gap-3">
-      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex flex-col items-center gap-0.5">
-        <span className="text-5xl font-black text-emerald-400 leading-none">5</span>
-        <span className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">pts</span>
-        <span className="text-[10px] font-black text-emerald-200 uppercase tracking-tight text-center mt-2 leading-tight">{lang.scoreExact}</span>
-        <span className="text-[9px] text-emerald-400 italic font-semibold opacity-80 mt-0.5">e.g. 2–1</span>
-      </div>
       <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex flex-col items-center gap-0.5">
-        <span className="text-5xl font-black text-blue-400 leading-none">3</span>
+        <span className="text-5xl font-black text-blue-400 leading-none">{outcomePointsForRound(undefined)}</span>
         <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">pts</span>
         <span className="text-[10px] font-black text-blue-200 uppercase tracking-tight text-center mt-2 leading-tight">{lang.scoreResult}</span>
         <span className="text-[9px] text-blue-400 italic font-semibold opacity-80 mt-0.5">e.g. 2–0 vs 1–0</span>
       </div>
+      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex flex-col items-center gap-0.5">
+        <span className="text-5xl font-black text-emerald-400 leading-none">{exactPointsForRound(undefined)}</span>
+        <span className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">pts</span>
+        <span className="text-[10px] font-black text-emerald-200 uppercase tracking-tight text-center mt-2 leading-tight">{lang.scoreExact}</span>
+        <span className="text-[9px] text-emerald-400 italic font-semibold opacity-80 mt-0.5">e.g. 2–1</span>
+      </div>
     </div>
 
-    {/* R32 qualification bridge */}
-    <div className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4 flex flex-col items-center gap-0.5">
-      <span className="text-5xl font-black text-violet-400 leading-none">3</span>
-      <span className="text-[9px] font-black text-violet-400/60 uppercase tracking-widest">pts</span>
-      <span className="text-[8px] font-bold text-violet-400/60 uppercase tracking-wider mt-0.5">/ team</span>
-      <span className="text-[10px] font-black text-violet-200 uppercase tracking-tight text-center mt-2 leading-tight">{lang.scoreQualTitle}</span>
-      <p className="text-[9px] text-violet-300/70 font-medium leading-relaxed text-center mt-0.5">{lang.scoreQualDesc}</p>
-    </div>
-
-    {/* Knockout rounds — grid of chips */}
+    {/* Knockout rounds — points rise every round */}
     <div className="bg-blue-950/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-sm">
-      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
         <Trophy size={10} /> {lang.scoreKnockoutTitle}
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: lang.roundOf32,         pts: 8,  cls: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 text-indigo-200' },
-          { label: lang.roundOf16,         pts: 12, cls: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 text-indigo-200' },
-          { label: lang.quarterFinal,      pts: 16, cls: 'bg-purple-500/10 border-purple-500/20 text-purple-400 text-purple-200' },
-          { label: lang.semiFinal,         pts: 24, cls: 'bg-purple-500/10 border-purple-500/20 text-purple-400 text-purple-200' },
-          { label: lang.thirdPlacePlayoff, pts: 20, cls: 'bg-amber-500/10 border-amber-500/20 text-amber-400 text-amber-200', icon: <Medal size={9} className="text-amber-500 mb-0.5" /> },
-        ].map(({ label, pts, cls, icon }) => {
-          const [bg, border, numCls, textCls] = cls.split(' ');
+      <p className="text-[9px] text-slate-500 leading-relaxed mb-3">{lang.scoreKnockoutDesc}</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {KNOCKOUT_ROUNDS.map(round => {
+          const isFinal = round === 'FIN';
           return (
-            <div key={label} className={`${bg} border ${border} rounded-xl p-2.5 flex flex-col items-center gap-0`}>
-              {icon}
-              <span className={`text-2xl font-black ${numCls} leading-none`}>{pts}</span>
-              <span className="text-[7px] font-black opacity-40 uppercase tracking-wide">pts</span>
-              <span className={`text-[8px] font-bold ${textCls} uppercase tracking-tight text-center leading-tight mt-1`}>{label}</span>
+            <div key={round} className={`rounded-xl p-2 flex flex-col items-center gap-0 border ${isFinal ? 'bg-gradient-to-b from-yellow-500/15 to-orange-500/10 border-yellow-500/30' : 'bg-indigo-500/10 border-indigo-500/20'}`}>
+              {isFinal && <Crown size={9} className="text-yellow-400 mb-0.5" />}
+              <span className={`text-base font-black leading-none ${isFinal ? 'text-yellow-400' : 'text-indigo-300'}`}>
+                {outcomePointsForRound(round)}<span className="text-[10px] opacity-50">/{exactPointsForRound(round)}</span>
+              </span>
+              <span className="text-[6px] font-black opacity-40 uppercase tracking-wide mt-0.5">pts</span>
+              <span className={`text-[8px] font-bold uppercase tracking-tight text-center leading-tight mt-1 ${isFinal ? 'text-yellow-200' : 'text-indigo-200'}`}>
+                {knockoutLabel(lang, round)}
+              </span>
             </div>
           );
         })}
-        {/* Champion — premium */}
-        <div className="bg-gradient-to-b from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-2.5 flex flex-col items-center gap-0 relative overflow-hidden shadow-sm">
-          <Crown size={9} className="text-yellow-400 mb-0.5" />
-          <span className="text-2xl font-black text-yellow-400 leading-none">40</span>
-          <span className="text-[7px] font-black text-yellow-400/40 uppercase tracking-wide">pts</span>
-          <span className="text-[8px] font-black text-yellow-200 uppercase tracking-tight text-center leading-tight mt-1">{lang.champion}</span>
-        </div>
       </div>
     </div>
 
-    {/* Second Chance penalty */}
+    {/* Penalty shootout bonus/malus */}
     <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3">
-      <div className="bg-white/10 text-slate-300 w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] shrink-0 border border-white/10">
-        -50%
+      <div className="bg-fuchsia-500/15 text-fuchsia-400 w-10 h-10 rounded-xl flex items-center justify-center font-black text-[11px] shrink-0 border border-fuchsia-500/20">
+        +4/-1
       </div>
       <div>
-        <div className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-0.5">{lang.scorePenalty}</div>
-        <p className="text-[10px] text-slate-400 leading-relaxed">{lang.scoreKnockoutDesc}</p>
+        <div className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-0.5">{lang.scorePensBonusTitle}</div>
+        <p className="text-[10px] text-slate-400 leading-relaxed">{lang.scorePensBonusDesc}</p>
+      </div>
+    </div>
+
+    {/* Scouting cost */}
+    <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3">
+      <div className="bg-amber-500/15 text-amber-400 w-10 h-10 rounded-xl flex items-center justify-center font-black text-[11px] shrink-0 border border-amber-500/20">
+        -1
+      </div>
+      <div>
+        <div className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-0.5">{lang.scoreScoutTitle}</div>
+        <p className="text-[10px] text-slate-400 leading-relaxed">{lang.scoreScoutDesc}</p>
       </div>
     </div>
   </div>
@@ -134,12 +133,12 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
     { icon: <Trophy size={14} />,    cls: 'bg-indigo-500/15 text-indigo-400',  title: stripNum(lang.rule3Title), desc: lang.rule3Desc },
     { icon: <Eye size={14} />,       cls: 'bg-cyan-500/15 text-cyan-400',      title: stripNum(lang.rule4Title), desc: lang.rule4Desc },
     { icon: <RefreshCw size={14} />, cls: 'bg-emerald-500/15 text-emerald-400', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },
-    { icon: <Unlock size={14} />,    cls: 'bg-orange-500/15 text-orange-400',  title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
+    { icon: <Bot size={14} />,       cls: 'bg-orange-500/15 text-orange-400',  title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
   ];
 
   const liveTools = [
     { icon: <RefreshCw size={14} />, iconCls: 'bg-emerald-500/15 text-emerald-400', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },
-    { icon: <Unlock size={14} />,    iconCls: 'bg-orange-500/15 text-orange-400',   title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
+    { icon: <Bot size={14} />,       iconCls: 'bg-orange-500/15 text-orange-400',   title: stripNum(lang.rule6Title), desc: lang.rule6Desc },
   ];
 
   return (
@@ -232,14 +231,14 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
             ))}
           </div>
 
-          {/* ANALYSIS */}
-          <SectionLabel icon={<TrendingUp size={10} />} label={lang.rulesLiveAnalysisTitle} className="mt-6 mb-3" />
+          {/* TABLES */}
+          <SectionLabel icon={<TrendingUp size={10} />} label={lang.rulesLiveTableTitle} className="mt-6 mb-3" />
           <div className="bg-[#0f2545] rounded-2xl px-4 py-4 flex gap-3 items-start shadow-lg">
             <div className="bg-emerald-400/15 border border-emerald-400/20 p-2 rounded-xl shrink-0">
               <TrendingUp size={18} className="text-emerald-400" />
             </div>
             <p className="text-[11px] text-slate-300 leading-relaxed pt-0.5">
-              {lang.rulesLiveAnalysisDesc}
+              {lang.rulesLiveTableDesc}
             </p>
           </div>
         </>

@@ -2,55 +2,106 @@ import { Match, Team, GroupStanding, LeagueStanding, Round, Prediction, UserProf
 import { GROUP_CONFIG, INITIAL_MATCHES } from '../constants';
 import { supabase } from '../supabase';
 
-export const SCORING_RULES = {
-  GROUP_EXACT: 5,
-  GROUP_RESULT: 3,
-  R32: 8,
-  PO: 8, // Swiss-format Playoff Round — same tier R32 occupied in the old World Cup bracket
-  R16: 12,
-  QF: 16,
-  SF: 24,
-  FIN: 40,
-  '3RD': 20
+// League Phase base value that the round-scaled formula below
+// (outcomePointsForRound/exactPointsForRound) builds on.
+const LEAGUE_PHASE_OUTCOME_POINTS = 3;
+
+// Round-scaled live scoring. Every match — League Phase or knockout — is
+// judged the same simple way: exact score, or correct result (W/D/L), or
+// nothing. No separate "predict who reaches the final" bracket bonus anymore
+// — once the League Phase ends, every remaining fixture is a real, known
+// pairing, so calling its score isn't the same feat as calling the eventual
+// finalists blind used to be. What DOES scale is the base value per round,
+// modestly: League Phase = 3 (outcome) / 5 (exact), then +2 per knockout
+// round reached (Playoff Round 5/7, R16 7/9, QF 9/11, SF 11/13, Final 13/15).
+const KNOCKOUT_ROUND_ORDER: Round[] = ['PO', 'R16', 'QF', 'SF', 'FIN'];
+const OUTCOME_STEP = 2;
+
+export const outcomePointsForRound = (round?: Round): number => {
+  if (!round) return LEAGUE_PHASE_OUTCOME_POINTS;
+  const idx = KNOCKOUT_ROUND_ORDER.indexOf(round);
+  if (idx === -1) return LEAGUE_PHASE_OUTCOME_POINTS; // legacy R32/3RD codes — no longer produced
+  return LEAGUE_PHASE_OUTCOME_POINTS + OUTCOME_STEP * (idx + 1);
+};
+export const exactPointsForRound = (round?: Round): number => outcomePointsForRound(round) + 2;
+
+// Penalty-shootout bonus/malus for correctly (or incorrectly) predicting that
+// a knockout match/tie goes to a shootout — evaluated separately from
+// calculatePoints and added alongside it at every real scoring call site,
+// since it depends on the user's PREDICTED scoreline implying a draw, not on
+// which side calculatePoints judges as the outcome-tier winner. Rule:
+//   - A user's prediction "implies penalties" when it's a draw at the level
+//     evaluated (aggregate for a two-legged tie, 90/120 min for the Final) —
+//     that's the trigger for asking them to also pick a penalty winner.
+//   - +4 if the match/tie they predicted a draw for ACTUALLY went to
+//     penalties (regardless of whether their penalty-winner pick was right).
+//   - -1 if they predicted a draw (implying penalties) but the match/tie was
+//     actually decided in normal or extra time — the shootout they called
+//     never happened. No penalty for the reverse (predicting a decisive
+//     winner that actually needed penalties) — that's just a normal miss on
+//     the base outcome/exact tiers above.
+//   - The base outcome tier (calculatePoints) for a knockout tie is judged on
+//     who wins the tie overall, not the literal in-90-minutes scoreline — a
+//     team that wins on penalties still counts as the "correct winner" pick.
+//   - Exact-score comparisons always use the score at the final whistle of
+//     football (90 min, or 120 if extra time is played), never the penalty
+//     shootout score — penalties decide who advances, not the football score.
+export const calculatePenaltyBonus = (
+  predictedGoesToPens: boolean,
+  actualWentToPens: boolean
+): number => {
+  if (!predictedGoesToPens) return 0;
+  return actualWentToPens ? 4 : -1;
 };
 
-// NOTE — penalty shootouts: scores must reflect the winning team having a higher
-// score than the loser. For a 0–0 AET match decided on pens, the admin must
-// enter e.g. 1–0 so calculatePoints can determine the correct winner. Storing
-// equal scores (0–0, 1–1) for a knockout match will result in no points awarded.
+// Resolves a team-id winner pick (Prediction.predictedWinnerId, or Match's real
+// penaltyWinnerId) into the HOME/AWAY frame calculatePoints works in.
+export const resolvePenaltySide = (
+  teamId: string | undefined | null,
+  match: { homeTeamId: string; awayTeamId: string }
+): 'HOME' | 'AWAY' | undefined => {
+  if (!teamId) return undefined;
+  if (teamId === match.homeTeamId) return 'HOME';
+  if (teamId === match.awayTeamId) return 'AWAY';
+  return undefined;
+};
+
 export const calculatePoints = (
   predHome: number,
   predAway: number,
   actualHome: number | null,
   actualAway: number | null,
-  userHasPenalty: boolean = false,
-  round?: Round
+  round?: Round,
+  // Only meaningful when the respective scoreline is level: who the user
+  // picked to win on penalties, and who actually won on penalties. A
+  // two-legged knockout tie level on aggregate always goes to a shootout
+  // (no more away-goals rule), so a real knockout draw normally comes with
+  // actualPenaltySide set — see calculatePenaltyBonus for the separate
+  // did-it-go-to-pens bonus/malus, evaluated independently at scoring time.
+  predictedPenaltySide?: 'HOME' | 'AWAY',
+  actualPenaltySide?: 'HOME' | 'AWAY'
 ): number => {
   if (actualHome === null || actualAway === null) return 0;
 
-  let basePoints = 0;
-
-  if (round) {
-    // Knockout match results score 0 — points come only from bracket qualification
-    // (which team advances through each round), handled by getQualifiedRounds.
-    return 0;
-  } else {
-    if (predHome === actualHome && predAway === actualAway) {
-        basePoints = SCORING_RULES.GROUP_EXACT;
-    } else {
-        const predRes = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'DRAW';
-        const actualRes = actualHome > actualAway ? 'HOME' : actualHome < actualAway ? 'AWAY' : 'DRAW';
-        if (predRes === actualRes) basePoints = SCORING_RULES.GROUP_RESULT;
-    }
+  if (predHome === actualHome && predAway === actualAway) {
+    return exactPointsForRound(round);
   }
 
-  const penaltyRounds: Round[] = ['R32', 'PO', 'R16', 'QF', 'SF', 'FIN', '3RD'];
-  let finalMultiplier = 1.0;
-  if (userHasPenalty && round && penaltyRounds.includes(round)) {
-    finalMultiplier = 0.5;
+  const rawPredRes = predHome > predAway ? 'HOME' : predHome < predAway ? 'AWAY' : 'DRAW';
+  const rawActualRes = actualHome > actualAway ? 'HOME' : actualHome < actualAway ? 'AWAY' : 'DRAW';
+
+  // League Phase: no penalties, a draw is just a draw.
+  if (!round) {
+    return rawPredRes === rawActualRes ? outcomePointsForRound(round) : 0;
   }
 
-  return Math.floor(basePoints * finalMultiplier);
+  // Knockouts: a level scoreline resolves through the penalty pick/result
+  // instead — a shootout winner is still the correct-winner pick for
+  // outcome-tier credit, even when the raw scoreline comparison alone
+  // wouldn't suggest it (e.g. predicted 2-1, actual 1-1 then won on pens).
+  const predWinner = rawPredRes === 'DRAW' ? predictedPenaltySide : rawPredRes;
+  const actualWinner = rawActualRes === 'DRAW' ? actualPenaltySide : rawActualRes;
+  return !!predWinner && !!actualWinner && predWinner === actualWinner ? outcomePointsForRound(round) : 0;
 };
 
 export const calculateMaxPotentialPoints = (matches: Match[], predictions: Prediction[], user: UserProfile): number => {
@@ -62,16 +113,10 @@ export const calculateMaxPotentialPoints = (matches: Match[], predictions: Predi
         const isFinishedOrLive = ['FINISHED', 'FT', 'AET', 'PEN', 'LIVE', '1H', '2H', 'HT'].includes(m.status);
 
         if (isFinishedOrLive && m.homeScore !== null && m.awayScore !== null) {
-            total += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!user.hasTakenSecondChance, m.round);
+            total += calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, m.round, resolvePenaltySide(pred.predictedWinnerId, m), resolvePenaltySide(m.penaltyWinnerId, m));
+            if (m.round) total += calculatePenaltyBonus(pred.home === pred.away, !!m.penaltyWinnerId);
         } else {
-            if (m.round) {
-                 const baseVal = (SCORING_RULES as any)[m.round] || 5;
-                 const penaltyRounds: Round[] = ['R32', 'PO', 'R16', 'QF', 'SF', 'FIN', '3RD'];
-                 const mult = (user.hasTakenSecondChance && penaltyRounds.includes(m.round)) ? 0.5 : 1.0;
-                 total += Math.floor(baseVal * mult);
-            } else {
-                total += 5; // Max possible for groups
-            }
+            total += exactPointsForRound(m.round); // max possible: nailing the exact score
         }
     });
     return total;
@@ -98,7 +143,8 @@ export const getManagerStats = (
       return;
     }
 
-    const pts = calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!user.hasTakenSecondChance, m.round);
+    let pts = calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, m.round, resolvePenaltySide(pred.predictedWinnerId, m), resolvePenaltySide(m.penaltyWinnerId, m));
+    if (m.round) pts += calculatePenaltyBonus(pred.home === pred.away, !!m.penaltyWinnerId);
 
     if (form.length < 5) form.push(pts);
 
@@ -789,280 +835,6 @@ export const resolvePredictedKnockoutBracket = (
     return next;
 };
 
-export interface QualifiedRound {
-    key: string;
-    label: string;
-    correctTeams: string[];
-    pointsPerTeam: number;
-    totalSlots: number;
-    penaltyApplied: boolean;
-    totalPoints: number;
-}
-
-export const getQualifiedRounds = (
-    realMatches: Match[],
-    userPredictions: Prediction[],
-    user: UserProfile,
-    teams: Record<string, Team>,
-    precomputedRealBracket?: Match[]
-): QualifiedRound[] => {
-    const bracketPreds = user.bracketPredictions
-        ? userPredictions.map(p =>
-              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
-                  ? { ...p, ...user.bracketPredictions![p.matchId] }
-                  : p
-          )
-        : userPredictions;
-    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
-    const unlockedRealMatches = realMatches.map(m => ({ ...m, isLocked: false }));
-    const secondChanceBracket = user.hasTakenSecondChance
-        ? applyPredictionsToBracket(unlockedRealMatches, teams, userPredictions)
-        : standardBracket;
-    const computedRealBracket = precomputedRealBracket ?? applyPredictionsToBracket(realMatches, teams, []);
-
-    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
-        const teamSet = new Set<string>();
-        const targetMatches = matchList.filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round);
-        targetMatches.forEach(m => {
-            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
-            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
-        });
-        return teamSet;
-    };
-
-    const rounds = [
-        { key: 'R32_START', label: 'Round of 32', points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
-        { key: 'R16', label: 'Round of 16', points: SCORING_RULES.R32, totalSlots: 16 },
-        { key: 'QF', label: 'Quarter Finals', points: SCORING_RULES.R16, totalSlots: 8 },
-        { key: 'SF', label: 'Semi Finals', points: SCORING_RULES.QF, totalSlots: 4 },
-        { key: 'FIN', label: 'Final', points: SCORING_RULES.SF, totalSlots: 2 },
-        { key: 'CHAMP', label: 'Champion', points: SCORING_RULES.FIN, totalSlots: 1 }
-    ];
-
-    const getChamp = (matchList: Match[]) => {
-        const fin = matchList.find(m => m.round === 'FIN');
-        if (fin && fin.homeScore !== null && fin.awayScore !== null) {
-            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
-        }
-        return null;
-    };
-
-    const realChamp = getChamp(computedRealBracket);
-    const standardChamp = getChamp(standardBracket);
-    const secondChanceChamp = getChamp(secondChanceBracket);
-
-    // For KO rounds: "teams predicted to reach this round" = predictedWinnerId of the prior round's matches.
-    // This bypasses the cascade entirely and uses the stored, routing-corrected DB values.
-    // Feeding round prefix per display round: R16←R32, QF←R16, SF←QF, FIN←SF.
-    const FEEDING_ROUND: Record<string, string> = { R16: 'R32', QF: 'R16', SF: 'QF', FIN: 'SF' };
-
-    const getTeamsFromPredictedWinners = (feedingPrefix: string): Set<string> => {
-        const teamSet = new Set<string>();
-        userPredictions.forEach(p => {
-            if (p.matchId.startsWith(feedingPrefix + '_') && p.predictedWinnerId && !p.predictedWinnerId.startsWith('TBD')) {
-                teamSet.add(p.predictedWinnerId);
-            }
-        });
-        return teamSet;
-    };
-
-    // User's predicted champion — prefer stored predictedWinnerId over cascade.
-    const storedUserChamp = userPredictions.find(p => p.matchId === 'FIN_1')?.predictedWinnerId ?? null;
-
-    const result: QualifiedRound[] = [];
-
-    rounds.forEach(r => {
-        let correctTeams: string[] = [];
-        let pointsPerTeam = r.points;
-        let penaltyApplied = false;
-
-        let targetBracket = standardBracket;
-        let userChamp = storedUserChamp ?? standardChamp;
-
-        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
-            targetBracket = secondChanceBracket;
-            userChamp = storedUserChamp ?? secondChanceChamp;
-            penaltyApplied = true;
-            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
-        }
-
-        if (r.key === 'CHAMP') {
-            if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
-                correctTeams = [realChamp];
-            }
-        } else {
-            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
-            const feedingPrefix = FEEDING_ROUND[r.key];
-            let userTeams: Set<string>;
-            if (feedingPrefix) {
-                const fromDB = getTeamsFromPredictedWinners(feedingPrefix);
-                // Fall back to cascade only if no predictedWinnerId data available.
-                userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, r.key as any);
-            } else {
-                userTeams = getTeamsInRound(targetBracket, r.key as any);
-            }
-            realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
-        }
-
-        if (correctTeams.length === 0) return;
-
-        result.push({
-            key: r.key,
-            label: r.label,
-            correctTeams,
-            pointsPerTeam,
-            totalSlots: r.totalSlots,
-            penaltyApplied,
-            totalPoints: correctTeams.length * pointsPerTeam
-        });
-    });
-
-    return result;
-};
-
-// ─── Swiss-format bracket qualification bonus (League Phase + Knockout) ────
-// Parallel to getQualifiedRounds above (left untouched — it still serves the
-// concluded World Cup's historical scoring for Leaderboard/ManagerHub). Same
-// overall shape, adapted for the Swiss format:
-//  - "Reached the knockout phase" (top 24) is read directly off League Phase
-//    standings rather than scanned from first-knockout-round match
-//    participants, because Swiss has bye teams (seeds 1-8) who never appear
-//    in a Playoff Round match at all.
-//  - The Round of 16 bonus only rewards the 8 *earned* slots (Playoff Round
-//    winners) — the 8 automatic byes are a standings fact already rewarded
-//    once, at the knockout-phase-qualification step, not a fresh prediction.
-// Note: until real League Phase fixtures replace the World Cup placeholder
-// data in constants.ts's INITIAL_MATCHES, the "standard" (non-live) bracket
-// this computes bonus points from will be empty of Swiss-shaped matches, so
-// this correctly returns zero bonus points rather than anything meaningful —
-// that's expected, not a bug, until real data is seeded.
-export const getQualifiedRoundsSwiss = (
-    realMatches: Match[],
-    userPredictions: Prediction[],
-    user: UserProfile,
-    teams: Record<string, Team>,
-    precomputedRealBracket?: Match[]
-): QualifiedRound[] => {
-    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, userPredictions);
-    const unlockedRealMatches = realMatches.map(m => ({ ...m, isLocked: false }));
-    const secondChanceBracket = user.hasTakenSecondChance
-        ? applyPredictionsToBracket(unlockedRealMatches, teams, userPredictions)
-        : standardBracket;
-    const computedRealBracket = precomputedRealBracket ?? applyPredictionsToBracket(realMatches, teams, []);
-
-    const getTop24 = (bracket: Match[]) =>
-        new Set(calculateLeagueStandings(bracket, teams).slice(0, 24).map(s => s.teamId));
-
-    const getTeamsInRound = (matchList: Match[], round: Round) => {
-        const teamSet = new Set<string>();
-        matchList.filter(m => m.round === round).forEach(m => {
-            if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
-            if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
-        });
-        return teamSet;
-    };
-
-    // Teams that reached R16 via a Playoff Round tie — excludes seeds 1-8's automatic byes.
-    const getEarnedR16Teams = (bracket: Match[]): Set<string> => {
-        const poTeams = getTeamsInRound(bracket, 'PO');
-        const r16Teams = getTeamsInRound(bracket, 'R16');
-        return new Set([...r16Teams].filter(t => poTeams.has(t)));
-    };
-
-    const rounds = [
-        { key: 'PO_START', label: 'Knockout Phase', points: SCORING_RULES.GROUP_RESULT, totalSlots: 24 },
-        { key: 'R16', label: 'Round of 16', points: SCORING_RULES.PO, totalSlots: 16 },
-        { key: 'QF', label: 'Quarter Finals', points: SCORING_RULES.R16, totalSlots: 8 },
-        { key: 'SF', label: 'Semi Finals', points: SCORING_RULES.QF, totalSlots: 4 },
-        { key: 'FIN', label: 'Final', points: SCORING_RULES.SF, totalSlots: 2 },
-        { key: 'CHAMP', label: 'Champion', points: SCORING_RULES.FIN, totalSlots: 1 }
-    ];
-
-    const getChamp = (matchList: Match[]) => {
-        const fin = matchList.find(m => m.round === 'FIN');
-        if (fin && fin.homeScore !== null && fin.awayScore !== null) {
-            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
-        }
-        return null;
-    };
-
-    const realChamp = getChamp(computedRealBracket);
-    const standardChamp = getChamp(standardBracket);
-    const secondChanceChamp = getChamp(secondChanceBracket);
-
-    const FEEDING_ROUND: Record<string, string> = { R16: 'PO', QF: 'R16', SF: 'QF', FIN: 'SF' };
-
-    const getTeamsFromPredictedWinners = (feedingPrefix: string): Set<string> => {
-        const teamSet = new Set<string>();
-        userPredictions.forEach(p => {
-            if (p.matchId.startsWith(feedingPrefix + '_') && p.predictedWinnerId && !p.predictedWinnerId.startsWith('TBD')) {
-                teamSet.add(p.predictedWinnerId);
-            }
-        });
-        return teamSet;
-    };
-
-    const storedUserChamp = userPredictions.find(p => p.matchId === 'FIN_1')?.predictedWinnerId ?? null;
-
-    const result: QualifiedRound[] = [];
-
-    rounds.forEach(r => {
-        let correctTeams: string[] = [];
-        let pointsPerTeam = r.points;
-        let penaltyApplied = false;
-
-        let targetBracket = standardBracket;
-        let userChamp = storedUserChamp ?? standardChamp;
-
-        if (r.key !== 'PO_START' && user.hasTakenSecondChance) {
-            targetBracket = secondChanceBracket;
-            userChamp = storedUserChamp ?? secondChanceChamp;
-            penaltyApplied = true;
-            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
-        }
-
-        if (r.key === 'CHAMP') {
-            if (realChamp && userChamp && realChamp === userChamp && !realChamp.startsWith('TBD')) {
-                correctTeams = [realChamp];
-            }
-        } else if (r.key === 'PO_START') {
-            const realTop24 = getTop24(computedRealBracket);
-            const userTop24 = getTop24(targetBracket);
-            realTop24.forEach(t => { if (userTop24.has(t)) correctTeams.push(t); });
-        } else if (r.key === 'R16') {
-            const realEarnedR16 = getEarnedR16Teams(computedRealBracket);
-            const fromDB = getTeamsFromPredictedWinners('PO');
-            const userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, 'R16');
-            realEarnedR16.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
-        } else {
-            const realTeams = getTeamsInRound(computedRealBracket, r.key as Round);
-            const feedingPrefix = FEEDING_ROUND[r.key];
-            let userTeams: Set<string>;
-            if (feedingPrefix) {
-                const fromDB = getTeamsFromPredictedWinners(feedingPrefix);
-                userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, r.key as Round);
-            } else {
-                userTeams = getTeamsInRound(targetBracket, r.key as Round);
-            }
-            realTeams.forEach(t => { if (userTeams.has(t)) correctTeams.push(t); });
-        }
-
-        if (correctTeams.length === 0) return;
-
-        result.push({
-            key: r.key,
-            label: r.label,
-            correctTeams,
-            pointsPerTeam,
-            totalSlots: r.totalSlots,
-            penaltyApplied,
-            totalPoints: correctTeams.length * pointsPerTeam
-        });
-    });
-
-    return result;
-};
-
 export interface UserFinalScore {
     totalPoints: number;
     groupPoints: number;
@@ -1073,8 +845,9 @@ export interface UserFinalScore {
 // Mirrors Leaderboard.tsx's userStats calculation (totalPoints/groupPoints/
 // knockoutPoints/exactCount only — bankedPoints/form/streak/koBreakdown are
 // display-only extras that live in Leaderboard.tsx). Kept here so any other
-// caller needing "this player's score" reuses the same calculatePoints +
-// getQualifiedRounds combination instead of re-deriving it.
+// caller needing "this player's score" reuses the same calculatePoints logic
+// instead of re-deriving it. No bracket-qualification bonus anymore — see
+// calculatePoints' round-scaled exact/outcome scoring.
 export const computeUserFinalScore = (
     user: UserProfile,
     matches: Match[],
@@ -1089,9 +862,10 @@ export const computeUserFinalScore = (
     matches.forEach(match => {
         const pred = allPredictions.find(p => p.userId === user.email && p.matchId === match.id);
         if (pred && match.homeScore !== null && match.awayScore !== null) {
-            const pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, user.hasTakenSecondChance || false, match.round);
+            let pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(pred.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match));
+            if (match.round) pts += calculatePenaltyBonus(pred.home === pred.away, !!match.penaltyWinnerId);
             totalPoints += pts;
-            if (match.groupId) {
+            if (!match.round) {
                 groupPoints += pts;
                 if (pred.home === match.homeScore && pred.away === match.awayScore) exactCount++;
             } else {
@@ -1099,15 +873,6 @@ export const computeUserFinalScore = (
             }
         }
     });
-
-    const bracketQualPoints = getQualifiedRounds(
-        matches,
-        allPredictions.filter(p => p.userId === user.email),
-        user,
-        teams
-    ).reduce((sum, qr) => sum + qr.totalPoints, 0);
-    totalPoints += bracketQualPoints;
-    knockoutPoints += bracketQualPoints;
 
     return { totalPoints, groupPoints, knockoutPoints, exactCount };
 };
@@ -1331,12 +1096,12 @@ export const generateWhatIfAnalysis = (
     lang: Translation
 ): string => {
     if (match.homeScore === null || match.awayScore === null) return lang.analysisWaiting;
-    const currentPts = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore, !!userProfile.hasTakenSecondChance, match.round);
+    const currentPts = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(userPred.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match));
     if (match.round) {
         if (currentPts > 0) return lang.analysisCorrectWinner;
         return lang.analysisIncorrectWinner;
     }
-    if (currentPts === 5) return lang.analysisExact;
+    if (currentPts === exactPointsForRound(match.round)) return lang.analysisExact;
     return lang.analysisResult;
 };
 
@@ -1346,9 +1111,9 @@ export const getLiveScenarios = (
   user: UserProfile
 ): { current: number; ifHome: number; ifAway: number } => {
   if (match.homeScore === null || match.awayScore === null) return { current: 0, ifHome: 0, ifAway: 0 };
-  const current = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore, !!user.hasTakenSecondChance, match.round);
-  const ifHome = calculatePoints(userPred.home, userPred.away, match.homeScore + 1, match.awayScore, !!user.hasTakenSecondChance, match.round);
-  const ifAway = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore + 1, !!user.hasTakenSecondChance, match.round);
+  const current = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(userPred.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match));
+  const ifHome = calculatePoints(userPred.home, userPred.away, match.homeScore + 1, match.awayScore, match.round);
+  const ifAway = calculatePoints(userPred.home, userPred.away, match.homeScore, match.awayScore + 1, match.round);
   return { current, ifHome, ifAway };
 };
 

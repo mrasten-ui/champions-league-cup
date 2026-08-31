@@ -121,7 +121,8 @@ export const useAppData = () => {
               isLocked: !!m.is_locked, groupId: m.group_id || undefined, round: (m.round as any) || undefined,
               matchday: m.matchday ?? undefined,
               channels: m.channels as any, nextMatchId: m.next_match_id || undefined,
-              minute: m.minute ?? undefined, minuteExtra: m.minute_extra ?? undefined
+              minute: m.minute ?? undefined, minuteExtra: m.minute_extra ?? undefined,
+              penaltyWinnerId: m.penalty_winner_id ?? undefined
             }));
 
             // --- CALCULATE TIMERS ---
@@ -179,7 +180,7 @@ export const useAppData = () => {
               if (page && page.length > 0) { allPredRows.push(...page); keepGoing = page.length === PAGE; from += PAGE; }
               else { keepGoing = false; }
             }
-            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0, predictedWinnerId: p.predicted_winner_id ?? undefined, homeTeamId: p.home_team_id ?? undefined, awayTeamId: p.away_team_id ?? undefined }));
+            const mappedPreds = allPredRows.map(p => ({ userId: p.user_id || '', matchId: p.match_id || '', home: p.home ?? 0, away: p.away ?? 0, predictedWinnerId: p.predicted_winner_id ?? undefined, homeTeamId: p.home_team_id ?? undefined, awayTeamId: p.away_team_id ?? undefined, autoFilled: !!p.auto_filled }));
             rcSet('predictions', mappedPreds);
             setAllPredictions(mappedPreds);
           };

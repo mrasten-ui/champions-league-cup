@@ -52,6 +52,8 @@ export interface Translation {
   magicApplied: string;
   noIntel: string;
   noIntelMsg: string;
+  autoFilledState: string;
+  autoFilledDesc: string;
 
   // --- Magic Wand risk slider ---
   riskTitle: string;
@@ -86,8 +88,8 @@ export interface Translation {
   rulesLiveSubtitle: string;
   rulesLiveScoringSection: string;
   rulesLiveToolsSection: string;
-  rulesLiveAnalysisTitle: string;
-  rulesLiveAnalysisDesc: string;
+  rulesLiveTableTitle: string;
+  rulesLiveTableDesc: string;
 }
 
 // 'R32'/'3RD' are World Cup leftovers with no CL equivalent — kept only so
@@ -117,6 +119,11 @@ export interface Match {
   minute?: number;
   minuteExtra?: number | null;
   nextMatchId?: string;
+  // Set only for a knockout match/tie level at the final whistle (90/120 min)
+  // that was actually decided by a penalty shootout. homeScore/awayScore stay
+  // the pre-penalties football score — this is the real shootout winner, used
+  // for outcome-tier credit and the pens-prediction bonus/malus.
+  penaltyWinnerId?: string;
 }
 
 export interface Team {
@@ -150,6 +157,9 @@ export interface Prediction {
   // (matches.home_team_id / away_team_id) is ever reassigned later.
   homeTeamId?: string;
   awayTeamId?: string;
+  // Set by scripts/auto-fill-missed-predictions.js when the user missed the
+  // deadline and this pick was generated on their behalf from their risk profile.
+  autoFilled?: boolean;
 }
 
 export interface UserProfile {

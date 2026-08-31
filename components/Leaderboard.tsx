@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { UserProfile, Match, Prediction, Translation, Round, Team, LanguageCode } from '../types';
+import { UserProfile, Match, Prediction, Translation, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
-import { calculatePoints, getManagerStats, applyPredictionsToBracket, SCORING_RULES, getQualifiedRounds, QualifiedRound } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, PieChart, Users, Medal, Check, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { calculatePoints, calculatePenaltyBonus, resolvePenaltySide, getManagerStats } from '../services/engine';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronRight, PieChart, Users, Medal, Shield, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
-import { INITIAL_MATCHES, LEAGUES } from '../constants';
+import { LEAGUES } from '../constants';
 
 interface LeaderboardProps {
   users: UserProfile[];
@@ -107,221 +107,6 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
 };
 
 
-type TeamStatus = 'confirmed' | 'pending' | 'eliminated';
-interface RoundWithAllTeams {
-    key: string; label: string; pointsPerTeam: number; totalSlots: number;
-    penaltyApplied: boolean; confirmedPoints: number;
-    teams: { teamId: string; status: TeamStatus }[];
-    isActive: boolean;
-}
-
-const getRoundsWithAllTeams = (
-    realMatches: Match[],
-    userPredictions: Prediction[],
-    user: UserProfile,
-    teams: Record<string, Team>
-): RoundWithAllTeams[] => {
-    const bracketPreds = user.bracketPredictions
-        ? userPredictions.map(p =>
-              /^[A-L]\d$/.test(p.matchId) && user.bracketPredictions![p.matchId]
-                  ? { ...p, ...user.bracketPredictions![p.matchId] }
-                  : p
-          )
-        : userPredictions;
-    const standardBracket = applyPredictionsToBracket(INITIAL_MATCHES, teams, bracketPreds);
-    const unlockedRealMatches = realMatches.map(m => ({ ...m, isLocked: false }));
-    const secondChanceBracket = user.hasTakenSecondChance
-        ? applyPredictionsToBracket(unlockedRealMatches, teams, userPredictions)
-        : standardBracket;
-    const computedRealBracket = applyPredictionsToBracket(realMatches, teams, []);
-
-    const getTeamsInRound = (matchList: Match[], round: Round | 'R32_START') => {
-        const teamSet = new Set<string>();
-        matchList
-            .filter(m => round === 'R32_START' ? m.round === 'R32' : m.round === round)
-            .forEach(m => {
-                if (m.homeTeamId && !m.homeTeamId.startsWith('TBD')) teamSet.add(m.homeTeamId);
-                if (m.awayTeamId && !m.awayTeamId.startsWith('TBD')) teamSet.add(m.awayTeamId);
-            });
-        return teamSet;
-    };
-
-    const roundDefs = [
-        { key: 'R32_START', label: 'Round of 32',    points: SCORING_RULES.GROUP_RESULT, totalSlots: 32 },
-        { key: 'R16',       label: 'Round of 16',    points: SCORING_RULES.R32,          totalSlots: 16 },
-        { key: 'QF',        label: 'Quarter Finals', points: SCORING_RULES.R16,          totalSlots: 8  },
-        { key: 'SF',        label: 'Semi Finals',    points: SCORING_RULES.QF,           totalSlots: 4  },
-        { key: 'FIN',       label: 'Final',          points: SCORING_RULES.SF,           totalSlots: 2  },
-        { key: 'CHAMP',     label: 'Champion',       points: SCORING_RULES.FIN,          totalSlots: 1  },
-    ];
-
-    const getChamp = (matchList: Match[]) => {
-        const fin = matchList.find(m => m.round === 'FIN');
-        if (fin && fin.homeScore !== null && fin.awayScore !== null)
-            return fin.homeScore > fin.awayScore ? fin.homeTeamId : fin.awayTeamId;
-        return null;
-    };
-
-    const realChamp = getChamp(computedRealBracket);
-    const standardChamp = getChamp(standardBracket);
-    const secondChanceChamp = getChamp(secondChanceBracket);
-    const statusOrder: Record<TeamStatus, number> = { confirmed: 0, pending: 1, eliminated: 2 };
-
-    // Build a set of teams definitively eliminated: they played a knockout match
-    // and lost (score is settled — excludes live/PSO ties where winner is unclear).
-    const finishedStatuses = new Set(['FINISHED', 'FT', 'AET', 'PEN']);
-    const definitivelyEliminated = new Set<string>();
-    realMatches
-        .filter(m => m.round && finishedStatuses.has(m.status ?? '') && m.homeScore !== null && m.awayScore !== null && m.homeScore !== m.awayScore)
-        .forEach(m => {
-            const loserId = m.homeScore! < m.awayScore! ? m.homeTeamId : m.awayTeamId;
-            if (loserId && !loserId.startsWith('TBD')) definitivelyEliminated.add(loserId);
-        });
-
-    // Use predictedWinnerId from DB: teams in round N = winners (predictedWinnerId) of round N-1.
-    const FEEDING_ROUND: Record<string, string> = { R16: 'R32', QF: 'R16', SF: 'QF', FIN: 'SF' };
-    const getTeamsFromPredictedWinners = (feedingPrefix: string): Set<string> => {
-        const teamSet = new Set<string>();
-        userPredictions.forEach(p => {
-            if (p.matchId.startsWith(feedingPrefix + '_') && p.predictedWinnerId && !p.predictedWinnerId.startsWith('TBD')) {
-                teamSet.add(p.predictedWinnerId);
-            }
-        });
-        return teamSet;
-    };
-    const storedUserChamp = userPredictions.find(p => p.matchId === 'FIN_1')?.predictedWinnerId ?? null;
-
-    const result: RoundWithAllTeams[] = [];
-
-    roundDefs.forEach(r => {
-        let pointsPerTeam = r.points;
-        let penaltyApplied = false;
-        let targetBracket = standardBracket;
-        let userChamp = storedUserChamp ?? standardChamp;
-
-        if (r.key !== 'R32_START' && user.hasTakenSecondChance) {
-            targetBracket = secondChanceBracket;
-            userChamp = storedUserChamp ?? secondChanceChamp;
-            penaltyApplied = true;
-            pointsPerTeam = Math.floor(pointsPerTeam * 0.5);
-        }
-
-        if (r.key === 'CHAMP') {
-            if (!userChamp || userChamp.startsWith('TBD')) return;
-            const status: TeamStatus = realChamp === userChamp ? 'confirmed' : realChamp !== null ? 'eliminated' : 'pending';
-            result.push({
-                key: r.key, label: r.label, pointsPerTeam, totalSlots: r.totalSlots,
-                penaltyApplied, confirmedPoints: status === 'confirmed' ? pointsPerTeam : 0,
-                teams: [{ teamId: userChamp, status }],
-                isActive: realChamp !== null,
-            });
-        } else {
-            const realTeams = getTeamsInRound(computedRealBracket, r.key as any);
-            const feedingPrefix = FEEDING_ROUND[r.key];
-            let userTeams: Set<string>;
-            if (feedingPrefix) {
-                const fromDB = getTeamsFromPredictedWinners(feedingPrefix);
-                userTeams = fromDB.size > 0 ? fromDB : getTeamsInRound(targetBracket, r.key as any);
-            } else {
-                userTeams = getTeamsInRound(targetBracket, r.key as any);
-            }
-            if (userTeams.size === 0) return;
-
-            const teamList: { teamId: string; status: TeamStatus }[] = [];
-            userTeams.forEach(teamId => {
-                const status: TeamStatus =
-                    realTeams.has(teamId)               ? 'confirmed'
-                  : realTeams.size >= r.totalSlots       ? 'eliminated'
-                  : definitivelyEliminated.has(teamId)  ? 'eliminated'
-                  :                                        'pending';
-                teamList.push({ teamId, status });
-            });
-            teamList.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
-            const confirmedCount = teamList.filter(t => t.status === 'confirmed').length;
-            result.push({
-                key: r.key, label: r.label, pointsPerTeam, totalSlots: r.totalSlots,
-                penaltyApplied, confirmedPoints: confirmedCount * pointsPerTeam,
-                teams: teamList,
-                isActive: realTeams.size > 0,
-            });
-        }
-    });
-
-    return result;
-};
-
-const QualifiedTeamsGrid: React.FC<{
-    realMatches: Match[],
-    userPredictions: Prediction[],
-    user: UserProfile,
-    teams: Record<string, Team>,
-    onTeamClick?: (teamId: string) => void
-}> = ({ realMatches, userPredictions, user, teams, onTeamClick }) => {
-
-    const rounds = useMemo(
-        () => getQualifiedRounds(realMatches, userPredictions, user, teams),
-        [realMatches, userPredictions, user, teams]
-    );
-
-    if (rounds.length === 0) return null;
-
-    return (
-        <div className="space-y-6 pb-4 pt-2">
-            {rounds.map(r => (
-                <div key={r.key} className="bg-white/5 rounded-xl p-3 border border-white/10">
-                    <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
-                        <div className="flex flex-col gap-0.5">
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-300">{r.label}</h4>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                {r.pointsPerTeam} pts / team
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            {r.penaltyApplied && (
-                                <div className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider flex items-center gap-1" title="Second Chance Penalty Active">
-                                    <Shield size={8} /> 50%
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                                <div className="bg-purple-600 text-white px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
-                                    <Trophy size={10} className="text-yellow-300" />
-                                    <span className="text-[10px] font-black uppercase tracking-wider">
-                                        {r.correctTeams.length}/{r.totalSlots}
-                                    </span>
-                                </div>
-                                <div className="text-sm font-black text-green-600">
-                                    +{r.totalPoints}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        {r.correctTeams.map(tid => {
-                            const team = teams[tid];
-                            return (
-                                <div
-                                    key={tid}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (onTeamClick) onTeamClick(tid);
-                                    }}
-                                    className={`flex items-center gap-2 bg-white/10 px-2 py-1.5 rounded-lg border border-white/10 shadow-sm animate-in zoom-in ${onTeamClick ? 'cursor-pointer hover:border-blue-300' : ''}`}
-                                >
-                                    <img src={team?.flag} className="w-5 h-3.5 rounded-sm object-cover" alt={tid} />
-                                    <span className="text-[10px] font-bold text-slate-300">{tid}</span>
-                                    <Check size={10} className="text-green-500 ml-1" strokeWidth={4} />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
-
 type PredictionPillProps =
   | { mode: 'result'; match: Match; pred: Prediction; pts: number; teams: Record<string, Team> }
   | { mode: 'prediction'; match: Match; pred: Prediction | null; teams: Record<string, Team> };
@@ -359,61 +144,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   const [showLive, setShowLive] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activeLeague, setActiveLeague] = useState<string>(currentUserLeagues?.[0] ?? '');
-  const [openRoundKeys, setOpenRoundKeys] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-      if (!expandedUser) { setOpenRoundKeys(new Set()); return; }
-      const active = new Set<string>();
-      const nonTBD = (id: string) => !!id && !id.startsWith('TBD');
-      const done = ['FT', 'FINISHED', 'AET', 'PEN'];
-      const now = Date.now();
-      const MS_24H = 24 * 60 * 60 * 1000;
-
-      // Returns ms timestamp of the last finished match in a set, or null if none finished.
-      const lastFinishedMs = (src: Match[]) => {
-          const times = src
-              .filter(m => done.includes(m.status) && m.date && m.date !== 'TBD')
-              .map(m => new Date(m.date).getTime());
-          return times.length ? Math.max(...times) : null;
-      };
-
-      // Cascade actual R32 results so R16/QF/etc. team slots are known even when
-      // the DB hasn't been manually updated after each match.
-      const computedBracket = applyPredictionsToBracket(matches, teams, []);
-
-      // Auto-open a round only if it has confirmed real teams AND the last source game
-      // finished less than 24 h ago (or hasn't finished yet — still in progress).
-      const maybeOpen = (key: string, targetRound: string, srcMatches: Match[]) => {
-          if (!computedBracket.some(m => m.round === targetRound && (nonTBD(m.homeTeamId) || nonTBD(m.awayTeamId)))) return;
-          const last = lastFinishedMs(srcMatches);
-          if (last === null || now - last < MS_24H) active.add(key);
-      };
-
-      maybeOpen('R32_START', 'R32', matches.filter(m => !!m.groupId));
-      maybeOpen('R16',       'R16', matches.filter(m => m.round === 'R32'));
-      maybeOpen('QF',        'QF',  matches.filter(m => m.round === 'R16'));
-      maybeOpen('SF',        'SF',  matches.filter(m => m.round === 'QF'));
-      maybeOpen('FIN',       'FIN', matches.filter(m => m.round === 'SF'));
-
-      // CHAMP: open once FIN has a result and that result is within 24 h
-      const finMatch = matches.find(m => m.round === 'FIN');
-      if (finMatch?.homeScore !== null && finMatch?.date && finMatch.date !== 'TBD') {
-          const finMs = new Date(finMatch.date).getTime();
-          if (now - finMs < MS_24H) active.add('CHAMP');
-      }
-
-      setOpenRoundKeys(active);
-  }, [expandedUser]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggleRound = (key: string) =>
-      setOpenRoundKeys(prev => {
-          const next = new Set(prev);
-          next.has(key) ? next.delete(key) : next.add(key);
-          return next;
-      });
 
   // Stats Modal State
-  const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
+  const [modalData, setModalData] = useState<{ user: UserProfile, type: 'EXACT' | 'RESULT' | 'KNOCKOUT', matches: {m: Match, p: Prediction, pts: number}[] } | null>(null);
   // Profile spotlight modal (avatar click in expanded row)
   const [lbProfileModal, setLbProfileModal] = useState<(UserProfile & { totalPoints: number; liveRank: number; rankDiff: number }) | null>(null);
 
@@ -432,16 +165,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
     let advancedCount = 0; // Knockout Correct Winners
     let groupPoints = 0;
     let knockoutPoints = 0;
-    
-    // Detailed Round Breakdown
-    const koBreakdown: Record<string, { count: number, points: number }> = {};
 
     matches.forEach(match => {
       const pred = allPredictions.find(p => p.userId === user.email && p.matchId === match.id);
-      
+
       if (pred && match.homeScore !== null && match.awayScore !== null) {
-        const pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, user.hasTakenSecondChance || false, match.round);
-        
+        let pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(pred.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match));
+        if (match.round) pts += calculatePenaltyBonus(pred.home === pred.away, !!match.penaltyWinnerId);
+
         totalPoints += pts;
 
         const isFinal = ['FINISHED', 'FT', 'AET', 'PEN'].includes(match.status);
@@ -449,7 +180,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
           bankedPoints += pts;
         }
 
-        if (match.groupId) {
+        if (!match.round) {
             groupPoints += pts;
             const isExact = pred.home === match.homeScore && pred.away === match.awayScore;
             if (isExact) {
@@ -459,29 +190,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
             }
         } else {
             knockoutPoints += pts;
-            if (pts > 0) {
-                advancedCount++;
-                if (match.round) {
-                    if (!koBreakdown[match.round]) koBreakdown[match.round] = { count: 0, points: 0 };
-                    koBreakdown[match.round].count++;
-                    koBreakdown[match.round].points += pts;
-                }
-            }
+            if (pts > 0) advancedCount++;
         }
       }
     });
 
-    // Bracket qualification points (teams correctly predicted to reach each KO round).
-    // getQualifiedRounds handles the second-chance 50% penalty internally.
-    const bracketQualPoints = getQualifiedRounds(
-        matches,
-        allPredictions.filter(p => p.userId === user.email),
-        user,
-        teams
-    ).reduce((sum, qr) => sum + qr.totalPoints, 0);
-    totalPoints    += bracketQualPoints;
-    bankedPoints   += bracketQualPoints;
-    knockoutPoints += bracketQualPoints;
+    // Scouting costs a point per match spied on, permanently — no more token
+    // limit, just a real cost (see MatchRow's spy confirm / App.tsx handleSpy).
+    const scoutPenalty = user.spiedMatches?.length ?? 0;
+    totalPoints  -= scoutPenalty;
+    bankedPoints -= scoutPenalty;
 
     const { form, streak } = getManagerStats(user, matches, allPredictions);
 
@@ -495,7 +213,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       advancedCount,
       groupPoints,
       knockoutPoints,
-      koBreakdown,
       form,
       streak
     };
@@ -535,17 +252,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       const now = Date.now();
 
       const last3 = matches
-          .filter(m => !!m.groupId && finishedStatuses.includes(m.status) && userPreds.some(p => p.matchId === m.id))
+          .filter(m => !m.round && finishedStatuses.includes(m.status) && userPreds.some(p => p.matchId === m.id))
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .slice(0, 3)
           .map(m => {
               const pred = userPreds.find(p => p.matchId === m.id)!;
-              const pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u?.hasTakenSecondChance, m.round);
+              const pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, m.round);
               return { match: m, pred, pts };
           });
 
       const next3 = matches
-          .filter(m => !!m.groupId && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
+          .filter(m => !m.round && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === m.id) ?? null }));
@@ -555,7 +272,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
   const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
   const allGroupsDone = matches
-      .filter(m => !!m.groupId)
+      .filter(m => !m.round)
       .every(m => finishedStatuses.includes(m.status));
 
   const getLeagueName = (slug: string) =>
@@ -563,30 +280,31 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       ? (lang.lbGlobal || 'Global League')
       : (LEAGUES[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1));
 
-  const openStatsModal = (user: UserProfile, type: 'EXACT' | 'RESULT' | 'ADVANCED') => {
+  const openStatsModal = (user: UserProfile, type: 'EXACT' | 'RESULT' | 'KNOCKOUT') => {
       const relevantMatches: {m: Match, p: Prediction, pts: number}[] = [];
-      
-      if (type !== 'ADVANCED') {
-          matches.forEach(match => {
-              const pred = allPredictions.find(p => p.userId === user.email && p.matchId === match.id);
-              if (pred && match.homeScore !== null && match.awayScore !== null) {
-                  const pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, user.hasTakenSecondChance || false, match.round);
-                  
-                  let isMatch = false;
-                  if (type === 'EXACT') {
-                      isMatch = !!match.groupId && pred.home === match.homeScore && pred.away === match.awayScore;
-                  } else if (type === 'RESULT') {
-                      const isExact = pred.home === match.homeScore && pred.away === match.awayScore;
-                      isMatch = !!match.groupId && !isExact && pts > 0;
-                  }
 
-                  if (isMatch) {
-                      relevantMatches.push({ m: match, p: pred, pts });
-                  }
+      matches.forEach(match => {
+          const pred = allPredictions.find(p => p.userId === user.email && p.matchId === match.id);
+          if (pred && match.homeScore !== null && match.awayScore !== null) {
+              let pts = calculatePoints(pred.home, pred.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(pred.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match));
+              if (match.round) pts += calculatePenaltyBonus(pred.home === pred.away, !!match.penaltyWinnerId);
+              const isExact = pred.home === match.homeScore && pred.away === match.awayScore;
+
+              let isMatch = false;
+              if (type === 'EXACT') {
+                  isMatch = !match.round && isExact;
+              } else if (type === 'RESULT') {
+                  isMatch = !match.round && !isExact && pts > 0;
+              } else if (type === 'KNOCKOUT') {
+                  isMatch = !!match.round && pts !== 0;
               }
-          });
-          relevantMatches.sort((a, b) => new Date(b.m.date).getTime() - new Date(a.m.date).getTime());
-      }
+
+              if (isMatch) {
+                  relevantMatches.push({ m: match, p: pred, pts });
+              }
+          }
+      });
+      relevantMatches.sort((a, b) => new Date(b.m.date).getTime() - new Date(a.m.date).getTime());
 
       setModalData({ user, type, matches: relevantMatches });
   };
@@ -621,7 +339,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       pts: historicalMatches.reduce((sum, m) => {
                           const pred = allPredictions.find(p => p.userId === u.email && p.matchId === m.id);
                           if (!pred || m.homeScore === null || m.awayScore === null) return sum;
-                          return sum + calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, !!u.hasTakenSecondChance, m.round);
+                          return sum + calculatePoints(pred.home, pred.away, m.homeScore, m.awayScore, m.round);
                       }, 0)
                   }))
                   .sort((a, b) => b.pts - a.pts)
@@ -906,84 +624,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                                           <span className="text-2xl font-black text-indigo-600 leading-none">{user.groupPoints}</span>
                                           <span className="text-[9px] font-bold text-indigo-700 uppercase tracking-wide leading-tight text-center mt-1">{lang.lbGroupPts}</span>
                                       </div>
-                                      <div className="bg-purple-50 py-3 px-2 rounded-xl border border-purple-200 flex flex-col items-center relative overflow-hidden group/kopt cursor-pointer hover:bg-purple-100 transition-colors shadow-sm" onClick={() => openStatsModal(user, 'ADVANCED')}>
+                                      <div className="bg-purple-50 py-3 px-2 rounded-xl border border-purple-200 flex flex-col items-center relative overflow-hidden group/kopt cursor-pointer hover:bg-purple-100 transition-colors shadow-sm" onClick={() => openStatsModal(user, 'KNOCKOUT')}>
                                           <span className="text-2xl font-black text-purple-600 leading-none relative z-10">{user.knockoutPoints}</span>
                                           <span className="text-[9px] font-bold text-purple-700 uppercase tracking-wide leading-tight text-center mt-1 relative z-10">{lang.lbKoPts}</span>
                                           <Trophy size={32} className="absolute -bottom-1 -right-1 text-purple-200 opacity-50 rotate-12 group-hover/kopt:scale-110 transition-transform" />
                                       </div>
                                   </div>
-
-                                  {/* Collapsible bracket rounds */}
-                                  {(() => {
-                                      const userPreds = allPredictions.filter(p => p.userId === user.email);
-                                      const roundDetails = getRoundsWithAllTeams(matches, userPreds, user, teams);
-                                      if (roundDetails.length === 0) return null;
-
-                                      return (
-                                          <div className="bg-white/5 rounded-xl border border-white/10 shadow-sm overflow-hidden">
-                                              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                                                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang.lbQualifiedDesc}</h4>
-                                                  {user.hasTakenSecondChance && (
-                                                      <span className="bg-purple-100 text-purple-700 text-[8px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                                                          <Shield size={8} /> 2nd Chance
-                                                      </span>
-                                                  )}
-                                              </div>
-                                              <div className="divide-y divide-white/5">
-                                                  {roundDetails.map(r => {
-                                                      const isOpen = openRoundKeys.has(r.key);
-                                                      return (
-                                                          <div key={r.key}>
-                                                              <div
-                                                                  className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-white/5 transition-colors"
-                                                                  onClick={() => toggleRound(r.key)}
-                                                              >
-                                                                  <div className="flex flex-col gap-0.5">
-                                                                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-tight">{r.label}</span>
-                                                                      <span className="text-[9px] text-slate-400 font-medium">{r.pointsPerTeam} pts / team</span>
-                                                                  </div>
-                                                                  <div className="flex items-center gap-2">
-                                                                      {r.penaltyApplied && (
-                                                                          <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">50%</span>
-                                                                      )}
-                                                                      <span className="bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1">
-                                                                          <Trophy size={8} className="text-yellow-300" />
-                                                                          {r.teams.filter(t => t.status === 'confirmed').length}/{r.totalSlots}
-                                                                      </span>
-                                                                      <span className="text-sm font-black text-green-600">+{r.confirmedPoints}</span>
-                                                                      <ChevronDown size={12} className={`text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                                                                  </div>
-                                                              </div>
-                                                              {isOpen && (
-                                                                  <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-                                                                      {r.teams.map(({ teamId, status }) => {
-                                                                          const team = teams[teamId];
-                                                                          return (
-                                                                              <div
-                                                                                  key={teamId}
-                                                                                  onClick={e => { e.stopPropagation(); if (onTeamClick && status !== 'pending') onTeamClick(teamId); }}
-                                                                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold ${
-                                                                                      status === 'confirmed' ? 'bg-white/10 border-white/10 text-slate-300 cursor-pointer hover:border-blue-300'
-                                                                                    : status === 'pending'  ? 'bg-white/5 border-white/5 text-slate-500'
-                                                                                    :                         'bg-red-50 border-red-100 text-red-400'
-                                                                                  }`}
-                                                                              >
-                                                                                  <img src={team?.flag} className={`w-5 h-3.5 object-cover rounded-sm shadow-sm ${status === 'pending' ? 'opacity-40' : ''}`} alt={teamId} />
-                                                                                  <span className={status === 'eliminated' ? 'line-through' : ''}>{teamId}</span>
-                                                                                  {status === 'confirmed'  && <Check size={9} className="text-green-500" strokeWidth={3} />}
-                                                                                  {status === 'eliminated' && <X    size={9} className="text-red-400"   strokeWidth={3} />}
-                                                                              </div>
-                                                                          );
-                                                                      })}
-                                                                  </div>
-                                                              )}
-                                                          </div>
-                                                      );
-                                                  })}
-                                              </div>
-                                          </div>
-                                      );
-                                  })()}
                               </td>
                           </tr>
                       )}
@@ -1011,42 +657,24 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                      {modalData.type === 'ADVANCED' ? (() => {
-                          const userPreds = allPredictions.filter(p => p.userId === modalData.user.email);
-                          const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
-                          const qualRounds = getQualifiedRounds(matches, userPreds, modalData.user, teams);
-                          if (qualRounds.length === 0) {
-                              return <div className="py-10 text-center text-slate-400 text-sm italic">No knockout points yet.</div>;
-                          }
-                          return (
-                              <>
-                                  {qualRounds.length > 0 && (
-                                      <QualifiedTeamsGrid
-                                          realMatches={matches}
-                                          userPredictions={userPreds}
-                                          user={modalData.user}
-                                          teams={teams}
-                                          onTeamClick={onTeamClick}
-                                      />
-                                  )}
-                              </>
-                          );
-                      })() : (
-                          modalData.matches.length > 0 ? (
-                              modalData.matches.map((item, idx) => (
-                                  <DetailMatchRow 
-                                      key={idx} 
-                                      match={item.m} 
-                                      prediction={item.p} 
-                                      points={item.pts} 
-                                      type={modalData.type as any}
+                      {modalData.matches.length > 0 ? (
+                          modalData.matches.map((item, idx) => {
+                              const isExact = item.p.home === item.m.homeScore && item.p.away === item.m.awayScore;
+                              const rowType = modalData.type === 'EXACT' ? 'EXACT' : modalData.type === 'RESULT' ? 'RESULT' : (isExact ? 'EXACT' : 'RESULT');
+                              return (
+                                  <DetailMatchRow
+                                      key={idx}
+                                      match={item.m}
+                                      prediction={item.p}
+                                      points={item.pts}
+                                      type={rowType}
                                       teams={teams}
                                       onTeamClick={onTeamClick}
                                   />
-                              ))
-                          ) : (
-                              <div className="py-10 text-center text-slate-400 text-sm italic">No matches found in this category.</div>
-                          )
+                              );
+                          })
+                      ) : (
+                          <div className="py-10 text-center text-slate-400 text-sm italic">No matches found in this category.</div>
                       )}
                   </div>
               </div>
@@ -1062,21 +690,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
         const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
         const now = Date.now();
         const next3 = matches
-          .filter(m => !!m.groupId && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
+          .filter(m => !m.round && !finishedStatuses.includes(m.status) && m.date && m.date !== 'TBD')
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(m => ({ match: m, pred: userPreds.find(p => p.matchId === String(m.id)) ?? null }));
-
-        const finPred = userPreds.find(p => p.matchId === 'FIN_1');
-        let champId: string | null = finPred?.predictedWinnerId ?? null;
-        if (!champId) {
-          const userBracket = applyPredictionsToBracket(matches, teams, userPreds);
-          const finMatch = userBracket.find(m => m.round === 'FIN');
-          if (finMatch && finMatch.homeScore !== null && finMatch.awayScore !== null) {
-            const winnerId = finMatch.homeScore >= finMatch.awayScore ? finMatch.homeTeamId : finMatch.awayTeamId;
-            if (winnerId && !winnerId.startsWith('TBD')) champId = winnerId;
-          }
-        }
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLbProfileModal(null)}>
@@ -1129,20 +746,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       );
                     })}
                   </div>
-                </div>
-              )}
-
-              {champId && teams[champId] && (
-                <div className="w-full bg-amber-50 rounded-2xl p-3 border border-amber-100 flex items-center gap-3">
-                  {teams[champId].flag?.startsWith('http')
-                    ? <img src={teams[champId].flag} alt="" className="w-8 h-6 object-cover rounded-sm" />
-                    : <span className="text-2xl">{teams[champId].flag || '🏳'}</span>
-                  }
-                  <div>
-                    <div className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Tournament Winner</div>
-                    <div className="text-sm font-black text-white">{teams[champId].name}</div>
-                  </div>
-                  <span className="ml-auto text-xl">🏆</span>
                 </div>
               )}
             </div>

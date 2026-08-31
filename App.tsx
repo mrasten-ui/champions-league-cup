@@ -7,7 +7,8 @@ import {
   simulateFullTournament,
   applyPredictionsToBracket,
   calculatePoints,
-  getQualifiedRoundsSwiss,
+  calculatePenaltyBonus,
+  resolvePenaltySide,
   buildRealResultReveal,
   buildFutureReset,
 } from './services/engine';
@@ -245,6 +246,10 @@ export const App = () => {
     else { bustPredictionsCache(); }
   };
 
+  // Scouting costs a point, not a token — no limit on how many times you can
+  // scout, but each one permanently costs 1 point off your score (see the
+  // scoutPenalty deduction in Leaderboard.tsx's userStats, derived directly
+  // from spiedMatches.length rather than a separate persisted counter).
   const handleSpy = async (matchId: string) => {
       if (!user || !supabase) return;
       if (!user.leagues || user.leagues.length === 0) {
@@ -252,11 +257,9 @@ export const App = () => {
           return;
       }
       if (user.spiedMatches?.includes(matchId)) return;
-      if (user.tokens < 1) { addToast('error', t.noIntel, t.noIntelMsg); return; }
       const newSpied = [...(user.spiedMatches || []), matchId];
-      const newTokens = user.tokens - 1;
-      setUser({ ...user, tokens: newTokens, spiedMatches: newSpied });
-      const { error: spyError } = await supabase.from('profiles').update({ tokens: newTokens, spied_matches: newSpied } as any).eq('email', user.email);
+      setUser({ ...user, spiedMatches: newSpied });
+      const { error: spyError } = await supabase.from('profiles').update({ spied_matches: newSpied } as any).eq('email', user.email);
       if (spyError) addToast('error', t.saveFailed, t.saveFailedMsg);
       else addToast('success', t.rivalRevealed, t.intelUsed);
   };
@@ -333,7 +336,9 @@ export const App = () => {
   // Always the same tabs — predicting, live tracking, and standings all coexist
   // throughout the season instead of the app switching to a different nav set
   // once the first match kicks off.
-  const navTabs = useMemo(() => ['groups', 'tournament', 'leaderboard', 'rules'], []);
+  // Order tells a story: what do I need to do → how am I doing → how's the
+  // tournament going → how do I play.
+  const navTabs = useMemo(() => ['groups', 'leaderboard', 'tournament', 'rules'], []);
 
   const handleNextTab = useCallback(() => {
       const idx = navTabs.indexOf(activeTab);
@@ -541,11 +546,12 @@ export const App = () => {
               const matchPts = finishedMatches.reduce((sum, m) => {
                   const pred = userPreds.find(p => p.matchId === m.id);
                   if (!pred) return sum;
-                  return sum + calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, !!u.hasTakenSecondChance, m.round);
+                  let pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, m.round, resolvePenaltySide(pred.predictedWinnerId, m), resolvePenaltySide(m.penaltyWinnerId, m));
+                  if (m.round) pts += calculatePenaltyBonus(pred.home === pred.away, !!m.penaltyWinnerId);
+                  return sum + pts;
               }, 0);
-              const bracketPts = getQualifiedRoundsSwiss(matches, userPreds, u, teamsData)
-                  .reduce((sum, r) => sum + r.totalPoints, 0);
-              return { user: u, score: matchPts + bracketPts, rank: 0, diff: 0 };
+              const scoutPenalty = u.spiedMatches?.length ?? 0;
+              return { user: u, score: matchPts - scoutPenalty, rank: 0, diff: 0 };
           }).sort((a, b) => b.score - a.score).map((s, i) => ({ ...s, rank: i + 1 }));
           const upcoming = matches
               .filter(m => (m.status === 'UPCOMING' || m.status === 'NS') && m.homeTeamId !== 'TBD' && m.awayTeamId !== 'TBD')

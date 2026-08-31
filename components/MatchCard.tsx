@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction, TournamentPhase, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
-import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp, RefreshCw, Unlock, Check, MapPin, Save, Trophy, Lock as LockIcon, Tv, AlertCircle, Bot } from 'lucide-react';
 import { BROADCAST_CHANNELS, TEAMS } from '../constants';
-import { calculatePoints } from '../services/engine';
+import { calculatePoints, calculatePenaltyBonus, resolvePenaltySide } from '../services/engine';
 import { AvatarDisplay } from './AvatarDisplay';
 import { ScoreStepper } from './ScoreStepper';
 import { TbdSlot } from './TbdSlot';
@@ -181,11 +181,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
     const handleSpyClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (userTokens > 0) setPendingSpy(true);
+        setPendingSpy(true);
     };
 
     const pointsEarned = (isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && prediction
-        ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, currentUser?.hasTakenSecondChance, match.round)
+        ? calculatePoints(prediction.home, prediction.away, match.homeScore, match.awayScore, match.round, resolvePenaltySide(prediction.predictedWinnerId, match), resolvePenaltySide(match.penaltyWinnerId, match))
+            + (match.round ? calculatePenaltyBonus(prediction.home === prediction.away, !!match.penaltyWinnerId) : 0)
         : null;
 
     const homeName = homeTeam?.name || 'TBD';
@@ -1032,22 +1033,22 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 pendingSpy ? (
                     <div className="bg-black/20 py-2 px-3 flex items-center gap-2 border-t border-white/10 rounded-b-2xl animate-in fade-in duration-150">
                         <LockIcon size={12} className="text-amber-400 shrink-0" />
-                        <span className="flex-1 text-[10px] font-black text-amber-400 uppercase tracking-widest">{lang.spyConfirm || 'Use a token?'}</span>
+                        <span className="flex-1 text-[10px] font-black text-amber-400 uppercase tracking-widest">{lang.spyConfirm || 'Costs 1 point — reveal their pick?'}</span>
                         <button onClick={() => { onSpy(match.id); setPendingSpy(false); }} className="px-3 py-1 rounded border bg-amber-500/30 border-amber-400/60 text-amber-300 text-[10px] font-black uppercase tracking-wide active:scale-95 transition-all">✓</button>
                         <button onClick={() => setPendingSpy(false)} className="px-3 py-1 rounded border bg-white/5 border-white/20 text-white/50 text-[10px] font-black uppercase tracking-wide active:scale-95 transition-all">✗</button>
                     </div>
                 ) : (
                 <div
                     id="tour-spy-btn"
-                    onClick={userTokens > 0 ? handleSpyClick : undefined}
-                    className={`bg-black/20 py-2 px-3 flex justify-between items-center border-t border-white/10 rounded-b-2xl group transition-colors ${userTokens > 0 ? 'cursor-pointer hover:bg-white/5' : 'opacity-50 grayscale cursor-not-allowed'}`}
+                    onClick={handleSpyClick}
+                    className="bg-black/20 py-2 px-3 flex justify-between items-center border-t border-white/10 rounded-b-2xl group transition-colors cursor-pointer hover:bg-white/5"
                 >
                     <div className="flex items-center gap-2">
                         <LockIcon size={12} className="text-amber-400 shrink-0" />
                         <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">{lang.sendScouts || 'Send out the scouts'}</span>
                     </div>
                     <span className="text-[10px] font-bold text-white/60 group-hover:text-white/80 transition-colors">
-                        {userTokens}/5 {lang.tokensLeft}
+                        -1 pt
                     </span>
                 </div>
                 )
@@ -1129,6 +1130,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             </div>
                         ) : !isKnockout && prediction ? (
                             <div className="flex items-center gap-1.5 text-white animate-in zoom-in">
+                                {prediction.autoFilled && <Bot size={11} className="text-amber-400" aria-label={lang.autoFilledDesc || 'Auto-filled'} />}
                                 <span className="text-[10px] font-medium text-white/70">{lang.myPick || "Pick"}:</span>
                                 <span className="text-[10px] font-black text-yellow-400">{prediction.home} - {prediction.away}</span>
                             </div>

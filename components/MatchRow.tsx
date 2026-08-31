@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Team, Translation, UserProfile, Prediction } from '../types';
-import { Search, Lock as LockIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Lock as LockIcon, ChevronDown, ChevronUp, Bot } from 'lucide-react';
 import { ScoreStepper } from './ScoreStepper';
 import { AvatarDisplay } from './AvatarDisplay';
 import { isMatchLocked, msUntilLock } from '../utils/date';
@@ -104,7 +104,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   };
   const handleSpyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (userTokens > 0) setPendingSpy(true);
+    setPendingSpy(true);
   };
 
   const homeName = homeTeam?.name || 'TBD';
@@ -143,17 +143,24 @@ export const MatchRow: React.FC<MatchRowProps> = ({
             ) : isFinished ? (
               <span className="text-[10px] font-black tabular-nums text-slate-400">FT</span>
             ) : isLocked ? (
-              <span className="flex items-center gap-1 text-slate-500">
-                <LockIcon size={11} />
-                <span className="text-[10px] font-bold uppercase tracking-wide">{lang.lockedState || 'Locked'}</span>
-              </span>
+              prediction?.autoFilled ? (
+                <span className="flex items-center gap-1 text-amber-400" title={lang.autoFilledDesc || 'You missed the deadline — filled in for you based on your risk profile'}>
+                  <Bot size={11} strokeWidth={2} />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">{lang.autoFilledState || 'Auto-filled'}</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-slate-500">
+                  <LockIcon size={11} />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">{lang.lockedState || 'Locked'}</span>
+                </span>
+              )
             ) : (
               <span className={`text-[10px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
             )}
           </div>
           <div className="flex items-center gap-1">
             {canSpy && !pendingSpy && (
-              <button onClick={handleSpyClick} className={`p-1 rounded-full transition-colors ${userTokens > 0 ? 'text-amber-400 hover:bg-amber-500/10' : 'text-slate-700 cursor-not-allowed'}`} title={lang.sendScouts || 'Send out the scouts'}>
+              <button onClick={handleSpyClick} className="p-1 rounded-full text-amber-400 hover:bg-amber-500/10 transition-colors" title={lang.sendScouts || 'Send out the scouts'}>
                 <Search size={13} />
               </button>
             )}
@@ -177,7 +184,8 @@ export const MatchRow: React.FC<MatchRowProps> = ({
             <div className="flex flex-col items-center shrink-0 min-w-[64px]">
               <span className="text-lg font-black text-white tabular-nums tracking-tight">{match.homeScore}&nbsp;-&nbsp;{match.awayScore}</span>
               {prediction && (
-                <span className={`text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : 'text-slate-600'}`}>
+                <span className={`flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wide ${isExact ? 'text-emerald-400' : isCorrectOutcome ? 'text-cyan-400' : 'text-slate-600'}`}>
+                  {prediction.autoFilled && <Bot size={9} className="text-amber-400" aria-label={lang.autoFilledDesc || 'Auto-filled'} />}
                   {lang.myPick || 'Pick'}: {prediction.home}-{prediction.away}
                 </span>
               )}
@@ -214,7 +222,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
       {/* Pending spy confirm */}
       {pendingSpy && (
         <div className="bg-black/20 py-1.5 px-3 flex items-center gap-2 border-t border-white/5">
-          <span className="flex-1 text-[9px] font-black text-amber-400 uppercase tracking-widest">{lang.spyConfirm || 'Use a token?'}</span>
+          <span className="flex-1 text-[9px] font-black text-amber-400 uppercase tracking-widest">{lang.spyConfirm || 'Costs 1 point — reveal their pick?'}</span>
           <button onClick={() => { onSpy(match.id); setPendingSpy(false); }} className="px-2 py-0.5 rounded border bg-amber-500/30 border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-wide active:scale-95 transition-all">✓</button>
           <button onClick={() => setPendingSpy(false)} className="px-2 py-0.5 rounded border bg-white/5 border-white/20 text-white/50 text-[9px] font-black uppercase tracking-wide active:scale-95 transition-all">✗</button>
         </div>

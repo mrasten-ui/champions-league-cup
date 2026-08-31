@@ -151,9 +151,6 @@ export const AppHeader: React.FC<AppHeaderProps> = (props) => {
                                       <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 size={20} className="text-white drop-shadow-md" /></div>
                                   </div>
                                   <div className="text-xs font-black text-slate-800 uppercase tracking-wide">{user?.name}</div>
-                                  <div className="flex gap-2 mt-1">
-                                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{user?.tokens} Intel</div>
-                                  </div>
                               </div>
                               <div className="p-1">
                                   <button onClick={() => { props.setShowAvatarEditor(true); props.setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg flex items-center gap-2 transition-colors"><UserCircle2 size={16} /> {t.changeIdentity}</button>
