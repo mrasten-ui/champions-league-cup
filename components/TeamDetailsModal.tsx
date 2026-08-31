@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Team, Translation, MatchHistoryItem, ScoutingData, LanguageCode, TeamFormData } from '../types';
 import { fetchTeamHistory, fetchScoutingOverview, fetchTeamExtendedStats } from '../services/engine';
 import { getScoutingReport } from '../scoutingData';
+import { TEAM_COUNTRY } from '../constants';
 import { supabase } from '../supabase';
 import { X, TrendingUp, TrendingDown, Activity, Crown, RefreshCw, AlertCircle, Minus } from 'lucide-react';
 
@@ -147,6 +148,8 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
   })();
 
   const displayName = scoutingData?.team_name || team.name;
+  const countryInfo = TEAM_COUNTRY[team.id];
+  const countryName = countryInfo?.country || team.region;
   // team.starPlayer defaults to the literal string 'TBD' as a DB-row
   // placeholder (see useAppData.ts) — treat that the same as genuinely
   // missing data, not a real value to display.
@@ -163,10 +166,19 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ team, isOpen
                 <div className="absolute -bottom-8 left-6 w-20 h-20 rounded-lg border-4 border-white shadow-lg overflow-hidden bg-white z-10 transform -rotate-2 flex items-center justify-center">
                     <img src={team.flag} alt={displayName} className="w-full h-full object-contain p-1" />
                 </div>
-                {team.region && (
+                {countryName && (
                     <div className="absolute top-4 right-4 flex flex-col items-end gap-1 max-w-[55%]">
                         <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">Country</span>
-                        <div className="text-lg font-black text-white italic tracking-tight drop-shadow-md text-right leading-tight">{team.region}</div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="text-sm font-black text-white italic tracking-tight drop-shadow-md text-right leading-tight">{countryName}</div>
+                            {countryInfo?.iso2 && (
+                                <img
+                                    src={`https://flagcdn.com/w40/${countryInfo.iso2}.png`}
+                                    alt={countryName}
+                                    className="w-6 h-4 object-cover rounded-[2px] border border-white/30 shadow-sm shrink-0"
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
                 <button onClick={onClose} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors backdrop-blur-sm">

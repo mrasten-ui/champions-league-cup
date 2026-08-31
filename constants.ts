@@ -362,4 +362,49 @@ export const TRANSLATIONS: Record<LanguageCode, Translation> = {
 // typed lookup so KitImage/GoalBanner's `TEAMS[id]` fallback reads stay valid.
 export const TEAMS: Record<string, Team> = {};
 
+// A club's home country/footballing association never changes, so unlike
+// the perishable stats above (squad, form) this is safe to hardcode rather
+// than depend on a rate-limited external API. ISO 3166-1 alpha-2 codes,
+// with England/Scotland split from the UK per football convention (UEFA
+// treats them as separate footballing nations) — matches the gb-eng/gb-sct
+// codes flagcdn.com already serves for the language flags above.
+export const TEAM_COUNTRY: Record<string, { country: string; iso2: string }> = {
+  ARS: { country: 'England', iso2: 'gb-eng' },
+  AVL: { country: 'England', iso2: 'gb-eng' },
+  LIV: { country: 'England', iso2: 'gb-eng' },
+  MCI: { country: 'England', iso2: 'gb-eng' },
+  MUN: { country: 'England', iso2: 'gb-eng' },
+  BAY: { country: 'Germany', iso2: 'de' },
+  BVB: { country: 'Germany', iso2: 'de' },
+  RBL: { country: 'Germany', iso2: 'de' },
+  STU: { country: 'Germany', iso2: 'de' },
+  RMA: { country: 'Spain', iso2: 'es' },
+  BAR: { country: 'Spain', iso2: 'es' },
+  ATM: { country: 'Spain', iso2: 'es' },
+  BET: { country: 'Spain', iso2: 'es' },
+  VIL: { country: 'Spain', iso2: 'es' },
+  PSG: { country: 'France', iso2: 'fr' },
+  LEN: { country: 'France', iso2: 'fr' },
+  LIL: { country: 'France', iso2: 'fr' },
+  INT: { country: 'Italy', iso2: 'it' },
+  NAP: { country: 'Italy', iso2: 'it' },
+  ROM: { country: 'Italy', iso2: 'it' },
+  COM: { country: 'Italy', iso2: 'it' },
+  POR: { country: 'Portugal', iso2: 'pt' },
+  SPO: { country: 'Portugal', iso2: 'pt' },
+  PSV: { country: 'Netherlands', iso2: 'nl' },
+  FEY: { country: 'Netherlands', iso2: 'nl' },
+  BRU: { country: 'Belgium', iso2: 'be' },
+  GAL: { country: 'Turkey', iso2: 'tr' },
+  FEN: { country: 'Turkey', iso2: 'tr' },
+  BOD: { country: 'Norway', iso2: 'no' },
+  VFK: { country: 'Norway', iso2: 'no' },
+  AEK: { country: 'Greece', iso2: 'gr' },
+  LASK: { country: 'Austria', iso2: 'at' },
+  SLB: { country: 'Slovakia', iso2: 'sk' },
+  SLA: { country: 'Czech Republic', iso2: 'cz' },
+  SHK: { country: 'Ukraine', iso2: 'ua' },
+  SAB: { country: 'Azerbaijan', iso2: 'az' },
+};
+
 export const MOCK_PREDICTIONS: Prediction[] = [];
