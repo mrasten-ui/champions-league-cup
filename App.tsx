@@ -853,10 +853,42 @@ export const App = () => {
             historical and further-future rounds get their own view later. */}
         {activeTab === 'groups' && (
             <div className="animate-fade-in">
-                <div className="flex items-end justify-between mb-4 px-1 pb-4 border-b border-white/10 gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                {/* Desktop — single row: round label, stars + countdown centred in
+                    the middle, risk gauge on the right. Mobile has no room for
+                    that, so it keeps the original stacked layout below. */}
+                <div className="hidden md:flex items-center justify-between mb-4 px-1 pb-4 border-b border-white/10 gap-4">
+                    <div className="flex items-center gap-3 min-w-0 shrink-0">
                         <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)] shrink-0"></span>
                         <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                        {currentMatchdayMatches.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-1.5">
+                                {currentMatchdayMatches
+                                    .slice()
+                                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                    .map(m => {
+                                        const filled = userPredMatchIds.has(m.id);
+                                        return (
+                                            <Star
+                                                key={m.id}
+                                                size={16}
+                                                strokeWidth={filled ? 1 : 1.5}
+                                                className={filled ? 'text-slate-300 fill-slate-300 drop-shadow-[0_0_3px_rgba(203,213,225,0.6)]' : 'text-slate-700'}
+                                            />
+                                        );
+                                    })}
+                            </div>
+                        )}
+                        {roundLockCountdownMs !== null && (
+                            <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
+                                <span className={`text-lg sm:text-xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
+                                    <Timer size={15} className="shrink-0" />
+                                    {formatRoundCountdown(roundLockCountdownMs)}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={() => { setShowAvatarEditor(true); setRiskOnlyEditor(true); }}
@@ -871,33 +903,55 @@ export const App = () => {
                         </span>
                     </button>
                 </div>
-                {currentMatchdayMatches.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-                        {currentMatchdayMatches
-                            .slice()
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                            .map(m => {
-                                const filled = userPredMatchIds.has(m.id);
-                                return (
-                                    <Star
-                                        key={m.id}
-                                        size={16}
-                                        strokeWidth={filled ? 1 : 1.5}
-                                        className={filled ? 'text-slate-300 fill-slate-300 drop-shadow-[0_0_3px_rgba(203,213,225,0.6)]' : 'text-slate-700'}
-                                    />
-                                );
-                            })}
+
+                {/* Mobile — original stacked layout (no room for a single row). */}
+                <div className="md:hidden">
+                    <div className="flex items-end justify-between mb-4 px-1 pb-4 border-b border-white/10 gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)] shrink-0"></span>
+                            <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
+                        </div>
+                        <button
+                            onClick={() => { setShowAvatarEditor(true); setRiskOnlyEditor(true); }}
+                            className="flex flex-col items-center gap-0 shrink-0 transition-transform hover:scale-105 active:scale-95"
+                            title={currentRoundActualRisk !== null ? (t.riskLevelCalculated || "Calculated from your picks this round") : (t.riskLevelStanding || 'Your standing risk profile — tap to edit')}
+                        >
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.riskLevelLabel || 'Risk Level'}</span>
+                            <RiskGauge value={displayRiskValue ?? 0.5} width={68} />
+                            <span className="text-[11px] font-black text-white uppercase tracking-tight -mt-1 flex items-center gap-1">
+                                <span>{getRiskTier(displayRiskValue ?? 0.5).icon}</span>
+                                {getRiskTier(displayRiskValue ?? 0.5).name}
+                            </span>
+                        </button>
                     </div>
-                )}
-                {roundLockCountdownMs !== null && (
-                    <div className="flex flex-col items-center gap-0.5 mb-4">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
-                        <span className={`text-lg sm:text-xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
-                            <Timer size={15} className="shrink-0" />
-                            {formatRoundCountdown(roundLockCountdownMs)}
-                        </span>
-                    </div>
-                )}
+                    {currentMatchdayMatches.length > 0 && (
+                        <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                            {currentMatchdayMatches
+                                .slice()
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                .map(m => {
+                                    const filled = userPredMatchIds.has(m.id);
+                                    return (
+                                        <Star
+                                            key={m.id}
+                                            size={16}
+                                            strokeWidth={filled ? 1 : 1.5}
+                                            className={filled ? 'text-slate-300 fill-slate-300 drop-shadow-[0_0_3px_rgba(203,213,225,0.6)]' : 'text-slate-700'}
+                                        />
+                                    );
+                                })}
+                        </div>
+                    )}
+                    {roundLockCountdownMs !== null && (
+                        <div className="flex flex-col items-center gap-0.5 mb-4">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
+                            <span className={`text-lg sm:text-xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
+                                <Timer size={15} className="shrink-0" />
+                                {formatRoundCountdown(roundLockCountdownMs)}
+                            </span>
+                        </div>
+                    )}
+                </div>
                 {currentMatchdayMatches.length === 0 && (
                     <div className="rounded-xl border border-white/15 bg-blue-950/40 backdrop-blur-md shadow-sm py-16 text-center mb-6">
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No fixtures for this round yet</p>

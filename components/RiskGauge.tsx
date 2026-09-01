@@ -49,7 +49,7 @@ interface RiskGaugeProps {
 
 export const RiskGauge: React.FC<RiskGaugeProps> = ({ value, width = 96 }) => {
   const v = Math.max(0, Math.min(1, value ?? 0.5));
-  const cx = 100, cy = 100, r = 80, strokeW = 16;
+  const cx = 100, cy = 100, r = 80, strokeW = 22;
 
   const bounds = RISK_TIERS.map((t, i) => (i === 0 ? 0 : RISK_TIERS[i - 1].max));
   const segments = RISK_TIERS.map((t, i) => {
