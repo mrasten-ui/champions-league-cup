@@ -8,9 +8,6 @@ const corsHeaders = {
 
 const LEAGUE_DEFAULT_LANGS: Record<string, string> = {
   armchair_gaffers:  'SCO',
-  beeline:           'EN',
-  sofa_ekspertene:   'NO',
-  infantinos_hustle: 'SCO',
 }
 
 function buildEmail(lang: string, name: string, appUrl: string): { subject: string; html: string } {
