@@ -1104,7 +1104,7 @@ export const App = () => {
                     {/* Manager preset picker — tap one to jump both sliders to a profile
                         matching that manager's real tactical reputation. Doesn't save or
                         deploy anything by itself, same as dragging a slider does not. */}
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-1 -mx-1 px-1">
+                    <div className="grid grid-cols-5 gap-1.5 mb-1">
                         {RISK_TIERS.map(tier => {
                             const isActive = getRiskTier(pendingRiskResult / 100).name === tier.name;
                             return (
@@ -1115,11 +1115,11 @@ export const App = () => {
                                         setPendingRiskScoring(tier.presetScoring * 100);
                                         setRiskSliderTouched(true);
                                     }}
-                                    className={`shrink-0 flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all ${isActive ? 'border-white/40 bg-white/10 scale-105' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                                    className={`flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border transition-all ${isActive ? 'border-white/40 bg-white/10 scale-105' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
                                     title={tier.name}
                                 >
                                     <span className="text-base leading-none">{tier.icon}</span>
-                                    <span className="text-[7px] font-black uppercase tracking-tight text-slate-300 whitespace-nowrap">{tier.name.replace('The ', '')}</span>
+                                    <span className="text-[7px] font-black uppercase tracking-tight text-slate-300 leading-tight text-center">{tier.name.replace('The ', '')}</span>
                                 </button>
                             );
                         })}
