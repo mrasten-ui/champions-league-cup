@@ -11,6 +11,7 @@ import {
   resolvePenaltySide,
   buildRealResultReveal,
   buildFutureReset,
+  calculateActualRiskScore,
 } from './services/engine';
 import REAL_CL_2024_RESULTS from './data/real-cl-2024-results.json';
 import { isMatchLocked, msUntilLock, getRoundLockTime, sameRound } from './utils/date';
@@ -634,6 +635,17 @@ export const App = () => {
     return false;
   }, [activeTab, currentMatchdayMatches, userPredMatchIds, user]);
 
+  // Live read of "how chaotic were this round's actual picks" — null (falls
+  // back to the stored riskResult preference) until every match in the
+  // round has a prediction. Recalculates automatically whenever picks
+  // change, but never writes back to the user's stored profile.
+  const currentRoundActualRisk = useMemo(() => {
+    if (!user) return null;
+    const userPreds = allPredictions.filter(p => p.userId === user.email);
+    return calculateActualRiskScore(currentMatchdayMatches, userPreds, teamsData);
+  }, [currentMatchdayMatches, allPredictions, user, teamsData]);
+  const displayRiskValue = currentRoundActualRisk ?? user?.riskResult;
+
   const handleClearPredictions = useCallback(async () => {
     if (!user || !supabase) return;
     const query = supabase.from('predictions').delete().eq('user_id', user.email);
@@ -799,30 +811,22 @@ export const App = () => {
                 <div className="flex items-end justify-between mb-4 px-1 pb-4 border-b border-white/10 gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                         <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)] shrink-0"></span>
-                        <div className="flex flex-col gap-1 min-w-0">
-                            <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
-                            <button
-                                onClick={() => setShowAvatarEditor(true)}
-                                className={`self-start flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full border text-[11px] font-black uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 ${riskZoneBadgeCls(user?.riskResult)}`}
-                                title={t.riskProfileSection}
-                            >
-                                <span className="text-xs">{riskZoneIcon(user?.riskResult)}</span>
-                                {riskZoneLabel(user?.riskResult, t.riskBanker, t.riskBalanced, t.riskWildcard)} Risk
-                            </button>
-                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
                     </div>
-                    {roundLockCountdownMs !== null && (
-                        <div className="flex flex-col items-end gap-0.5 shrink-0">
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
-                            <span className={`text-xl sm:text-3xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
-                                <Timer size={16} className="shrink-0" />
-                                {formatRoundCountdown(roundLockCountdownMs)}
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.riskLevelLabel || 'Risk Level'}</span>
+                        <button
+                            onClick={() => setShowAvatarEditor(true)}
+                            className={`flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full border text-[11px] font-black uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 ${riskZoneBadgeCls(displayRiskValue)}`}
+                            title={currentRoundActualRisk !== null ? (t.riskLevelCalculated || "Calculated from your picks this round") : (t.riskLevelStanding || 'Your standing risk profile — tap to edit')}
+                        >
+                            <span className="text-xs">{riskZoneIcon(displayRiskValue)}</span>
+                            {riskZoneLabel(displayRiskValue, t.riskBanker, t.riskBalanced, t.riskWildcard)}
+                        </button>
+                    </div>
                 </div>
                 {currentMatchdayMatches.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-3">
                         {currentMatchdayMatches
                             .slice()
                             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -837,6 +841,15 @@ export const App = () => {
                                     />
                                 );
                             })}
+                    </div>
+                )}
+                {roundLockCountdownMs !== null && (
+                    <div className="flex flex-col items-center gap-0.5 mb-4">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.deadlineLabel || 'Locks in'}</span>
+                        <span className={`text-lg sm:text-xl font-black italic tracking-tight tabular-nums leading-none flex items-center gap-1.5 ${countdownColorClass(roundLockCountdownMs)}`}>
+                            <Timer size={15} className="shrink-0" />
+                            {formatRoundCountdown(roundLockCountdownMs)}
+                        </span>
                     </div>
                 )}
                 {currentMatchdayMatches.length === 0 && (

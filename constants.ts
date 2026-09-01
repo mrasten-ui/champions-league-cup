@@ -100,6 +100,7 @@ const EN_TRANSLATION: Translation = {
     firstMeeting: "First Ever Meeting!", firstMeetingDesc: "We couldn't find any previous competitive matches between these two. History starts now!",
     showingLast5: "Showing last 5 of {0} meetings", noHistory: "No recorded history found.", loadingHistory: "Loading history...",
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Until predictions lock",
+    riskLevelLabel: "Risk Level", riskLevelCalculated: "Calculated from your picks this round", riskLevelStanding: "Your standing risk profile — tap to edit",
 
     // --- NEW KEYS ---
     nameTaken: "Name already taken — try something else.",
@@ -264,6 +265,7 @@ const SCO_TRANSLATION: Translation = {
     teamCol: "Team", grpCol: "Grp", headToHead: "The Square Go", wins: "Wins", draws: "Draws", totalMeetings: "rammies",
     firstMeeting: "First Ever Square Go!", firstMeetingDesc: "Never focht afore. This is history!", showingLast5: "Last 5 of {0} scraps",
     noHistory: "No history found.", loadingHistory: "Diggin' it up...", days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Time tae lock in",
+    riskLevelLabel: "Risk Level", riskLevelCalculated: "Worked oot fae yer picks this roond", riskLevelStanding: "Yer standin' risk profile — gie it a tap tae change",
 
     // --- NEW KEYS ---
     nameTaken: "That name's taken — try somethin' else, pal.",

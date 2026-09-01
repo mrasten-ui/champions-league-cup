@@ -103,6 +103,39 @@ export const calculatePoints = (
   return !!predWinner && !!actualWinner && predWinner === actualWinner ? outcomePointsForRound(round) : 0;
 };
 
+// A live read of "how chaotic were this round's actual picks", on the same
+// 0-1 scale as the stored riskResult preference (see riskZoneIcon/Label/
+// BadgeCls in AppHeader.tsx). Purely derived/display data — never written
+// back to the user's stored profile, which stays whatever they set at
+// signup and keeps driving the Magic Wand + missed-deadline auto-fill.
+// Returns null until every match in the round has a prediction, so callers
+// can fall back to the stored profile for an in-progress round.
+export const calculateActualRiskScore = (
+  roundMatches: Match[],
+  predictions: Prediction[],
+  teams: Record<string, Team>
+): number | null => {
+  if (roundMatches.length === 0) return null;
+  const perMatch: number[] = [];
+  for (const m of roundMatches) {
+    const pred = predictions.find(p => p.matchId === m.id);
+    if (!pred) return null; // round not fully predicted yet
+    const homeRating = teams[m.homeTeamId]?.rating ?? 50;
+    const awayRating = teams[m.awayTeamId]?.rating ?? 50;
+    const gap = homeRating - awayRating; // positive => home is the favourite
+    const margin = pred.home - pred.away; // positive => predicted home win
+
+    if (margin === 0 || Math.abs(gap) < 5) {
+      perMatch.push(0.5); // predicted a draw, or a genuine toss-up on ratings — neither a safe nor a bold pick
+    } else if (Math.sign(margin) === Math.sign(gap)) {
+      perMatch.push(0.15); // backed the favourite — chalk
+    } else {
+      perMatch.push(0.9); // backed the underdog — upset pick
+    }
+  }
+  return perMatch.reduce((a, b) => a + b, 0) / perMatch.length;
+};
+
 export const calculateMaxPotentialPoints = (matches: Match[], predictions: Prediction[], user: UserProfile): number => {
     let total = 0;
     matches.forEach(m => {
