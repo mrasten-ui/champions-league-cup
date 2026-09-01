@@ -12,6 +12,7 @@ import {
   buildRealResultReveal,
   buildFutureReset,
   calculateActualRiskScore,
+  generateMagicScores,
 } from './services/engine';
 import REAL_CL_2024_RESULTS from './data/real-cl-2024-results.json';
 import { isMatchLocked, msUntilLock, getRoundLockTime, sameRound } from './utils/date';
@@ -31,7 +32,7 @@ import { RoundResults } from './components/RoundResults';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader, riskZoneIcon, riskZoneLabel, riskZoneBadgeCls } from './components/AppHeader';
-import { RiskGauge, getRiskTier } from './components/RiskGauge';
+import { RiskGauge, getRiskTier, RISK_TIERS } from './components/RiskGauge';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, PsoNotification } from './components/GoalBanner';
 import { LiveTicker } from './components/LiveTicker';
@@ -212,29 +213,54 @@ export const App = () => {
     }
   }, [showAvatarEditor]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced autosave for the risk profile sliders — mirrors MatchRow's
-  // drag-then-settle pattern so dragging doesn't hammer the DB with writes.
-  // Gated on riskSliderTouched so opening the editor (which seeds the slider
-  // from the live-calculated value, not the stored one) never saves anything
-  // by itself — only an actual drag does.
-  useEffect(() => {
-    if (!showAvatarEditor || !user || !supabase || !riskSliderTouched) return;
-    const unchanged = Math.round((user.riskResult ?? 0.5) * 100) === Math.round(pendingRiskResult)
-      && Math.round((user.riskScoring ?? 0.5) * 100) === Math.round(pendingRiskScoring);
-    if (unchanged) return;
-
+  // Explicit save (button-driven, not autosave) — now that a manager preset
+  // can jump both sliders at once, an implicit debounced save-on-drag would
+  // fire from a preset click too, before the user's actually decided to
+  // commit to it. riskSliderTouched still gates the Save button's
+  // enabled/dirty state, but the write itself only happens on click.
+  const saveRiskProfile = async () => {
+    if (!user || !supabase) return;
     setRiskSaveState('syncing');
-    const timer = setTimeout(async () => {
-      const riskResult = pendingRiskResult / 100;
-      const riskScoring = pendingRiskScoring / 100;
-      const { error } = await supabase.from('profiles').update({ risk_result: riskResult, risk_scoring: riskScoring } as any).eq('email', user.email);
-      if (error) { console.error('Risk profile save failed:', error); setRiskSaveState('idle'); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
-      setUser({ ...user, riskResult, riskScoring });
-      setUsersDb(prev => ({ ...prev, [user.email]: { ...prev[user.email], riskResult, riskScoring } }));
-      setRiskSaveState('saved');
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [pendingRiskResult, pendingRiskScoring, showAvatarEditor]); // eslint-disable-line react-hooks/exhaustive-deps
+    const riskResult = pendingRiskResult / 100;
+    const riskScoring = pendingRiskScoring / 100;
+    const { error } = await supabase.from('profiles').update({ risk_result: riskResult, risk_scoring: riskScoring } as any).eq('email', user.email);
+    if (error) { console.error('Risk profile save failed:', error); setRiskSaveState('idle'); addToast('error', t.saveFailed, t.saveFailedMsg); return; }
+    setUser({ ...user, riskResult, riskScoring });
+    setUsersDb(prev => ({ ...prev, [user.email]: { ...prev[user.email], riskResult, riskScoring } }));
+    setRiskSaveState('saved');
+    setRiskSliderTouched(false);
+    setTimeout(() => setRiskSaveState('idle'), 2000);
+  };
+
+  const [deployState, setDeployState] = useState<'idle' | 'confirm' | 'deploying'>('idle');
+  // Applies the sliders' current profile to every still-open match in the
+  // currently-predicting round, overwriting any existing picks for it — the
+  // same generateMagicScores the Magic Wand uses, just risk-profile-only
+  // (no favourites bias) and scoped to this one round instead of the whole
+  // competition.
+  const deployRiskProfile = async () => {
+    if (!user || !supabase) return;
+    setDeployState('deploying');
+    const openMatches = currentMatchdayMatches.filter(m => !isMatchLocked(m, currentRoundLockTime));
+    if (openMatches.length === 0) {
+      setDeployState('idle');
+      addToast('info', t.riskDeployNoneOpen || 'Nothing to deploy', t.riskDeployNoneOpenMsg || 'Every match in this round is already locked.');
+      return;
+    }
+    const generated = generateMagicScores(openMatches, teamsData, user.favorites ?? [], pendingRiskResult / 100, pendingRiskScoring / 100);
+    const rows = generated
+      .filter(m => m.homeScore !== null && m.awayScore !== null)
+      .map(m => ({ user_id: user.email, match_id: m.id, home: m.homeScore!, away: m.awayScore!, home_team_id: m.homeTeamId, away_team_id: m.awayTeamId }));
+    const { error } = await supabase.from('predictions').upsert(rows, { onConflict: 'user_id,match_id' });
+    if (error) { console.error('Deploy failed:', error.message); setDeployState('idle'); addToast('error', t.riskDeployFailed || 'Deploy failed', t.riskDeployFailedMsg || "Couldn't write your picks — try again."); return; }
+    setAllPredictions(prev => {
+      const others = prev.filter(p => !(p.userId === user.email && rows.some(r => r.match_id === p.matchId)));
+      const mine = rows.map(r => ({ userId: r.user_id, matchId: r.match_id, home: r.home, away: r.away, homeTeamId: r.home_team_id, awayTeamId: r.away_team_id }));
+      return [...others, ...mine];
+    });
+    setDeployState('idle');
+    addToast('success', t.riskDeployed || 'Deployed', `${rows.length} ${t.riskDeployedMsg || 'picks filled in for this round.'}`);
+  };
 
   const saveNewName = async () => {
     if (!user || !supabase) return;
@@ -998,8 +1024,11 @@ export const App = () => {
                     {nameError && <p className="text-[10px] text-red-400 mt-1.5 font-semibold">{nameError}</p>}
                 </div>
 
-                {/* Risk Profile — same sliders as signup, editable any time. Drives the
-                    Magic Wand and the missed-deadline auto-fill for the rest of the season. */}
+                {/* Risk Profile — same sliders as signup, editable any time. This is your
+                    STANDING profile: it's what the missed-deadline safety net uses to
+                    auto-fill any pick you don't get in before a round locks, and what the
+                    Magic Wand defaults to. The headline gauge may show a different, purely
+                    visual "this round's actual picks" read — this section is the real one. */}
                 <div className="border-t border-white/10 pt-5 mb-5">
                     <div className="flex items-center justify-between mb-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.riskProfileSection}</p>
@@ -1007,8 +1036,35 @@ export const App = () => {
                             {riskSaveState === 'syncing' ? t.saving : riskSaveState === 'saved' ? t.saved : ''}
                         </span>
                     </div>
+                    <p className="text-[9px] text-slate-500 leading-relaxed mb-3">
+                        {t.riskProfileSafetyNet || "This is your safety net — if a deadline passes before you get a pick in, we auto-fill it using this profile."}
+                    </p>
+
+                    {/* Manager preset picker — tap one to jump both sliders to a profile
+                        matching that manager's real tactical reputation. Doesn't save or
+                        deploy anything by itself, same as dragging a slider does not. */}
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-1 -mx-1 px-1">
+                        {RISK_TIERS.map(tier => {
+                            const isActive = getRiskTier(pendingRiskResult / 100).name === tier.name;
+                            return (
+                                <button
+                                    key={tier.name}
+                                    onClick={() => {
+                                        setPendingRiskResult(tier.presetResult * 100);
+                                        setPendingRiskScoring(tier.presetScoring * 100);
+                                        setRiskSliderTouched(true);
+                                    }}
+                                    className={`shrink-0 flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all ${isActive ? 'border-white/40 bg-white/10 scale-105' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                                    title={tier.name}
+                                >
+                                    <span className="text-base leading-none">{tier.icon}</span>
+                                    <span className="text-[7px] font-black uppercase tracking-tight text-slate-300 whitespace-nowrap">{tier.name.replace('The ', '')}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
                     {currentRoundActualRisk !== null && (
-                        <p className="text-[9px] text-slate-500 italic mb-2">{t.riskLevelSliderHint || "Starting from this round's picks — drag to set your standing profile."}</p>
+                        <p className="text-[9px] text-slate-500 italic mb-2">{t.riskLevelSliderHint || "Starting from this round's picks — drag or pick a manager to set your standing profile."}</p>
                     )}
                     <div className="space-y-3">
                         <RiskSlider
@@ -1031,6 +1087,33 @@ export const App = () => {
                             highLabel={t.scoringGoalFest} highIcon="⚽"
                             lowDesc={t.scoringCageyDesc} midDesc={t.scoringBalancedDesc} highDesc={t.scoringGoalFestDesc}
                         />
+                    </div>
+
+                    <div className="flex gap-2 mt-4">
+                        <button
+                            onClick={saveRiskProfile}
+                            disabled={!riskSliderTouched || riskSaveState === 'syncing'}
+                            className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-[11px] uppercase tracking-widest transition-all active:scale-95"
+                        >
+                            {t.saveBtn || 'Save'}
+                        </button>
+                        {deployState === 'confirm' ? (
+                            <button
+                                onClick={deployRiskProfile}
+                                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-[11px] uppercase tracking-widest transition-all active:scale-95"
+                            >
+                                {t.riskDeployConfirm || 'Overwrite this round?'}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => { setDeployState('confirm'); setTimeout(() => setDeployState(s => s === 'confirm' ? 'idle' : s), 4000); }}
+                                disabled={deployState === 'deploying'}
+                                className="flex-1 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 disabled:opacity-40 text-amber-400 font-black text-[11px] uppercase tracking-widest transition-all active:scale-95"
+                                title={t.riskDeployHint || 'Fill every open match in this round using the profile above'}
+                            >
+                                {deployState === 'deploying' ? (t.riskDeploying || 'Deploying...') : `${t.riskDeployBtn || 'Deploy to Round'} ${currentMatchday}`}
+                            </button>
+                        )}
                     </div>
                 </div>
 

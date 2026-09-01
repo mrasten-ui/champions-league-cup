@@ -526,7 +526,7 @@ export const computeFinalRank = (
     return { rank: idx === -1 ? -1 : idx + 1, totalPlayers: ranked.length, score };
 };
 
-export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[], riskLevel = 0.5): Match[] => {
+export const generateMagicScores = (matches: Match[], teams: Record<string, Team>, favorites: string[], riskLevel = 0.5, riskScoring = 0.5): Match[] => {
   return matches.map(match => {
     if (match.homeTeamId === 'TBD' || match.awayTeamId === 'TBD') return match;
 
@@ -573,7 +573,10 @@ export const generateMagicScores = (matches: Match[], teams: Record<string, Team
     // --- BASE GOALS + LUCK ---
     // luckRange scales with risk: ±0.3 (banker) → ±1.4 (balanced) → ±2.5 (wildcard).
     const luckRange = 0.3 + riskLevel * 2.2;
-    const baseGoals = 1.0 + Math.random() * 1.5;
+    // riskScoring: 0 = cagey (~0.6 avg goals/team), 1 = goal fest (~2.8 avg goals/team) —
+    // same formula scripts/auto-fill-missed-predictions.js already uses, so a manually
+    // deployed profile and the missed-deadline safety net feel consistent.
+    const baseGoals = 0.6 + riskScoring * 2.2;
     const luckH = (Math.random() * 2 - 1) * luckRange;
     const luckA = (Math.random() * 2 - 1) * luckRange;
 
@@ -599,7 +602,8 @@ export const simulateFullTournament = (
     teams: Record<string, Team>,
     favorites: string[],
     scope: 'GROUPS' | 'KNOCKOUT' | 'ALL' = 'ALL',
-    riskLevel = 0.5
+    riskLevel = 0.5,
+    riskScoring = 0.5
 ): Match[] => {
     let currentMatches = initialMatches.map(m => ({ ...m }));
 
@@ -636,7 +640,7 @@ export const simulateFullTournament = (
 
         if (matchesToPredict.length === 0) break;
 
-        const predictedMatches = generateMagicScores(matchesToPredict, teams, favorites, riskLevel);
+        const predictedMatches = generateMagicScores(matchesToPredict, teams, favorites, riskLevel, riskScoring);
         
         currentMatches = currentMatches.map(m => {
             const pred = predictedMatches.find(pm => pm.id === m.id);
