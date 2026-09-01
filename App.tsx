@@ -1276,7 +1276,7 @@ export const App = () => {
         </Suspense>
       )}
 
-      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} lang={t} />}
+      {showMagicWand && <MagicWand onOpen={() => setIsHelpingHandOpen(true)} onClear={handleClearPredictions} showClear={showClearTrash} showWand={false} lang={t} />}
       {viewingTeamId && teamsData[viewingTeamId] && (
         <Suspense fallback={null}>
           <TeamDetailsModal team={teamsData[viewingTeamId]} isOpen={true} onClose={() => setViewingTeamId(null)} lang={t} currentLang={language} />

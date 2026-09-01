@@ -3,7 +3,7 @@ import React, { useMemo, useRef } from 'react';
 import { Translation, Match, TournamentPhase, Round } from '../types';
 import { outcomePointsForRound, exactPointsForRound } from '../services/engine';
 import {
-  Target, Wand2, Trophy, ShieldAlert, Eye, RefreshCw,
+  Target, Trophy, ShieldAlert, Eye, RefreshCw,
   Unlock, Crown, BookOpen, TrendingUp, Bot,
 } from 'lucide-react';
 
@@ -129,7 +129,6 @@ export const RulesPage: React.FC<RulesPageProps> = ({ lang, matches, currentLoca
 
   const preRules = [
     { icon: <Target size={14} />,    cls: 'bg-blue-500/15 text-blue-400',      title: stripNum(lang.rule1Title), desc: lang.rule1Desc },
-    { icon: <Wand2 size={14} />,     cls: 'bg-purple-500/15 text-purple-400',  title: stripNum(lang.rule2Title), desc: lang.rule2Desc },
     { icon: <Trophy size={14} />,    cls: 'bg-indigo-500/15 text-indigo-400',  title: stripNum(lang.rule3Title), desc: lang.rule3Desc },
     { icon: <Eye size={14} />,       cls: 'bg-cyan-500/15 text-cyan-400',      title: stripNum(lang.rule4Title), desc: lang.rule4Desc },
     { icon: <RefreshCw size={14} />, cls: 'bg-emerald-500/15 text-emerald-400', title: stripNum(lang.rule5Title), desc: lang.rule5Desc },

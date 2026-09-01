@@ -3,7 +3,7 @@ import { Translation, Match, Round } from '../types';
 import { outcomePointsForRound, exactPointsForRound } from '../services/engine';
 import { Logo } from './Logo';
 import {
-  Target, ShieldAlert, Trophy, Wand2, Users, RefreshCw, Bot, Shuffle,
+  Target, ShieldAlert, Trophy, Users, RefreshCw, Bot, Shuffle,
   X, ChevronLeft, ChevronRight, Check, LucideIcon,
 } from 'lucide-react';
 
@@ -150,7 +150,6 @@ export const QuickGuideModal: React.FC<QuickGuideModalProps> = ({ isOpen, onClos
         <StepScene Icon={Bot} color="orange" title={lang.rulesLiveToolsSection || "You're Covered"} watermark={false}>
           <div className="space-y-2.5">
             {[
-              { icon: <Wand2 size={13} />, cls: 'bg-purple-500/15 text-purple-400', title: stripNum(lang.rule2Title), desc: lang.tourToolWand },
               { icon: <Users size={13} />, cls: 'bg-cyan-500/15 text-cyan-400', title: stripNum(lang.rule4Title), desc: lang.tourToolScout },
               { icon: <RefreshCw size={13} />, cls: 'bg-emerald-500/15 text-emerald-400', title: stripNum(lang.rule5Title), desc: lang.tourToolLive },
               { icon: <Bot size={13} />, cls: 'bg-orange-500/15 text-orange-400', title: stripNum(lang.rule6Title), desc: lang.tourToolSafety },

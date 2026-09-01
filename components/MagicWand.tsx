@@ -6,11 +6,12 @@ interface MagicWandProps {
   onOpen: () => void;
   onClear?: () => void;
   showClear?: boolean;
+  showWand?: boolean;
   lang: Translation;
   isTourActive?: boolean; // <--- NEW PROP
 }
 
-export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear, lang, isTourActive = false }) => {
+export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear, showWand = true, lang, isTourActive = false }) => {
   const [isActive, setIsActive] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteBtnRef = useRef<HTMLButtonElement>(null);
@@ -93,10 +94,12 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
         </button>
       )}
 
-      {/* Main Magic Wand */}
+      {/* Main Magic Wand — hidden for now (kept in place so it's a one-line
+          flip to bring back), the clear-all trash button above stands alone. */}
+      {showWand && (
       <button
         type="button"
-        id="btn-magic-wand" 
+        id="btn-magic-wand"
         onClick={(e) => {
             e.stopPropagation();
             onOpen();
@@ -118,6 +121,7 @@ export const MagicWand: React.FC<MagicWandProps> = ({ onOpen, onClear, showClear
 
         <div className={`absolute -inset-2 border border-yellow-500/5 rounded-[1.5rem] transition-all duration-1000 ${isActive || isTourActive ? 'scale-100 opacity-100' : 'scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`}></div>
       </button>
+      )}
 
       <style>{`
         @keyframes spin-slow {
