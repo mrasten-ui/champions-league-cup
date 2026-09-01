@@ -5,6 +5,7 @@ import { AvatarGenerator } from './AvatarGenerator';
 import { Logo } from './Logo';
 import { StarField } from './StarField';
 import { RiskSlider } from './RiskSlider';
+import { RISK_TIERS, getRiskTier } from './RiskGauge';
 import { LANGUAGES, TRANSLATIONS } from '../constants';
 import { LanguageCode } from '../types';
 
@@ -25,7 +26,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>(
     sessionStorage.getItem('pending_league_invite') ? 'signup' : 'login'
   );
-  const [signupStep, setSignupStep] = useState<'details' | 'risk'>('details');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -44,14 +44,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    // Signup is two steps: collect details first, then the risk profile
-    // (used later to auto-fill any prediction the user misses the deadline
-    // for) right before the real account-creation submit.
-    if (mode === 'signup' && signupStep === 'details') {
+    if (mode === 'signup') {
         if (!name.trim()) { setErrorMsg("Please enter your name."); return; }
         if (!email.trim()) { setErrorMsg("Please enter your email."); return; }
-        setSignupStep('risk');
-        return;
     }
 
     setLocalLoading(true);
@@ -160,8 +155,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
              
              {mode !== 'reset' && (
                  <div className="flex bg-black/20 p-1 rounded-xl mb-6 border border-white/5">
-                    <button onClick={() => { setMode('login'); setErrorMsg(null); setSignupStep('details'); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'login' ? 'bg-cyan-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.loginMode}</button>
-                    <button onClick={() => { setMode('signup'); setErrorMsg(null); setSignupStep('details'); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'signup' ? 'bg-cyan-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.signupMode}</button>
+                    <button onClick={() => { setMode('login'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'login' ? 'bg-cyan-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.loginMode}</button>
+                    <button onClick={() => { setMode('signup'); setErrorMsg(null); }} className={`flex-1 py-2.5 text-xs font-black uppercase rounded-lg transition-all ${mode === 'signup' ? 'bg-cyan-600 shadow-lg text-white' : 'text-slate-400 hover:text-white'}`}>{t.signupMode}</button>
                  </div>
              )}
 
@@ -171,65 +166,82 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
                 {mode === 'reset' && <div className="text-center mb-4"><h3 className="text-lg font-bold text-white mb-1">Reset Password</h3><p className="text-xs text-slate-400">Enter your email to receive a reset link.</p></div>}
 
-                {mode === 'signup' && signupStep === 'risk' ? (
-                  <div className="space-y-4 animate-in slide-in-from-right-2">
-                      <div className="text-center">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-1">Set Your Risk Profile</h3>
-                          <p className="text-xs text-slate-400 leading-relaxed">If you ever miss a deadline, we'll auto-fill that pick using this — so one busy week won't tank your season. You can change this later.</p>
-                      </div>
-                      <RiskSlider
-                        idSuffix="result"
-                        value={riskResult}
-                        onChange={setRiskResult}
-                        title={t.riskTitle}
-                        lowLabel={t.riskBanker} lowIcon="🛡️"
-                        midLabel={t.riskBalanced}
-                        highLabel={t.riskWildcard} highIcon="⚡"
-                        lowDesc={t.riskBankerDesc} midDesc={t.riskBalancedDesc} highDesc={t.riskWildcardDesc}
-                      />
-                      <RiskSlider
-                        idSuffix="scoring"
-                        value={riskScoring}
-                        onChange={setRiskScoring}
-                        title={t.scoringTitle}
-                        lowLabel={t.scoringCagey} lowIcon="🧤"
-                        midLabel={t.scoringBalanced}
-                        highLabel={t.scoringGoalFest} highIcon="⚽"
-                        lowDesc={t.scoringCageyDesc} midDesc={t.scoringBalancedDesc} highDesc={t.scoringGoalFestDesc}
-                      />
-                      <button type="button" onClick={() => setSignupStep('details')} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">&larr; Back</button>
-                  </div>
-                ) : (
-                  <>
-                    {mode === 'signup' && (
-                        <div className="animate-in slide-in-from-top-1 relative">
-                            <UserCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.nameLabel} />
-                        </div>
-                    )}
-
-                    <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.emailLabel} />
+                {mode === 'signup' && (
+                    <div className="animate-in slide-in-from-top-1 relative">
+                        <UserCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.nameLabel} />
                     </div>
+                )}
 
-                    {mode !== 'reset' && (
-                        <div className="relative">
-                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 font-semibold text-white placeholder-slate-500 pr-12 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.passwordLabel} />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-                        </div>
-                    )}
+                <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.emailLabel} />
+                </div>
 
-                    {mode === 'login' && <div className="flex justify-end"><button type="button" onClick={() => { setMode('reset'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">Forgot Password?</button></div>}
+                {mode !== 'reset' && (
+                    <div className="relative">
+                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-12 py-3.5 font-semibold text-white placeholder-slate-500 pr-12 focus:outline-none focus:border-cyan-400 transition-colors" placeholder={t.passwordLabel} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    </div>
+                )}
 
-                    {mode === 'signup' && (
-                      <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
-                          <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Your Identity</span><div className="h-px bg-white/10 flex-1"></div></div>
-                          <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={selectedAvatar || undefined} /></div>
+                {mode === 'login' && <div className="flex justify-end"><button type="button" onClick={() => { setMode('reset'); setErrorMsg(null); setSuccessMsg(null); }} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors">Forgot Password?</button></div>}
+
+                {mode === 'signup' && (
+                  <div className="space-y-4 animate-in slide-in-from-top-2 pt-2">
+                      <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Your Identity</span><div className="h-px bg-white/10 flex-1"></div></div>
+                      <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-4"><AvatarGenerator onGenerate={(uri) => setSelectedAvatar(uri)} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={selectedAvatar || undefined} /></div>
+
+                      <div className="flex items-center gap-3 px-1"><div className="h-px bg-white/10 flex-1"></div><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Risk Profile</span><div className="h-px bg-white/10 flex-1"></div></div>
+                      <div className="bg-black/20 p-4 rounded-2xl border border-white/5 space-y-3">
+                          <p className="text-[10px] text-slate-400 leading-relaxed -mt-1">If you ever miss a deadline, we'll auto-fill that pick using this — so one busy week won't tank your season. You can change this later.</p>
+
+                          <div className="grid grid-cols-5 gap-1.5">
+                              {RISK_TIERS.map(tier => {
+                                  const isActive = getRiskTier(riskResult / 100).name === tier.name;
+                                  return (
+                                      <button
+                                          key={tier.name}
+                                          type="button"
+                                          onClick={() => { setRiskResult(tier.presetResult * 100); setRiskScoring(tier.presetScoring * 100); }}
+                                          className={`flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl border transition-all ${isActive ? 'border-cyan-400/50 bg-cyan-500/10 scale-105' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                                          title={tier.name}
+                                      >
+                                          <span className="text-base leading-none">{tier.icon}</span>
+                                          <span className="text-[7px] font-black uppercase tracking-tight text-slate-300 leading-tight text-center">{tier.name.replace('The ', '')}</span>
+                                      </button>
+                                  );
+                              })}
+                          </div>
+                          <p className="text-[9px] text-slate-400 flex items-center gap-1">
+                              <span>{getRiskTier(riskResult / 100).icon}</span>
+                              <span className="font-black text-slate-300">{getRiskTier(riskResult / 100).name}</span>
+                              <span>— {getRiskTier(riskResult / 100).blurb}</span>
+                          </p>
+
+                          <RiskSlider
+                            idSuffix="result"
+                            value={riskResult}
+                            onChange={setRiskResult}
+                            title={t.riskTitle}
+                            lowLabel={t.riskBanker} lowIcon="🛡️"
+                            midLabel={t.riskBalanced}
+                            highLabel={t.riskWildcard} highIcon="⚡"
+                            lowDesc={t.riskBankerDesc} midDesc={t.riskBalancedDesc} highDesc={t.riskWildcardDesc}
+                          />
+                          <RiskSlider
+                            idSuffix="scoring"
+                            value={riskScoring}
+                            onChange={setRiskScoring}
+                            title={t.scoringTitle}
+                            lowLabel={t.scoringCagey} lowIcon="🧤"
+                            midLabel={t.scoringBalanced}
+                            highLabel={t.scoringGoalFest} highIcon="⚽"
+                            lowDesc={t.scoringCageyDesc} midDesc={t.scoringBalancedDesc} highDesc={t.scoringGoalFestDesc}
+                          />
                       </div>
-                    )}
-                  </>
+                  </div>
                 )}
 
                 <button type="submit" disabled={isProcessing} className="w-full py-4 mt-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-cyan-900/40 transition-all flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -237,9 +249,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     ? <><RefreshCw size={18} className="animate-spin" /> Connecting...</>
                     : mode === 'reset'
                       ? <>Send Reset Link</>
-                      : mode === 'signup' && signupStep === 'details'
-                        ? <>Continue <ChevronRight size={18} /></>
-                        : <>{t.enterBtn} <ChevronRight size={18} /></>
+                      : <>{t.enterBtn} <ChevronRight size={18} /></>
                   }
                 </button>
 
