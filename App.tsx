@@ -72,6 +72,9 @@ export const App = () => {
   const [isHelpingHandOpen, setIsHelpingHandOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  // True when the editor was opened from the risk gauge — hides the name editor
+  // and avatar generator so the modal shows only the risk profile section.
+  const [riskOnlyEditor, setRiskOnlyEditor] = useState(false);
   const [showQuickGuide, setShowQuickGuide] = useState(false);
   const [pendingName, setPendingName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
@@ -262,11 +265,13 @@ export const App = () => {
     addToast('success', t.riskDeployed || 'Deployed', `${rows.length} ${t.riskDeployedMsg || 'picks filled in for this round.'}`);
   };
 
+  const closeAvatarEditor = () => { setShowAvatarEditor(false); setRiskOnlyEditor(false); };
+
   const saveNewName = async () => {
     if (!user || !supabase) return;
     const trimmed = pendingName.trim();
     if (!trimmed) { setNameError('Name cannot be empty.'); return; }
-    if (trimmed === user.name) { setShowAvatarEditor(false); return; }
+    if (trimmed === user.name) { closeAvatarEditor(); return; }
 
     const lc = trimmed.toLowerCase();
     const taken = Object.values(usersDb).some(p => p.email !== user.email && p.name.toLowerCase() === lc);
@@ -280,7 +285,7 @@ export const App = () => {
     setUser({ ...user, name: trimmed });
     setUsersDb(prev => ({ ...prev, [user.email]: { ...prev[user.email], name: trimmed } }));
     setNameError(null);
-    setShowAvatarEditor(false);
+    closeAvatarEditor();
     addToast('success', t.profileUpdated, t.profileMsg);
   };
 
@@ -302,7 +307,7 @@ export const App = () => {
     setUser({ ...user, avatar: finalUrl });
     const { error: dbError } = await supabase.from('profiles').update({ avatar: finalUrl } as any).eq('email', user.email);
     if (dbError) { console.error('Avatar DB save failed:', dbError); addToast('error', t.saveFailed, dbError.message); return; }
-    setShowAvatarEditor(false);
+    closeAvatarEditor();
     addToast('success', t.profileUpdated, t.profileMsg);
   };
 
@@ -854,12 +859,12 @@ export const App = () => {
                         <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
                     </div>
                     <button
-                        onClick={() => setShowAvatarEditor(true)}
+                        onClick={() => { setShowAvatarEditor(true); setRiskOnlyEditor(true); }}
                         className="flex flex-col items-center gap-0 shrink-0 transition-transform hover:scale-105 active:scale-95"
                         title={currentRoundActualRisk !== null ? (t.riskLevelCalculated || "Calculated from your picks this round") : (t.riskLevelStanding || 'Your standing risk profile — tap to edit')}
                     >
                         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.riskLevelLabel || 'Risk Level'}</span>
-                        <RiskGauge value={displayRiskValue ?? 0.5} width={84} />
+                        <RiskGauge value={displayRiskValue ?? 0.5} width={68} />
                         <span className="text-[11px] font-black text-white uppercase tracking-tight -mt-1 flex items-center gap-1">
                             <span>{getRiskTier(displayRiskValue ?? 0.5).icon}</span>
                             {getRiskTier(displayRiskValue ?? 0.5).name}
@@ -997,11 +1002,12 @@ export const App = () => {
 
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
+            <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={closeAvatarEditor}></div>
             <div className="relative w-full max-w-md max-h-[90vh] bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl animate-in zoom-in-95 flex flex-col overflow-hidden">
-                <div className="flex justify-between items-center px-6 pt-6 pb-4 shrink-0"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
+                <div className="flex justify-between items-center px-6 pt-6 pb-4 shrink-0"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{riskOnlyEditor ? (t.riskProfileSection || 'Risk Profile') : t.changeIdentity}</h3><button onClick={closeAvatarEditor} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
                 <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {/* Name editor */}
+                {!riskOnlyEditor && (
                 <div className="mb-5">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.nameLabel}</label>
                     <div className="flex gap-2">
@@ -1023,16 +1029,17 @@ export const App = () => {
                     </div>
                     {nameError && <p className="text-[10px] text-red-400 mt-1.5 font-semibold">{nameError}</p>}
                 </div>
+                )}
 
                 {/* Risk Profile — same sliders as signup, editable any time. This is your
                     STANDING profile: it's what the missed-deadline safety net uses to
                     auto-fill any pick you don't get in before a round locks, and what the
                     Magic Wand defaults to. The headline gauge may show a different, purely
                     visual "this round's actual picks" read — this section is the real one. */}
-                <div className="border-t border-white/10 pt-5 mb-5">
+                <div className={riskOnlyEditor ? 'mb-5' : 'border-t border-white/10 pt-5 mb-5'}>
                     <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.riskProfileSection}</p>
-                        <span className={`text-[9px] font-bold uppercase tracking-wide transition-opacity ${riskSaveState === 'idle' ? 'opacity-0' : 'opacity-100'} ${riskSaveState === 'saved' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                        {!riskOnlyEditor && <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.riskProfileSection}</p>}
+                        <span className={`text-[9px] font-bold uppercase tracking-wide transition-opacity ml-auto ${riskSaveState === 'idle' ? 'opacity-0' : 'opacity-100'} ${riskSaveState === 'saved' ? 'text-emerald-400' : 'text-slate-400'}`}>
                             {riskSaveState === 'syncing' ? t.saving : riskSaveState === 'saved' ? t.saved : ''}
                         </span>
                     </div>
@@ -1117,13 +1124,15 @@ export const App = () => {
                     </div>
                 </div>
 
+                {!riskOnlyEditor && (
                 <div className="border-t border-white/10 pt-5">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t.selectAvatar}</p>
                     <Suspense fallback={null}>
                       <AvatarGenerator onGenerate={updateAvatar} lang={t} menAvatars={menPresets} womenAvatars={womenPresets} currentAvatar={user.avatar} disableAutoAssign={true} />
                     </Suspense>
                 </div>
-                <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
+                )}
+                <button onClick={closeAvatarEditor} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
                 </div>
             </div>
         </div>
