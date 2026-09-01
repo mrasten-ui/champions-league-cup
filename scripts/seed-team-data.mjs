@@ -260,6 +260,7 @@ async function main() {
     if (fact) {
       row.iso_code = COUNTRY_ISO2[fact.country] ?? existing.iso_code ?? '';
       row.region = fact.country;
+      row.venue = fact.venueName || existing.venue || '';
       const venueBit = fact.venueName ? ` · ${fact.venueName}${fact.venueCapacity ? ` (${fact.venueCapacity.toLocaleString()})` : ''}` : '';
       const foundedBit = fact.founded ? `Founded ${fact.founded}` : '';
       row.overview = [fact.country, foundedBit].filter(Boolean).join(' · ') + venueBit;

@@ -122,6 +122,7 @@ export interface Team {
   jerseyBg?: string;
   jerseyText?: string;
   region?: string;
+  venue?: string;
 }
 
 export interface Prediction {

@@ -944,8 +944,9 @@ export const App = () => {
       {showAvatarEditor && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" onClick={() => setShowAvatarEditor(false)}></div>
-            <div className="relative w-full max-w-md bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95">
-                <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
+            <div className="relative w-full max-w-md max-h-[90vh] bg-blue-950/90 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl animate-in zoom-in-95 flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center px-6 pt-6 pb-4 shrink-0"><h3 className="text-xl font-black text-white uppercase tracking-tighter italic">{t.changeIdentity}</h3><button onClick={() => setShowAvatarEditor(false)} className="text-slate-400 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X size={20} /></button></div>
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {/* Name editor */}
                 <div className="mb-5">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.nameLabel}</label>
@@ -1009,6 +1010,7 @@ export const App = () => {
                     </Suspense>
                 </div>
                 <button onClick={() => setShowAvatarEditor(false)} className="w-full mt-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors border-t border-white/5">{t.cancelBtn}</button>
+                </div>
             </div>
         </div>
       )}

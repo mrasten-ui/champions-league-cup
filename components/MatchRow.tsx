@@ -113,8 +113,12 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   const homeInitials = getInitials(homeName);
   const awayInitials = getInitials(awayName);
 
+  // timeZoneName: 'short' renders in the viewer's own local timezone (Date's
+  // default), same as the plain time already did — just makes that implicit
+  // timezone visible instead of leaving kickoff time ambiguous across
+  // timezones for a competition with 36 teams from a dozen countries.
   const kickoffTime = match.date && match.date !== 'TBD' && !isNaN(new Date(match.date).getTime())
-    ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    ? new Date(match.date).toLocaleTimeString(locale || 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })
     : '--:--';
 
   const saveState: 'idle' | 'syncing' | 'saved' = isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle';
@@ -159,6 +163,11 @@ export const MatchRow: React.FC<MatchRowProps> = ({
               <span className={`text-[10px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
             )}
           </div>
+          {homeTeam?.venue && (
+            <div className="flex-1 min-w-0 flex justify-center px-2">
+              <span className="text-[9px] font-medium text-slate-600 truncate" title={homeTeam.venue}>{homeTeam.venue}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1">
             {canSpy && !pendingSpy && (
               <button onClick={handleSpyClick} className="p-1 rounded-full text-amber-400 hover:bg-amber-500/10 transition-colors" title={lang.sendScouts || 'Send out the scouts'}>

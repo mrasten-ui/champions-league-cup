@@ -333,6 +333,7 @@ export const useAppData = () => {
                               form: [],
                               eloRating: t.elo_rating || undefined,
                               region: t.region || undefined,
+                              venue: t.venue || undefined,
                           };
                       }
                   });
