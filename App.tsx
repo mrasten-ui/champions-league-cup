@@ -31,6 +31,7 @@ import { RoundResults } from './components/RoundResults';
 import { useAppData, bustPredictionsCache } from './hooks/useAppData';
 import { LoginScreen } from './components/LoginScreen';
 import { AppHeader, riskZoneIcon, riskZoneLabel, riskZoneBadgeCls } from './components/AppHeader';
+import { RiskGauge, getRiskTier } from './components/RiskGauge';
 import { generateDailyBrief } from './components/analysis/AIAnalystWidget';
 import { GoalBanner, GoalNotification, PsoNotification } from './components/GoalBanner';
 import { LiveTicker } from './components/LiveTicker';
@@ -77,6 +78,11 @@ export const App = () => {
   const [pendingRiskResult, setPendingRiskResult] = useState(50);
   const [pendingRiskScoring, setPendingRiskScoring] = useState(50);
   const [riskSaveState, setRiskSaveState] = useState<'idle' | 'syncing' | 'saved'>('idle');
+  // True only once the user actually drags a slider this session — the sliders
+  // open pre-set to whatever the headline gauge is currently showing (which
+  // may be the live-calculated value, not the stored one), and that seeding
+  // alone must never trigger an autosave on its own.
+  const [riskSliderTouched, setRiskSliderTouched] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminBanner, setShowAdminBanner] = useState(false);
@@ -195,16 +201,24 @@ export const App = () => {
     if (showAvatarEditor && user) {
       setPendingName(user.name);
       setNameError(null);
-      setPendingRiskResult((user.riskResult ?? 0.5) * 100);
+      // Seed from whatever the headline gauge is showing right now (the live
+      // calculated read when the round's fully picked, else the stored
+      // profile) — see riskSliderTouched above for why this can't just
+      // autosave on its own.
+      setPendingRiskResult((displayRiskValue ?? 0.5) * 100);
       setPendingRiskScoring((user.riskScoring ?? 0.5) * 100);
       setRiskSaveState('idle');
+      setRiskSliderTouched(false);
     }
-  }, [showAvatarEditor]);
+  }, [showAvatarEditor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced autosave for the risk profile sliders — mirrors MatchRow's
   // drag-then-settle pattern so dragging doesn't hammer the DB with writes.
+  // Gated on riskSliderTouched so opening the editor (which seeds the slider
+  // from the live-calculated value, not the stored one) never saves anything
+  // by itself — only an actual drag does.
   useEffect(() => {
-    if (!showAvatarEditor || !user || !supabase) return;
+    if (!showAvatarEditor || !user || !supabase || !riskSliderTouched) return;
     const unchanged = Math.round((user.riskResult ?? 0.5) * 100) === Math.round(pendingRiskResult)
       && Math.round((user.riskScoring ?? 0.5) * 100) === Math.round(pendingRiskScoring);
     if (unchanged) return;
@@ -813,17 +827,18 @@ export const App = () => {
                         <span className="w-1.5 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-fuchsia-500 shadow-[0_0_10px_rgba(34,211,238,0.5)] shrink-0"></span>
                         <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tight text-white leading-none">{t.roundLabel || 'Round'} {currentMatchday}</h1>
                     </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button
+                        onClick={() => setShowAvatarEditor(true)}
+                        className="flex flex-col items-center gap-0 shrink-0 transition-transform hover:scale-105 active:scale-95"
+                        title={currentRoundActualRisk !== null ? (t.riskLevelCalculated || "Calculated from your picks this round") : (t.riskLevelStanding || 'Your standing risk profile — tap to edit')}
+                    >
                         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{t.riskLevelLabel || 'Risk Level'}</span>
-                        <button
-                            onClick={() => setShowAvatarEditor(true)}
-                            className={`flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full border text-[11px] font-black uppercase tracking-wide transition-transform hover:scale-105 active:scale-95 ${riskZoneBadgeCls(displayRiskValue)}`}
-                            title={currentRoundActualRisk !== null ? (t.riskLevelCalculated || "Calculated from your picks this round") : (t.riskLevelStanding || 'Your standing risk profile — tap to edit')}
-                        >
-                            <span className="text-xs">{riskZoneIcon(displayRiskValue)}</span>
-                            {riskZoneLabel(displayRiskValue, t.riskBanker, t.riskBalanced, t.riskWildcard)}
-                        </button>
-                    </div>
+                        <RiskGauge value={displayRiskValue ?? 0.5} width={84} />
+                        <span className="text-[11px] font-black text-white uppercase tracking-tight -mt-1 flex items-center gap-1">
+                            <span>{getRiskTier(displayRiskValue ?? 0.5).icon}</span>
+                            {getRiskTier(displayRiskValue ?? 0.5).name}
+                        </span>
+                    </button>
                 </div>
                 {currentMatchdayMatches.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1.5 mb-3">
@@ -986,17 +1001,20 @@ export const App = () => {
                 {/* Risk Profile — same sliders as signup, editable any time. Drives the
                     Magic Wand and the missed-deadline auto-fill for the rest of the season. */}
                 <div className="border-t border-white/10 pt-5 mb-5">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.riskProfileSection}</p>
                         <span className={`text-[9px] font-bold uppercase tracking-wide transition-opacity ${riskSaveState === 'idle' ? 'opacity-0' : 'opacity-100'} ${riskSaveState === 'saved' ? 'text-emerald-400' : 'text-slate-400'}`}>
                             {riskSaveState === 'syncing' ? t.saving : riskSaveState === 'saved' ? t.saved : ''}
                         </span>
                     </div>
+                    {currentRoundActualRisk !== null && (
+                        <p className="text-[9px] text-slate-500 italic mb-2">{t.riskLevelSliderHint || "Starting from this round's picks — drag to set your standing profile."}</p>
+                    )}
                     <div className="space-y-3">
                         <RiskSlider
                             idSuffix="profile-result"
                             value={pendingRiskResult}
-                            onChange={setPendingRiskResult}
+                            onChange={(v) => { setPendingRiskResult(v); setRiskSliderTouched(true); }}
                             title={t.riskTitle}
                             lowLabel={t.riskBanker} lowIcon="🛡️"
                             midLabel={t.riskBalanced}
@@ -1006,7 +1024,7 @@ export const App = () => {
                         <RiskSlider
                             idSuffix="profile-scoring"
                             value={pendingRiskScoring}
-                            onChange={setPendingRiskScoring}
+                            onChange={(v) => { setPendingRiskScoring(v); setRiskSliderTouched(true); }}
                             title={t.scoringTitle}
                             lowLabel={t.scoringCagey} lowIcon="🧤"
                             midLabel={t.scoringBalanced}

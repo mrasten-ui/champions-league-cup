@@ -6,6 +6,14 @@
  * derived purely from UEFA draw-pot position, e.g. Inter landed "rank 1" just
  * because of pot order, not actual strength).
  *
+ * country/venue specifically are also hardcoded as TEAM_VENUE/TEAM_COUNTRY in
+ * constants.ts, used as a client-side fallback (see useAppData.ts) whenever
+ * teams.region/venue is empty — that data barely ever changes, so the app
+ * isn't blocked on this script's rate-limited API calls to show it. This
+ * script's job for those two fields is now periodic verification (catch a
+ * stadium rename, a promoted/relegated confederation, etc.), not the primary
+ * source — run it whenever API-Football quota allows, no urgency.
+ *
  * Three real, free, no-fabrication data sources:
  *   1. ClubElo (http://api.clubelo.com) — live, continuously-updated club Elo
  *      ratings. No key needed. Used to recompute rank/rating/att/mid/def on a

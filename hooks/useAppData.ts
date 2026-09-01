@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { MOCK_PREDICTIONS, TEAMS } from '../constants';
+import { MOCK_PREDICTIONS, TEAMS, TEAM_VENUE } from '../constants';
 import { Match, Team, Prediction, UserProfile, MatchEvent, MatchLineup, MatchStats, PlayerMatchStat } from '../types';
 import { fetchAllTeamRanks } from '../services/engine';
 import { fetchAllTeamTactics } from '../services/analyst';
@@ -333,7 +333,10 @@ export const useAppData = () => {
                               form: [],
                               eloRating: t.elo_rating || undefined,
                               region: t.region || undefined,
-                              venue: t.venue || undefined,
+                              // Real DB value (from the API-Football pass, when quota allows) always
+                              // wins; TEAM_VENUE is just a static fallback so the UI isn't blank
+                              // while that pass is quota-limited.
+                              venue: t.venue || TEAM_VENUE[safeId] || undefined,
                           };
                       }
                   });

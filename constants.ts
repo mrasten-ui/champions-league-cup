@@ -101,6 +101,7 @@ const EN_TRANSLATION: Translation = {
     showingLast5: "Showing last 5 of {0} meetings", noHistory: "No recorded history found.", loadingHistory: "Loading history...",
     days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Until predictions lock",
     riskLevelLabel: "Risk Level", riskLevelCalculated: "Calculated from your picks this round", riskLevelStanding: "Your standing risk profile — tap to edit",
+    riskLevelSliderHint: "Starting from this round's picks — drag to set your standing profile.",
 
     // --- NEW KEYS ---
     nameTaken: "Name already taken — try something else.",
@@ -266,6 +267,7 @@ const SCO_TRANSLATION: Translation = {
     firstMeeting: "First Ever Square Go!", firstMeetingDesc: "Never focht afore. This is history!", showingLast5: "Last 5 of {0} scraps",
     noHistory: "No history found.", loadingHistory: "Diggin' it up...", days: "Days", hours: "Hrs", minutes: "Min", seconds: "Sec", myPickShort: "Pick", watchOn: "Watch on", deadlineLabel: "Time tae lock in",
     riskLevelLabel: "Risk Level", riskLevelCalculated: "Worked oot fae yer picks this roond", riskLevelStanding: "Yer standin' risk profile — gie it a tap tae change",
+    riskLevelSliderHint: "Startin' fae this roond's picks — drag it tae set yer standin' profile.",
 
     // --- NEW KEYS ---
     nameTaken: "That name's taken — try somethin' else, pal.",
@@ -407,6 +409,55 @@ export const TEAM_COUNTRY: Record<string, { country: string; iso2: string }> = {
   SLA: { country: 'Czech Republic', iso2: 'cz' },
   SHK: { country: 'Ukraine', iso2: 'ua' },
   SAB: { country: 'Azerbaijan', iso2: 'az' },
+};
+
+// Home stadium names — like TEAM_COUNTRY above, static enough to hardcode
+// rather than depend on a rate-limited API for every page load. Used as a
+// fallback in useAppData.ts behind the real `teams.venue` DB column (which
+// seed-team-data.mjs populates from API-Football when quota allows) — the
+// API pass takes priority whenever it's actually run, this just means the
+// UI isn't blank in the meantime.
+// BAR and SHK are genuinely unstable right now rather than just unresearched:
+// Barcelona have been shuttling between temporary grounds during Camp Nou's
+// renovation, and Shakhtar play home matches in exile due to the war — both
+// flagged here as last-known-good, not confirmed current.
+export const TEAM_VENUE: Record<string, string> = {
+  ARS: 'Emirates Stadium',
+  AVL: 'Villa Park',
+  LIV: 'Anfield',
+  MCI: 'Etihad Stadium',
+  MUN: 'Old Trafford',
+  BAY: 'Allianz Arena',
+  BVB: 'Signal Iduna Park',
+  RBL: 'Red Bull Arena',
+  STU: 'MHPArena',
+  RMA: 'Santiago Bernabéu',
+  BAR: 'Camp Nou', // last-known-good — Camp Nou renovation return date has shifted repeatedly, verify before trusting
+  ATM: 'Estadio Metropolitano',
+  BET: 'Estadio Benito Villamarín',
+  VIL: 'Estadio de la Cerámica',
+  PSG: 'Parc des Princes',
+  LEN: 'Stade Bollaert-Delelis',
+  LIL: 'Stade Pierre-Mauroy',
+  INT: 'San Siro',
+  NAP: 'Stadio Diego Armando Maradona',
+  ROM: 'Stadio Olimpico',
+  COM: 'Stadio Giuseppe Sinigaglia',
+  POR: 'Estádio do Dragão',
+  SPO: 'Estádio José Alvalade',
+  PSV: 'Philips Stadion',
+  FEY: 'De Kuip',
+  BRU: 'Jan Breydelstadion',
+  GAL: 'Rams Park',
+  FEN: 'Şükrü Saracoğlu Stadium',
+  BOD: 'Aspmyra Stadion',
+  VFK: 'SR-Bank Arena',
+  AEK: 'OPAP Arena',
+  LASK: 'Raiffeisen Arena',
+  SLB: 'Tehelné pole',
+  SLA: 'Sinobo Stadium',
+  SHK: 'Arena Lviv', // last-known-good — home venue while playing in exile varies, verify before trusting
+  SAB: 'Dalga Arena',
 };
 
 export const MOCK_PREDICTIONS: Prediction[] = [];
