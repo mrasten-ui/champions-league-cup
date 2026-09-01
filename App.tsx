@@ -1124,6 +1124,11 @@ export const App = () => {
                             );
                         })}
                     </div>
+                    <p className="text-[9px] text-slate-400 mb-2 flex items-center gap-1">
+                        <span>{getRiskTier(pendingRiskResult / 100).icon}</span>
+                        <span className="font-black text-slate-300">{getRiskTier(pendingRiskResult / 100).name}</span>
+                        <span>— {getRiskTier(pendingRiskResult / 100).blurb}</span>
+                    </p>
                     {currentRoundActualRisk !== null && (
                         <p className="text-[9px] text-slate-500 italic mb-2">{t.riskLevelSliderHint || "Starting from this round's picks — drag or pick a manager to set your standing profile."}</p>
                     )}

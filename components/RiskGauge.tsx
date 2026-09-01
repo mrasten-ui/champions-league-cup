@@ -17,19 +17,23 @@ export interface RiskTier {
   // with riskResult (e.g. Guardiola: controlled chaos, but far from cagey).
   presetResult: number;
   presetScoring: number;
+  // One-line explainer shown under the manager grid for whichever tier is
+  // currently selected — the icon+name alone assume football trivia the
+  // player may not have.
+  blurb: string;
 }
 
 export const RISK_TIERS: RiskTier[] = [
-  { max: 0.10, name: 'The Mourinho',     icon: '🚌', color: '#3b82f6', presetResult: 0.05, presetScoring: 0.10 },
-  { max: 0.20, name: 'The Simeone',      icon: '🛡️', color: '#38a5eb', presetResult: 0.15, presetScoring: 0.15 },
-  { max: 0.30, name: 'The Arteta',       icon: '📐', color: '#22c3d6', presetResult: 0.25, presetScoring: 0.30 },
-  { max: 0.40, name: 'The Guardiola',    icon: '📋', color: '#22c55e', presetResult: 0.35, presetScoring: 0.55 },
-  { max: 0.50, name: 'The Ancelotti',    icon: '⚖️', color: '#84cc16', presetResult: 0.45, presetScoring: 0.50 },
-  { max: 0.60, name: 'The Klopp',        icon: '🌊', color: '#eab308', presetResult: 0.55, presetScoring: 0.70 },
-  { max: 0.70, name: 'The Xabi Alonso',  icon: '🚀', color: '#f59e0b', presetResult: 0.65, presetScoring: 0.60 },
-  { max: 0.80, name: 'The Postecoglou',  icon: '🎢', color: '#f97316', presetResult: 0.75, presetScoring: 0.85 },
-  { max: 0.90, name: 'The Bielsa',       icon: '🌪️', color: '#ef4444', presetResult: 0.85, presetScoring: 0.90 },
-  { max: 1.001, name: 'The Wildcard',    icon: '🎰', color: '#dc2626', presetResult: 0.95, presetScoring: 0.75 },
+  { max: 0.10, name: 'The Mourinho',     icon: '🚌', color: '#3b82f6', presetResult: 0.05, presetScoring: 0.10, blurb: 'Backs favourites, keeps it tight.' },
+  { max: 0.20, name: 'The Simeone',      icon: '🛡️', color: '#38a5eb', presetResult: 0.15, presetScoring: 0.15, blurb: 'Sticks with form, low-scoring grinds.' },
+  { max: 0.30, name: 'The Arteta',       icon: '📐', color: '#22c3d6', presetResult: 0.25, presetScoring: 0.30, blurb: 'Favours the better side, controlled games.' },
+  { max: 0.40, name: 'The Guardiola',    icon: '📋', color: '#22c55e', presetResult: 0.35, presetScoring: 0.55, blurb: 'Backs the better side, but expects goals.' },
+  { max: 0.50, name: 'The Ancelotti',    icon: '⚖️', color: '#84cc16', presetResult: 0.45, presetScoring: 0.50, blurb: 'No strong lean either way — steady as it goes.' },
+  { max: 0.60, name: 'The Klopp',        icon: '🌊', color: '#eab308', presetResult: 0.55, presetScoring: 0.70, blurb: 'Open to upsets, expects goals at both ends.' },
+  { max: 0.70, name: 'The Xabi Alonso',  icon: '🚀', color: '#f59e0b', presetResult: 0.65, presetScoring: 0.60, blurb: 'Fancies an upset, decent goal tallies.' },
+  { max: 0.80, name: 'The Postecoglou',  icon: '🎢', color: '#f97316', presetResult: 0.75, presetScoring: 0.85, blurb: 'Loves an upset, goalfests all round.' },
+  { max: 0.90, name: 'The Bielsa',       icon: '🌪️', color: '#ef4444', presetResult: 0.85, presetScoring: 0.90, blurb: 'Backs chaos and goals everywhere.' },
+  { max: 1.001, name: 'The Wildcard',    icon: '🎰', color: '#dc2626', presetResult: 0.95, presetScoring: 0.75, blurb: 'Total unpredictability. Anything goes.' },
 ];
 
 export const getRiskTier = (value: number): RiskTier => {
