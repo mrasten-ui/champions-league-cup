@@ -152,6 +152,22 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
   // Profile spotlight modal (avatar click in expanded row)
   const [lbProfileModal, setLbProfileModal] = useState<(UserProfile & { totalPoints: number; liveRank: number; rankDiff: number }) | null>(null);
 
+  // Drives whether the Form column renders at all. Previously this was a pure
+  // CSS `hidden sm:table-cell` on an always-present <td> — under table-layout:
+  // fixed, that made the browser exclude the column when computing widths in
+  // the resting state but include it (as dead space) the instant an expanded
+  // row's colSpan cell appeared, visibly snapping every column in the table
+  // narrower. Tracking the breakpoint in JS and only rendering the column
+  // (or not) keeps the column count consistent in every state, so there's
+  // nothing for the browser to recompute.
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(min-width: 640px)').matches : true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // Filter users based on league selection
   const filteredUsers = useMemo(() => {
       if (!activeLeague || currentUserLeagues.length === 0) return users;
@@ -420,8 +436,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">#</th>
-                <th className={`${allGroupsDone ? 'w-[70%]' : 'w-[50%]'} px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400`}>{lang.manager}</th>
-                {!allGroupsDone && <th className="w-[20%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden sm:table-cell text-center">Form</th>}
+                <th className={`${allGroupsDone ? 'w-[70%]' : (isDesktop ? 'w-[50%]' : 'w-[70%]')} px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400`}>{lang.manager}</th>
+                {!allGroupsDone && isDesktop && <th className="w-[20%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Form</th>}
                 <th className="w-[15%] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Pts</th>
               </tr>
             </thead>
@@ -496,8 +512,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                             </div>
                         </td>
 
-                        {!allGroupsDone && (
-                        <td className="w-[20%] px-4 py-4 text-center align-middle hidden sm:table-cell">
+                        {!allGroupsDone && isDesktop && (
+                        <td className="w-[20%] px-4 py-4 text-center align-middle">
                             <div className="flex items-center justify-center gap-1">
                                 {user.form.map((p, i) => (
                                     <div key={i} className={`w-1.5 h-6 rounded-full ${p === -1 ? 'bg-slate-300' : p >= 5 ? 'bg-green-400' : p > 0 ? 'bg-blue-400' : 'bg-red-300'}`} title={`Match ${i+1}: ${p === -1 ? 'No prediction' : p + ' pts'}`}></div>
@@ -514,7 +530,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                       {/* EXPANDED DETAILS */}
                       {isExpanded && (
                           <tr id={isMe ? 'tour-my-row-expanded' : undefined} className="bg-white/5">
-                              <td colSpan={4} className="px-4 pb-6 pt-2">
+                              <td colSpan={allGroupsDone ? 3 : (isDesktop ? 4 : 3)} className="px-4 pb-6 pt-2">
                               <div className="animate-in fade-in slide-in-from-top-1 duration-200">
 
                                   {/* Avatar + most recently locked round's picks — hidden once all League Phase games are done */}
