@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { UserProfile, Match, Prediction, Translation, Team, LanguageCode } from '../types';
 import { AIAnalystWidget } from './analysis/AIAnalystWidget';
 import { calculatePoints, calculatePenaltyBonus, resolvePenaltySide, getManagerStats } from '../services/engine';
-import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronRight, PieChart, Users, Medal, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Activity, Trophy, Flame, Target, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronRight, PieChart, Users, Medal, X, Calendar, Crown, MapPin, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { AvatarDisplay } from './AvatarDisplay';
 import { LEAGUES } from '../constants';
 
@@ -107,14 +107,27 @@ const DetailMatchRow: React.FC<{ match: Match, prediction: Prediction, points: n
 };
 
 
-interface PredictionPillProps { match: Match; pred: Prediction; pts: number; teams: Record<string, Team> }
+const FINISHED_STATUSES = ['FT', 'FINISHED', 'AET', 'PEN'];
 
-const MatchPredictionPill: React.FC<PredictionPillProps> = ({ match, pred, pts, teams }) => {
+interface PredictionPillProps { match: Match; pred: Prediction; pts: number | null; teams: Record<string, Team>; finished?: boolean }
+
+const MatchPredictionPill: React.FC<PredictionPillProps> = ({ match, pred, pts, teams, finished = true }) => {
     const home = teams[match.homeTeamId];
     const away = teams[match.awayTeamId];
     const renderFlag = (f?: string) => f?.startsWith('http')
         ? <img src={f} alt="" className="w-3.5 h-2.5 object-cover rounded-[2px] shrink-0" />
         : <span className="shrink-0 text-[10px]">{f || '🏳'}</span>;
+
+    if (!finished) {
+        return (
+            <div className="inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                {renderFlag(home?.flag)}
+                <span className="font-black text-slate-200">{pred.home}-{pred.away}</span>
+                {renderFlag(away?.flag)}
+                <Lock size={9} className="ml-0.5 text-slate-500" />
+            </div>
+        );
+    }
 
     return (
         <div className="inline-flex items-center gap-1 bg-white/10 rounded-full pl-2 pr-1.5 py-1 text-[10px] font-bold text-slate-300 whitespace-nowrap">
@@ -122,8 +135,8 @@ const MatchPredictionPill: React.FC<PredictionPillProps> = ({ match, pred, pts, 
             <span className="font-black text-white">{match.homeScore}-{match.awayScore}</span>
             <span className="text-slate-400 font-medium">({pred.home}-{pred.away})</span>
             {renderFlag(away?.flag)}
-            <span className={`ml-0.5 w-4 h-4 rounded-full flex items-center justify-center font-black text-[8px] ${pts > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'}`}>
-                {pts}
+            <span className={`ml-0.5 w-4 h-4 rounded-full flex items-center justify-center font-black text-[8px] ${(pts ?? 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'}`}>
+                {pts ?? 0}
             </span>
         </div>
     );
@@ -232,32 +245,39 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
       setExpandedUser(expandedUser === email ? null : email);
   };
 
-  // Last 3 finished predictions for the currently expanded user. (Upcoming
-  // predictions used to show here too, but that leaked a rival's exact pick
-  // for free on matches that hadn't even locked yet — removed; use Scout for
-  // that, or the round history browser once a round actually locks.)
+  // Most recently locked round for the currently expanded user — replaces the
+  // old "Last 3" widget, which only ever looked at finished World Cup group
+  // matches (matches.round always set now = knockout, unset = League Phase)
+  // and so could never show anything for the real Swiss-format season.
+  // Upcoming/unlocked predictions still never show here — that would leak a
+  // rival's exact pick for free before the deadline; use Scout for that.
   const expandedUserDetail = useMemo(() => {
       if (!expandedUser) return null;
       const userPreds = allPredictions.filter(p => p.userId === expandedUser);
-      const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
+      const lockedWithPred = matches.filter(m => m.isLocked && userPreds.some(p => p.matchId === m.id));
+      if (lockedWithPred.length === 0) return { label: null, roundMatches: [] };
 
-      const last3 = matches
-          .filter(m => !m.round && finishedStatuses.includes(m.status) && userPreds.some(p => p.matchId === m.id))
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .slice(0, 3)
+      const keyOf = (m: Match) => m.round ? `R:${m.round}` : `M:${m.matchday}`;
+      const latest = lockedWithPred.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
+      const key = keyOf(latest);
+
+      const roundMatches = lockedWithPred
+          .filter(m => keyOf(m) === key)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .map(m => {
               const pred = userPreds.find(p => p.matchId === m.id)!;
-              const pts = calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, m.round);
-              return { match: m, pred, pts };
+              const finished = m.homeScore !== null && m.awayScore !== null && FINISHED_STATUSES.includes(m.status);
+              const pts = finished ? calculatePoints(pred.home, pred.away, m.homeScore!, m.awayScore!, m.round) : null;
+              return { match: m, pred, pts, finished };
           });
 
-      return { last3 };
-  }, [expandedUser, allPredictions, matches]);
+      const label = latest.round ?? (latest.matchday ? `${lang.roundLabel || 'Round'} ${latest.matchday}` : null);
+      return { label, roundMatches };
+  }, [expandedUser, allPredictions, matches]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const finishedStatuses = ['FT', 'FINISHED', 'AET', 'PEN'];
   const allGroupsDone = matches
       .filter(m => !m.round)
-      .every(m => finishedStatuses.includes(m.status));
+      .every(m => FINISHED_STATUSES.includes(m.status));
 
   const getLeagueName = (slug: string) =>
     slug === 'global'
@@ -497,7 +517,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
                               <td colSpan={4} className="px-4 pb-6 pt-2">
                               <div className="animate-in fade-in slide-in-from-top-1 duration-200">
 
-                                  {/* Avatar + Last 3 / Next 3 — hidden once all group games are done */}
+                                  {/* Avatar + most recently locked round's picks — hidden once all League Phase games are done */}
                                   {!allGroupsDone && (
                                   <div className="flex flex-wrap items-start gap-3 mb-4 pb-3 border-b border-white/10">
                                       <div
@@ -515,14 +535,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ users, matches, allPre
 
                                       <div className="flex-1 min-w-[200px] flex flex-col gap-2.5">
                                           <div>
-                                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Last 3</div>
+                                              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                                  {expandedUserDetail?.label ? `${lang.lbRoundLocked || 'Locked'} — ${expandedUserDetail.label}` : (lang.lbNoLockedRounds || 'Nothing locked yet')}
+                                              </div>
                                               <div className="flex flex-wrap gap-1.5">
-                                                  {expandedUserDetail && expandedUserDetail.last3.length > 0 ? (
-                                                      expandedUserDetail.last3.map(({ match: m, pred, pts }) => (
-                                                          <MatchPredictionPill key={m.id} match={m} pred={pred} pts={pts} teams={teams} />
+                                                  {expandedUserDetail && expandedUserDetail.roundMatches.length > 0 ? (
+                                                      expandedUserDetail.roundMatches.map(({ match: m, pred, pts, finished }) => (
+                                                          <MatchPredictionPill key={m.id} match={m} pred={pred} pts={pts} finished={finished} teams={teams} />
                                                       ))
                                                   ) : (
-                                                      <span className="text-[10px] text-slate-400 italic">No finished predictions yet</span>
+                                                      <span className="text-[10px] text-slate-400 italic">{lang.lbNoLockedRoundsHint || "Picks show here once a round locks."}</span>
                                                   )}
                                               </div>
                                           </div>

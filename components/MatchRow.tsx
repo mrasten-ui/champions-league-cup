@@ -138,8 +138,8 @@ export const MatchRow: React.FC<MatchRowProps> = ({
     <div className="border-b border-white/5 last:border-b-0 md:border-b-0 md:last:border-b-0 md:rounded-xl md:border md:border-white/10 md:bg-white/[0.03] md:hover:border-white/20 md:transition-colors">
       <div className="flex flex-col gap-2 px-3 py-3">
         {/* Meta line: kickoff time / live / FT / lock state on the left, scout/rivals on the right */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex items-center gap-1.5 justify-self-start">
             {isLive ? (
               <span className="text-[10px] font-black tabular-nums text-rose-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
@@ -163,12 +163,12 @@ export const MatchRow: React.FC<MatchRowProps> = ({
               <span className={`text-[10px] font-bold tabular-nums ${isUrgentLock ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>{kickoffTime}</span>
             )}
           </div>
-          {homeTeam?.venue && (
-            <div className="flex-1 min-w-0 flex justify-center px-2">
-              <span className="text-[9px] font-medium text-slate-600 truncate" title={homeTeam.venue}>{homeTeam.venue}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
+          <div className="justify-self-center min-w-0 max-w-[45vw] sm:max-w-[160px]">
+            {homeTeam?.venue && (
+              <span className="block text-[9px] font-medium text-slate-600 truncate" title={homeTeam.venue}>{homeTeam.venue}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 justify-self-end">
             {canSpy && !pendingSpy && (
               <button onClick={handleSpyClick} className="p-1 rounded-full text-amber-400 hover:bg-amber-500/10 transition-colors" title={lang.sendScouts || 'Send out the scouts'}>
                 <Users size={13} />

@@ -33,7 +33,7 @@ export const RISK_TIERS: RiskTier[] = [
   { max: 0.70, name: 'The Xabi Alonso',  icon: '🚀', color: '#f59e0b', presetResult: 0.65, presetScoring: 0.60, blurb: 'Fancies an upset, decent goal tallies.' },
   { max: 0.80, name: 'The Postecoglou',  icon: '🎢', color: '#f97316', presetResult: 0.75, presetScoring: 0.85, blurb: 'Loves an upset, goalfests all round.' },
   { max: 0.90, name: 'The Bielsa',       icon: '🌪️', color: '#ef4444', presetResult: 0.85, presetScoring: 0.90, blurb: 'Backs chaos and goals everywhere.' },
-  { max: 1.001, name: 'The Wildcard',    icon: '🎰', color: '#dc2626', presetResult: 0.95, presetScoring: 0.75, blurb: 'Total unpredictability. Anything goes.' },
+  { max: 1.001, name: 'The Keegan',      icon: '🎰', color: '#dc2626', presetResult: 0.95, presetScoring: 0.75, blurb: 'Total chaos — could be 5-4 either way.' },
 ];
 
 export const getRiskTier = (value: number): RiskTier => {
