@@ -158,7 +158,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         if (match.status === 'P') setActivePanel('pens');
     }, [match.status]);
 
-    const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
+    // See MatchRow.tsx's handleActivate — the tapped side jumps to 1 (up) or
+    // stays at 0 (down) instead of always flattening to 0-0, which used to
+    // make the first tap on a fresh match look like it did nothing.
+    const handleActivate = (side: 'home' | 'away', direction: 'up' | 'down') => {
+        const tappedValue = direction === 'up' ? 1 : 0;
+        if (side === 'home') { setLocalHome(tappedValue); setLocalAway(0); }
+        else { setLocalAway(tappedValue); setLocalHome(0); }
+        setIsDirty(true);
+    };
     const handleScoreChange = (side: 'home' | 'away', val: number) => {
         if (side === 'home') setLocalHome(val); else setLocalAway(val);
         setIsDirty(true);
@@ -530,7 +538,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             value={localHome}
                                             onChange={(v) => handleScoreChange('home', v)}
                                             isLocked={isLocked}
-                                            onActivate={handleActivate}
+                                            onActivate={(dir) => handleActivate('home', dir)}
                                             ids={cardId ? { up: 'tour-up-home', down: 'tour-down-home' } : undefined}
                                             saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
                                         />
@@ -539,7 +547,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                             value={localAway}
                                             onChange={(v) => handleScoreChange('away', v)}
                                             isLocked={isLocked}
-                                            onActivate={handleActivate}
+                                            onActivate={(dir) => handleActivate('away', dir)}
                                             ids={cardId ? { up: 'tour-up-away', down: 'tour-down-away' } : undefined}
                                             saveState={isSaved ? 'saved' : (isDirty || isSaving) ? 'syncing' : 'idle'}
                                         />

@@ -5,7 +5,7 @@ interface ScoreStepperProps {
     value: number | null;
     onChange: (val: number) => void;
     isLocked: boolean;
-    onActivate: () => void;
+    onActivate: (direction: 'up' | 'down') => void;
     ids?: { up: string; down: string };
     saveState?: 'idle' | 'syncing' | 'saved';
     /** 'compact' is a shrunk-down version for dense list rows. 'medium' sits between
@@ -35,7 +35,7 @@ export const ScoreStepper: React.FC<ScoreStepperProps> = ({ value, onChange, isL
             <button
                 id={ids?.up}
                 disabled={isLocked}
-                onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(value + 1); }}
+                onClick={(e) => { e.stopPropagation(); if (value === null) onActivate('up'); else onChange(value + 1); }}
                 className={`w-full flex items-center justify-center text-slate-400 hover:text-cyan-400 active:bg-white/10 transition-colors focus:outline-none disabled:hover:text-slate-400 ${btnHeight}`}
             >
                 <ChevronUp size={chevronSize} strokeWidth={3} />
@@ -48,7 +48,7 @@ export const ScoreStepper: React.FC<ScoreStepperProps> = ({ value, onChange, isL
             <button
                 id={ids?.down}
                 disabled={isLocked}
-                onClick={(e) => { e.stopPropagation(); if (value === null) onActivate(); else onChange(Math.max(0, value - 1)); }}
+                onClick={(e) => { e.stopPropagation(); if (value === null) onActivate('down'); else onChange(Math.max(0, value - 1)); }}
                 className={`w-full flex items-center justify-center text-slate-400 hover:text-cyan-400 active:bg-white/10 transition-colors focus:outline-none disabled:hover:text-slate-400 ${btnHeight}`}
             >
                 <ChevronDown size={chevronSize} strokeWidth={3} />

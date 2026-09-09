@@ -98,7 +98,17 @@ export const MatchRow: React.FC<MatchRowProps> = ({
   const canSpy = !isLocked && !isSpied && !!onSpy && rivals.length > 0;
   const showRivals = isSpied || isRealLifeLocked;
 
-  const handleActivate = () => { setLocalHome(0); setLocalAway(0); setIsDirty(true); };
+  // Activating a fresh (null) stepper used to always land on a flat 0-0
+  // regardless of which arrow was tapped — so the very first tap on any
+  // match looked like it did nothing, and needed a second tap to actually
+  // move the number. Now the tapped side jumps straight to 1 (up) or stays
+  // at 0 (down), matching the arrow that was actually pressed.
+  const handleActivate = (side: 'home' | 'away', direction: 'up' | 'down') => {
+    const tappedValue = direction === 'up' ? 1 : 0;
+    if (side === 'home') { setLocalHome(tappedValue); setLocalAway(0); }
+    else { setLocalAway(tappedValue); setLocalHome(0); }
+    setIsDirty(true);
+  };
   const handleScoreChange = (side: 'home' | 'away', val: number) => {
     if (side === 'home') setLocalHome(val); else setLocalAway(val);
     setIsDirty(true);
@@ -207,7 +217,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
                 value={localHome}
                 onChange={(v) => handleScoreChange('home', v)}
                 isLocked={isLocked}
-                onActivate={handleActivate}
+                onActivate={(dir) => handleActivate('home', dir)}
                 saveState={saveState}
               />
               <span className="text-slate-600 text-sm font-black">-</span>
@@ -216,7 +226,7 @@ export const MatchRow: React.FC<MatchRowProps> = ({
                 value={localAway}
                 onChange={(v) => handleScoreChange('away', v)}
                 isLocked={isLocked}
-                onActivate={handleActivate}
+                onActivate={(dir) => handleActivate('away', dir)}
                 saveState={saveState}
               />
             </div>
