@@ -189,14 +189,26 @@ async function syncWindow(fromDate, toDate) {
     const needsLink = !dbMatch.api_id;
     if (needsLink) patch.api_id = uefaId;
 
-    if (dbMatch.status !== status || needsLink) {
+    // mapStatus() collapses every in-play sub-state (1H, HT, 2H, ET, ...) onto
+    // the single literal 'LIVE' — so gating this write on "did the status
+    // string change" meant the score only ever got persisted once, at the
+    // UPCOMING -> LIVE transition (still 0-0), and never again until the
+    // match reached FINISHED. Goals kept flowing into match_events the whole
+    // time (synced unconditionally below), which is why scorers showed up
+    // but the actual scoreline stayed frozen at 0-0 for anything still live.
+    // Write on every poll for a non-upcoming match instead; only the log
+    // line stays gated to real transitions so it doesn't spam every 30s.
+    const needsWrite = needsLink || status !== 'UPCOMING';
+    if (needsWrite) {
       const { error: upErr } = await supabase.from('matches').update(patch).eq('id', dbMatch.id);
       if (upErr) {
         console.error(`  ✗ ${dbMatch.id}:`, upErr.message);
       } else {
         updated++;
         if (needsLink) linked++;
-        console.log(`  ${dbMatch.id}: ${dbMatch.status} → ${status}${needsLink ? ` (linked api_id=${uefaId})` : ''}`);
+        if (dbMatch.status !== status || needsLink) {
+          console.log(`  ${dbMatch.id}: ${dbMatch.status} → ${status}${needsLink ? ` (linked api_id=${uefaId})` : ''}`);
+        }
       }
     }
 
